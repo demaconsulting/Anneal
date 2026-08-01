@@ -20,12 +20,7 @@ that boundary is free to change without documentation cost. That freedom is the 
 lets a design keep moving after the first version ships.
 
 There are deliberately **no requirements, design documents, or verification documents below system
-level**. If you find yourself creating one, stop — that is the heavyweight process reasserting
-itself.
-
-> **Not a regulated-development process.** This process does not produce IEC 62304 or equivalent
-> compliance evidence. Repositories needing that use the
-> [Agents](https://github.com/demaconsulting/Agents) process instead.
+level**. If you find yourself creating one, stop.
 
 # Architecture Tree (Progressive Disclosure)
 

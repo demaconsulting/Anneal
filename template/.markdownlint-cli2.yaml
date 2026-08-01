@@ -33,9 +33,6 @@ config:
   # Allow inline HTML (XML comments used in templates)
   MD033: false
 
-  # Disable first-line-heading: this project uses the "fragment markdown" method where
-  # subsystem, unit, OTS, and shared-package files intentionally start with ## or  ###
-  # (not  #) because they are assembled by Pandoc into a single document via definition.yaml.
-  # In the assembled document the heading hierarchy is correct; markdownlint sees fragments
-  # in isolation and would otherwise raise false positives on every sub-document file.
+  # Disable first-line-heading: template files may begin with a TEMPLATE-DIRECTIVE
+  # comment or YAML front matter before the first heading.
   MD041: false

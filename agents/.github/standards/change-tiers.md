@@ -7,7 +7,7 @@ description: Follow these standards to classify a change and determine which doc
 
 Documentation work is triggered by **contract change**, never by file change. Classifying the change
 first is what keeps routine evolution cheap: most changes touch no documentation at all, and that is
-the correct outcome, not a compliance gap.
+the correct outcome, not a gap.
 
 # The Classifying Question
 

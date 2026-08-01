@@ -13,9 +13,8 @@ Answer three questions about a completed change. Nothing else.
 2. **Was the declared tier honest?**
 3. **Does the architecture tree still describe reality at the level it claims?**
 
-This agent is intentionally narrow. A broad compliance checklist run on every change is what makes
-evolution expensive, and most of what such a checklist finds is better caught by the linter, the
-compiler, or a human reading the diff.
+This agent is intentionally narrow. Most of what a broad checklist would find is better caught by
+the linter, the compiler, or a human reading the diff.
 
 # Step 1 — Load Standards
 

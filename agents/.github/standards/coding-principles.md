@@ -11,14 +11,13 @@ All code MUST follow literate programming principles:
 
 - **Intent Documentation**: Function and method documentation (XmlDoc, Doxygen,
   JSDoc, etc.) MUST explain WHY the function exists and its design purpose -
-  not just restate what it does - because doc comments are where interior intent
-  lives in this process, replacing the per-unit design documents that would
-  otherwise have to be maintained alongside the code
+  not just restate what it does - because doc comments are where interior design
+  intent lives; nothing below the system boundary is documented anywhere else
 - **Logical Separation**: Complex functions use block comments to separate and
   describe logical steps within the implementation
 - **Full Symbol Documentation**: ALL symbols have comprehensive documentation —
-  not just the public interface, because reviewers and auditors must verify every
-  implementation detail. Access-level specifics vary by language; see the language-specific standard.
+  not just the public interface, because interior intent is recorded nowhere else.
+  Access-level specifics vary by language; see the language-specific standard.
 - **Clarity Over Cleverness**: Code should be immediately understandable by team members
 
 ## API Documentation

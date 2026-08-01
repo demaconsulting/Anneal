@@ -8,8 +8,24 @@ globs: ["**/test/**/*.cs", "**/tests/**/*.cs", "**/*Tests.cs", "**/*Test.cs"]
 
 Read these standards first before applying this standard:
 
-- **`testing-principles.md`** - Universal testing principles and dependency boundaries
+- **`testing-principles.md`** - Test lifecycles and universal testing principles
 - **`csharp-language.md`** - C# language development standards
+
+# File Organization
+
+Tests are split by lifecycle, not by source structure:
+
+```text
+test/
+└── {SystemName}.Tests/
+    ├── Contract/
+    │   └── {SystemName}ContractTests.cs   # durable - one test per clause
+    └── ...                                # interior tests - disposable
+```
+
+Contract tests live under `Contract/` so their durability is visible. Interior
+tests sit alongside and may be organized however is convenient — they are deleted
+with the code they cover.
 
 # Package Reference
 
@@ -31,12 +47,11 @@ every test project.
 
 # Test Style
 
-Test names appear in requirements traceability matrices - use the hierarchical
-naming pattern, and follow AAA with labeled comments:
+Contract test names are written verbatim into the clause they verify, so they must
+be stable and greppable. Follow AAA with labeled comments:
 
-- **System tests**: `{SystemName}_{Functionality}_{Scenario}_{ExpectedBehavior}`
-- **Subsystem tests**: `{SubsystemName}_{Functionality}_{Scenario}_{ExpectedBehavior}`
-- **Unit tests**: `{ClassName}_{MethodUnderTest}_{Scenario}_{ExpectedBehavior}`
+- **Contract tests**: `{SystemName}ContractTests.{ClauseBehavior}`
+- **Interior tests**: `{Subject}_{MethodUnderTest}_{Scenario}_{ExpectedBehavior}`
 
 ```csharp
 /// <summary>
@@ -67,9 +82,10 @@ These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 # Quality Checks
 
 - [ ] All tests follow AAA pattern with clear section comments
-- [ ] Test names follow hierarchical naming pattern above
+- [ ] Contract tests live under `Contract/` and use only the system's public surface
+- [ ] Contract test names match the clause that names them, exactly
 - [ ] Each test verifies single, specific behavior (no shared state between tests)
 - [ ] Both success and failure scenarios covered including edge cases
-- [ ] External dependencies mocked with NSubstitute (when mocking is needed)
-- [ ] Tests linked to requirements with source filters where needed
-- [ ] Test results generated in TRX format for ReqStream compatibility (`dotnet test --logger trx`)
+- [ ] External dependencies mocked with NSubstitute in interior tests
+- [ ] Test results generated in TRX format (`dotnet test --logger trx`) so
+      `check-contracts.ps1` can verify clause-to-test links passed

@@ -18,8 +18,7 @@ one sentence.
 
 **If you determine the change is Tier 1 or Tier 2 and the contract has not already been updated,
 stop and report INCOMPLETE.** Contracts are written before implementation, by the `architect` agent.
-Implementing first and documenting after produces descriptions rather than promises, and it is the
-main way this process silently reverts to the heavyweight one.
+Implementing first and documenting after produces descriptions rather than promises.
 
 # Step 2 — Orient by Descending the Tree
 

@@ -57,17 +57,8 @@ Level 3 documents are created only when the subject meets a creation test in
 There is no per-subsystem or per-unit artifact tree. Interior structure under `src/{SystemName}/` is
 organized however the code reads best and carries no documentation obligation.
 
-## Deliberately Absent
+## Not Part of This Template
 
-The following exist in the regulated [Agents](https://github.com/demaconsulting/Agents) process and
-are **intentionally not part of this template**:
-
-- `docs/reqstream/` — requirements below system level
-- `docs/design/` — per-unit and per-subsystem design documents
-- `docs/verification/` — verification design documents
-- `docs/sysml2/` — SysML2 architecture model
-- `.reviewmark.yaml` — formal file review tracking
-- `.config/dotnet-tools.json` — the compliance tool manifest; `check-contracts.ps1` replaces the
-  only check this process still needs, with no tool dependency
-
-Their absence is the process, not an omission. Do not scaffold them.
+Do not scaffold requirements, design, or verification artifact trees below system level, a formal
+review configuration, or an architecture model. This process has none of them; their absence is
+deliberate.

@@ -1,15 +1,10 @@
 # Agents2
 
-Agent definitions, standards, and a repository template for **evolutionary** software development.
-
-This is a sibling to [Agents](https://github.com/demaconsulting/Agents), which targets IEC 62304
-regulated development. Both produce well-documented software; they differ in what they optimize for.
-`Agents` optimizes for auditability and produces a densely cross-referenced artifact set. That
-cross-referencing is exactly what makes a design expensive to change afterwards. `Agents2` optimizes
-for **sustained change** — designs that must keep moving after the first version ships.
+Agent definitions, standards, and a repository template for **evolutionary** software development —
+designs that must keep moving after the first version ships.
 
 > **Not a regulated-development process.** `Agents2` does not produce IEC 62304 or equivalent
-> compliance evidence. Use `Agents` where that is required.
+> compliance evidence.[^1]
 
 ## The Central Idea
 
@@ -63,6 +58,15 @@ at the wrong altitude.
 
 - **`agents/`** — the drop-in payload: `AGENTS.md`, `.github/agents/`, `.github/standards/`
 - **`template/`** — the canonical repository layout and file templates
+- **`docs/user-guide/`** — how to use and maintain this process
+
+## Documentation
+
+- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
+- **[Workflow](docs/user-guide/workflow.md)** — change tiers and agent routing in practice
+- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
+- **[Reference](docs/user-guide/reference.md)** — every agent, standard, and script in detail
+- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
 
 ## Installation
 
@@ -99,18 +103,16 @@ For a new repository, run `@software-architect` to interview and generate the ar
 
 ## What Is Deliberately Absent
 
-Compared to `Agents`, this process has no per-unit requirements, no per-unit or per-subsystem design
-documents, no verification design documents, no SysML2 model, no formal review tracking, and no
-multi-retry orchestration state machine. Each was removed because its cost is paid on **every**
-subsequent change, and evolutionary work pays that cost repeatedly.
-
-ReqStream is also absent — not because requirements tooling is wrong, but because at system level
-the check it performs reduces to "does this named test exist and pass", which
-`check-contracts.ps1` does with no tool manifest, no parallel YAML tree, and no language
-restriction. If you later need a generated trace matrix or platform source filters
-(`windows@TestName`), generate ReqStream YAML from the `## Contract` sections rather than authoring
-it by hand; a generated artifact cannot drift.
+This process has no per-unit requirements, no per-unit or per-subsystem design documents, no
+verification design documents, no architecture model, no formal review tracking, and no multi-retry
+orchestration state machine. Each was left out because its cost is paid on **every** subsequent
+change, and evolutionary work pays that cost repeatedly. See
+[Maintaining](docs/user-guide/maintaining.md) for the full rationale and what must not be
+reintroduced.
 
 ## License
 
 [MIT](LICENSE)
+
+[^1]: `Agents2` is a sibling to [Agents](https://github.com/demaconsulting/Agents), which targets
+    IEC 62304 regulated development. Use `Agents` where compliance evidence is required.

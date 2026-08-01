@@ -8,20 +8,24 @@ globs: ["**/test/**/*.cpp", "**/tests/**/*.cpp", "**/*_test.cpp", "**/*_tests.cp
 
 Read these standards first before applying this standard:
 
-- **`testing-principles.md`** - Universal testing principles and dependency boundaries
+- **`testing-principles.md`** - Test lifecycles and universal testing principles
 - **`cpp-language.md`** - C++ language development standards
 
 # File Organization
 
-Test files mirror the `src/` tree under `test/`, with `_tests` appended to the
-system folder name and each test file name:
+Tests are split by lifecycle, not by source structure:
 
 ```text
 test/
 └── {system_name}_tests/
-    └── {subsystem_name}/
-        └── {unit_name}_tests.cpp   # unit tests for src/{system_name}[/{subsystem_name}...]/{unit_name}.cpp
+    ├── contract/
+    │   └── {system_name}_contract_tests.cpp   # durable - one per clause
+    └── ...                                    # interior tests - disposable
 ```
+
+Contract tests live under `contract/` so their durability is visible. Interior
+tests sit alongside and may be organized however is convenient — they are deleted
+with the code they cover.
 
 # Package Reference
 
@@ -30,12 +34,11 @@ Use `GTest` and `GMock` from the CMake `GTest` package. Link test targets with
 
 # Test Style
 
-Test names appear in requirements traceability matrices - use the hierarchical
-naming pattern with snake_case, split across the gtest suite and test name:
+Contract test names are written verbatim into the clause they verify, so they must
+be stable and greppable. Use snake_case split across the gtest suite and test name:
 
-- **System tests**: `TEST({system_name}_test, {functionality}_{scenario}_{expected_behavior})`
-- **Subsystem tests**: `TEST({subsystem_name}_test, {functionality}_{scenario}_{expected_behavior})`
-- **Unit tests**: `TEST({class_name}_test, {method_name}_{scenario}_{expected_behavior})`
+- **Contract tests**: `TEST({system_name}_contract_test, {clause_behavior})`
+- **Interior tests**: `TEST({subject}_test, {functionality}_{scenario}_{expected_behavior})`
 - Use `TEST_F` with a fixture class when shared setup is needed
 
 ```cpp
@@ -64,9 +67,9 @@ These are non-obvious behaviors that differ from common assumptions:
 # Quality Checks
 
 - [ ] All tests follow AAA pattern with descriptive section comments
-- [ ] Test suite and test names follow hierarchical naming pattern above
+- [ ] Contract tests live under `contract/` and use only the public API from `include/`
+- [ ] Contract test names match the clause that names them, exactly
 - [ ] Each test verifies single, specific behavior (no shared state between tests)
 - [ ] Both success and failure scenarios covered including edge cases
-- [ ] External dependencies mocked with GMock
-- [ ] Tests linked to requirements with source filters where needed
-- [ ] Test results generated in JUnit XML format for ReqStream compatibility (`--gtest_output=xml`)
+- [ ] External dependencies mocked with GMock in interior tests
+- [ ] Test results generated in JUnit XML format (`--gtest_output=xml`)

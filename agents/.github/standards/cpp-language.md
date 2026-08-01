@@ -13,23 +13,23 @@ Read these standards first before applying this standard:
 # File Organization
 
 C++ projects use two parallel top-level folders — `include/` (public API) and
-`src/` (implementation) — both mirroring the same system/subsystem/unit hierarchy
-(test layout is covered in `cpp-testing.md`):
+`src/` (implementation) — with one folder per system in each (test layout is
+covered in `cpp-testing.md`):
 
 ```text
 include/
 └── {system_name}/
-    └── {subsystem_name}/
-        └── {unit_name}.hpp       # public API - installed with the package
+    └── ...                       # public API - installed with the package
 
 src/
 └── {system_name}/
-    └── {subsystem_name}/
-        ├── {unit_name}.cpp       # implementation
-        └── {unit_name}_impl.hpp  # internal header - not part of the public API
+    └── ...                       # implementation and internal headers
 ```
 
-Subsystems may nest to any depth: `{system_name}[/{subsystem_name}...]/{unit_name}.hpp/cpp`.
+The split between `include/` and `src/` is the system boundary made physical:
+headers under `include/` are what consumers compile against, so anything declared
+there is boundary surface and needs a matching contract clause. Structure below
+each system folder however the code reads best — that interior is free to change.
 
 Protect every header with `#pragma once`.
 
