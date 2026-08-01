@@ -195,6 +195,11 @@ The runbook for `check-contracts.ps1`.
 `build.ps1` clears `artifacts/tests` before each run so results cannot accumulate, and CI runs it
 **before** `lint.ps1` so the pass verification has results to read.
 
+`install.ps1 -Prune` reviews files in the payload directories that the payload does not provide. It
+separates the ones Anneal retired, listed in `retired-payload.txt`, from ones it does not recognize,
+and deletes only what you confirm — a repository is free to keep its own agents beside these. Without
+`-Prune` it reports the count rather than acting, because a stale agent file still gets picked.
+
 ### `check-contracts.ps1`
 
 The only mechanically enforced relationship in the process. `system-contracts.md` lists what it

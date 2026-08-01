@@ -131,6 +131,7 @@ Anneal/
 │       ├── skills/        Procedures loaded on demand
 │       └── standards/     Detailed standards, loaded selectively
 ├── template/              Canonical repository layout and file templates
+├── retired-payload.txt    Payload files retired by rename or removal, read by install.ps1 -Prune
 └── lint.ps1, fix.ps1      Tooling for this repository itself
 ```
 
@@ -190,6 +191,12 @@ Checklist for a new agent:
 - [ ] A report template with `**Result**` as the first metadata field
 - [ ] Listed in `agents/AGENTS.md` under **Agent Delegation Guidelines**
 - [ ] Documented in [Reference](reference.md)
+
+Renaming or deleting any payload file — an agent, a standard, or a skill — has one extra obligation:
+append its installed path to `retired-payload.txt`. That file is what lets `install.ps1 -Prune` tell
+a stale Anneal file from one the repository added itself, and a line never removed from it is what
+lets a repository upgrade from any earlier version. Skipping it leaves a superseded agent installed
+and selectable, which is worse than not shipping the rename at all.
 
 ## Changing a Standard
 

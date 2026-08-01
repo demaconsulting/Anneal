@@ -1,0 +1,19 @@
+# Payload files this repository used to ship and no longer does.
+#
+# install.ps1 -Prune reads this to tell a stale Anneal file from a file the
+# target repository added for itself. Both are offered for deletion, but only
+# the ones listed here are named as ours, and an unrecognized file is never
+# presented as safe to remove.
+#
+# Append a line whenever a payload file is renamed or deleted. Never remove a
+# line: a repository may be upgrading from any earlier version, and a line
+# dropped here becomes a stale agent that still gets picked.
+#
+# Paths are relative to the target repository root.
+
+.github/agents/architect.agent.md
+.github/agents/software-architect.agent.md
+.github/agents/contract-check.agent.md
+.github/agents/evolve.agent.md
+.github/agents/developer.agent.md
+.github/standards/change-tiers.md

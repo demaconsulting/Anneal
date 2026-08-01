@@ -251,21 +251,20 @@ promise, and it defeats the only check in this process a machine performs.
 ## Upgrade Anneal in a Repository
 
 ```pwsh
-pwsh ./install.ps1 -TargetRepository ../my-product -Force
+pwsh ./install.ps1 -TargetRepository ../my-product -Force -Prune
 ```
 
 - `-Force` is required to replace the installed agents. It overwrites **every** file the payload
   owns: `AGENTS.md`, `.github/agents/`, `.github/skills/`, `.github/standards/`, and the vendored
   `.github/template/`. There is no backup and no diff. Commit first, and expect to restore your
   `AGENTS.md` Project Overview values and any locally edited standard from the diff afterwards.
-- `install.ps1` only writes files. Agents removed or renamed upstream are left behind in
-  `.github/agents/`, so delete any that no longer exist in the new version — a stale agent file still
-  works and will still be picked. Compare `.github/agents/` against the Anneal `agents/.github/agents/`
-  directory to find them. If you installed before the renames, delete `architect.agent.md`,
-  `software-architect.agent.md`, `contract-check.agent.md`, `evolve.agent.md`, and
-  `developer.agent.md`; they are now `architecture-update`, `architecture-design`, `tier-check`,
-  `dispatch`, and `apply`. Delete the stale standard `change-tiers.md` too; it is now
-  `change-classification.md`.
+- `install.ps1` only writes files, so an agent renamed or removed upstream is left behind — and a
+  stale agent file still works and still gets picked. **`-Prune` finds them.** It lists every file in
+  the payload directories that this payload does not provide, split into ones Anneal retired and ones
+  it does not recognize, and deletes only what you confirm. Answer each group separately: the
+  unrecognized group is where your own agents and standards appear, and they are yours to keep.
+- Without `-Prune` the installer still counts those files and says so, so an upgrade never leaves a
+  stale agent behind silently.
 - Then run **`@template-sync Scaffold`** to create template files added since you installed, followed
   by `@template-sync Patch` to insert new sections into files you already have. Scaffold is the one
   that matters: `Patch` only touches files that already exist, so on its own it will never create a

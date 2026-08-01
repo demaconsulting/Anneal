@@ -29,6 +29,10 @@ quietly.
   every invocation, so it carries routing and defers detail to standards loaded on demand.
 - **The process is enforceable by one mechanical check** — `check-contracts.ps1` is the only thing
   that must pass; everything else is judgement recorded in a report.
+- **A removed or renamed agent must stop being selectable in a target repository** — `install.ps1
+  -Prune` lists payload-directory files the payload does not provide, separates the ones
+  `retired-payload.txt` names as ours from ones the repository added itself, and deletes only what
+  the user confirms.
 
 ## Not Yet Satisfied
 
@@ -40,5 +44,3 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   `AGENTS.md` and any locally edited standard.
 - **An installed payload must be identifiable by version** — nothing written into a target repository
   records which Anneal version produced it, so an upgrade cannot tell what it is upgrading from.
-- **A removed or renamed agent must stop being selectable in a target repository** — `install.ps1`
-  only writes, never prunes, so a stale agent file survives an upgrade and still gets picked.
