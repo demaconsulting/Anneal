@@ -169,7 +169,7 @@ the `TODO` placeholders in the **Project Overview** section.
 For a new repository, run `@architecture-design` to interview and generate the architecture tree, or
 `@template-sync Scaffold` to lay down the structure from the template.
 
-The payload installs seven agents — `evolve` is the entry point for any non-trivial change — and the
+The payload installs seven agents — `dispatch` is the entry point for any non-trivial change — and the
 standards they load. [Reference](docs/user-guide/reference.md) describes each one.
 
 ## License

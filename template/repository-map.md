@@ -44,7 +44,7 @@ rather than from this template. They are deliberately absent from the map and ar
 
 ## Constraints and Backlog
 
-Two root-level files. `evolve` writes to both in Intake mode, at a cost of one bullet; the Intake
+Two root-level files. `dispatch` writes to both in Intake mode, at a cost of one bullet; the Intake
 admission test in `change-classification.md` decides which one an item goes in:
 
 | File | What belongs in it | Read by |

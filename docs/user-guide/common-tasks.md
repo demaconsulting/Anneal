@@ -5,12 +5,12 @@ works this way; this page is the lookup table.
 
 | You want to | Use |
 | --- | --- |
-| Record something you are not acting on now | `evolve` (Intake) |
-| Make a change and not think about how big it is | `evolve` |
+| Record something you are not acting on now | `dispatch` (Intake) |
+| Make a change and not think about how big it is | `dispatch` |
 | Make a small change you already understand | `developer` |
 | Update a contract or the tree without writing code | `architecture-update` |
-| Split or add a system | `evolve` (Tier 2) |
-| Tidy code without changing behavior | `evolve` (Maintenance) |
+| Split or add a system | `dispatch` (Tier 2) |
+| Tidy code without changing behavior | `dispatch` (Maintenance) |
 | Reshape system boundaries | `architecture-design` |
 | Land a stage of an approved migration | `developer` |
 | Decide what to work on next | `BACKLOG.md`, `CONSTRAINTS.md` |
@@ -27,24 +27,24 @@ Intake mode. The cheapest thing in the process, deliberately: if filing a need c
 stop being filed.
 
 ```text
-@evolve file this for later: we will eventually need an S3 storage backend
+@dispatch file this for later: we will eventually need an S3 storage backend
 ```
 
 - **You get**: one bullet appended to whichever of three destinations fits — `BACKLOG.md` for work
   that finishes, the **Not Yet Satisfied** section of `CONSTRAINTS.md` for a standing property the
   system must satisfy, or the **Assumptions** section of `README.md` for a belief the design rests on
   that reality could disprove. No code, no tests, no contract.
-- `evolve` stops there. Nothing is implemented and nothing is scheduled.
+- `dispatch` stops there. Nothing is implemented and nothing is scheduled.
 
 ## Make a Change
 
 The default. Use this whenever you are not certain how far a change reaches — deciding that is
-`evolve`'s main job.
+`dispatch`'s main job.
 
 ```text
-@evolve add a --verbose flag to the CLI
-@evolve return 404 instead of 400 when a record is missing
-@evolve split Storage into Storage and Cache
+@dispatch add a --verbose flag to the CLI
+@dispatch return 404 instead of 400 when a record is missing
+@dispatch split Storage into Storage and Cache
 ```
 
 - **You get**: a declared tier with its rationale, then only the agents that tier needs —
@@ -65,7 +65,7 @@ Skip the routing when the work is obviously interior and you know the approach.
 - **You get**: the change, with `fix.ps1` and `build.ps1` run for you. `check-contracts.ps1` runs
   only on Tier 1 and 2, so an interior change like this one is verified by the build and its tests.
 - If it turns out to need a contract change, `developer` reports INCOMPLETE rather than writing the
-  contract itself. That is deliberate — go through `evolve` instead.
+  contract itself. That is deliberate — go through `dispatch` instead.
 
 ## Tidy Code Without Changing Behavior
 
@@ -73,7 +73,7 @@ Maintenance mode. **Bound it before it starts** — a file set, the kinds of edi
 stopping point. Open-ended "improve the code" is not a task and will be refused.
 
 ```text
-@evolve maintenance in src/Storage: delete dead code and extract duplicated retry
+@dispatch maintenance in src/Storage: delete dead code and extract duplicated retry
 logic, interior code and interior tests only, stop when those two are done
 ```
 
@@ -102,8 +102,8 @@ building, or correcting documentation that has drifted from what the code actual
 - **The second prompt usually comes back INCOMPLETE with a question, and that is the correct
   answer.** When a contract and the code disagree, one of them is a defect, and the agent will not
   guess which. Say which side is authoritative — "the contract is right, the code is wrong" sends it
-  back as a Tier 0 bug fix through `evolve`; "the code is right" makes it a real contract change.
-- `evolve` runs this for you on Tier 1 and 2. Invoke it directly only when you want the documentation
+  back as a Tier 0 bug fix through `dispatch`; "the code is right" makes it a real contract change.
+- `dispatch` runs this for you on Tier 1 and 2. Invoke it directly only when you want the documentation
   to move without a change following it.
 
 ## Split or Add a System
@@ -111,7 +111,7 @@ building, or correcting documentation that has drifted from what the code actual
 A Tier 2 change. It costs more than the others because the system inventory itself moves.
 
 ```text
-@evolve split Storage into Storage and Cache
+@dispatch split Storage into Storage and Cache
 ```
 
 - **You get**: `architecture-update` first, rewriting `overview.md` and every affected `{system}.md`,
@@ -153,8 +153,8 @@ Only after `architecture-design` has written the target tree and `MIGRATION.md`.
 @developer land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
 ```
 
-- **Use `developer`, not `evolve`.** The tree is already written and approved, so there is nothing
-  left to classify; each stage is bounded implementation work. `evolve` will stop and say so.
+- **Use `developer`, not `dispatch`.** The tree is already written and approved, so there is nothing
+  left to classify; each stage is bounded implementation work. `dispatch` will stop and say so.
 - **Give it the stage's bound explicitly**, the way you would bound a Maintenance task. The stage
   boundary is the point — what it must leave working is in `MIGRATION.md`.
 - Every commit says Migration mode and references `MIGRATION.md`. Staging is required here — the rule
@@ -189,7 +189,7 @@ against regressing it. A disproved assumption is a reason to re-cut, so take it 
 - **You get**: `fix.ps1`, then `lint.ps1` looped until clean, up to five passes. It never refactors
   and never makes functional changes.
 
-To check a change you made outside `evolve`:
+To check a change you made outside `dispatch`:
 
 ```text
 @tier-check added the --verbose flag to the CLI
@@ -203,9 +203,9 @@ else's pull request.
 
 ## When a Check Fails
 
-### `evolve` reported FAILED
+### `dispatch` reported FAILED
 
-`evolve` allows [one documentation repair and one code repair](workflow.md#the-repair-pass). Once
+`dispatch` allows [one documentation repair and one code repair](workflow.md#the-repair-pass). Once
 they are spent, or once a repair fails to clear its finding, the agent stops and reports rather than
 looping. What to do next:
 
@@ -214,11 +214,11 @@ looping. What to do next:
 - **Read the Repairs Used field.** It says whether the documentation repair, the code repair, or both
   were consumed, which tells you where the change got stuck.
 - If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — re-run
-  `evolve`, which routes those back through `architecture-update`. `developer` is not allowed to edit
+  `dispatch`, which routes those back through `architecture-update`. `developer` is not allowed to edit
   `docs/architecture/`, so sending a documentation finding to it directly cannot work.
 - If the finding is a genuine implementation gap, `@developer` it directly with the finding quoted.
-  You do not need to re-enter `evolve` for a fix you already understand.
-- Do not re-run `evolve` on the same request hoping for a different route. It classifies from the
+  You do not need to re-enter `dispatch` for a fix you already understand.
+- Do not re-run `dispatch` on the same request hoping for a different route. It classifies from the
   request, so the same request produces the same tier.
 
 ### `check-contracts.ps1` failed
@@ -262,9 +262,9 @@ pwsh ./install.ps1 -TargetRepository ../my-product -Force
   `.github/agents/`, so delete any that no longer exist in the new version — a stale agent file still
   works and will still be picked. Compare `.github/agents/` against the Anneal `agents/.github/agents/`
   directory to find them. If you installed before the renames, delete `architect.agent.md`,
-  `software-architect.agent.md`, and `contract-check.agent.md`; they are now `architecture-update`,
-  `architecture-design`, and `tier-check`. Delete the stale standard `change-tiers.md` too; it is now
-  `change-classification.md`.
+  `software-architect.agent.md`, `contract-check.agent.md`, and `evolve.agent.md`; they are now
+  `architecture-update`, `architecture-design`, `tier-check`, and `dispatch`. Delete the stale
+  standard `change-tiers.md` too; it is now `change-classification.md`.
 - Then run **`@template-sync Scaffold`** to create template files added since you installed, followed
   by `@template-sync Patch` to insert new sections into files you already have. Scaffold is the one
   that matters: `Patch` only touches files that already exist, so on its own it will never create a

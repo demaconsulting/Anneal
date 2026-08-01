@@ -54,11 +54,11 @@ One-line glosses, so terms are not guessed at. The owning file has the actual ru
 All agents write a report to `.agent-logs/{agent-name}-{subject}-{unique-id}.md` and return a summary
 whose first field is `**Result**: (SUCCEEDED|FAILED|INCOMPLETE)`.
 
-### `evolve`
+### `dispatch`
 
 The entry point for any non-trivial change.
 
-- **Invoke**: `@evolve <what you want done>`
+- **Invoke**: `@dispatch <what you want done>`
 - **Does**: determines the work mode first, then for a Change classifies the tier, routes to the
   minimum set of agents, and allows one documentation repair and one code repair
 - **Modes**: Change is the default; **Intake** files a need and stops; **Maintenance** runs a bounded
@@ -126,7 +126,7 @@ Interactive interview that establishes or re-cuts system boundaries.
   which is the approved proposal every Migration commit then references
 - **Produces**: the initial tree, contract clauses naming tests that do not yet exist, and those
   tests listed as implementation obligations
-- **Not for**: ordinary change — use `evolve`
+- **Not for**: ordinary change — use `dispatch`
 
 ### `lint-fix`
 

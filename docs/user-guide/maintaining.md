@@ -113,7 +113,7 @@ folder, and `.trx` results — pinning the template to .NET. `check-contracts.ps
 that matters with no dependencies and no second tree.
 
 **Bounded repairs, no planning phase.** Rejected: the PLANNING → DEVELOPMENT → QUALITY state machine
-with three retries. `evolve` allows one documentation repair and one code repair, because a
+with three retries. `dispatch` allows one documentation repair and one code repair, because a
 documentation finding has to be fixed by `architecture-update` and then still needs an
 implementation. A repair that does not clear its finding means the change was misunderstood at the
 start, and grinding will not fix it.
@@ -156,7 +156,7 @@ undeclared boundary behavior), `testing-principles.md`, `technical-documentation
 Pandoc document collections, the SysML2 model, ReviewMark, and the compliance tool manifest.
 
 New in Anneal: `architecture-documentation.md`, `system-contracts.md`,
-`change-classification.md`, the `evolve`, `architecture-update`, and `tier-check` agents,
+`change-classification.md`, the `dispatch`, `architecture-update`, and `tier-check` agents,
 `check-contracts.ps1`, and the `check-contracts` skill.
 
 ## Changing an Agent
@@ -241,7 +241,7 @@ pwsh ./lint.ps1
 ```
 
 There is no test suite for agent prompts — they are prose. The meaningful verification is running a
-real change through `evolve` in a repository using the process and reading the reports, particularly
+real change through `dispatch` in a repository using the process and reading the reports, particularly
 the tier rationale and the prune results.
 
 ## Known Gaps

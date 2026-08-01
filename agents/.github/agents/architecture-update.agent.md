@@ -21,7 +21,7 @@ Read from `.github/standards/`:
 - `system-contracts.md` — contract structure, clause rules, identifier discipline
 - `change-classification.md` — what the declared tier obliges you to update
 
-If the caller supplied no tier — you were invoked directly rather than by `evolve` — classify the
+If the caller supplied no tier — you were invoked directly rather than by `dispatch` — classify the
 change yourself with `change-classification.md` before going further, and state the tier you chose.
 Step 2
 branches on it.
@@ -55,7 +55,7 @@ For Tier 1 and Tier 2, write the contract before any implementation exists:
   including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
   exist yet — the `developer` agent is obliged to create it under that name.
-- When no implementation will follow — you were invoked directly rather than by `evolve` — put
+- When no implementation will follow — you were invoked directly rather than by `dispatch` — put
   `TODO` in that test name. `check-contracts.ps1` reports a `TODO` name as an unfulfilled obligation
   but errors on a real name that resolves to no test, so this is what leaves the repository green
   until the test is written.

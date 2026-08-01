@@ -21,7 +21,7 @@ the linter, the compiler, or a human reading the diff.
 Read `change-classification.md`, `system-contracts.md`, and `architecture-documentation.md` from
 `.github/standards/`. Load language standards only if judging a specific code-level finding.
 
-If the caller supplied no tier — you were invoked directly rather than by `evolve` — classify the
+If the caller supplied no tier — you were invoked directly rather than by `dispatch` — classify the
 change yourself using `change-classification.md` and label it **inferred** in the report. Tier
 honesty is still judged; you are simply judging it against your own reading rather than someone's
 declaration.

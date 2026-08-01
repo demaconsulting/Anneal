@@ -25,7 +25,7 @@ about applying them.
 
 | Mode / Tier | Agents | Documentation | Typical wall time |
 | --- | --- | --- | --- |
-| Intake | `evolve` | One bullet in `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions | Seconds |
+| Intake | `dispatch` | One bullet in `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions | Seconds |
 | Maintenance | `developer`, bounded | None | Minutes |
 | Change, Tier 0 | `developer` | None | Minutes |
 | Change, Tier 1 | `architecture-update` → `developer` → `tier-check` | One system document | Tens of minutes |
@@ -76,14 +76,14 @@ commits does not make it Tier 0.
 
 ## The Repair Pass
 
-`evolve` gets at most two repairs, and they are not interchangeable: **one documentation repair**
+`dispatch` gets at most two repairs, and they are not interchangeable: **one documentation repair**
 through `architecture-update`, and **one code repair** through `developer`. A documentation finding —
 wrong tier, missing clause, stale tree — routes to the agent that owns `docs/architecture/` and then
 continues into implementation, because a corrected clause still needs a test. Neither is a planning
 phase.
 
 A repair that does not clear the finding it targeted is information: the change was misunderstood at
-the start. `evolve` stops there rather than spending the other repair. The old process allowed three
+the start. `dispatch` stops there rather than spending the other repair. The old process allowed three
 retries through a full replan cycle, and that loop is where most of its wall-clock time went.
 
 ## Worked Examples
@@ -124,7 +124,7 @@ Four questions, in order:
 
 `check-contracts.ps1` already proved the clause-to-test links, so do not re-check those by hand.
 
-## When Not to Use `evolve`
+## When Not to Use `dispatch`
 
 - The change is trivial and obviously interior — call `developer` directly.
 - You are only fixing lint — call `lint-fix`.

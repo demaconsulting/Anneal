@@ -1,11 +1,11 @@
 ---
-name: evolve
-description: Entry point for evolutionary change. Classifies the change tier and routes to the
-  minimum set of agents needed. Use this for any non-trivial change.
+name: dispatch
+description: Entry point for any non-trivial change. Classifies the work by mode and tier, then
+  routes it to the minimum set of agents needed.
 user-invocable: true
 ---
 
-# Evolve Agent
+# Dispatch Agent
 
 Route a change through the least process that is correct for it. Most changes touch no
 documentation and need only the `developer` agent — reaching that conclusion quickly is this agent's
@@ -115,10 +115,10 @@ summary to the caller.
 # Report Template
 
 ```markdown
-# Evolve Report
+# Dispatch Report
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
-**Report**: `.agent-logs/evolve-{subject}-{unique-id}.md`
+**Report**: `.agent-logs/dispatch-{subject}-{unique-id}.md`
 **Tier**: (0|1|2)
 **Tier Rationale**: {one sentence}
 **Breaking**: (yes|no) — yes if any clause was narrowed or removed

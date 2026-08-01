@@ -72,7 +72,7 @@ Routing once classified:
 
 | Mode / Tier | Route |
 | --- | --- |
-| Intake | `evolve` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
+| Intake | `dispatch` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
 | Change, Tier 0 | `developer` |
 | Change, Tier 1 or 2 | `architecture-update` → `developer` → `tier-check` |
 | Maintenance | `developer`, within a declared bound |
@@ -127,7 +127,7 @@ the skill over reconstructing a procedure from memory.
 
 The default agent handles simple, well-understood tasks directly. Delegate only for:
 
-- **Any non-trivial change** → `evolve` (classifies the tier and routes to the minimum process)
+- **Any non-trivial change** → `dispatch` (classifies the tier and routes to the minimum process)
 - **Scoped implementation with a known approach** → `developer`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its tier** → `tier-check`

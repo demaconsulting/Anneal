@@ -14,7 +14,7 @@ Interview the user, then write the initial `docs/architecture/` tree and system 
 Use this to bootstrap a repository or to re-cut an existing one whose system boundaries have drifted
 out of shape. Re-cutting an existing repository is also how a **Migration** proposal is produced: the
 tree this agent proposes, plus the stages it would land in, is what the user approves before any
-Migration commit. For ordinary change, use `evolve` instead — this agent is for establishing
+Migration commit. For ordinary change, use `dispatch` instead — this agent is for establishing
 structure, not evolving it.
 
 When re-cutting, read `CONSTRAINTS.md` first. **Satisfied** entries are conditions the new tree must
