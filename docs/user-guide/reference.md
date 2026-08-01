@@ -14,7 +14,7 @@ The entry point for any non-trivial change.
 
 - **Invoke**: `@evolve <what you want done>`
 - **Does**: determines the work mode first, then for a Change classifies the tier, routes to the
-  minimum set of agents, and allows one repair pass
+  minimum set of agents, and allows one documentation repair and one code repair
 - **Modes**: Change is the default; **Intake** files a need and stops; **Maintenance** runs a bounded
   tidy; **Migration** it refuses to enter without an approved proposal. See
   [Common Tasks](common-tasks.md) for the prompt to use for each.

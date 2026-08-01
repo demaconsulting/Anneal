@@ -97,8 +97,9 @@ Do not check for, and do not fail on:
 # Result Rule
 
 **SUCCEEDED** requires no FAIL findings. Advisory findings do not affect the result. Report FAILED
-findings priority-ordered with a specific, actionable fix for each — the caller has exactly one
-repair pass and needs to spend it well.
+findings priority-ordered with a specific, actionable fix for each — the caller's repairs are
+capped and it needs to spend them well. State plainly whether each finding is the documentation's to
+fix or the implementation's, because that decides which repair the caller spends.
 
 # Report Template
 

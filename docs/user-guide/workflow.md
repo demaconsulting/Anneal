@@ -76,13 +76,15 @@ commits does not make it Tier 0.
 
 ## The Repair Pass
 
-`evolve` gets exactly **one** repair pass. If `tier-check` fails, the findings go back to `developer`
-— unless the finding is that the documentation itself is wrong, in which case they go back through
-`architecture-update`, which owns those files. Either way there is no planning phase.
+`evolve` gets at most two repairs, and they are not interchangeable: **one documentation repair**
+through `architecture-update`, and **one code repair** through `developer`. A documentation finding —
+wrong tier, missing clause, stale tree — routes to the agent that owns `docs/architecture/` and then
+continues into implementation, because a corrected clause still needs a test. Neither is a planning
+phase.
 
-If one repair pass is not enough, that is information: the change was misunderstood at the start.
-Stop and re-scope rather than grinding. The old process allowed three retries through a full replan
-cycle, and that loop is where most of its wall-clock time went.
+A repair that does not clear the finding it targeted is information: the change was misunderstood at
+the start. `evolve` stops there rather than spending the other repair. The old process allowed three
+retries through a full replan cycle, and that loop is where most of its wall-clock time went.
 
 ## Worked Examples
 

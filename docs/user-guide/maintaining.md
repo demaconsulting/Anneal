@@ -112,9 +112,11 @@ full ReqStream integration, which needs a tool manifest, a root `requirements.ya
 folder, and `.trx` results — pinning the template to .NET. `check-contracts.ps1` does the one check
 that matters with no dependencies and no second tree.
 
-**One repair pass, no planning phase.** Rejected: the PLANNING → DEVELOPMENT → QUALITY state machine
-with three retries. If one repair pass is not enough, the change was misunderstood at the start and
-grinding will not fix it.
+**Bounded repairs, no planning phase.** Rejected: the PLANNING → DEVELOPMENT → QUALITY state machine
+with three retries. `evolve` allows one documentation repair and one code repair, because a
+documentation finding has to be fixed by `architecture-update` and then still needs an
+implementation. A repair that does not clear its finding means the change was misunderstood at the
+start, and grinding will not fix it.
 
 ## Repository Layout
 

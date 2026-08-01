@@ -11,11 +11,11 @@ Route a change through the least process that is correct for it. Most changes to
 documentation and need only the `developer` agent — reaching that conclusion quickly is this agent's
 primary job.
 
-This is deliberately **not** a heavyweight state machine. There is no planning phase and there is
-exactly one repair pass. If a change genuinely needs more ceremony than this, it is a Tier 2
-structural change and the `architecture-update` agent handles the thinking before implementation
-starts. If it needs more than *that*, it is not a change at all — it is a Migration, and this agent
-stops.
+This is deliberately **not** a heavyweight state machine. There is no planning phase, and repairs are
+capped at one documentation repair and one code repair. If a change genuinely needs more ceremony
+than this, it is a Tier 2 structural change and the `architecture-update` agent handles the thinking
+before implementation starts. If it needs more than *that*, it is not a change at all — it is a
+Migration, and this agent stops.
 
 # Step 1 — Classify
 
@@ -84,14 +84,24 @@ Call the **tier-check** agent as a sub-agent with:
 
 If it returns SUCCEEDED, go to Step 5 and report.
 
-If it returns FAILED and the repair pass has **not** been used, call the **developer** agent once
-more with the specific findings, then re-run **tier-check**. Do not re-plan. Re-enter Step 2 only
-when the finding is that the documentation itself is wrong — a misclassified tier, a missing clause
-for behavior that turned out to be consumer-observable, or a tree left stale. Those are
-`architecture-update`'s to fix, and sending them to `developer` spends the repair pass on an agent
-forbidden to edit `docs/architecture/`.
+If it returns FAILED, you have at most two repairs and they are **not** interchangeable: one
+documentation repair and one code repair. Each may be used once. Do not re-plan. When findings of
+both kinds are present, take the documentation repair first — a corrected clause changes what the
+implementation owes.
 
-If it returns FAILED after the repair pass, go to Step 5 and report FAILED.
+- If the finding is that the documentation itself is wrong — a misclassified tier, a missing clause
+  for behavior that turned out to be consumer-observable, or a tree left stale — re-enter Step 2.
+  Those are `architecture-update`'s to fix, and `developer` is forbidden to edit `docs/architecture/`.
+  Continue on through Step 3, because a corrected or added clause needs an implementation and a
+  contract test, then re-run **tier-check**. This spends the documentation repair, not the code
+  repair, so a code finding that survives can still be repaired once.
+- Otherwise call the **developer** agent once more with the specific findings, then re-run
+  **tier-check**. This spends the code repair.
+
+Stop early if a repair does not clear the finding it targeted. A finding that survives its owning
+agent is a scoping problem, not a repair problem, and spending the other repair on it will not help.
+
+When both repairs are spent, or a repair failed to clear its finding, go to Step 5 and report FAILED.
 
 # Step 5 — Report
 
@@ -108,7 +118,7 @@ summary to the caller.
 **Tier**: (0|1|2)
 **Tier Rationale**: {one sentence}
 **Breaking**: (yes|no) — yes if any clause was narrowed or removed
-**Repair Pass Used**: (yes|no)
+**Repairs Used**: (none | documentation | code | both)
 
 ## Contract Impact
 

@@ -179,11 +179,14 @@ else's pull request.
 
 ### `evolve` reported FAILED
 
-`evolve` gets [exactly one repair pass](workflow.md#the-repair-pass). Once it is spent, the agent
-stops and reports rather than looping. What to do next:
+`evolve` allows [one documentation repair and one code repair](workflow.md#the-repair-pass). Once
+they are spent, or once a repair fails to clear its finding, the agent stops and reports rather than
+looping. What to do next:
 
 - **Read the Required Fixes in the tier-check report.** They are priority-ordered with a specific
-  action each, because the repair pass has to be spent well.
+  action each, because the repairs have to be spent well.
+- **Read the Repairs Used field.** It says whether the documentation repair, the code repair, or both
+  were consumed, which tells you where the change got stuck.
 - If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — re-run
   `evolve`, which routes those back through `architecture-update`. `developer` is not allowed to edit
   `docs/architecture/`, so sending a documentation finding to it directly cannot work.
