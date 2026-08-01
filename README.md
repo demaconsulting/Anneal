@@ -44,7 +44,8 @@ decides both how much process the task gets and what the agent is permitted to t
 - **One command to install**, from a clone you check out at the revision you want.
 
 **One of these is enforced by a machine; the rest are instructions.** `check-contracts.ps1` fails the
-build when a contract clause names no test, or names a test that is missing, stale, or failing.
+build when a contract clause names no test, or names a test that is missing, stale, or failing — and
+`test-check-contracts.ps1` holds it to that, one fixture repository per documented failure.
 Everything else above is a rule agents are told to follow, held by prompt and review rather than by
 tooling.
 
@@ -144,6 +145,8 @@ stop earning their place.
   `.github/standards/`
 - **`template/`** — the canonical repository layout and file templates
 - **`docs/user-guide/`** — how to use and maintain this process
+- **`test-check-contracts.ps1`** — fixture suite proving `check-contracts.ps1` still fails in every
+  way its skill file documents
 
 ## Documentation
 

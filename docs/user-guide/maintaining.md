@@ -240,21 +240,34 @@ It parses a specific markdown shape. If you change the clause format in `system-
 script's regexes must change with it — and vice versa. They are coupled by design, and that coupling
 is the price of not having a second artifact tree.
 
-Test any change against a synthetic repository covering every path: valid clause, missing test,
-duplicate ID, clause with no test, `TODO` obligation, a test name surviving only in a comment, a
-name that is a prefix of a longer one, a `.trx` outside the configured location, and results older
-than the test sources. Then verify the clean case still exits 0.
+**`test-check-contracts.ps1` must pass before and after any change to it.** The suite builds a
+throwaway fixture repository per case in a temp directory — no .NET toolchain needed, because the
+`.trx` files are written directly, which is also how a case controls result age and outcome. It
+covers the clean case plus every failure the **check-contracts** skill documents.
+
+Adding a case is a dozen lines: build a repository with `New-Repo`, `Set-SystemDoc`,
+`Set-ContractTests` and `Set-Trx`, then assert with `Test-Case` on the exit code and the message
+substrings. Assert on `-Reject` as well as `-Expect` where a case is about something *not* firing.
+
+A new case earns its place by failing when the behavior it protects is removed. Confirm that: comment
+out the line in `check-contracts.ps1` that implements the rule, watch the case fail, then restore it.
+A case that passes either way is documentation, not a test — that mistake was made and caught here
+once already, in the fixture for comment stripping.
 
 ## Verifying a Change to This Repository
 
 ```pwsh
 pwsh ./fix.ps1
 pwsh ./lint.ps1
+pwsh ./test-check-contracts.ps1
 ```
 
-There is no test suite for agent prompts — they are prose. The meaningful verification is running a
-real change through `dispatch` in a repository using the process and reading the reports, particularly
-the tier rationale and the prune results.
+`.github/workflows/build.yml` runs the last two on every push and pull request.
+
+There is no test suite for agent prompts — they are prose, and every defect found in them so far was
+found by a person reading. The meaningful verification is running a real change through `dispatch` in
+a repository using the process and reading the reports, particularly the tier rationale and the prune
+results.
 
 ## Known Gaps
 
