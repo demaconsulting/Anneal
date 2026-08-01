@@ -182,10 +182,12 @@ plausible.
 When in doubt, delete. Git has the history, and a deleted document that turns out to be needed is
 cheaper to restore than a stale one is to discover.
 
-## Size Budgets
+## Length
 
-`README.md` three paragraphs, `overview.md` two pages, `{system}.md` three pages,
-`{system}/{section}.md` two pages.
+There is no page count. A document is long enough when a reader at that altitude can stop there and
+act, and too long when it grew for a reason that belongs at another level — capabilities enumerated
+in the README, a contract restated in `overview.md`, decomposition detail in a system document.
+`architecture-documentation.md` holds the table of causes.
 
-These are smell detectors, not lint rules. Exceeding one usually means detail has crept down from a
-level that should not own it, or that a system has grown too large. Re-examine rather than reformat.
+The remedy is to move the material to the level that owns it, or delete it. Never to trim prose that
+earns its place: a short document missing the *why* costs the reader a descent.

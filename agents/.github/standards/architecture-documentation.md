@@ -169,19 +169,27 @@ The `architecture-update` agent MUST perform a prune check on every Tier 1 and T
 the section documents under the affected system and confirm each still meets a creation test.
 Undeleted documentation is the mechanism by which a tree silently becomes an anchor.
 
-# Size Budgets
+# Length
 
-Budgets are smell detectors, not lint rules. Exceeding one means *re-examine*, not *reformat*.
+A document is the right length when a reader at that altitude can stop there and act. There is no
+page count: a hello-world repository and a product of eleven systems both have a correct `README.md`,
+and they are not the same size.
 
-| Document | Budget |
+Length should scale with the number of things at the document's **own** altitude — features for the
+README, systems for `overview.md`, promises and parts for a system document — and never with the
+volume of code beneath it. So the signal is never that a document is long. It is **what made it
+long**:
+
+| Document | Re-examine when it grew because |
 | --- | --- |
-| `README.md` | 3 pages before Installation |
-| `overview.md` | 2 pages |
-| `{system}.md` | 3 pages |
-| `{system}/{section}.md` | 2 pages |
+| `README.md` | capabilities are enumerated rather than summarized, or a system's internals surfaced |
+| `overview.md` | a system's contract or interior is restated instead of linked |
+| `{system}.md` | decomposition detail crept in that a section document should own, or the system is too large |
+| `{system}/{section}.md` | it covers more than one non-obvious thing, or its subject no longer meets a creation test |
 
-If a system document exceeds its budget, the usual cause is that decomposition detail has crept in
-that belongs in a section document — or that the system is too large.
+Each of those is a reason to move material to the level that owns it, or to delete it. None is a
+reason to trim prose that earns its place: a short document missing the *why* is the more expensive
+failure, because the reader then has to descend.
 
 # Writing Guidelines
 
@@ -206,4 +214,4 @@ that belongs in a section document — or that the system is too large.
 - [ ] Level 2 and 3 documents carry `level` and `covers` front matter
 - [ ] Every section document still satisfies at least one creation test
 - [ ] Section documents whose subject was removed were deleted in the same change
-- [ ] No document exceeds its size budget without a deliberate reason
+- [ ] No document is long for a reason that belongs at another level

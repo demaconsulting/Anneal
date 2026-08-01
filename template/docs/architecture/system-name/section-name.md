@@ -14,8 +14,8 @@ covers:
        - Cross-cutting mechanism many units must participate in correctly
      If none apply, DO NOT CREATE THIS FILE. Documenting class structure, restating the
      public API, describing test coverage, or recording history are all disqualifying.
-     This document is DELETED in the same change that obsoletes its subject.
-     Budget: 2 pages. Remove this block. -->
+     This document is DELETED in the same change that obsoletes its subject. It covers exactly
+     one non-obvious thing; if it is covering two, split it. Remove this block. -->
 
 [← {System Name}](../{system-name}.md)
 

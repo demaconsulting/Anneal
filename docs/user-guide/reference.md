@@ -111,7 +111,7 @@ Verifies a completed change against its declared tier. Deliberately narrow.
   changes, deleted interior tests, coverage percentages, lint and formatting, pre-existing issues in
   untouched files
 
-Size budget overruns and drift flags are **advisory** and never fail the result.
+Length observations and drift flags are **advisory** and never fail the result.
 
 ### `architecture-design`
 
@@ -156,7 +156,7 @@ Loaded selectively per task using the matrix in `AGENTS.md`. Load only what the 
 
 | Standard | Owns |
 | --- | --- |
-| `architecture-documentation.md` | The four levels, exclusive ownership, the one-file test, size budgets |
+| `architecture-documentation.md` | The four levels, exclusive ownership, the one-file test, document length |
 | `system-contracts.md` | Contract placement and structure, clause rules, enforcement, identifiers, sizing |
 | `change-classification.md` | The classifying question, tier obligations, tier discipline, worked examples |
 | `coding-principles.md` | Literate coding, API documentation, design principles, anti-patterns |

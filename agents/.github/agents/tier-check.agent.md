@@ -80,7 +80,7 @@ Then judge what the script cannot, for each system whose boundary was touched:
   restate it. Editing a parent to mirror a child is a FAIL.
 - **Orphans**: section documents describing a removed subject are a FAIL.
 - **Links**: parent-to-child links resolve; new documents are reachable from `overview.md`.
-- **Size budgets**: exceeding a budget is ADVISORY, never a FAIL.
+- **Length**: a document that grew for a reason belonging at another level is ADVISORY, never a FAIL.
 
 # Explicitly Out of Scope
 
@@ -143,5 +143,5 @@ fix or the implementation's, because that decides which repair the caller spends
 
 ## Advisory (non-blocking)
 
-{Drift flags, size budget overruns, and observations that do not affect the result}
+{Drift flags, length observations, and other notes that do not affect the result}
 ```

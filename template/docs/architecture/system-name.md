@@ -9,8 +9,9 @@ covers:
      This file owns the system's CONTRACT, its dependencies, its internal decomposition
      and the RATIONALE for it, and decisions local to this system. It does NOT restate
      the interactions described in overview.md, and it does NOT document individual
-     classes - that intent lives in doc comments on the members themselves.
-     Budget: 3 pages. Remove this block. -->
+     classes - that intent lives in doc comments on the members themselves. If this file is
+     getting long, the cause is decomposition detail that a section document should own, or a
+     system that is too large. Remove this block. -->
 
 [← Architecture Overview](./overview.md)
 

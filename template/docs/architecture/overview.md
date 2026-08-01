@@ -8,8 +8,8 @@ covers:
      architecture-documentation.md before writing it. This file owns the system inventory
      and the interactions BETWEEN systems. It does NOT describe what is inside any system.
      Give each system exactly one line of role in the composition - never a summary of its
-     contents, because a summary makes every system change dirty this file. Budget: 2 pages.
-     Remove this block. -->
+     contents, because a summary makes every system change dirty this file. Length follows the
+     number of systems, never the size of the code inside them. Remove this block. -->
 
 [← Project README](../../README.md)
 

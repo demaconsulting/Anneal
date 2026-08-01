@@ -19,8 +19,9 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
 ## Features
 
 <!-- TEMPLATE-DIRECTIVE: What the user gets, in their words, not yours. Each bullet is an outcome
-     that stays true as the implementation changes. Bold lead-in, then one sentence. Six to ten
-     bullets. If a bullet would need editing when a system changes, it is pitched too low. Remove
+     that stays true as the implementation changes. Bold lead-in, then one sentence. One bullet per
+     outcome a user would actually name and no padding - usually six to ten, fewer for a small
+     product. If a bullet would need editing when a system changes, it is pitched too low. Remove
      this block. -->
 
 - **TODO: outcome** — TODO: one sentence on what that means for the person using it.
@@ -33,8 +34,8 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
      rather than argue about them. Each must say something no feature bullet already says; if it
      restates a feature, delete it. Pitch at the same altitude as Features: a requirement that a
      system change would force you to edit belongs to that system's contract instead. Prose, no
-     identifiers and no named tests - level 0 is enforced by review, not by script. Three to six
-     bullets. Remove this block. -->
+     identifiers and no named tests - level 0 is enforced by review, not by script. As many as
+     genuinely hold, usually three to six. Remove this block. -->
 
 - TODO: a property that must hold, stated so it can be checked.
 
@@ -53,7 +54,7 @@ TODO: Two to four paragraphs on the organizing idea behind the product.
      falsify; a constraint in CONSTRAINTS.md is a condition you have decided the system must meet.
      Test: could reality prove this wrong without anyone changing their mind? Then it is an
      assumption. Record only load-bearing ones - if it were false, the shape below would be wrong.
-     Three to six bullets, or omit the section entirely if the design rests on nothing unusual. An
+     Usually three to six, or omit the section entirely if the design rests on nothing unusual. An
      assumption that is disproved is a re-cut trigger, not a bug. Remove this block. -->
 
 - **TODO: the belief, in a bold lead-in** — TODO: what rests on it, and what would follow if it

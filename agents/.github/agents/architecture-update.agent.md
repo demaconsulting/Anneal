@@ -75,7 +75,8 @@ Apply the change at the level chosen in Step 2 and nowhere else. Then:
 - Confirm the `covers` front matter still names the right source paths.
 - Confirm every parent links to its children and every child links back to its parent.
 - Confirm no level summarizes a level below it.
-- Confirm each document is within its size budget, or note why it is not.
+- Confirm no document grew for a reason that belongs at another level, per the length table in
+  `architecture-documentation.md`; move or delete the material rather than trimming prose.
 
 If the change contradicts an assumption recorded in `README.md`, stop and report INCOMPLETE naming
 the assumption. A disproved assumption is a re-cut trigger belonging to `architecture-design`, not
