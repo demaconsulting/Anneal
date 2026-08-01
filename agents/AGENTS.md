@@ -43,6 +43,8 @@ file.
 # Project Structure
 
 ```text
+├── CONSTRAINTS.md
+├── BACKLOG.md
 ├── docs/
 │   └── architecture/
 │       ├── overview.md
@@ -58,7 +60,8 @@ file.
 
 # Classification (ALL Agents)
 
-**Classify before working.** Read `.github/standards/change-tiers.md` and classify along both axes
+**Classify before working.** Read `.github/standards/change-classification.md` and classify along
+both axes
 before touching anything. That file is the **single definition** of both — this file names them and
 routes; it never restates what they mean.
 
@@ -69,11 +72,11 @@ Routing once classified:
 
 | Mode / Tier | Route |
 | --- | --- |
-| Intake | `evolve` records it; no other agent runs |
+| Intake | `evolve` appends one bullet to `CONSTRAINTS.md` or `BACKLOG.md`; no other agent runs |
 | Change, Tier 0 | `developer` |
-| Change, Tier 1 or 2 | `architect` → `developer` → `contract-check` |
+| Change, Tier 1 or 2 | `architecture-update` → `developer` → `tier-check` |
 | Maintenance | `developer`, within a declared bound |
-| Migration | approved proposal → `software-architect` → staged `developer` work |
+| Migration | approved proposal → `architecture-design` → staged `developer` work |
 
 Modes and tiers may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
@@ -86,18 +89,17 @@ report.
 - **Interior tests** are disposable. Delete or rewrite them freely when the code they cover is
   restructured. They need no clause and no justification.
 
-The clause-to-test link is the **only** mechanically enforced relationship in this process.
-`check-contracts.ps1` — run by `lint.ps1` — fails CI when a system document has no `## Contract`
-section, when a clause ID does not parse, is duplicated, names no test, names something that is not
-a test method under `test/{System}.Tests/Contract/`, or is backed by a result that is stale or not
-passing. It fails closed: a clause it cannot parse is an error, never a silent skip. Run
-`pwsh ./build.ps1` before it, or the pass verification has no results to read. Everything else here
+`testing-principles.md` owns the detail. The clause-to-test link is the **only** mechanically
+enforced relationship in this process: `check-contracts.ps1`, run by `lint.ps1`, fails CI when a
+clause is not backed by a boundary test that exists and passed, and it fails closed. Run
+`pwsh ./build.ps1` before it, or the pass verification has no results to read. `system-contracts.md`
+lists what it rejects; the **check-contracts** skill says how to fix each one. Everything else here
 is judgement, deliberately.
 
 # Standards Application (ALL Agents Must Follow)
 
 Read the relevant standards from `.github/standards/` before working. Load only what your task
-needs, selecting by the file in scope and the **languages** field above:
+needs — **usually two or three** — selecting by the file in scope and the **languages** field above:
 
 - **Any code**: `coding-principles.md`
 - **C# code**: `coding-principles.md`, `csharp-language.md`
@@ -105,7 +107,7 @@ needs, selecting by the file in scope and the **languages** field above:
 - **C# tests**: `testing-principles.md`, `csharp-testing.md`
 - **Architecture documents**: `architecture-documentation.md`
 - **System contracts**: `system-contracts.md`
-- **Classifying work**: `change-tiers.md`
+- **Classifying work**: `change-classification.md`
 - **Any other documentation**: `technical-documentation.md`
 
 **Each rule has exactly one owner.** A standard is the sole definition of its subject; this file and
@@ -118,8 +120,8 @@ to report — not a choice to make.
 Skills in `.github/skills/` are loaded on demand, when the situation they describe arises. Prefer
 the skill over reconstructing a procedure from memory.
 
-- **check-contracts** — running and interpreting `check-contracts.ps1`: which mode to use for each
-  tier, and how to resolve each failure
+- **check-contracts** — running and interpreting `check-contracts.ps1`: which invocation to use for
+  each tier, and how to resolve each failure
 
 # Agent Delegation Guidelines
 
@@ -127,9 +129,9 @@ The default agent handles simple, well-understood tasks directly. Delegate only 
 
 - **Any non-trivial change** → `evolve` (classifies the tier and routes to the minimum process)
 - **Scoped implementation with a known approach** → `developer`
-- **Contract or architecture tree changes** → `architect`
-- **Verifying a completed change against its tier** → `contract-check`
-- **Bootstrapping or re-cutting system boundaries** → `software-architect`
+- **Contract or architecture tree changes** → `architecture-update`
+- **Verifying a completed change against its tier** → `tier-check`
+- **Bootstrapping or re-cutting system boundaries** → `architecture-design`
 - **Pre-PR lint cleanup** → `lint-fix`
 - **Repository layout versus template** → `template-sync`
 
@@ -161,9 +163,10 @@ Result semantics:
 
 - **Do not write documentation an agent was not obliged to write.** Documentation nobody asked for is
   future maintenance debt paid by every subsequent change.
-- **Delete in the same change that obsoletes.** Pruning is never deferred.
-- **Never restate a lower level's content at a higher level.**
-- **Never create a requirement below system level.**
+- **Never create a requirement below system level.** There is no such artifact in this process.
+
+`architecture-documentation.md` owns the rest — level ownership, and deleting in the same change that
+obsoletes.
 
 # Language and Spelling (ALL Agents)
 
@@ -184,24 +187,25 @@ If neither resolves, report INCOMPLETE and say which — do not guess at templat
 
 # Key Configuration Files
 
+Scripts, all at the repository root:
+
+- **`fix.ps1`** — applies all auto-fixers silently; always exits 0
+- **`lint.ps1`** — runs all lint checks; exits 1 on failure
+- **`build.ps1`** — builds the solution, clears `artifacts/tests`, and runs all tests
+- **`check-contracts.ps1`** — verifies every contract clause names a boundary test that exists and
+  passed
+
+**Protected — do not modify** unless the task explicitly requires it and the change preserves the
+documented intent. These carry deliberate configuration, and the four scripts above are protected
+too:
+
 - **`.editorconfig`** — code formatting rules
 - **`.cspell.yaml`** — spell-check configuration and technical term dictionary
 - **`.markdownlint-cli2.yaml`** — markdown formatting rules
 - **`.yamllint.yaml`** — YAML formatting configuration
-- **`package.json`** — Node.js dependencies for formatting tools
-- **`pip-requirements.txt`** — Python dependencies for yamllint and yamlfix
-- **`fix.ps1`** — applies all auto-fixers silently; always exits 0
-- **`lint.ps1`** — runs all lint checks; exits 1 on failure
-- **`check-contracts.ps1`** — verifies every contract clause names a boundary test that exists and passed
-- **`build.ps1`** — builds the solution, clears `artifacts/tests`, and runs all tests
 
-# Protected Configuration Files
-
-These contain deliberate configuration with documented intent. Do not modify unless the task
-explicitly requires it and the change preserves the documented intent:
-
-- `.cspell.yaml`, `.editorconfig`, `.markdownlint-cli2.yaml`, `.yamllint.yaml`
-- `fix.ps1`, `lint.ps1`, `build.ps1`, `check-contracts.ps1`
+Dependency manifests: **`package.json`** (markdown and spell tooling), **`pip-requirements.txt`**
+(yamllint and yamlfix).
 
 # Formatting (After Making Changes)
 

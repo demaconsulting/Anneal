@@ -6,8 +6,8 @@
      systems, restate contracts, describe internals, or write a feature list that mirrors contract
      clauses; those are owned by lower levels and restating them here creates the coupling this
      process exists to avoid. Present tense, no roadmap language - unmet needs belong in
-     constraints, not here. Use relative links for files inside this repository and absolute URLs
-     for external resources. Remove this block. -->
+     CONSTRAINTS.md or BACKLOG.md, not here. Use relative links for files inside this repository and
+     absolute URLs for external resources. Remove this block. -->
 
 # {ProjectName}
 

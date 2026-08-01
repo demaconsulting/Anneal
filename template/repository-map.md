@@ -24,6 +24,8 @@ rather than from this template. They are deliberately absent from the map and ar
 | File | Purpose |
 | --- | --- |
 | `README.md` | Level 0 of the architecture tree; product purpose and entry point |
+| `CONSTRAINTS.md` | Conditions the architecture must satisfy, met and unmet (see below) |
+| `BACKLOG.md` | Wanted but unscheduled work (see below) |
 | `.editorconfig` | Code formatting rules |
 | `.cspell.yaml` | Spell-check dictionary and configuration |
 | `.markdownlint-cli2.yaml` | Markdown formatting rules |
@@ -40,6 +42,24 @@ rather than from this template. They are deliberately absent from the map and ar
 | `.github/workflows/build.yml` | CI gate; runs `build.ps1` **before** `lint.ps1` so the pass check has results |
 | `{ProjectName}.slnx` | Solution file (.NET repositories) |
 
+## Constraints and Backlog
+
+Two root-level files. `evolve` writes to both in Intake mode, at a cost of one bullet; the Intake
+admission test in `change-classification.md` decides which one an item goes in:
+
+| File | What belongs in it | Read by |
+| --- | --- | --- |
+| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry says the condition and either what upholds it or why the current shape blocks it. | `architecture-design` before re-cutting; `architecture-update` at Tier 2 |
+| `BACKLOG.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
+
+Neither is a plan, and neither is scheduled. There is deliberately no `ROADMAP.md`: scheduling is
+what milestones and project boards do better, and a scheduled-work file goes stale faster than
+anything else in a repository.
+
+A constraint is never deleted for being met — it moves to **Satisfied** and stays as the guard rail
+against regressing it. It is removed only when the condition stops being required. Backlog entries
+are deleted when they ship or stop being wanted.
+
 ## Architecture Tree
 
 | File | Level | Required |
@@ -47,6 +67,9 @@ rather than from this template. They are deliberately absent from the map and ar
 | `docs/architecture/overview.md` | 1 | Yes — exactly one |
 | `docs/architecture/{system-name}.md` | 2 | Yes — one per system |
 | `docs/architecture/{system-name}/{section-name}.md` | 3 | No — exceptional; most systems have none |
+
+Everything under `docs/` is a document collection that compiles to a PDF, so only files belonging in
+that document go there. The intake registers above are working files and live at the root.
 
 Level 3 documents are created only when the subject meets a creation test in
 `architecture-documentation.md`, and are deleted in the same change that obsoletes them.

@@ -1,5 +1,5 @@
 ---
-name: software-architect
+name: architecture-design
 description: Interactive agent that interviews the user and produces the progressive-disclosure
   architecture tree for a new or restructured repository.
 user-invocable: true
@@ -7,13 +7,49 @@ disable-model-invocation: false
 default-mode: sync
 ---
 
-# Software Architect Agent
+# Architecture Design Agent
 
 Interview the user, then write the initial `docs/architecture/` tree and system contracts.
 
 Use this to bootstrap a repository or to re-cut an existing one whose system boundaries have drifted
-out of shape. For ordinary change, use `evolve` instead — this agent is for establishing structure,
-not evolving it.
+out of shape. Re-cutting an existing repository is also how a **Migration** proposal is produced: the
+tree this agent proposes, plus the stages it would land in, is what the user approves before any
+Migration commit. For ordinary change, use `evolve` instead — this agent is for establishing
+structure, not evolving it.
+
+When re-cutting, read `CONSTRAINTS.md` first. **Satisfied** entries are conditions the new tree must
+still meet — the current shape upholds them, and a re-cut is the easiest way to lose one by accident.
+**Not Yet Satisfied** entries are what the current decomposition gets in the way of, and are usually
+the reason a re-cut is being considered. Move any the new tree meets into **Satisfied**.
+
+# Re-Cutting an Existing Repository
+
+When `docs/architecture/` already exists, read it before asking the first question. The current tree
+is the starting proposal, not a blank sheet: interview to find what is wrong with it, and do not
+re-ask what the existing documents already answer.
+
+Existing files do not by themselves mean a re-cut. `template-sync Scaffold` writes a skeleton tree,
+and Getting Started runs it before this agent, so a fresh repository can arrive here with documents
+that have never held real content. If the systems have no real clauses and no recorded decisions,
+this is a bootstrap. If you cannot tell, ask — you are already in an interview.
+
+A re-cut rewrites files that cannot be reconstructed. Check the working tree is clean first, and if
+it is not, say so and let the user commit before you write anything.
+
+Three things must survive a re-cut:
+
+- **Decisions.** Carry `## Repository-Wide Decisions` and each system's `## Decisions` across. A
+  decision the new tree overturns is rewritten to record what superseded it, never silently dropped —
+  the reasoning is the most expensive content in the tree and cannot be reconstructed.
+- **`README.md`.** Update it in place. It describes the product, and a re-cut does not change what
+  the product is.
+- **Contract clauses that still hold.** Keep the clause and its test name. Moving a promise to a
+  differently-named system does not release consumers who already rely on it. `system-contracts.md`
+  owns what happens to the identifier when the owning system changes; follow it and report the old
+  identifier for each clause you move.
+
+Delete the documents of systems the new tree no longer has, and list every deletion in the report.
+Writing a new tree over an old one otherwise leaves orphans behind that nothing will ever prune.
 
 # Standards
 
@@ -90,11 +126,25 @@ Write the tree directly into the repository:
 - `docs/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
   genuine non-obvious specific meeting a creation test
 
-Also update `README.md` to two or three paragraphs plus a link to the overview.
+Also update `README.md` to the shape the template gives it — product, features, how it works,
+installation, usage, and a link to the overview. Do not reduce it to a pointer: level 0 is the only
+place "what the user gets" can live, because contracts describe what systems promise *each other*.
 
-Fetch each file's counterpart from the template (resolved per the `# Reference Template` section of
-`AGENTS.md`). If the template cannot be resolved, write the tree from the standards instead and note
-in the report that template structure was unavailable.
+**On a bootstrap**, fetch each file's counterpart from the template (resolved per the
+`# Reference Template` section of `AGENTS.md`) and fill it in. Execute and then delete every
+`TEMPLATE-DIRECTIVE` comment, and resolve every `TODO` placeholder from what the interview
+established — never leave either in a written file. If the template cannot be resolved, write the
+tree from the standards instead and note in the report that template structure was unavailable.
+
+**On a re-cut, never fetch a template counterpart for a file that already exists.** Open the existing
+file and edit it in place, changing only what the new decomposition actually changes. The template is
+a shape, and a file that already has that shape needs nothing from it. Fetching and rewriting is
+exactly how the decisions, clauses, and README prose named above get lost — the section above says
+they must survive, and this is the step that would destroy them.
+
+Before writing anything, list every file you will create, update, and delete, and get the user's
+confirmation on that list. "Shall I write the tree?" is not enough warning that existing files are
+about to change.
 
 **Resist creating section documents.** Most systems need none at the outset. Anything speculative
 will be pruned later at a cost; write it only if you can name which creation test it meets.
@@ -107,10 +157,10 @@ Run `pwsh ./fix.ps1`, then report per the AGENTS.md reporting requirements.
 # Report Template
 
 ```markdown
-# Software Architect Report
+# Architecture Design Report
 
 **Result**: (SUCCEEDED|INCOMPLETE)
-**Report**: `.agent-logs/software-architect-{subject}-{unique-id}.md`
+**Report**: `.agent-logs/architecture-design-{subject}-{unique-id}.md`
 
 ## Systems
 
@@ -120,7 +170,7 @@ Run `pwsh ./fix.ps1`, then report per the AGENTS.md reporting requirements.
 
 ## Files Written
 
-{Every file created or updated}
+{Every file created, updated, or deleted}
 
 ## Implementation Obligations
 

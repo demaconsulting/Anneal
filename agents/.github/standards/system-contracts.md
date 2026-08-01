@@ -91,7 +91,7 @@ rots silently. Everything else in this process is judgement, deliberately. This 
 because a script does it faster and more reliably than an agent can.
 
 Clauses whose test name contains `TODO` are reported as **unfulfilled obligations** — a warning, not
-an error — so `software-architect` can write a contract before its tests exist. The `contract-check`
+an error — so `architecture-design` can write a contract before its tests exist. The `tier-check`
 agent runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes them to errors once
 implementation is complete; that agent owns closing the obligation.
 
@@ -105,7 +105,12 @@ the contract change deliberately.
   (`DATA-STORE-01`). It must not contain spaces, underscores, or a trailing placeholder such as
   `{SYSTEM}` — the check rejects anything it cannot parse rather than skipping it.
 - IDs are **stable for the life of the clause**. Never renumber to close gaps.
-- **Never reuse a retired number.** Gaps in the sequence are correct and expected.
+- **Never reuse a retired number.** Gaps in the sequence are correct and expected, so a new clause
+  takes the next number **above the highest ever used** in that system rather than filling a gap.
+- When a system is renamed, split, or merged, a surviving clause keeps its wording but takes the new
+  owning system's prefix and the next unused number there. Its verifying test is renamed to match,
+  and the old identifier is recorded in the changing agent's report. A promise does not lapse because
+  the system holding it was renamed, and the numbers it vacates are not reused.
 - Deleted clauses are simply removed; git holds the history. Do not maintain a graveyard section.
 
 # Sizing
@@ -118,7 +123,8 @@ A healthy system contract has roughly **5 to 25 clauses**. Interpret the extreme
 
 # Changing a Contract
 
-Changing a clause is the definition of a **Tier 1** change (see `change-tiers.md`) and is the
+Changing a clause is the definition of a **Tier 1** change (see `change-classification.md`) and is
+the
 project's breaking-change signal:
 
 - **Adding** a clause is additive; consumers are unaffected.

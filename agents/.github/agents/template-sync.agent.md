@@ -1,7 +1,7 @@
 ---
 name: template-sync
 description: Audits or synchronizes repository files against the canonical template.
-  Supports three modes - Audit, Scaffold, and Sync.
+  Supports three modes - Audit, Scaffold, and Patch.
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ past what this process intends.
 
 - **Audit** — report deviations; make no changes (default)
 - **Scaffold** — create files listed in the template that do not exist; never touch existing files
-- **Sync** — patch missing sections into existing files; never overwrite existing content
+- **Patch** — insert missing sections into existing files; never overwrite existing content
 
 There is deliberately no Recreate mode. Rebuilding a document from a template is how hand-written
 architectural reasoning gets flattened into boilerplate.
@@ -51,9 +51,9 @@ path depth.
 - **Audit**: report only.
 - **Scaffold**: fetch each missing file's template, resolve every `TODO` and `TEMPLATE-DIRECTIVE`
   from repository context, and write it. Never leave a directive or placeholder in the output.
-- **Sync**: insert missing sections in template order, leaving existing content untouched.
+- **Patch**: insert missing sections in template order, leaving existing content untouched.
 
-For Scaffold and Sync, run `pwsh ./fix.ps1` afterwards.
+For Scaffold and Patch, run `pwsh ./fix.ps1` afterwards.
 
 # Directives and Placeholders
 
@@ -80,7 +80,7 @@ For Scaffold and Sync, run `pwsh ./fix.ps1` afterwards.
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/template-sync-{subject}-{unique-id}.md`
-**Mode**: (Audit|Scaffold|Sync)
+**Mode**: (Audit|Scaffold|Patch)
 
 ## Files
 

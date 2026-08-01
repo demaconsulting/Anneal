@@ -9,6 +9,8 @@ guide covers how to work with it.
 
 - **[Getting Started](getting-started.md)** — installing the agents into a repository, bootstrapping
   the architecture tree, and making a first change. Start here.
+- **[Common Tasks](common-tasks.md)** — the day-to-day jobs and the prompt to use for each. The page
+  to keep open while working.
 - **[Workflow](workflow.md)** — how change tiers and agent routing work in practice, with worked
   examples and the failure modes to watch for. Read this second; it is the part people get wrong.
 - **[Authoring](authoring.md)** — how to write the architecture tree and system contracts well.
@@ -23,6 +25,6 @@ guide covers how to work with it.
 | You are | Read |
 | --- | --- |
 | Setting up a new repository | Getting Started, then Authoring |
-| Working in a repository day to day | Workflow |
+| Working in a repository day to day | Common Tasks, then Workflow |
 | Reviewing a pull request | Workflow, Authoring |
 | Changing the agents or standards themselves | Maintaining |

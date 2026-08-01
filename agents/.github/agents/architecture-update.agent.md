@@ -1,11 +1,11 @@
 ---
-name: architect
+name: architecture-update
 description: Maintains the progressive-disclosure architecture tree and system contracts.
   Updates the correct level for a change and prunes documentation that no longer earns its place.
 user-invocable: true
 ---
 
-# Architect Agent
+# Architecture Update Agent
 
 Own `docs/architecture/` and the system contracts within it. Place each change at exactly one level
 of the tree, and delete documentation that has stopped paying for itself.
@@ -19,12 +19,22 @@ Read from `.github/standards/`:
 
 - `architecture-documentation.md` — level ownership, creation and deletion tests, drift anchors
 - `system-contracts.md` — contract structure, clause rules, identifier discipline
-- `change-tiers.md` — what the declared tier obliges you to update
+- `change-classification.md` — what the declared tier obliges you to update
+
+If the caller supplied no tier — you were invoked directly rather than by `evolve` — classify the
+change yourself with `change-classification.md` before going further, and state the tier you chose.
+Step 2
+branches on it.
 
 # Step 2 — Locate the Change
 
 Descend the tree rather than reading it all. Start at `docs/architecture/overview.md`, identify the
 affected systems, and read only those system documents and their section documents.
+
+For **Tier 2**, read `CONSTRAINTS.md` as well. Its **Satisfied** entries are conditions your change
+must not regress — they are why the current shape is the shape it is. Its **Not Yet Satisfied**
+entries are pressure a re-shaping change may happen to relieve at no extra cost. Do not widen the
+change to chase one; just check whether the shape you are already producing resolves it.
 
 Then decide **the single level** the change belongs at:
 
@@ -41,11 +51,21 @@ duplicated content and remove it from the level that should not own it.
 
 For Tier 1 and Tier 2, write the contract before any implementation exists:
 
-- Add, narrow, or remove clauses per `system-contracts.md`.
-- Assign new IDs from the next unused number; never reuse a retired one.
+- Add, narrow, or remove clauses per `system-contracts.md`, which owns identifier discipline —
+  including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
   exist yet — the `developer` agent is obliged to create it under that name.
+- When no implementation will follow — you were invoked directly rather than by `evolve` — put
+  `TODO` in that test name. `check-contracts.ps1` reports a `TODO` name as an unfulfilled obligation
+  but errors on a real name that resolves to no test, so this is what leaves the repository green
+  until the test is written.
 - Mark narrowing or removal explicitly as breaking in your report.
+
+**Never edit a clause to match what the code does**, which `system-contracts.md` forbids generally
+and which matters most here: when the two disagree, one of them is a defect, and deciding which is a
+judgement about intent that cannot be made from the tree alone. If the request is to correct drift
+and the documents do not establish which side is authoritative, report INCOMPLETE and say what you
+would need in order to decide.
 
 A contract written after the code is a description, not a promise. Order matters.
 
@@ -57,6 +77,13 @@ Apply the change at the level chosen in Step 2 and nowhere else. Then:
 - Confirm every parent links to its children and every child links back to its parent.
 - Confirm no level summarizes a level below it.
 - Confirm each document is within its size budget, or note why it is not.
+
+When a system is added, removed, renamed, split, or merged, the source and test layout has to move
+with it —
+`src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not perform that
+move; you are documentation-only. State it in your report as an implementation obligation, naming the
+directories involved, because `covers` will point at paths that do not exist yet until `developer`
+makes them.
 
 # Step 5 — Prune (MANDATORY for Tier 1 and Tier 2)
 
@@ -70,8 +97,13 @@ in `architecture-documentation.md`. Delete — do not defer — any that:
 
 When a system is removed, delete its document and its entire section directory.
 
-Report every deletion and every document examined and kept. A prune step that never deletes anything
-is not being applied honestly.
+Move a `CONSTRAINTS.md` entry to **Satisfied** if this change absorbs it, in this same change. Never
+delete one for being met — a satisfied constraint is the guard rail against regressing it. Report a
+new constraint you discovered rather than filing it yourself; recording needs is Intake's job.
+
+Report every deletion and every document examined and kept, with the reason for each. Keeping every
+document is a legitimate outcome when each one still meets a creation test; skipping the examination
+is not.
 
 # Step 6 — Format and Report
 
@@ -89,17 +121,19 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 # Report Template
 
 ```markdown
-# Architect Report
+# Architecture Update Report
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
-**Report**: `.agent-logs/architect-{subject}-{unique-id}.md`
+**Report**: `.agent-logs/architecture-update-{subject}-{unique-id}.md`
 **Tier**: (1|2)
 
 ## Contract Changes
 
-| Clause | Action | Breaking | Verifying Test |
-|--------|--------|----------|----------------|
-| {ID} | added/narrowed/removed/reworded | yes/no | {test name} |
+| Clause | Was | Action | Breaking | Verifying Test |
+|--------|-----|--------|----------|----------------|
+| {ID} | {retired ID, or "-"} | added/narrowed/removed/reworded | yes/no | {test name} |
+
+`Was` carries the retired identifier when a rename, split, or merge moved the clause to a new system.
 
 ## Tree Changes
 
@@ -121,6 +155,10 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 ## Implementation Obligations
 
 {Contract tests the developer agent must create, by name, and the behavior each must prove}
+
+{For Tier 2: source and test directories and the solution file to create, move, or delete. Clauses
+whose identifier changed owner are in the Contract Changes table above; their tests are renamed to
+match}
 
 ## Unknowns (only when Result is INCOMPLETE)
 

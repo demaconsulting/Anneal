@@ -43,7 +43,8 @@ by an LLM. Do not confuse the two when trimming further.
 These are the decisions the process rests on. Changing one is a redesign, not a tweak. Each is
 recorded with the alternative that was rejected, so it is not re-litigated from scratch.
 
-**Classification is defined in exactly one file.** `change-tiers.md` is the sole definition of both
+**Classification is defined in exactly one file.** `change-classification.md` is the sole definition
+of both
 modes and tiers; `AGENTS.md`, the agent prompts, and the README link to it and never restate it.
 Rejected: a convenient summary in each place an agent might look. The summaries drift — this process
 carried tier definitions in three files for months, and they had already disagreed with each other
@@ -145,16 +146,16 @@ configuration, and `lint-fix.agent.md` with one section retargeted.
 
 **Rewritten** — `coding-principles.md` (the requirement-traceability anti-pattern replaced with
 undeclared boundary behavior), `testing-principles.md`, `technical-documentation.md`, and the
-`developer`, `software-architect`, and `template-sync` agents.
+`developer`, `architecture-design`, and `template-sync` agents.
 
 **Deliberately dropped** — `requirements-principles.md`, `software-items.md`, `reqstream-usage.md`,
 `reviewmark-usage.md`, `design-documentation.md`, `verification-documentation.md`,
 `sysml2-modeling.md`; the `implementation`, `planning`, `quality`, and `formal-review` agents; the
 Pandoc document collections, the SysML2 model, ReviewMark, and the compliance tool manifest.
 
-New in Anneal: `architecture-documentation.md`, `system-contracts.md`, `change-tiers.md`, the
-`evolve`, `architect`, and `contract-check` agents, `check-contracts.ps1`, and the `check-contracts`
-skill.
+New in Anneal: `architecture-documentation.md`, `system-contracts.md`,
+`change-classification.md`, the `evolve`, `architecture-update`, and `tier-check` agents,
+`check-contracts.ps1`, and the `check-contracts` skill.
 
 ## Changing an Agent
 
@@ -181,7 +182,6 @@ Checklist for a new agent:
 - [ ] Explicit standards to load, by name
 - [ ] A report template with `**Result**` as the first metadata field
 - [ ] Listed in `agents/AGENTS.md` under **Agent Delegation Guidelines**
-- [ ] Listed in the project `README.md` agent table
 - [ ] Documented in [Reference](reference.md)
 
 ## Changing a Standard
@@ -258,11 +258,11 @@ the tier rationale and the prune results.
   any language whose files match `-TestFilePatterns` and whose tests are marked by an attribute in
   `-TestAttributes`; the pass and staleness checks need a result parser per format.
 - **Drift detection is unimplemented.** `covers` front matter is mandatory and is the intended
-  anchor, but nothing computes drift — `contract-check` judges it by reading. Treat reported drift
+  anchor, but nothing computes drift — `tier-check` judges it by reading. Treat reported drift
   verdicts as opinion, not evidence.
 - **`Anneal` is not yet published.** Until it is, the `template-url` in `agents/AGENTS.md` cannot be
   fetched. `install.ps1` vendors `template/` into `.github/template/` so this does not block
-  `template-sync` or `software-architect`. See [Getting Started](getting-started.md).
+  `template-sync` or `architecture-design`. See [Getting Started](getting-started.md).
 
 ## Health Signals
 
@@ -270,7 +270,7 @@ Signs the process is working:
 
 - Most changes are Tier 0 and touch no documentation
 - Contract tests survive refactoring untouched
-- `architect` reports contain deletions
+- `architecture-update` reports contain deletions
 - Contract clause counts stay in the 5 to 25 range per system
 
 Signs it is degrading back toward the heavyweight process:

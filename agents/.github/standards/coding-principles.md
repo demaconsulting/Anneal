@@ -61,25 +61,16 @@ here and none of it is mandatory on a private helper:
 - **Thread Safety**: State whether the API is safe for concurrent use - missing
   this forces consumers to read the implementation or risk data races
 
-## Universal Code Architecture Principles
+## Design
 
-### Design Patterns
-
-- **Single Responsibility**: Functions with focused, testable purposes
-- **Dependency Injection**: External dependencies injected for testing
-- **Pure Functions**: Minimize side effects and hidden state
-- **Clear Interfaces**: Well-defined API contracts
-- **Separation of Concerns**: Business logic separate from infrastructure
-- **Repository Structure Adherence**: Analyze existing directory conventions
-  before creating files; place new files consistent with established patterns
-
-### Robust Code Structure
-
-- **Documentation Standards**: Publicly visible members fully documented; interior
-  members documented where intent is not recoverable from the code
-- **Error Handling**: Comprehensive error cases with appropriate exception handling and logging
-- **Configuration**: Externalize settings for different deployment environments
-- **Resource Management**: Proper resource cleanup using language-appropriate patterns
+- **Single Responsibility**: Functions with focused, testable purposes.
+- **Dependency Injection**: External dependencies injected, so a consumer can substitute them —
+  hidden construction is what makes code untestable without also making it obviously wrong.
+- **Repository Structure Adherence**: Analyze existing directory conventions before creating files;
+  place new files consistent with established patterns.
+- **Error Handling**: Every error case handled deliberately. An error a caller cannot distinguish is
+  an error they cannot respond to.
+- **Resource Management**: Deterministic cleanup using language-appropriate patterns.
 
 # Quality Gates
 

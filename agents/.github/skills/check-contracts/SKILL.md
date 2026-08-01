@@ -2,7 +2,7 @@
 name: check-contracts
 description: Run and interpret the system contract check. Use when implementing or verifying a
   Tier 1 or Tier 2 change, when a contract clause is added or altered, or when lint.ps1 reports a
-  contract failure. Covers which mode to run for each tier and how to resolve each failure.
+  contract failure. Covers which invocation to use for each tier and how to resolve each failure.
 ---
 
 # Check Contracts
@@ -18,7 +18,7 @@ an error rather than a silent skip. A check that quietly stops looking is worse 
 The script lives at the repository root and is also run by `lint.ps1`, so CI gates on it whether or
 not an agent is involved.
 
-# Which Mode to Run
+# Which Invocation to Use
 
 | Situation | Command |
 | --- | --- |
@@ -29,7 +29,7 @@ not an agent is involved.
 
 `-Strict` promotes unfulfilled `TODO` obligations, and absent test results, from warnings to errors.
 Use it once implementation is complete — before that, a `TODO` obligation is a deliberate placeholder
-written by `software-architect`, not a defect.
+written by `architecture-design`, not a defect.
 
 **Run `pwsh ./build.ps1` first, always.** The pass check reads TRX results; without them it verifies
 nothing and says so. `build.ps1` clears `artifacts/tests` before each run, so results cannot
@@ -55,7 +55,7 @@ contract and defeats the entire check.
 - **`is not declared as a test method`** — the name does not resolve to an attribute-marked test
   method. It may have been renamed or deleted, or the clause may be pointing at a helper. Restore or
   write the test under the name the clause gives. A deliberate rename is a contract change; route it
-  to `architect`.
+  to `architecture-update`.
 - **`is not in a 'Contract' folder`** — the test exists but is an interior test. Interior tests are
   disposable, so they cannot carry a durable promise. Move it to `test/{System}.Tests/Contract/` and
   rewrite it to use only the public boundary.

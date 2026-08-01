@@ -13,11 +13,16 @@ whose first field is `**Result**: (SUCCEEDED|FAILED|INCOMPLETE)`.
 The entry point for any non-trivial change.
 
 - **Invoke**: `@evolve <what you want done>`
-- **Does**: classifies the change tier, routes to the minimum set of agents, allows one repair pass
-- **Produces**: tier and rationale, contract impact, sub-agent reports, documentation changes
-- **Sub-agents**: `architect` (Tier 1 and 2 only), `developer`, `contract-check`
+- **Does**: determines the work mode first, then for a Change classifies the tier, routes to the
+  minimum set of agents, and allows one repair pass
+- **Modes**: Change is the default; **Intake** files a need and stops; **Maintenance** runs a bounded
+  tidy; **Migration** it refuses to enter without an approved proposal. See
+  [Common Tasks](common-tasks.md) for the prompt to use for each.
+- **Produces**: mode and tier with rationale, contract impact, sub-agent reports, documentation
+  changes
+- **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `developer`, `tier-check`
 - **Not for**: trivial interior work (`developer` is faster), lint-only cleanup (`lint-fix`), or
-  reshaping system boundaries (`software-architect`)
+  reshaping system boundaries (`architecture-design`)
 
 Returns INCOMPLETE when the tier cannot be determined without information only you can supply.
 
@@ -33,11 +38,11 @@ The core working agent. Most changes need this and nothing else.
 - **Not for**: changes needing a contract update that has not been made — it reports INCOMPLETE
   rather than writing the contract itself, deliberately
 
-### `architect`
+### `architecture-update`
 
 Owns `docs/architecture/` and the contracts inside it.
 
-- **Invoke**: `@architect <contract or structural change>`
+- **Invoke**: `@architecture-update <contract or structural change>`
 - **Does**: locates the single correct level for a change, updates the contract **before**
   implementation, updates the tree, and **prunes** section documents that no longer earn their place
 - **Produces**: contract changes with breaking flags, tree changes, prune results, ownership check,
@@ -48,11 +53,11 @@ Owns `docs/architecture/` and the contracts inside it.
 Pruning is half of this agent's purpose. Its report lists every section document examined with a
 kept-or-deleted verdict and the reason.
 
-### `contract-check`
+### `tier-check`
 
 Verifies a completed change against its declared tier. Deliberately narrow.
 
-- **Invoke**: `@contract-check <what was changed>`
+- **Invoke**: `@tier-check <what was changed>`
 - **Does**: runs `check-contracts.ps1`, then judges what a script cannot — undeclared boundary
   behavior, tier honesty, tree accuracy, level ownership, orphaned documents
 - **Produces**: priority-ordered required fixes with specific actions
@@ -62,13 +67,16 @@ Verifies a completed change against its declared tier. Deliberately narrow.
 
 Size budget overruns and drift flags are **advisory** and never fail the result.
 
-### `software-architect`
+### `architecture-design`
 
 Interactive interview that establishes or re-cuts system boundaries.
 
-- **Invoke**: `@software-architect` — then answer its questions
+- **Invoke**: `@architecture-design` — then answer its questions
 - **Does**: asks one question at a time, shows the tree and concerns every few questions, focuses on
   boundaries, writes `docs/architecture/` and `README.md` when you confirm
+- **On an existing repository**: reads the current tree first and refines it rather than replacing
+  it. Decisions, `README.md`, and still-valid contract clauses carry across; documents for dropped
+  systems are deleted and reported
 - **Produces**: the initial tree, contract clauses naming tests that do not yet exist, and those
   tests listed as implementation obligations
 - **Not for**: ordinary change — use `evolve`
@@ -80,14 +88,14 @@ Pre-pull-request sweep.
 - **Invoke**: `@lint-fix`
 - **Does**: runs `fix.ps1`, then loops `lint.ps1` fixing issues, up to five iterations
 - **Never**: refactors, makes functional changes, or "fixes" a contract-to-test failure — that is
-  semantic and belongs to `architect` or `developer`
+  semantic and belongs to `architecture-update` or `developer`
 
 ### `template-sync`
 
 Compares a repository against `template/`.
 
-- **Invoke**: `@template-sync [Audit|Scaffold|Sync]` (default Audit)
-- **Modes**: Audit reports only; Scaffold creates missing files; Sync patches missing sections into
+- **Invoke**: `@template-sync [Audit|Scaffold|Patch]` (default Audit)
+- **Modes**: Audit reports only; Scaffold creates missing files; Patch inserts missing sections into
   existing files
 - **Never**: deletes content without a template counterpart, or overwrites hand-written architectural
   reasoning
@@ -103,7 +111,7 @@ Loaded selectively per task using the matrix in `AGENTS.md`. Load only what the 
 | --- | --- |
 | `architecture-documentation.md` | The four levels, exclusive ownership, the one-file test, size budgets |
 | `system-contracts.md` | Contract placement and structure, clause rules, enforcement, identifiers, sizing |
-| `change-tiers.md` | The classifying question, tier obligations, tier discipline, worked examples |
+| `change-classification.md` | The classifying question, tier obligations, tier discipline, worked examples |
 | `coding-principles.md` | Literate coding, API documentation, design principles, anti-patterns |
 | `testing-principles.md` | Contract versus interior test lifecycles, AAA, coverage expectations |
 | `technical-documentation.md` | README and general markdown conventions, links, user guides |
@@ -120,9 +128,9 @@ invocation, and more procedural than a standard, which describes what good outpu
 
 The runbook for `check-contracts.ps1`.
 
-- **Covers**: which mode to run for each tier, when to use `-Strict`, and the correct fix for every
-  failure the script emits
-- **Used by**: `developer` (Step 7) and `contract-check` (Step 2), which reference it rather than
+- **Covers**: which invocation to use for each tier, when to use `-Strict`, and the correct fix for
+  every failure the script emits
+- **Used by**: `developer` (Step 7) and `tier-check` (Step 3), which reference it rather than
   restating the procedure
 - **Does not cover**: the script's parameters — those live in the script's own header, so the two
   cannot drift
@@ -142,15 +150,9 @@ The runbook for `check-contracts.ps1`.
 
 ### `check-contracts.ps1`
 
-The only mechanically enforced relationship in the process. It parses `## Contract` sections from
-`docs/architecture/*.md` and checks:
-
-1. Every system document declares a `## Contract` section
-2. Every bolded item under `Provides` or `Invariants` carries a well-formed, unique clause ID
-3. Every clause names at least one verifying test
-4. Every named test is declared as a test method inside a `Contract/` folder
-5. Every named test's **most recent** result is `Passed`
-6. Those results are not older than the test sources they describe
+The only mechanically enforced relationship in the process. `system-contracts.md` lists what it
+rejects and the **check-contracts** skill gives the fix for each; this section covers only what a
+user running it needs to know.
 
 It **fails closed**. A renamed heading or an ID that does not parse is an error, not a skip — a check
 that quietly stops looking while reporting success is worse than no check at all. `Requires` entries
@@ -162,14 +164,14 @@ method declaration, so neither a doc comment, a private helper, nor a string lit
 deleted promise alive. Requiring the `Contract/` location stops a disposable interior test from
 standing in for a durable boundary one.
 
-Check 5 resolves each test to the outcome from the newest result file that mentions it, rather than
-accepting any historical pass. Because `artifacts/` is git-ignored, results used to accumulate
-locally, and an old pass could vouch for a test failing today. Check 6 catches the other direction: a
-result recorded before the test last changed.
+The pass check resolves each test to the outcome from the newest result file that mentions it, rather
+than accepting any historical pass. Because `artifacts/` is git-ignored, results used to accumulate
+locally, and an old pass could vouch for a test failing today. Staleness catches the other direction:
+a result recorded before the test last changed.
 
 Clauses whose test name contains an uppercase `TODO` are **warnings** — unfulfilled obligations — so a
 contract can be written before its tests exist. The match is case-sensitive, so a real test named
-`TodoItemsAreReturned` is checked normally. `contract-check` runs `-Strict` on Tier 1 and Tier 2
+`TodoItemsAreReturned` is checked normally. `tier-check` runs `-Strict` on Tier 1 and Tier 2
 changes, which promotes obligations, and absent test results, to errors once implementation is
 complete.
 
@@ -180,8 +182,9 @@ pwsh ./check-contracts.ps1 -TestRoots test,integration -TestResults "out/**/*.tr
 pwsh ./check-contracts.ps1 -TestFilePatterns *.cs,*.fs -TestAttributes Fact,Theory,Test
 ```
 
-`-TestResults` is matched against the whole repository-relative path, not just the file name, so
-results outside the configured location are ignored rather than silently consumed.
+Run `pwsh ./check-contracts.ps1 -?` for the full parameter list and defaults. `-TestResults` is
+matched against the whole repository-relative path, not just the file name, so results outside the
+configured location are ignored rather than silently consumed.
 
 **Never resolve a failure by editing the clause to match the code.** Fix the test name, or make the
 contract change deliberately.

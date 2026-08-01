@@ -7,7 +7,7 @@
 #   .github/template/. The vendored copy is not optional in practice: AGENTS.md
 #   resolves the template from .github/template/ first and from template-url
 #   second, and until Anneal is published that URL is unreachable. Without the
-#   vendored copy, template-sync and software-architect can only report
+#   vendored copy, template-sync and architecture-design can only report
 #   INCOMPLETE. Vendoring also pins the template to the agent versions installed
 #   beside it, so the two cannot drift apart.
 #
@@ -118,6 +118,6 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Replace the TODO values in AGENTS.md under 'Project Overview'."
 Write-Host "  2. Run @template-sync Scaffold to lay down the repository structure."
-Write-Host "  3. Run @software-architect to establish the architecture tree."
+Write-Host "  3. Run @architecture-design to establish the architecture tree."
 
 exit 0

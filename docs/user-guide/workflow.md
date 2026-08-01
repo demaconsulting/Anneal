@@ -17,19 +17,20 @@ If no, it is Tier 0 and no documentation moves — including a bug fix that make
 what the contract already promised. If yes, ask whether the set of systems or their interactions
 change: no means Tier 1, yes means Tier 2.
 
-That is the entire routing decision. `change-tiers.md` holds the authoritative rules; this page is
+That is the entire routing decision. `change-classification.md` holds the authoritative rules; this
+page is
 about applying them.
 
 ## What Each Mode and Tier Costs
 
 | Mode / Tier | Agents | Documentation | Typical wall time |
 | --- | --- | --- | --- |
-| Intake | `evolve` | One bullet in the register | Seconds |
+| Intake | `evolve` | One bullet in `CONSTRAINTS.md` or `BACKLOG.md` | Seconds |
 | Maintenance | `developer`, bounded | None | Minutes |
 | Change, Tier 0 | `developer` | None | Minutes |
-| Change, Tier 1 | `architect` → `developer` → `contract-check` | One system document | Tens of minutes |
-| Change, Tier 2 | `architect` → `developer` → `contract-check` | Overview plus affected systems | Longer |
-| Migration | proposal → `software-architect` → staged work | The tree | Days, staged |
+| Change, Tier 1 | `architecture-update` → `developer` → `tier-check` | One system document | Tens of minutes |
+| Change, Tier 2 | `architecture-update` → `developer` → `tier-check` | Overview plus affected systems | Longer |
+| Migration | proposal → `architecture-design` → staged work | The tree | Days, staged |
 
 The cost difference is the point. It is why classification happens first and why rounding up "to be
 safe" is a real cost, not free insurance.
@@ -45,7 +46,7 @@ Symptoms of contracts pitched too low:
 - Refactors keep breaking contract tests
 - The contract has more than forty clauses
 - Clauses mention types or method names
-- Every change seems to need the `architect`
+- Every change seems to need the `architecture-update`
 
 The fix is to raise the contract to the boundary a real consumer sees, not to work around it.
 
@@ -55,7 +56,7 @@ The contract is written **before** the implementation. This is not bureaucracy �
 afterwards is a description of whatever got built, and it applies no design pressure at all. It is
 also the single easiest rule to violate accidentally, because writing the code first feels faster.
 
-`contract-check` looks for this specifically. Clauses that read like a summary of the diff are a
+`tier-check` looks for this specifically. Clauses that read like a summary of the diff are a
 failure, even when everything passes.
 
 ## Raising a Tier Mid-Flight
@@ -63,7 +64,7 @@ failure, even when everything passes.
 Implementation regularly reveals that a change is bigger than it looked. When that happens:
 
 - **Stop.** Do not finish the implementation and document afterwards.
-- Restate the tier and route through `architect` before continuing.
+- Restate the tier and route through `architecture-update` before continuing.
 
 Tiers may be raised at any time. They may never be silently lowered.
 
@@ -75,8 +76,9 @@ commits does not make it Tier 0.
 
 ## The Repair Pass
 
-`evolve` gets exactly **one** repair pass. If `contract-check` fails, the findings go straight back to
-`developer` — not back through architecture, and not through a planning phase.
+`evolve` gets exactly **one** repair pass. If `tier-check` fails, the findings go back to `developer`
+— unless the finding is that the documentation itself is wrong, in which case they go back through
+`architecture-update`, which owns those files. Either way there is no planning phase.
 
 If one repair pass is not enough, that is information: the change was misunderstood at the start.
 Stop and re-scope rather than grinding. The old process allowed three retries through a full replan
@@ -124,5 +126,5 @@ Four questions, in order:
 
 - The change is trivial and obviously interior — call `developer` directly.
 - You are only fixing lint — call `lint-fix`.
-- You are reshaping system boundaries — call `software-architect`; that is a design conversation, not
+- You are reshaping system boundaries — call `architecture-design`; that is a design conversation, not
   a change.

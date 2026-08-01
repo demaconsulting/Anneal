@@ -30,6 +30,9 @@ decides both how much process the task gets and what the agent is permitted to t
   a change no other code can observe — carries no documentation step at all.
 - **Agents stop instead of improvising.** An agent declares what it will touch before it touches it.
   Reaching that boundary is a stop and a report back to you, never a decision to widen it.
+- **Filing a need costs one line.** A standing property the system must always satisfy goes into
+  `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`.
+  No code, no tests, no contract.
 - **Tidying is a first-class activity.** Background quality work has its own mode, with a declared
   scope and a stopping point, so it cannot drift into a redesign.
 - **Restructuring is a defined operation.** Reshaping the architecture proceeds in steps you approve,
@@ -37,7 +40,7 @@ decides both how much process the task gets and what the agent is permitted to t
 - **The reasoning survives.** Why a component promises what it promises is recorded beside the
   promise, so a new developer — or a new agent — can recover it without a parallel tree of design
   documents to keep in sync.
-- **One command to install**, pinned to a version you control.
+- **One command to install**, from a clone you check out at the revision you want.
 
 **One of these is enforced by a machine; the rest are instructions.** `check-contracts.ps1` fails the
 build when a contract clause names no test, or names a test that is missing, stale, or failing.
@@ -61,6 +64,7 @@ not be reintroduced.
 ## Documentation
 
 - **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
+- **[Common Tasks](docs/user-guide/common-tasks.md)** — the prompt to use for each day-to-day job
 - **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
 - **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
 - **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
@@ -68,20 +72,14 @@ not be reintroduced.
 
 ## Requirements
 
-What the process must hold true to deliver the above. Each is a statement you can check against a
-repository rather than argue about:
+What the process must hold true to deliver the features above, stated so you can check a repository
+against them rather than argue about them. Each says something no feature bullet already says:
 
 - Every kind of work a product receives has exactly **one** defined entry point.
-- Documentation changes when, and only when, a published promise changes.
-- Every published promise names a test that exists and passes, enforced automatically rather than by
-  review.
-- How much process a task needs is decided before work begins, from a **single** definition used by
-  every agent.
-- What an agent may touch is bounded before it starts, and it cannot widen that boundary itself.
-- A need the current design cannot cleanly meet is recorded where the next design review will read
-  it.
+- How much process a task needs is decided from a **single** definition of classification, used by
+  every agent — so no two agents can hold different ideas of what a tier means.
 - A large restructure can proceed in stages without disabling any check.
-- The rules an agent must load for any one task fit within a stated budget.
+- The standards an agent must load for any one task are typically two and never more than four.
 - Nothing below component level is documented as a requirement, design, or verification artifact.
 
 ## How It Works
@@ -119,7 +117,8 @@ renames a test.
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
-Level 3 is exceptional. Most systems have none, and the `architect` agent prunes those that stop
+Level 3 is exceptional. Most systems have none, and the `architecture-update` agent prunes those
+that stop
 earning their place.
 
 ## Repository Layout
@@ -140,7 +139,7 @@ This copies the `agents/` payload to the target repository root and vendors `tem
 and it pins the template to the agent versions installed beside it. Then open `AGENTS.md` and replace
 the `TODO` placeholders in the **Project Overview** section.
 
-For a new repository, run `@software-architect` to interview and generate the architecture tree, or
+For a new repository, run `@architecture-design` to interview and generate the architecture tree, or
 `@template-sync Scaffold` to lay down the structure from the template.
 
 The payload installs seven agents — `evolve` is the entry point for any non-trivial change — and the

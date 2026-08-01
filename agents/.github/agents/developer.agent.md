@@ -13,11 +13,13 @@ this agent and nothing else.
 # Step 1 — Establish the Tier
 
 If a tier was supplied by a calling agent, use it. Otherwise read
-`.github/standards/change-tiers.md` and classify the change yourself, stating the tier and reason in
+`.github/standards/change-classification.md` and classify the change yourself, stating the tier and
+reason in
 one sentence.
 
 **If you determine the change is Tier 1 or Tier 2 and the contract has not already been updated,
-stop and report INCOMPLETE.** Contracts are written before implementation, by the `architect` agent.
+stop and report INCOMPLETE.** Contracts are written before implementation, by the
+`architecture-update` agent.
 Implementing first and documenting after produces descriptions rather than promises.
 
 # Step 2 — Orient by Descending the Tree
@@ -31,17 +33,17 @@ Read only as far down as the task requires. Do not read the whole tree.
 The section documents are the ones most likely to contain an invariant you would otherwise violate.
 If a `covers` front matter entry names a path you are about to change, read that document.
 
-# Step 3 — Load Standards
-
-Use the selection matrix in `AGENTS.md` to load only the standards relevant to the files in scope.
-
-# Step 4 — Declare Scope
+# Step 3 — Declare Scope
 
 Before editing, list the files to be created, modified, or deleted. Anything outside that list
 requires explicit justification in the report.
 
 For each file, note whether it is interior or boundary. Boundary changes without a corresponding
 contract clause mean the tier was wrong — return to Step 1.
+
+# Step 4 — Load Standards
+
+Use the selection matrix in `AGENTS.md` to load only the standards relevant to the files in scope.
 
 # Step 5 — Implement
 
@@ -58,7 +60,7 @@ process is designed to avoid.
 
 - **Tier 0**: no documentation update, unless the change invalidates a specific section document —
   then update or delete that one file.
-- **Tier 1 and 2**: the `architect` agent has already updated the tree. Do not edit
+- **Tier 1 and 2**: the `architecture-update` agent has already updated the tree. Do not edit
   `docs/architecture/` further; if it is wrong, report it rather than patching it.
 - Update `README.md` or the user guide only when user-facing behavior actually changed.
 

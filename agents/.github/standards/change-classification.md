@@ -1,5 +1,5 @@
 ---
-name: Change Tiers
+name: Change Classification
 description: Follow these standards to classify work by mode and tier, and determine which documentation must move with it.
 ---
 
@@ -27,7 +27,7 @@ automatically.
 
 | Mode | Triggered by | May touch | Tier |
 | --- | --- | --- | --- |
-| **Intake** | someone raises a need or an idea | `constraints.md`, `ROADMAP.md` | n/a |
+| **Intake** | someone raises a need or an idea | `CONSTRAINTS.md`, `BACKLOG.md` | n/a |
 | **Change** | a requested behavior change | code, tests, contracts per tier | 0, 1, or 2 |
 | **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | always 0 |
 | **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
@@ -38,9 +38,18 @@ Recording that something is wanted. **No code, no tests, no contract change.** T
 operation in the process, deliberately — if filing a need costs anything, needs stop being filed and
 the register goes empty.
 
-Apply the admission test: *could changing this change the system decomposition?* If yes it is an
-architecture-shaping constraint; if no it is ordinary backlog. Intake never modifies a contract, and
-never modifies `responsibilities.md`.
+Apply the admission test: *does it hold, or does it complete?*
+
+A **constraint** is a standing property the system must satisfy — "runs on Windows", "supports
+.NET Standard 2.0", "starts in under a second". It is never finished, and every future change has to
+respect it. Append one bullet to `CONSTRAINTS.md`: **Satisfied** if the current design already meets
+it, **Not Yet Satisfied** if it does not. A constraint that needs work before it holds is still a
+constraint, not backlog.
+
+Everything else is a discrete piece of work that finishes and stays finished — "add a `--version`
+flag". Append one bullet to `BACKLOG.md`.
+
+Either way the item is recorded and nothing else happens.
 
 ## Change
 
@@ -54,7 +63,7 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
 
 - **Maintenance is Tier 0 by definition.** If the work would change a contract, it has left
   maintenance and must be re-classified as Change and re-approved.
-- **Maintenance may never edit the architecture tree**, `constraints.md`, or `responsibilities.md`.
+- **Maintenance may never edit the architecture tree**, `CONSTRAINTS.md`, or `BACKLOG.md`.
   Discovering an architectural problem during maintenance is a *finding to report*, never a licence
   to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
@@ -65,7 +74,9 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
 A large, approved restructure landing in stages. Migration is not "a bigger Tier 2" — it differs in
 kind, not degree, because it is the only mode permitted to span multiple commits by design.
 
-- Requires an **approved proposal** before any file changes.
+- Requires an **approved proposal** before any file changes. The proposal is the output of a
+  `architecture-design` session — the target decomposition, the stages, and what each stage leaves
+  working — and the user approves it.
 - Every commit declares Migration mode; splitting work is required here, not forbidden.
 - Contract clauses that describe systems not yet built are marked planned and carry an exit
   condition (see `system-contracts.md`).
@@ -107,10 +118,12 @@ A clause is added, narrowed, removed, or given different meaning; or the system'
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
 - **Documentation**: `docs/architecture/{system}.md` only.
-- **Agents**: `architect` updates the contract **first**, then `developer` implements against it,
-  then `contract-check` verifies.
+- **Agents**: `architecture-update` updates the contract **first**, then `developer` implements
+  against it,
+  then `tier-check` verifies.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
-- **Pruning**: the `architect` performs the section-document prune check for the affected system.
+- **Pruning**: `architecture-update` performs the section-document prune check for the affected
+  system.
 
 # Tier 2 — Structural Change
 
@@ -119,8 +132,9 @@ boundary between systems changes.
 
 - **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience actually changed — usually it has not.
-- **Agents**: `architect` updates `overview.md` and the affected system documents, then `developer`,
-  then `contract-check`.
+- **Agents**: `architecture-update` updates `overview.md` and the affected system documents, then
+  `developer`,
+  then `tier-check`.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
 

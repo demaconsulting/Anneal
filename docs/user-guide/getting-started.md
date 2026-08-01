@@ -27,7 +27,7 @@ fit your repository, change it in Anneal so every repository gets the fix.
 
 ### Why the Template Is Vendored
 
-`template-sync` and `software-architect` read the canonical template. `AGENTS.md` resolves it from a
+`template-sync` and `architecture-design` read the canonical template. `AGENTS.md` resolves it from a
 vendored `.github/template/` first, then from `template-url`.
 
 **Until Anneal is published, the URL is not reachable**, so without the vendored copy those agents
@@ -53,7 +53,7 @@ You can also copy `template/` by hand. The pieces that matter are `docs/architec
 For a new repository, or one whose system boundaries have drifted:
 
 ```text
-@software-architect
+@architecture-design
 ```
 
 This is an interactive interview. It asks one question at a time, shows you the system tree as it
@@ -88,7 +88,8 @@ pwsh ./check-contracts.ps1
 ```
 
 Run `build.ps1` first — the pass check reads its TRX results, and without them it can only report
-that it verified nothing.
+that it verified nothing. The scaffolded test stubs fail deliberately until you write them, so a red
+first run is expected here.
 
 Expect warnings about unfulfilled `TODO` obligations at this stage — those are the contract tests you
 have not written yet. Errors mean something is actually wrong: a system document with no `## Contract`
@@ -125,5 +126,6 @@ step, not something every agent worries about on every edit.
 
 ## Next
 
-[Workflow](workflow.md) explains change tiers properly, including the failure modes that make this
-process quietly turn back into a heavyweight one.
+[Common Tasks](common-tasks.md) is the page to keep open while working — the prompt for each
+day-to-day job. [Workflow](workflow.md) explains change tiers properly, including the failure modes
+that make this process quietly turn back into a heavyweight one.
