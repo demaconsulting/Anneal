@@ -103,9 +103,6 @@ if ($slnFiles.Count -gt 0) {
 }
 
 # [PROJECT-SPECIFIC] Add additional language-specific auto-formatters here.
-# Example (C/C++ with clang-format):
-#   Get-ChildItem -Recurse -Include "*.cpp","*.hpp","*.h" |
-#       ForEach-Object { clang-format -i $_.FullName } 2>$null
 
 Write-Host "Auto-fix complete."
 exit 0

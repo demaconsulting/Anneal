@@ -13,24 +13,31 @@ primary job.
 
 This is deliberately **not** a heavyweight state machine. There is no planning phase and there is
 exactly one repair pass. If a change genuinely needs more ceremony than this, it is a Tier 2
-structural change and the `architect` agent handles the thinking before implementation starts.
+structural change and the `architect` agent handles the thinking before implementation starts. If it
+needs more than *that*, it is not a change at all — it is a Migration, and this agent stops.
 
 # Step 1 — Classify
 
-Read `.github/standards/change-tiers.md`. Inspect only as much of the repository as needed to answer
-the classifying question, then **state the tier and the reason in one sentence** before doing
+Read `.github/standards/change-tiers.md` — it is the single definition of both axes, and this prompt
+deliberately does not restate it. Inspect only as much of the repository as needed to answer the
+classifying questions, then **state the mode, the tier, and the reason in one sentence** before doing
 anything else.
 
-- **Tier 0** — nothing outside the system observes a difference.
-- **Tier 1** — a contract clause is added, narrowed, removed, or redefined.
-- **Tier 2** — the set of systems, or the interaction between them, changes.
+Determine the **mode** first, because three of the four fix the tier automatically:
+
+- **Intake** — record the need per the admission test. Do not proceed to Step 2; there is nothing to
+  implement.
+- **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3.
+- **Migration** — an agent never enters this mode on its own. If the work needs it, stop and report
+  INCOMPLETE saying an approved proposal is required.
+- **Change** — continue, and determine the tier.
 
 If the request is ambiguous enough that the tier could be either 0 or 1, resolve it by reading the
 affected system's `## Contract` rather than by rounding up. Rounding up by habit is how this process
 degenerates into the one it replaced.
 
-If the tier cannot be determined without information only the user can supply, stop and report
-INCOMPLETE with the specific question.
+If the mode or tier cannot be determined without information only the user can supply, stop and
+report INCOMPLETE with the specific question.
 
 # Step 2 — Architecture (Tier 1 and Tier 2 only)
 

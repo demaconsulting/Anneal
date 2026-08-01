@@ -92,8 +92,9 @@ Write the tree directly into the repository:
 
 Also update `README.md` to two or three paragraphs plus a link to the overview.
 
-Fetch each file's counterpart from the template (URL in the `# Reference Template` section of
-`AGENTS.md`) and use it as the starting structure.
+Fetch each file's counterpart from the template (resolved per the `# Reference Template` section of
+`AGENTS.md`). If the template cannot be resolved, write the tree from the standards instead and note
+in the report that template structure was unavailable.
 
 **Resist creating section documents.** Most systems need none at the outset. Anything speculative
 will be pruned later at a cost; write it only if you can name which creation test it meets.

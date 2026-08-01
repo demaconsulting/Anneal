@@ -17,10 +17,15 @@ exists to keep documentation weight proportional to how slowly a thing changes.
 
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
-| 0 | `README.md` | 50,000 ft | What is this product, who is it for, why does it exist? |
+| 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and how does it work? |
 | 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+
+**Levels are created when they are earned, never upfront.** A level exists because the level above it
+has grown content it cannot hold at its own altitude — not because the table lists it. A small
+repository whose whole story fits in `README.md` is correctly documented, not under-documented;
+creating `overview.md` for it is the same speculative structure this process rejects everywhere else.
 
 Level 3 is **optional and exceptional**. Most systems have zero or one section documents. A system
 with more than five section documents is a signal that the system should be split, not documented
@@ -41,9 +46,18 @@ editing both files.
 
 ## What Each Level Owns
 
-**`README.md`** — two to three paragraphs. Product purpose, intended audience, and the problem it
-solves. Plus installation and a pointer to `docs/architecture/overview.md`. It does **not** list
-subsystems, describe internals, or enumerate features.
+**`README.md`** — what the product is, what it gives its user, how it works in broad strokes, how to
+install it, and a pointer to `docs/architecture/overview.md`.
+
+Features and approach belong here, stated at an **altitude that does not change when a system
+changes**: describe the value and the organizing idea, never the inventory. No lower level owns
+"what the user gets" — contracts describe what systems promise *each other*, not what the product
+gives a *person* — so there is nothing to duplicate and this is the only place it can live.
+
+It does **not** list systems, restate contracts, describe internals, or enumerate capabilities that
+map one-to-one onto contract clauses. *"Rearrange the interior without paperwork"* is level 0;
+*"supports CSV, JSON, and XML export"* is a contract wearing a feature's clothes and dirties this
+file every time a format is added.
 
 **`overview.md`** — the system inventory and the interactions *between* systems: data flow, control
 flow, process and deployment boundaries, and repository-wide decisions that constrain every system
@@ -68,11 +82,12 @@ links are required** for downward navigation. They are how progressive disclosur
 - Never link sideways across systems in body prose; route through `overview.md` so that
   cross-system coupling stays visible in exactly one place.
 
-Downward links carry a one-line role, never a summary:
+Downward links carry a one-line role, never a summary. Paths are relative to the linking document —
+`overview.md` sits alongside the system documents it links to:
 
 ```markdown
-- [Ingest](architecture/ingest.md) — accepts and validates inbound records
-- [Store](architecture/store.md) — durable persistence and query
+- [Ingest](./ingest.md) — accepts and validates inbound records
+- [Store](./store.md) — durable persistence and query
 ```
 
 # Drift Anchors (MANDATORY)
@@ -153,7 +168,7 @@ that belongs in a section document — or that the system is too large.
 - 120-character line limit; break at punctuation or logical boundaries.
 - ATX headings, blank lines around headings, lists, and fenced blocks.
 - Language identifiers on all fenced code blocks.
-- Relative links for intra-repository navigation; absolute URLs in `README.md`.
+- Relative links for intra-repository navigation; absolute URLs for external resources.
 
 # Quality Gates
 

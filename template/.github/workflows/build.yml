@@ -1,0 +1,67 @@
+---
+# Continuous integration.
+#
+# ORDERING MATTERS: build.ps1 runs before lint.ps1 because lint.ps1 invokes
+# check-contracts.ps1, and the clause-to-test pass verification reads the TRX
+# results that build.ps1 produces. Linting first would leave no results to read,
+# and the pass check would be skipped while CI still reported success.
+#
+# TODO: Adjust the runner, .NET version, and triggers for your repository.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Produces artifacts/tests/*.trx, which check-contracts.ps1 reads to
+      # confirm every contract clause names a test that actually passed.
+      - name: Build and test
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Lint
+        shell: pwsh
+        run: ./lint.ps1
+
+      # -Strict promotes unfulfilled TODO obligations, and absent test results,
+      # from warnings to errors. A merge candidate has no excuse for either.
+      - name: Verify contracts
+        shell: pwsh
+        run: ./check-contracts.ps1 -Strict
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/tests/
+          if-no-files-found: warn

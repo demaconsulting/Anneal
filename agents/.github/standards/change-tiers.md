@@ -1,21 +1,85 @@
 ---
 name: Change Tiers
-description: Follow these standards to classify a change and determine which documentation must move with it.
+description: Follow these standards to classify work by mode and tier, and determine which documentation must move with it.
 ---
 
 # Principle
 
-Documentation work is triggered by **contract change**, never by file change. Classifying the change
+Documentation work is triggered by **contract change**, never by file change. Classifying the work
 first is what keeps routine evolution cheap: most changes touch no documentation at all, and that is
 the correct outcome, not a gap.
 
-# The Classifying Question
+**This document is the single definition of classification.** No other file restates the modes or
+the tiers; they link here.
 
-Before starting work, answer one question:
+# Classification Has Two Dimensions
 
-> **Does anything outside this system observe a difference?**
+Work is classified twice before it starts, along two independent axes:
 
-If **no**, the change is Tier 0. Stop classifying and start working.
+- **Mode** — what kind of work this is. Decides what an agent may touch and what "done" means.
+- **Tier** — how far the change reaches into published contracts. Decides how much documentation
+  moves.
+
+They are orthogonal. Mode is answered first, because three of the four modes fix the tier
+automatically.
+
+# Work Modes
+
+| Mode | Triggered by | May touch | Tier |
+| --- | --- | --- | --- |
+| **Intake** | someone raises a need or an idea | `constraints.md`, `ROADMAP.md` | n/a |
+| **Change** | a requested behavior change | code, tests, contracts per tier | 0, 1, or 2 |
+| **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | always 0 |
+| **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
+
+## Intake
+
+Recording that something is wanted. **No code, no tests, no contract change.** The cheapest
+operation in the process, deliberately — if filing a need costs anything, needs stop being filed and
+the register goes empty.
+
+Apply the admission test: *could changing this change the system decomposition?* If yes it is an
+architecture-shaping constraint; if no it is ordinary backlog. Intake never modifies a contract, and
+never modifies `responsibilities.md`.
+
+## Change
+
+The default mode, and the one the tiers below describe. Something observable must become different
+because someone asked for it.
+
+## Maintenance
+
+Improving what is already there without changing what it promises: renaming for clarity, extracting
+helpers, deleting dead code, tidying interior tests, bumping a dependency.
+
+- **Maintenance is Tier 0 by definition.** If the work would change a contract, it has left
+  maintenance and must be re-classified as Change and re-approved.
+- **Maintenance may never edit the architecture tree**, `constraints.md`, or `responsibilities.md`.
+  Discovering an architectural problem during maintenance is a *finding to report*, never a licence
+  to act on it.
+- **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
+  stopping point. Open-ended "improve the code" work with no bound is not a task.
+
+## Migration
+
+A large, approved restructure landing in stages. Migration is not "a bigger Tier 2" — it differs in
+kind, not degree, because it is the only mode permitted to span multiple commits by design.
+
+- Requires an **approved proposal** before any file changes.
+- Every commit declares Migration mode; splitting work is required here, not forbidden.
+- Contract clauses that describe systems not yet built are marked planned and carry an exit
+  condition (see `system-contracts.md`).
+- Ends when every planned clause is satisfied and the exit conditions are met.
+
+# The Classifying Question (Change Mode)
+
+Within Change mode, answer one question:
+
+> **Does this change what the contract promises?**
+
+If **no**, the change is Tier 0. Stop classifying and start working. Correcting an implementation so
+it finally does what the contract already promised is Tier 0, even though the observable output
+changes — the promise did not move.
 
 If **yes**, ask the follow-up:
 
@@ -60,38 +124,51 @@ boundary between systems changes.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
 
-# Tier Discipline (MANDATORY)
+# Discipline (MANDATORY)
 
-- **Classify before working.** The tier decides the workflow; discovering it afterwards means the
-  contract was edited to match the code.
-- **Tiers may be raised mid-flight, never silently lowered.** If implementation reveals that a
-  consumer would observe a difference, stop, raise the tier, and update the contract before
-  continuing.
+- **Classify before working.** Mode and tier decide the workflow; discovering either afterwards means
+  the contract was edited to match the code.
+- **Modes may be raised mid-flight, never silently lowered.** Maintenance that turns out to need a
+  contract change stops and becomes Change. Change that turns out to need a re-cut stops and becomes
+  a proposal — an agent never promotes itself into Migration.
+- **Tiers may be raised mid-flight, never silently lowered.** If implementation reveals that the
+  contract must move, stop, raise the tier, and update the contract before continuing.
 - **Never split a change to stay at a lower tier.** Landing a contract change as two Tier 0 commits
-  produces an undocumented breaking change.
+  produces an undocumented breaking change. This prohibits *evasion*, not staging: an approved
+  Migration is required to land in stages, and every one of its commits declares Migration mode.
 - **When genuinely uncertain between two tiers, choose the higher one** — but do not reflexively
   round up. Habitually treating Tier 0 work as Tier 1 rebuilds exactly the inertia this process
   removes.
+- **An agent never widens its own authority.** Hitting a boundary that forbids the work is a stop
+  condition and a report, never an invitation to edit the boundary.
 
 # Worked Examples
 
-| Change | Tier | Why |
-| --- | --- | --- |
-| Extract a helper class from a large one | 0 | No consumer can tell |
-| Replace a sort with a faster algorithm | 0 | Same observable results |
-| Fix a bug so behavior matches an existing clause | 0 | Contract already promised it |
-| Add a defensive regression test | 0 | No behavior change |
-| Add an optional field to an API response | 1 | New consumer-observable behavior |
-| Tighten input validation | 1 | Narrows a clause; breaking |
-| Change an error code | 1 | Consumers branch on it |
-| Split a system into two | 2 | System inventory changes |
-| Move a subsystem to a background process | 2 | Process boundary changes |
-| Add a cache between two systems | 2 | Interaction changes |
+| Work | Mode | Tier | Why |
+| --- | --- | --- | --- |
+| Extract a helper class from a large one | Change | 0 | No consumer can tell |
+| Replace a sort with a faster algorithm | Change | 0 | Same promise |
+| Fix a bug so behavior matches an existing clause | Change | 0 | Contract already promised it |
+| Add a defensive regression test | Change | 0 | No behavior change |
+| Add an optional field to an API response | Change | 1 | New consumer-observable promise |
+| Tighten input validation | Change | 1 | Narrows a clause; breaking |
+| Change an error code | Change | 1 | Consumers branch on it |
+| Split a system into two | Change | 2 | System inventory changes |
+| Move a subsystem to a background process | Change | 2 | Process boundary changes |
+| Add a cache between two systems | Change | 2 | Interaction changes |
+| Record "we will need multi-user eventually" | Intake | n/a | Shapes decomposition; no code |
+| Record "we want a dark theme" | Intake | n/a | Ordinary backlog; not architecture-shaping |
+| Spend spare capacity tidying a package | Maintenance | 0 | Bounded, interior, no promise moves |
+| Rename an unclear private method | Maintenance | 0 | Interior only |
+| Re-cut four systems into six for cross-platform | Migration | n/a | Approved restructure, staged |
 
 # Quality Gates
 
-- [ ] The tier was declared before work started
+- [ ] The mode and tier were declared before work started
+- [ ] Maintenance work stayed Tier 0 and touched no architecture document
+- [ ] Intake work touched no code, test, or contract
 - [ ] Tier 0 changes left contract tests passing untouched
 - [ ] Tier 1 and 2 changes updated the contract before implementation
 - [ ] No change was split across commits to avoid a higher tier
+- [ ] Every Migration commit declared Migration mode and referenced its approved proposal
 - [ ] Prune check was performed for every Tier 1 and Tier 2 change

@@ -1,5 +1,4 @@
 // TODO: Replace SystemName with the actual system name.
-// For C++: use snake_case names and .cpp/.hpp files instead.
 //
 // Interior structure below this system's boundary is organized however the code reads
 // best. It carries no documentation obligation - member intent lives in doc comments,

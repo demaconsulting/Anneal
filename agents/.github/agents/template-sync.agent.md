@@ -24,8 +24,13 @@ architectural reasoning gets flattened into boilerplate.
 
 # Step 1 — Load the Map
 
-Read the `# Reference Template` section of `AGENTS.md` for the template URL, then fetch
-`repository-map.md` from it. That map is the authoritative list of what the template provides.
+Read the `# Reference Template` section of `AGENTS.md` and resolve the template root in the order it
+gives: a vendored `.github/template/` first, then the template URL. Fetch `repository-map.md` from
+whichever resolved. That map is the authoritative list of what the template provides.
+
+If neither template root resolves, report **INCOMPLETE**, naming the one that failed and why — the
+user must either vendor a copy or make the URL reachable. Do not reconstruct template content from
+memory.
 
 # Step 2 — Compare
 
@@ -62,7 +67,10 @@ For Scaffold and Sync, run `pwsh ./fix.ps1` afterwards.
 
 - Never delete repository content that has no template counterpart.
 - Never overwrite hand-written architectural reasoning with template prose.
-- If a mapped template file cannot be fetched, report FAILED and name the affected files.
+- If the template root cannot be resolved at all, report INCOMPLETE — the user must vendor a copy or
+  make the URL reachable.
+- If an individual mapped template file cannot be fetched from a resolved root, report FAILED and
+  name the affected files.
 - Files not in the map are out of scope entirely.
 
 # Report Template

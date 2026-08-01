@@ -1,6 +1,7 @@
 # Reference
 
-Every agent and standard: what it does, when to invoke it, what it produces, and when not to use it.
+Every agent, skill, and standard: what it does, when to invoke it, what it produces, and when not to
+use it.
 
 ## Agents
 
@@ -106,8 +107,25 @@ Loaded selectively per task using the matrix in `AGENTS.md`. Load only what the 
 | `coding-principles.md` | Literate coding, API documentation, design principles, anti-patterns |
 | `testing-principles.md` | Contract versus interior test lifecycles, AAA, coverage expectations |
 | `technical-documentation.md` | README and general markdown conventions, links, user guides |
-| `csharp-language.md`, `cpp-language.md` | Language-specific implementation standards |
-| `csharp-testing.md`, `cpp-testing.md` | Language-specific test framework and layout standards |
+| `csharp-language.md` | C# implementation standards |
+| `csharp-testing.md` | C# test framework and layout standards |
+
+## Skills
+
+Skills live in `.github/skills/` and are loaded on demand, when the situation they describe arises.
+They sit between an agent prompt and a standard: cheaper than prompt text, which is paid on every
+invocation, and more procedural than a standard, which describes what good output looks like.
+
+### `check-contracts`
+
+The runbook for `check-contracts.ps1`.
+
+- **Covers**: which mode to run for each tier, when to use `-Strict`, and the correct fix for every
+  failure the script emits
+- **Used by**: `developer` (Step 7) and `contract-check` (Step 2), which reference it rather than
+  restating the procedure
+- **Does not cover**: the script's parameters — those live in the script's own header, so the two
+  cannot drift
 
 ## Scripts
 
@@ -116,30 +134,54 @@ Loaded selectively per task using the matrix in `AGENTS.md`. Load only what the 
 | `fix.ps1` | Applies all auto-fixers silently | Always 0 |
 | `lint.ps1` | All lint checks, including `check-contracts.ps1` | 1 on failure |
 | `check-contracts.ps1` | Verifies clause-to-test links | 1 on error |
-| `build.ps1` | Builds and runs all tests | Non-zero on failure |
+| `build.ps1` | Builds and runs all tests, emitting TRX to `artifacts/tests` | Non-zero on failure |
+| `install.ps1` | Installs the payload and vendors the template into a target repository | 1 on conflict |
+
+`build.ps1` clears `artifacts/tests` before each run so results cannot accumulate, and CI runs it
+**before** `lint.ps1` so the pass verification has results to read.
 
 ### `check-contracts.ps1`
 
 The only mechanically enforced relationship in the process. It parses `## Contract` sections from
 `docs/architecture/*.md` and checks:
 
-1. Clause IDs are unique across the repository
-2. Every clause names at least one verifying test
-3. Every named test exists in the test sources
-4. Every named test passed, when `.trx` results are present
+1. Every system document declares a `## Contract` section
+2. Every bolded item under `Provides` or `Invariants` carries a well-formed, unique clause ID
+3. Every clause names at least one verifying test
+4. Every named test is declared as a test method inside a `Contract/` folder
+5. Every named test's **most recent** result is `Passed`
+6. Those results are not older than the test sources they describe
 
-Test names may be bare or fully qualified, and parameterized suffixes are stripped. Bolded IDs
-outside the `## Contract` block are ignored.
+It **fails closed**. A renamed heading or an ID that does not parse is an error, not a skip — a check
+that quietly stops looking while reporting success is worse than no check at all. `Requires` entries
+are exempt: they name depended-upon behavior and legitimately carry no ID.
 
-Clauses whose test name contains `TODO` are **warnings** — unfulfilled obligations — so a contract can
-be written before its tests exist. Use `-Strict` to promote them to errors once implementation is
+Test names may be bare or fully qualified, and parameterized suffixes are stripped. Comments are
+stripped from test sources before matching, and a clause is satisfied only by an attribute-marked
+method declaration, so neither a doc comment, a private helper, nor a string literal can keep a
+deleted promise alive. Requiring the `Contract/` location stops a disposable interior test from
+standing in for a durable boundary one.
+
+Check 5 resolves each test to the outcome from the newest result file that mentions it, rather than
+accepting any historical pass. Because `artifacts/` is git-ignored, results used to accumulate
+locally, and an old pass could vouch for a test failing today. Check 6 catches the other direction: a
+result recorded before the test last changed.
+
+Clauses whose test name contains an uppercase `TODO` are **warnings** — unfulfilled obligations — so a
+contract can be written before its tests exist. The match is case-sensitive, so a real test named
+`TodoItemsAreReturned` is checked normally. `contract-check` runs `-Strict` on Tier 1 and Tier 2
+changes, which promotes obligations, and absent test results, to errors once implementation is
 complete.
 
 ```pwsh
 pwsh ./check-contracts.ps1
 pwsh ./check-contracts.ps1 -Strict
 pwsh ./check-contracts.ps1 -TestRoots test,integration -TestResults "out/**/*.trx"
+pwsh ./check-contracts.ps1 -TestFilePatterns *.cs,*.fs -TestAttributes Fact,Theory,Test
 ```
+
+`-TestResults` is matched against the whole repository-relative path, not just the file name, so
+results outside the configured location are ignored rather than silently consumed.
 
 **Never resolve a failure by editing the clause to match the code.** Fix the test name, or make the
 contract change deliberately.

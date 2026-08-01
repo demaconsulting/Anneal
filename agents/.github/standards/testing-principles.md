@@ -16,8 +16,8 @@ Contract tests prove a clause in a system's `## Contract` (see `system-contracts
 - Exercise the system **only through its public boundary**. No internal types, no reaching past the
   entry points a real consumer would use.
 - Named in the clause they verify, so the link is greppable in both directions.
-- Live in a dedicated location — `test/{System}.Tests/Contract/` (C#) or
-  `test/{system}_tests/contract/` (C++/Python) — so their special status is visible.
+- Live in a dedicated location — `test/{System}.Tests/Contract/` — so their special status is
+  visible.
 - **Survive refactoring untouched.** A Tier 0 change that breaks a contract test was misclassified:
   either the change is actually Tier 1, or it is a defect.
 - Changing one requires a corresponding contract change. Never edit a contract test to make a build

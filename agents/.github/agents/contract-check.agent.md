@@ -23,11 +23,15 @@ Read `change-tiers.md`, `system-contracts.md`, and `architecture-documentation.m
 
 # Step 2 — Contract Conformance
 
-Run `pwsh ./check-contracts.ps1` first. It deterministically verifies clause ID uniqueness, that
-every clause names a test, that the test exists, and that it passed. **Do not re-verify by hand what
-the script already proved** — that is wasted effort and less reliable than the script.
+Use the **check-contracts** skill first, in `-Strict` mode — implementation is complete by the time
+this agent runs, so an unfulfilled `TODO` obligation is a real gap rather than a bootstrap
+placeholder. **Do not re-verify by hand what the script already proved** — that is wasted effort and
+less reliable than the script.
 
 A non-zero exit is a FAIL. Report its output verbatim in the required fixes.
+
+One exception: a `-Strict` obligation in a system this change did not touch is a **pre-existing**
+issue. Note it as advisory rather than failing the change on it.
 
 Then judge what the script cannot, for each system whose boundary was touched:
 

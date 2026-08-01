@@ -7,23 +7,41 @@ description: Follow these standards when developing any software code.
 
 ## Literate Coding
 
+Doc comments are where interior design intent lives. This process has no requirements, design, or
+verification artifacts below system level, so a doc comment is the **only** place a reason that
+cannot be recovered from the code is recorded. That is what they are for — and it is also the test
+for whether one is needed.
+
 All code MUST follow literate programming principles:
 
 - **Intent Documentation**: Function and method documentation (XmlDoc, Doxygen,
   JSDoc, etc.) MUST explain WHY the function exists and its design purpose -
-  not just restate what it does - because doc comments are where interior design
-  intent lives; nothing below the system boundary is documented anywhere else
+  not just restate what it does
 - **Logical Separation**: Complex functions use block comments to separate and
   describe logical steps within the implementation
-- **Full Symbol Documentation**: ALL symbols have comprehensive documentation —
-  not just the public interface, because interior intent is recorded nowhere else.
-  Access-level specifics vary by language; see the language-specific standard.
+- **Boundary Documentation (MANDATORY)**: Every publicly visible symbol is fully documented, to the
+  API Documentation standard below. Consumers cannot recover any of it from a signature, and in C#
+  this is a build error rather than a matter of discipline.
+- **Interior Documentation (BY REASON)**: A private or internal symbol is documented when its intent
+  is **not recoverable from the code** — a non-obvious constraint, an ordering requirement, a
+  rejected simpler approach, a reason the obvious implementation is wrong. Apply the same test the
+  architecture tree uses: *facts recoverable by reading the code do not belong here; reasons do.*
 - **Clarity Over Cleverness**: Code should be immediately understandable by team members
+
+**A doc comment that restates the signature is a defect, not compliance.** It cannot be told apart
+from real intent without reading the code it was meant to save you reading, nothing checks it, and
+the next agent copies the local convention — so filler propagates and the signal that a comment
+means "stop, there is intent here" is lost. Where a private member's name and body already say
+everything, the correct amount of documentation is none.
+
+Interior doc comments follow the same lifecycle as interior tests: written where they protect
+something worth protecting, and deleted without ceremony when their subject changes.
 
 ## API Documentation
 
-Good API documentation enables consumers, reviewers, and agents to use an
-interface correctly without reading the implementation:
+This checklist applies to the **publicly visible surface** — the members a consumer outside the
+system can reach. None of it is recoverable from a signature, which is why all of it is mandatory
+here and none of it is mandatory on a private helper:
 
 - **Self-Contained**: Each member's documentation must be fully understandable
   in isolation - consumers must not need to read the implementation to call it
@@ -57,7 +75,8 @@ interface correctly without reading the implementation:
 
 ### Robust Code Structure
 
-- **Documentation Standards**: Language-appropriate documentation required on ALL members
+- **Documentation Standards**: Publicly visible members fully documented; interior
+  members documented where intent is not recoverable from the code
 - **Error Handling**: Comprehensive error cases with appropriate exception handling and logging
 - **Configuration**: Externalize settings for different deployment environments
 - **Resource Management**: Proper resource cleanup using language-appropriate patterns
@@ -68,12 +87,17 @@ interface correctly without reading the implementation:
 
 - [ ] Zero compiler warnings (use language-specific warning-as-error flags)
 - [ ] All code follows literate programming style
-- [ ] Language-appropriate documentation complete on all members
+- [ ] Every publicly visible member is documented to the API Documentation standard
+- [ ] Every interior member whose intent is not recoverable from the code is documented
+- [ ] No doc comment merely restates the name or signature of what it documents
 - [ ] Passes static analysis (language-specific tools)
 
 ## Universal Anti-Patterns
 
 - **Skip Literate Coding**: Don't skip literate programming comments
+- **Restating the Signature**: Don't write doc comments that repeat the member's
+  name or parameter list in prose - they are indistinguishable from real intent,
+  nothing verifies them, and subsequent agents copy the local convention
 - **Ignore Compiler Warnings**: Don't ignore compiler warnings
 - **Hidden Dependencies**: Don't create untestable code with hidden dependencies
 - **Undeclared Boundary Behavior**: Don't add consumer-observable behavior at a

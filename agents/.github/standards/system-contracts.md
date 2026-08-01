@@ -70,18 +70,30 @@ pwsh ./check-contracts.ps1
 
 `lint.ps1` runs it, so CI fails when:
 
+- A system document has no `## Contract` section
+- A bolded item under `Provides` or `Invariants` is not a well-formed clause ID
 - A clause ID is duplicated
 - A clause names no verifying test
-- A clause names a test that does not exist in the test sources
-- A clause names a test that did not pass, when test results are present
+- A clause names a test that is not declared as a test method under `test/**/Contract/`
+- A clause names a test whose most recent result is not `Passed`
+- The test results are older than the test sources they describe
+
+Parsing **fails closed**. A clause the script cannot understand is an error, never a silent skip: a
+renamed heading or a malformed ID would otherwise remove the clause from the check while the run
+still reported success, which is worse than having no check at all.
+
+Because the pass verification reads TRX results, `build.ps1` must run **before** `lint.ps1`. The
+template CI workflow orders them that way; running lint alone leaves no results and downgrades the
+pass check to a warning.
 
 This matters because `*Verified by:*` is otherwise unenforced prose: rename the test and the promise
 rots silently. Everything else in this process is judgement, deliberately. This one thing is not,
 because a script does it faster and more reliably than an agent can.
 
 Clauses whose test name contains `TODO` are reported as **unfulfilled obligations** — a warning, not
-an error — so `software-architect` can write a contract before its tests exist. Run with `-Strict` to
-fail on them once implementation is complete.
+an error — so `software-architect` can write a contract before its tests exist. The `contract-check`
+agent runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes them to errors once
+implementation is complete; that agent owns closing the obligation.
 
 **Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
 the contract change deliberately.
@@ -89,6 +101,9 @@ the contract change deliberately.
 # Identifiers
 
 - Format: `{SYSTEM}-{nn}` for provided behavior, `{SYSTEM}-I{n}` for invariants.
+- The `{SYSTEM}` prefix is alphanumeric, and may be hyphenated for a multi-word system
+  (`DATA-STORE-01`). It must not contain spaces, underscores, or a trailing placeholder such as
+  `{SYSTEM}` — the check rejects anything it cannot parse rather than skipping it.
 - IDs are **stable for the life of the clause**. Never renumber to close gaps.
 - **Never reuse a retired number.** Gaps in the sequence are correct and expected.
 - Deleted clauses are simply removed; git holds the history. Do not maintain a graveyard section.

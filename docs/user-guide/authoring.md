@@ -21,13 +21,13 @@ inside any of them.
 The trap is the system list. Write this:
 
 ```markdown
-- [Ingest](architecture/ingest.md) — accepts and validates inbound records
+- [Ingest](./ingest.md) — accepts and validates inbound records
 ```
 
 Not this:
 
 ```markdown
-- [Ingest](architecture/ingest.md) — accepts inbound records over HTTP, validates them against
+- [Ingest](./ingest.md) — accepts inbound records over HTTP, validates them against
   the schema registry, batches them, and forwards to Store. Contains the validation pipeline,
   the batching buffer, and the retry handler.
 ```

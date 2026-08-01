@@ -6,8 +6,8 @@
 - **project-name**: TODO — repository/project name
 - **organization**: TODO — organization name
 - **description**: TODO — full project description, may be multiple sentences
-- **languages**: TODO — programming languages used (e.g., `C#`, `C++`)
-- **technologies**: TODO — key technologies and frameworks (e.g., `.NET`, `CMake`)
+- **languages**: TODO — programming languages used (e.g., `C#`)
+- **technologies**: TODO — key technologies and frameworks (e.g., `.NET`)
 
 # Process Model
 
@@ -26,14 +26,15 @@ level**. If you find yourself creating one, stop.
 
 Documentation is a descent, not a pile. Read only as far down as your task requires.
 
-| Level | File | Altitude | Answers |
-| --- | --- | --- | --- |
-| 0 | `README.md` | 50,000 ft | What is this product and why does it exist? |
-| 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
-| 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+| Level | File |
+| --- | --- |
+| 0 | `README.md` |
+| 1 | `docs/architecture/overview.md` |
+| 2 | `docs/architecture/{system}.md` |
+| 3 | `docs/architecture/{system}/{section}.md` |
 
-Level 3 is exceptional. Most systems have none.
+`architecture-documentation.md` defines what each level answers and owns; this table is navigation
+only. Level 3 is exceptional — most systems have none, and levels are created only when earned.
 
 **Each level owns content no other level restates.** A parent names its children and gives each a
 one-line role; it never summarizes them. Any change should require editing exactly one documentation
@@ -55,19 +56,28 @@ file.
         └── Contract/
 ```
 
-# Change Tiers (ALL Agents)
+# Classification (ALL Agents)
 
-Classify before working. Read `.github/standards/change-tiers.md` for the full rules.
+**Classify before working.** Read `.github/standards/change-tiers.md` and classify along both axes
+before touching anything. That file is the **single definition** of both — this file names them and
+routes; it never restates what they mean.
 
-- **Tier 0** — nothing outside the system observes a difference. No documentation update.
-  `developer` alone. This should be most changes.
-- **Tier 1** — a contract clause is added, narrowed, removed, or redefined. Update
-  `docs/architecture/{system}.md` only. `architect` first, then `developer`.
-- **Tier 2** — the set of systems, or the interaction between them, changes. Update
-  `overview.md` plus affected system documents. `architect` first, then `developer`.
+- **Mode** — `Intake`, `Change`, `Maintenance`, or `Migration`. Decides what you may touch.
+- **Tier** — `0`, `1`, or `2`, within Change mode. Decides how much documentation moves.
 
-Tiers may be raised mid-flight, never silently lowered. Never split a change across commits to stay
-at a lower tier.
+Routing once classified:
+
+| Mode / Tier | Route |
+| --- | --- |
+| Intake | `evolve` records it; no other agent runs |
+| Change, Tier 0 | `developer` |
+| Change, Tier 1 or 2 | `architect` → `developer` → `contract-check` |
+| Maintenance | `developer`, within a declared bound |
+| Migration | approved proposal → `software-architect` → staged `developer` work |
+
+Modes and tiers may be raised mid-flight, never silently lowered. An agent never promotes itself
+into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
+report.
 
 # Test Lifecycles (ALL Agents)
 
@@ -77,24 +87,39 @@ at a lower tier.
   restructured. They need no clause and no justification.
 
 The clause-to-test link is the **only** mechanically enforced relationship in this process.
-`check-contracts.ps1` — run by `lint.ps1` — fails CI when a clause names no test, names a test that
-does not exist, or names a test that did not pass. Everything else here is judgement, deliberately.
+`check-contracts.ps1` — run by `lint.ps1` — fails CI when a system document has no `## Contract`
+section, when a clause ID does not parse, is duplicated, names no test, names something that is not
+a test method under `test/{System}.Tests/Contract/`, or is backed by a result that is stale or not
+passing. It fails closed: a clause it cannot parse is an error, never a silent skip. Run
+`pwsh ./build.ps1` before it, or the pass verification has no results to read. Everything else here
+is judgement, deliberately.
 
 # Standards Application (ALL Agents Must Follow)
 
 Read the relevant standards from `.github/standards/` before working. Load only what your task
-needs:
+needs, selecting by the file in scope and the **languages** field above:
 
 - **Any code**: `coding-principles.md`
 - **C# code**: `coding-principles.md`, `csharp-language.md`
-- **C++ code**: `coding-principles.md`, `cpp-language.md`
 - **Any tests**: `testing-principles.md`
 - **C# tests**: `testing-principles.md`, `csharp-testing.md`
-- **C++ tests**: `testing-principles.md`, `cpp-testing.md`
 - **Architecture documents**: `architecture-documentation.md`
 - **System contracts**: `system-contracts.md`
-- **Classifying a change**: `change-tiers.md`
+- **Classifying work**: `change-tiers.md`
 - **Any other documentation**: `technical-documentation.md`
+
+**Each rule has exactly one owner.** A standard is the sole definition of its subject; this file and
+every agent prompt link to it rather than restating it. A rule stated in two places drifts, and the
+copy an agent happens to read first wins. If you find the same rule defined twice, that is a defect
+to report — not a choice to make.
+
+# Skills
+
+Skills in `.github/skills/` are loaded on demand, when the situation they describe arises. Prefer
+the skill over reconstructing a procedure from memory.
+
+- **check-contracts** — running and interpreting `check-contracts.ps1`: which mode to use for each
+  tier, and how to resolve each failure
 
 # Agent Delegation Guidelines
 
@@ -146,9 +171,16 @@ Always use **US English** spelling in all output.
 
 # Reference Template
 
-- **template-url**: `https://github.com/demaconsulting/Agents2/raw/refs/heads/main/template`
-- **Repository map**: `{template-url}/repository-map.md`
-- **Template files**: `{template-url}/{file-path}` for files described in the map
+Resolve the template in this order, and use the first that is available:
+
+1. **`.github/template/`** in this repository — a vendored copy, if present. Prefer it; it needs no
+   network and is guaranteed to match the agents installed alongside it.
+2. **`template-url`**: `https://github.com/demaconsulting/Anneal/raw/refs/heads/main/template`
+
+- **Repository map**: `{template-root}/repository-map.md`
+- **Template files**: `{template-root}/{file-path}` for files described in the map
+
+If neither resolves, report INCOMPLETE and say which — do not guess at template content.
 
 # Key Configuration Files
 
@@ -160,8 +192,8 @@ Always use **US English** spelling in all output.
 - **`pip-requirements.txt`** — Python dependencies for yamllint and yamlfix
 - **`fix.ps1`** — applies all auto-fixers silently; always exits 0
 - **`lint.ps1`** — runs all lint checks; exits 1 on failure
-- **`check-contracts.ps1`** — verifies every contract clause names a test that exists and passed
-- **`build.ps1`** — builds the solution and runs all tests
+- **`check-contracts.ps1`** — verifies every contract clause names a boundary test that exists and passed
+- **`build.ps1`** — builds the solution, clears `artifacts/tests`, and runs all tests
 
 # Protected Configuration Files
 

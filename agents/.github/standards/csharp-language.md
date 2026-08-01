@@ -12,6 +12,13 @@ Read these standards first before applying this standard:
 
 # API Documentation and Literate Coding Example
 
+## Publicly Visible Members (MANDATORY, enforced by the compiler)
+
+`GenerateDocumentationFile=true` and `TreatWarningsAsErrors=true` in the project file make CS1591 —
+missing XmlDoc on a publicly visible member — a **build error**. This is one of the few things in
+this process that is mechanically enforced rather than left to judgement, so treat a missing
+boundary doc comment as a broken build, not a review comment.
+
 ```csharp
 /// <summary>
 ///     Converts a raw sensor reading into a validated measurement ready for downstream consumers.
@@ -58,6 +65,44 @@ Key qualities demonstrated above:
   `coding-principles.md`, separating logical steps so reviewers can verify each
   step against design intent
 
+## Interior Members (BY REASON, not by rule)
+
+CS1591 does not cover `private` or `internal` members, and neither does this standard. Document an
+interior member when its intent is **not recoverable from the code**, and leave it undocumented when
+it is. Both of the following are correct:
+
+```csharp
+// No doc comment. The name and the single expression say everything a reader
+// needs; a summary here could only restate them.
+private static string NormalizeKey(string key) => key.Trim().ToLowerInvariant();
+
+/// <remarks>
+///     Retries only on 429 and 503. A 500 is deliberately not retried: this API returns
+///     500 for malformed payloads, so retrying one is guaranteed to fail again and costs
+///     the caller their whole timeout budget. The backoff is jittered because the three
+///     ingest workers otherwise retry in lockstep and re-create the burst that failed.
+/// </remarks>
+private async Task<HttpResponseMessage> SendWithRetryAsync(HttpRequestMessage request)
+```
+
+The second carries a constraint, a rejected alternative, and a non-local reason — none of which
+survive in the code alone, and all of which the next agent would otherwise have to rediscover by
+breaking something.
+
+This is a defect, not compliance:
+
+```csharp
+/// <summary>
+///     Gets the user identifier.
+/// </summary>
+/// <returns>The user identifier.</returns>
+private int GetUserId() => _userId;
+```
+
+It restates the signature, so it adds nothing a reader did not already have. Worse, it is
+indistinguishable at a glance from a comment that does carry intent — and once a file is full of
+these, a doc comment stops meaning "stop, there is something here you cannot infer." Delete it.
+
 # Code Formatting
 
 - **Format entire solution**: `dotnet format`
@@ -67,5 +112,7 @@ Key qualities demonstrated above:
 # Quality Checks
 
 - [ ] Zero compiler warnings (`TreatWarningsAsErrors=true`)
-- [ ] XmlDoc documentation complete on all members (public, internal, protected, private)
+- [ ] XmlDoc complete on every publicly visible member (CS1591 clean)
+- [ ] Interior members documented where intent is not recoverable from the code
+- [ ] No doc comment restates the name, parameters, or return of its member
 - [ ] `dotnet format` applied (run `pwsh ./fix.ps1`)

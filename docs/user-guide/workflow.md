@@ -2,28 +2,37 @@
 
 How work actually flows through this process, and the ways it goes wrong.
 
-## The Question That Decides Everything
+## The Questions That Decide Everything
 
-Before any work starts:
+Before any work starts, two questions in order.
 
-> **Does anything outside this system observe a difference?**
+> **What kind of work is this?**
 
-If no, it is Tier 0 and no documentation moves. If yes, ask whether the set of systems or their
-interactions change — no means Tier 1, yes means Tier 2.
+Recording a need is **Intake**. Tidying with no requested outcome is **Maintenance**. An approved
+restructure is **Migration**. Everything else is a **Change**, and only Changes carry a tier.
+
+> **Does this change what the contract promises?**
+
+If no, it is Tier 0 and no documentation moves — including a bug fix that makes the code finally do
+what the contract already promised. If yes, ask whether the set of systems or their interactions
+change: no means Tier 1, yes means Tier 2.
 
 That is the entire routing decision. `change-tiers.md` holds the authoritative rules; this page is
 about applying them.
 
-## What Each Tier Costs
+## What Each Mode and Tier Costs
 
-| Tier | Agents | Documentation | Typical wall time |
+| Mode / Tier | Agents | Documentation | Typical wall time |
 | --- | --- | --- | --- |
-| 0 | `developer` | None | Minutes |
-| 1 | `architect` → `developer` → `contract-check` | One system document | Tens of minutes |
-| 2 | `architect` → `developer` → `contract-check` | Overview plus affected systems | Longer |
+| Intake | `evolve` | One bullet in the register | Seconds |
+| Maintenance | `developer`, bounded | None | Minutes |
+| Change, Tier 0 | `developer` | None | Minutes |
+| Change, Tier 1 | `architect` → `developer` → `contract-check` | One system document | Tens of minutes |
+| Change, Tier 2 | `architect` → `developer` → `contract-check` | Overview plus affected systems | Longer |
+| Migration | proposal → `software-architect` → staged work | The tree | Days, staged |
 
-The cost difference between tiers is the point. It is why classification happens first and why
-rounding up "to be safe" is a real cost, not free insurance.
+The cost difference is the point. It is why classification happens first and why rounding up "to be
+safe" is a real cost, not free insurance.
 
 ## Tier 0 Should Be Most Changes
 

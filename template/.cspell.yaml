@@ -12,7 +12,6 @@ version: '0.2'
 language: en
 words:
   - Dema
-  - postconditions
   - slnx
   - xunit
   - Xunit

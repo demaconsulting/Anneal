@@ -65,7 +65,7 @@ npm install --silent
 if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipNpm = $true }
 
 if (-not $skipNpm) {
-    npx cspell --no-progress --no-color --quiet "**/*.{md,yaml,yml,json,cs,cpp,hpp,h,txt}"
+    npx cspell --no-progress --no-color --quiet "**/*.{md,yaml,yml,json,cs,txt}"
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
     npx markdownlint-cli2 "**/*.md"
@@ -94,13 +94,5 @@ if (-not $skipDotnetFormat) {
     dotnet format --verify-no-changes --no-restore
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 }
-
-# [PROJECT-SPECIFIC] C/C++ clang-format check example:
-#   Get-ChildItem -Recurse -Include "*.cpp","*.hpp","*.h","*.c" |
-#       Where-Object { $_.FullName -notmatch '[/\\](thirdparty|third-party|3rd-party|generated)[/\\]' } |
-#       ForEach-Object {
-#           $result = clang-format --dry-run --Werror $_.FullName 2>&1
-#           if ($LASTEXITCODE -ne 0) { Write-Output $result; $lintError = $true }
-#       }
 
 exit ($lintError ? 1 : 0)

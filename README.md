@@ -1,39 +1,120 @@
-# Agents2
+# Anneal
 
 Agent definitions, standards, and a repository template for **evolutionary** software development —
 designs that must keep moving after the first version ships.
 
-> **Not a regulated-development process.** `Agents2` does not produce IEC 62304 or equivalent
+Repeated working makes metal brittle; annealing relieves the accumulated stress so it can be shaped
+again. Architectures stiffen the same way under accumulated change. This process is built to keep
+them workable, and to restructure them deliberately when they are not.
+
+Anneal gives AI coding agents enough structure to produce maintainable, reviewable software without
+the inertia of a formal process. It sits between unstructured prompting and regulated development.
+
+**The idea, in one paragraph.** A component's **contract** is what other code is allowed to depend
+on — the promises it publishes at its boundary. Documentation work is triggered by a change to a
+contract, and by nothing else. Rewrite a component's internals however you like and you owe no
+documentation; change what it promises and you edit one file, where every promise names the test
+that proves it. Agents classify a task against that rule before starting, and the classification
+decides both how much process the task gets and what the agent is permitted to touch.
+
+> **Not a regulated-development process.** `Anneal` does not produce IEC 62304 or equivalent
 > compliance evidence.[^1]
 
-## The Central Idea
+## Features
 
-> Documentation work is triggered by **contract change**, never by file change.
+- **Refactor without paperwork.** Rearrange the inside of a component as much as you like.
+  Documentation costs you something only when you change a promise other code depends on.
+- **Every promise is backed by a test.** Each clause of a contract names a test, and the build fails
+  if that test is missing, renamed, or last seen failing.
+- **Process sized to the change.** Every task is classified before work starts, and the common case —
+  a change no other code can observe — carries no documentation step at all.
+- **Agents stop instead of improvising.** An agent declares what it will touch before it touches it.
+  Reaching that boundary is a stop and a report back to you, never a decision to widen it.
+- **Tidying is a first-class activity.** Background quality work has its own mode, with a declared
+  scope and a stopping point, so it cannot drift into a redesign.
+- **Restructuring is a defined operation.** Reshaping the architecture proceeds in steps you approve,
+  rather than one enormous commit or a branch that lives for months.
+- **The reasoning survives.** Why a component promises what it promises is recorded beside the
+  promise, so a new developer — or a new agent — can recover it without a parallel tree of design
+  documents to keep in sync.
+- **One command to install**, pinned to a version you control.
 
-Each system publishes a contract — what consumers outside it may rely on. Everything below that
-boundary is free to change without documentation cost.
+**One of these is enforced by a machine; the rest are instructions.** `check-contracts.ps1` fails the
+build when a contract clause names no test, or names a test that is missing, stale, or failing.
+Everything else above is a rule agents are told to follow, held by prompt and review rather than by
+tooling.
 
-Three things follow from that, and together they are the whole process:
+## What It Costs
 
-- **Progressive disclosure.** Documentation is a descent, not a pile. Each level answers a different
-  question at a different altitude, and no level restates the one below it. Any change should require
-  editing exactly one documentation file.
-- **Contracts at system level only.** There are no requirements, design documents, or verification
-  documents below system level. Interior intent lives in doc comments, next to the code it describes.
-- **Two test lifecycles.** Contract tests are durable and survive refactoring untouched. Interior
-  tests are disposable and are deleted without ceremony when their subject changes.
+Every component boundary needs its promises written down, and every promise needs a named test —
+that is the adoption cost on an existing codebase, and it is real. Restructures need your approval at
+each step, so the process cannot run unattended on the work that matters most. And the trade itself —
+a small cost per contract change in exchange for none per file change — only pays on a design that is
+still moving.
 
-The clause-to-test link is the one relationship that is **mechanically enforced**:
-`check-contracts.ps1` fails CI when a clause names no test, names a test that does not exist, or
-names a test that did not pass. It needs no tooling beyond PowerShell and works for any language.
-Everything else in this process is judgement, deliberately — but an unenforced `*Verified by:*`
-reference is prose that rots the moment somebody renames a test.
+Several things are deliberately absent: per-unit requirements, per-unit and per-subsystem design
+documents, verification design documents, an architecture model, formal review tracking, and
+multi-retry orchestration. Each was left out because its cost is paid on **every** subsequent change.
+[Maintaining](docs/user-guide/maintaining.md) has the full rationale, the trade-offs, and what must
+not be reintroduced.
+
+## Documentation
+
+- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
+- **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
+- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
+- **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
+- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
+
+## Requirements
+
+What the process must hold true to deliver the above. Each is a statement you can check against a
+repository rather than argue about:
+
+- Every kind of work a product receives has exactly **one** defined entry point.
+- Documentation changes when, and only when, a published promise changes.
+- Every published promise names a test that exists and passes, enforced automatically rather than by
+  review.
+- How much process a task needs is decided before work begins, from a **single** definition used by
+  every agent.
+- What an agent may touch is bounded before it starts, and it cannot widen that boundary itself.
+- A need the current design cannot cleanly meet is recorded where the next design review will read
+  it.
+- A large restructure can proceed in stages without disabling any check.
+- The rules an agent must load for any one task fit within a stated budget.
+- Nothing below component level is documented as a requirement, design, or verification artifact.
+
+## How It Works
+
+The process rests on one rule: **documentation work is triggered by a change to what other code
+depends on, never by a change to a file.** Each system publishes a contract — the promises consumers
+outside it may rely on. Everything below that boundary is free to change without documentation cost.
+That freedom is the point; it is what lets a design keep moving after the first version ships.
+
+Work is classified twice before it starts. **Mode** — recording an idea, making a change, tidying,
+or migrating — decides what an agent is allowed to touch. **Tier** decides how far a change reaches
+into published contracts, and therefore how much documentation moves with it. The two are
+independent, and most work lands on the cheapest combination of both. Classification is defined in
+exactly one place, so no two agents can hold different ideas of what a tier means.
+
+Documentation is a descent, not a pile. Each level answers a different question at a different
+altitude, no level restates the one below it, and a reader descends only as far as the task requires.
+Any change should require editing exactly one documentation file. Levels are created when they are
+earned — a repository whose whole story fits in its README is correctly documented, not
+under-documented.
+
+One relationship is **mechanically enforced**: every contract clause names a boundary test that
+exists and passed. `check-contracts.ps1` fails CI when a clause names nothing, names something that
+is not a test, or is backed only by a stale or failing result. It fails closed — a clause it cannot
+understand is an error, never a silent skip — and it needs no tooling beyond PowerShell. Everything
+else is judgement, deliberately; an unenforced reference is prose that rots the moment somebody
+renames a test.
 
 ## The Architecture Tree
 
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
-| 0 | `README.md` | 50,000 ft | What is this product and why does it exist? |
+| 0 | `README.md` | 50,000 ft | What is this product, what does it give me, how does it work? |
 | 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
@@ -41,78 +122,33 @@ reference is prose that rots the moment somebody renames a test.
 Level 3 is exceptional. Most systems have none, and the `architect` agent prunes those that stop
 earning their place.
 
-## Change Tiers
-
-Classification happens before work starts, and it decides how much process applies:
-
-| Tier | Trigger | Documentation | Agents |
-| --- | --- | --- | --- |
-| 0 | Nothing outside the system observes a difference | None | `developer` |
-| 1 | A contract clause changes | `{system}.md` | `architect` → `developer` → `contract-check` |
-| 2 | Systems or their interactions change | `overview.md` + affected | `architect` → `developer` → `contract-check` |
-
-Tier 0 should be the large majority of changes. A process where it is rare has its contracts pitched
-at the wrong altitude.
-
 ## Repository Layout
 
-- **`agents/`** — the drop-in payload: `AGENTS.md`, `.github/agents/`, `.github/standards/`
+- **`agents/`** — the drop-in payload: `AGENTS.md`, `.github/agents/`, `.github/skills/`,
+  `.github/standards/`
 - **`template/`** — the canonical repository layout and file templates
 - **`docs/user-guide/`** — how to use and maintain this process
 
-## Documentation
-
-- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
-- **[Workflow](docs/user-guide/workflow.md)** — change tiers and agent routing in practice
-- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
-- **[Reference](docs/user-guide/reference.md)** — every agent, standard, and script in detail
-- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
-
 ## Installation
 
-Copy the contents of `agents/` into the root of the target repository and commit them. Then open
-`AGENTS.md` and replace the `TODO` placeholders in the **Project Overview** section.
+```pwsh
+pwsh ./install.ps1 -TargetRepository ../my-product
+```
+
+This copies the `agents/` payload to the target repository root and vendors `template/` to
+`.github/template/`. The vendored copy matters: `AGENTS.md` resolves the template from there first,
+and it pins the template to the agent versions installed beside it. Then open `AGENTS.md` and replace
+the `TODO` placeholders in the **Project Overview** section.
 
 For a new repository, run `@software-architect` to interview and generate the architecture tree, or
-`@template-sync Scaffold` to lay down the structure from `template/`.
+`@template-sync Scaffold` to lay down the structure from the template.
 
-## Agents
-
-| Agent | Purpose |
-| --- | --- |
-| `evolve` | Entry point for any non-trivial change — classifies the tier and routes to the minimum process |
-| `developer` | Core working agent — implements against contracts and applies language standards |
-| `architect` | Owns the architecture tree and system contracts; updates the right level and prunes stale documents |
-| `contract-check` | Verifies a completed change against its declared tier |
-| `software-architect` | Interactive interview that bootstraps or re-cuts the architecture tree |
-| `lint-fix` | Pre-PR sweep — loops `lint.ps1` until the repository is clean |
-| `template-sync` | Audits or scaffolds repository layout against `template/` |
-
-## Standards
-
-| Standard | Covers |
-| --- | --- |
-| `architecture-documentation.md` | Level ownership, creation and deletion tests, drift anchors, size budgets |
-| `system-contracts.md` | Contract structure, clause rules, identifier discipline |
-| `change-tiers.md` | Tier classification and the obligations of each |
-| `coding-principles.md` | Literate coding, API documentation, universal design principles |
-| `testing-principles.md` | Contract versus interior test lifecycles, AAA, coverage expectations |
-| `technical-documentation.md` | README and general markdown conventions |
-| `csharp-language.md`, `cpp-language.md` | Language-specific implementation standards |
-| `csharp-testing.md`, `cpp-testing.md` | Language-specific testing standards |
-
-## What Is Deliberately Absent
-
-This process has no per-unit requirements, no per-unit or per-subsystem design documents, no
-verification design documents, no architecture model, no formal review tracking, and no multi-retry
-orchestration state machine. Each was left out because its cost is paid on **every** subsequent
-change, and evolutionary work pays that cost repeatedly. See
-[Maintaining](docs/user-guide/maintaining.md) for the full rationale and what must not be
-reintroduced.
+The payload installs seven agents — `evolve` is the entry point for any non-trivial change — and the
+standards they load. [Reference](docs/user-guide/reference.md) describes each one.
 
 ## License
 
 [MIT](LICENSE)
 
-[^1]: `Agents2` is a sibling to [Agents](https://github.com/demaconsulting/Agents), which targets
+[^1]: `Anneal` is a sibling to [Agents](https://github.com/demaconsulting/Agents), which targets
     IEC 62304 regulated development. Use `Agents` where compliance evidence is required.

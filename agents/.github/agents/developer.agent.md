@@ -68,9 +68,8 @@ Not updating documentation on an interior change is the correct outcome, not an 
 
 1. `pwsh ./fix.ps1` — applies all auto-fixers silently; always exits 0, so no response is needed
 2. `pwsh ./build.ps1` — builds and runs all tests; report FAILED if the build or any test fails
-3. `pwsh ./check-contracts.ps1` — for Tier 1 and 2, confirms every clause names a test that exists
-   and passed; report FAILED if it does not exit clean. **Never fix a failure by editing the clause
-   to match your code** — fix the test name instead.
+3. For Tier 1 and 2, use the **check-contracts** skill to confirm every clause names a test that
+   exists and passed; report FAILED if it does not exit clean
 
 # Step 8 — Report
 

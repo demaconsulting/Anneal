@@ -80,9 +80,6 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # [PROJECT-SPECIFIC] Add additional auto-fixers here.
-# C/C++ example:
-#   Get-ChildItem -Recurse -Include "*.cpp","*.hpp","*.h" |
-#       ForEach-Object { clang-format -i $_.FullName } 2>$null
 
 # --- .NET Auto-Format ---
 Write-Host "Fixing: dotnet format..."

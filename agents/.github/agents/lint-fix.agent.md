@@ -52,7 +52,7 @@ submission, not during normal development.
   exist is **not** a lint issue, even though `lint.ps1` reports it via
   `check-contracts.ps1`. Report it and stop. Renaming a test to satisfy a clause,
   or editing a clause to match a test, is a semantic change and belongs to the
-  `architect` or `developer` agent.
+  `architect` or `developer` agent — see the **check-contracts** skill.
 
 # Rules
 

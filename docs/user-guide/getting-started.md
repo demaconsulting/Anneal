@@ -1,20 +1,38 @@
 # Getting Started
 
-How to install the Agents2 process into a repository and make your first change with it.
+How to install the Anneal process into a repository and make your first change with it.
 
 ## Install the Agents
 
-Copy the contents of `agents/` into the root of the target repository:
+```pwsh
+pwsh ./install.ps1 -TargetRepository ../my-product
+```
+
+This lays down the whole payload:
 
 ```text
 agents/AGENTS.md            → AGENTS.md
 agents/.github/agents/      → .github/agents/
+agents/.github/skills/      → .github/skills/
 agents/.github/standards/   → .github/standards/
+template/                   → .github/template/
 ```
+
+It refuses to overwrite existing files unless you pass `-Force`, so re-running it after an upgrade
+will not silently discard local edits.
 
 Then open `AGENTS.md` and replace the `TODO` values in the **Project Overview** section. Everything
 else in that file is process definition and should not be edited per-repository — if a rule does not
-fit your repository, change it in Agents2 so every repository gets the fix.
+fit your repository, change it in Anneal so every repository gets the fix.
+
+### Why the Template Is Vendored
+
+`template-sync` and `software-architect` read the canonical template. `AGENTS.md` resolves it from a
+vendored `.github/template/` first, then from `template-url`.
+
+**Until Anneal is published, the URL is not reachable**, so without the vendored copy those agents
+can only report INCOMPLETE. `install.ps1` vendors it for you. Doing so also pins the template to the
+agent versions installed alongside it, which is worth having even once the URL works.
 
 ## Lay Down the Structure
 
@@ -65,12 +83,18 @@ Delete every `TEMPLATE-DIRECTIVE` comment block as you fill each section in.
 ## Verify the Setup
 
 ```pwsh
+pwsh ./build.ps1
 pwsh ./check-contracts.ps1
 ```
 
+Run `build.ps1` first — the pass check reads its TRX results, and without them it can only report
+that it verified nothing.
+
 Expect warnings about unfulfilled `TODO` obligations at this stage — those are the contract tests you
-have not written yet. Errors mean something is actually wrong: a duplicate clause ID, a clause with
-no test named, or a named test that does not exist.
+have not written yet. Errors mean something is actually wrong: a system document with no `## Contract`
+section, a clause ID that does not parse (usually a `{SYSTEM}` placeholder you have not replaced), a
+duplicate ID, a clause with no test named, or a named test that is not a real test method under
+`test/{System}.Tests/Contract/`.
 
 ## Your First Change
 
