@@ -51,9 +51,10 @@ submission, not during normal development.
   issues appear - yamlfix may handle them.
 
 - **Contract test link failures**: A contract clause naming a test that does not
-  exist is **not** a lint issue - report it and stop. Renaming a test to satisfy
-  a clause, or editing a clause to match a test, is a semantic change and belongs
-  to the `architect` or `developer` agent.
+  exist is **not** a lint issue, even though `lint.ps1` reports it via
+  `check-contracts.ps1`. Report it and stop. Renaming a test to satisfy a clause,
+  or editing a clause to match a test, is a semantic change and belongs to the
+  `architect` or `developer` agent.
 
 # Rules
 

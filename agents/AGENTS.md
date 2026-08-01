@@ -81,6 +81,10 @@ at a lower tier.
 - **Interior tests** are disposable. Delete or rewrite them freely when the code they cover is
   restructured. They need no clause and no justification.
 
+The clause-to-test link is the **only** mechanically enforced relationship in this process.
+`check-contracts.ps1` — run by `lint.ps1` — fails CI when a clause names no test, names a test that
+does not exist, or names a test that did not pass. Everything else here is judgement, deliberately.
+
 # Standards Application (ALL Agents Must Follow)
 
 Read the relevant standards from `.github/standards/` before working. Load only what your task
@@ -161,6 +165,7 @@ Always use **US English** spelling in all output.
 - **`pip-requirements.txt`** — Python dependencies for yamllint and yamlfix
 - **`fix.ps1`** — applies all auto-fixers silently; always exits 0
 - **`lint.ps1`** — runs all lint checks; exits 1 on failure
+- **`check-contracts.ps1`** — verifies every contract clause names a test that exists and passed
 - **`build.ps1`** — builds the solution and runs all tests
 
 # Protected Configuration Files
@@ -169,7 +174,7 @@ These contain deliberate configuration with documented intent. Do not modify unl
 explicitly requires it and the change preserves the documented intent:
 
 - `.cspell.yaml`, `.editorconfig`, `.markdownlint-cli2.yaml`, `.yamllint.yaml`
-- `fix.ps1`, `lint.ps1`, `build.ps1`
+- `fix.ps1`, `lint.ps1`, `build.ps1`, `check-contracts.ps1`
 
 # Formatting (After Making Changes)
 

@@ -28,6 +28,12 @@ Three things follow from that, and together they are the whole process:
 - **Two test lifecycles.** Contract tests are durable and survive refactoring untouched. Interior
   tests are disposable and are deleted without ceremony when their subject changes.
 
+The clause-to-test link is the one relationship that is **mechanically enforced**:
+`check-contracts.ps1` fails CI when a clause names no test, names a test that does not exist, or
+names a test that did not pass. It needs no tooling beyond PowerShell and works for any language.
+Everything else in this process is judgement, deliberately — but an unenforced `*Verified by:*`
+reference is prose that rots the moment somebody renames a test.
+
 ## The Architecture Tree
 
 | Level | File | Altitude | Answers |
@@ -97,6 +103,13 @@ Compared to `Agents`, this process has no per-unit requirements, no per-unit or 
 documents, no verification design documents, no SysML2 model, no formal review tracking, and no
 multi-retry orchestration state machine. Each was removed because its cost is paid on **every**
 subsequent change, and evolutionary work pays that cost repeatedly.
+
+ReqStream is also absent — not because requirements tooling is wrong, but because at system level
+the check it performs reduces to "does this named test exist and pass", which
+`check-contracts.ps1` does with no tool manifest, no parallel YAML tree, and no language
+restriction. If you later need a generated trace matrix or platform source filters
+(`windows@TestName`), generate ReqStream YAML from the `## Contract` sections rather than authoring
+it by hand; a generated artifact cannot drift.
 
 ## License
 

@@ -74,29 +74,15 @@ if (-not $skipNpm) {
 
 # [PROJECT-SPECIFIC] Add additional npm-based lint checks here.
 
-# --- Compliance Tools ---
-Write-Host "Linting: compliance tools..."
-$skipDotnetTools = $false
-dotnet tool restore > $null
-if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipDotnetTools = $true }
+# --- System Contracts ---
+# Verifies every contract clause in docs/architecture/ names a test that exists
+# and passed. This is the one link in the process that is mechanically enforced;
+# without it, clause-to-test references are unenforced prose that rot silently.
+Write-Host "Linting: system contracts..."
+pwsh ./check-contracts.ps1
+if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
-if (-not $skipDotnetTools) {
-    dotnet reqstream --lint --requirements requirements.yaml
-    if ($LASTEXITCODE -ne 0) { $lintError = $true }
-
-    dotnet versionmark --lint
-    if ($LASTEXITCODE -ne 0) { $lintError = $true }
-
-    dotnet reviewmark --lint
-    if ($LASTEXITCODE -ne 0) { $lintError = $true }
-
-    if (Test-Path docs/sysml2) {
-        dotnet sysml2tools lint 'docs/sysml2/**/*.sysml'
-        if ($LASTEXITCODE -ne 0) { $lintError = $true }
-    }
-}
-
-# [PROJECT-SPECIFIC] Add additional dotnet tool checks here.
+# [PROJECT-SPECIFIC] Add additional repository checks here.
 
 # --- dotnet Format ---
 Write-Host "Linting: dotnet format..."

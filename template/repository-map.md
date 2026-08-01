@@ -29,9 +29,9 @@ expected to contain content the template does not describe.
 | `.gitignore` | Ignored paths |
 | `package.json` | Node dependencies for markdown and spell tooling |
 | `pip-requirements.txt` | Python dependencies for YAML tooling |
-| `.config/dotnet-tools.json` | Local .NET tool manifest |
 | `fix.ps1` | Applies all auto-fixers; always exits 0 |
 | `lint.ps1` | Runs all lint checks; exits 1 on failure |
+| `check-contracts.ps1` | Verifies every contract clause names a test that exists and passed |
 | `build.ps1` | Builds the solution and runs all tests |
 | `{ProjectName}.slnx` | Solution file (.NET repositories) |
 
@@ -67,5 +67,7 @@ are **intentionally not part of this template**:
 - `docs/verification/` — verification design documents
 - `docs/sysml2/` — SysML2 architecture model
 - `.reviewmark.yaml` — formal file review tracking
+- `.config/dotnet-tools.json` — the compliance tool manifest; `check-contracts.ps1` replaces the
+  only check this process still needs, with no tool dependency
 
 Their absence is the process, not an omission. Do not scaffold them.

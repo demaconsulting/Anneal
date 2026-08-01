@@ -59,6 +59,33 @@ One file, one edit.
   thread-safety, resource bounds, and version-compatibility guarantees.
 - **Requires** lists what this system depends on, by advertised behavior — never by internal design.
 
+# Enforcement
+
+The clause-to-test link is the **only** mechanically enforced relationship in this process, and it is
+checked deterministically rather than by an agent reading files:
+
+```pwsh
+pwsh ./check-contracts.ps1
+```
+
+`lint.ps1` runs it, so CI fails when:
+
+- A clause ID is duplicated
+- A clause names no verifying test
+- A clause names a test that does not exist in the test sources
+- A clause names a test that did not pass, when test results are present
+
+This matters because `*Verified by:*` is otherwise unenforced prose: rename the test and the promise
+rots silently. Everything else in this process is judgement, deliberately. This one thing is not,
+because a script does it faster and more reliably than an agent can.
+
+Clauses whose test name contains `TODO` are reported as **unfulfilled obligations** — a warning, not
+an error — so `software-architect` can write a contract before its tests exist. Run with `-Strict` to
+fail on them once implementation is complete.
+
+**Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
+the contract change deliberately.
+
 # Identifiers
 
 - Format: `{SYSTEM}-{nn}` for provided behavior, `{SYSTEM}-I{n}` for invariants.
@@ -102,6 +129,7 @@ written is a description, not a promise, and it provides no design pressure.
 - [ ] Every clause is observable from outside the system
 - [ ] Every clause describes WHAT, never HOW
 - [ ] Every clause and invariant names at least one existing, passing test
+- [ ] `pwsh ./check-contracts.ps1` exits clean
 - [ ] Clause IDs are stable and no retired number has been reused
 - [ ] `Requires` entries name advertised behavior, not internal design
 - [ ] Contract clause count is within the healthy range, or the deviation is understood

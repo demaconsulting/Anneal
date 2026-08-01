@@ -24,16 +24,21 @@ Read `change-tiers.md`, `system-contracts.md`, and `architecture-documentation.m
 
 # Step 2 — Contract Conformance
 
-For each system whose boundary was touched:
+Run `pwsh ./check-contracts.ps1` first. It deterministically verifies clause ID uniqueness, that
+every clause names a test, that the test exists, and that it passed. **Do not re-verify by hand what
+the script already proved** — that is wasted effort and less reliable than the script.
 
-- Every clause and invariant in the `## Contract` names a test that **exists and passes**. A clause
-  naming a test that does not exist is a FAIL.
+A non-zero exit is a FAIL. Report its output verbatim in the required fixes.
+
+Then judge what the script cannot, for each system whose boundary was touched:
+
 - No consumer-observable behavior was added at the boundary without a clause. Read the boundary
   diff, not the whole change. Undeclared boundary behavior is a FAIL — it will get depended on and
   then cannot be removed.
 - No clause was narrowed or removed without being declared breaking. FAIL if so.
 - Contract tests exercise only the public boundary. A contract test reaching into internals is a
   FAIL — it will block future refactoring.
+- Clause prose still describes WHAT rather than HOW.
 
 # Step 3 — Tier Honesty
 
@@ -96,7 +101,7 @@ repair pass and needs to spend it well.
 
 ## Contract Conformance: (PASS|FAIL|N/A)
 
-- Every in-scope clause names an existing, passing test
+- `check-contracts.ps1` exit code and output
 - No undeclared consumer-observable boundary behavior
 - Narrowing and removal declared breaking
 - Contract tests use only the public boundary

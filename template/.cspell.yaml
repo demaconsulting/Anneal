@@ -11,21 +11,9 @@
 version: '0.2'
 language: en
 words:
-  - buildmark
   - Dema
-  - fileassert
-  - Pandoc
   - postconditions
-  - reqstream
-  - reviewmark
-  - sarif
-  - sarifmark
   - slnx
-  - sonar
-  - sonarmark
-  - sysml
-  - versionmark
-  - Weasyprint
   - xunit
   - Xunit
   - yamlfix
