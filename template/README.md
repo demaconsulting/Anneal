@@ -34,6 +34,18 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
 
 TODO: Two to four paragraphs on the organizing idea behind the product.
 
+## Requirements
+
+<!-- TEMPLATE-DIRECTIVE: The invariants of the product contract - properties that must hold for the
+     features above to mean anything, written so someone can check this repository against them
+     rather than argue about them. Each must say something no feature bullet already says; if it
+     restates a feature, delete it. Pitch at the same altitude as Features: a requirement that a
+     system change would force you to edit belongs to that system's contract instead. Prose, no
+     identifiers and no named tests - level 0 is enforced by review, not by script. Three to six
+     bullets. Remove this block. -->
+
+- TODO: a property that must hold, stated so it can be checked.
+
 ## Assumptions
 
 <!-- TEMPLATE-DIRECTIVE: What this design takes to be true and cannot itself guarantee - about the

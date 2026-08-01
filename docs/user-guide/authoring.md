@@ -13,6 +13,25 @@ remove it from the level that should not own it.
 This single test catches most authoring mistakes, and it is worth applying deliberately until it
 becomes reflex.
 
+## Writing the Product Contract
+
+`README.md` is a contract like any system document, one altitude up, with a person as the consumer.
+**Features** are its clauses — what someone may rely on getting. **Requirements** are its invariants
+— properties that must hold for those features to mean anything. `architecture-documentation.md`
+holds the rules.
+
+The altitude test does the work: if a system changing would force you to edit the bullet, the promise
+belongs to that system's contract, not to the product. *"Rearrange the interior without paperwork"*
+survives any decomposition. *"Supports CSV, JSON, and XML export"* is a system contract that has
+wandered upward, and it will need editing every time a format is added.
+
+A requirement that restates a feature is noise — delete it. Each one should say something no feature
+bullet says, usually a property the features quietly depend on.
+
+Removing or narrowing either is breaking, exactly as it is for a clause, and belongs in the change
+summary. Unlike a clause, neither carries an identifier or a named test: level 0 is held by review
+rather than by script, deliberately.
+
 ## Writing Assumptions
 
 `README.md` owns the design's assumptions — what it takes to be true and cannot itself guarantee.

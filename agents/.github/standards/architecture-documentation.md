@@ -54,10 +54,24 @@ changes**: describe the value and the organizing idea, never the inventory. No l
 "what the user gets" — contracts describe what systems promise *each other*, not what the product
 gives a *person* — so there is nothing to duplicate and this is the only place it can live.
 
+Level 0 is the **product contract**: the same idea as a system contract, one altitude up, with a
+person as the consumer instead of other code. It has the same two parts. **Features** are its
+clauses — what a consumer may rely on getting. **Requirements** are its invariants — properties that
+must hold for those features to mean anything, written so a repository can be checked against them
+rather than argued about. Removing or narrowing either is a **breaking change to users**, and
+`system-contracts.md` defines what breaking means; say so in the change summary exactly as you would
+for a clause.
+
+The discipline carries up; the machinery does not. Product promises stay prose — no identifiers, no
+named verifying test, and no mechanical check. Numbered requirements traceable to acceptance tests
+are the regulated-development cost this process deliberately declines, and that cost would be paid on
+every subsequent change.
+
 It does **not** list systems, restate contracts, describe internals, or enumerate capabilities that
 map one-to-one onto contract clauses. *"Rearrange the interior without paperwork"* is level 0;
-*"supports CSV, JSON, and XML export"* is a contract wearing a feature's clothes and dirties this
-file every time a format is added.
+*"supports CSV, JSON, and XML export"* is a **system** contract stated at the wrong altitude, and it
+dirties this file every time a format is added. The test is whether a system changing would force an
+edit here: if it would, the promise belongs to that system, not to the product.
 
 `README.md` also owns the product's **assumptions**: what the design takes to be true and cannot
 itself guarantee — about its environment, platform, users, or tooling. Record only load-bearing

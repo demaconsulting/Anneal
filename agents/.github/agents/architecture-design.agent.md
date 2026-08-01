@@ -135,11 +135,11 @@ Write the tree directly into the repository:
 - `docs/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
   genuine non-obvious specific meeting a creation test
 
-Also update `README.md` to the shape the template gives it — product, features, how it works,
-assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer: level 0
-is the only place "what the user gets" can live, because contracts describe what systems promise
-*each other*. Carry any load-bearing assumption from the interview into its section, and omit the
-section entirely rather than inventing entries for it.
+Also update `README.md` to the shape the template gives it — product, features, requirements, how it
+works, assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer:
+level 0 is the product contract, and it is the only place "what the user gets" can live, because
+system contracts describe what systems promise *each other*. Carry any load-bearing assumption from
+the interview into its section, and omit the section entirely rather than inventing entries for it.
 
 **On a bootstrap**, fetch each file's counterpart from the template (resolved per the
 `# Reference Template` section of `AGENTS.md`) and fill it in. Execute and then delete every
