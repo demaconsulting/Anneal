@@ -103,7 +103,7 @@ duplicate ID, a clause with no test named, or a named test that is not a real te
 @dispatch add a --verbose flag to the CLI
 ```
 
-`dispatch` classifies the change tier, routes it, and reports what it did. Read its report: the
+`dispatch` classifies the work, routes it, and reports what it did. Read its report: the
 **Tier** and **Tier Rationale** fields tell you whether the process understood your change the way
 you did. If the tier looks wrong, that is worth correcting immediately — misclassification is the
 main way this process degrades.

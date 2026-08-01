@@ -10,9 +10,10 @@ them workable, and to restructure them deliberately when they are not.
 Anneal gives AI coding agents enough structure to produce maintainable, reviewable software without
 the inertia of a formal process. It sits between unstructured prompting and regulated development.
 
-**The idea, in one paragraph.** A component's **contract** is what other code is allowed to depend
-on — the promises it publishes at its boundary. Documentation work is triggered by a change to a
-contract, and by nothing else. Rewrite a component's internals however you like and you owe no
+**The idea, in one paragraph.** A repository is divided into **systems** — parts that could be
+replaced whole without the rest noticing. A system's **contract** is what other code is allowed to
+depend on, the promises it publishes at its boundary. Documentation work is triggered by a change to
+a contract, and by nothing else. Rewrite a system's internals however you like and you owe no
 documentation; change what it promises and you edit one file, where every promise names the test
 that proves it. Agents classify a task against that rule before starting, and the classification
 decides both how much process the task gets and what the agent is permitted to touch.
@@ -22,7 +23,7 @@ decides both how much process the task gets and what the agent is permitted to t
 
 ## Features
 
-- **Refactor without paperwork.** Rearrange the inside of a component as much as you like.
+- **Refactor without paperwork.** Rearrange the inside of a system as much as you like.
   Documentation costs you something only when you change a promise other code depends on.
 - **Every promise is backed by a test.** Each clause of a contract names a test, and the build fails
   if that test is missing, renamed, or last seen failing.
@@ -30,14 +31,14 @@ decides both how much process the task gets and what the agent is permitted to t
   a change no other code can observe — carries no documentation step at all.
 - **Agents stop instead of improvising.** An agent declares what it will touch before it touches it.
   Reaching that boundary is a stop and a report back to you, never a decision to widen it.
-- **Filing a need costs one line.** A standing property the system must always satisfy goes into
-  `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`.
-  No code, no tests, no contract.
+- **Filing a need costs one line.** A standing property the product must always satisfy goes into
+  `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`;
+  a belief the design rests on goes into this file's Assumptions. No code, no tests, no contract.
 - **Tidying is a first-class activity.** Background quality work has its own mode, with a declared
   scope and a stopping point, so it cannot drift into a redesign.
 - **Restructuring is a defined operation.** Reshaping the architecture proceeds in steps you approve,
   rather than one enormous commit or a branch that lives for months.
-- **The reasoning survives.** Why a component promises what it promises is recorded beside the
+- **The reasoning survives.** Why a system promises what it promises is recorded beside the
   promise, so a new developer — or a new agent — can recover it without a parallel tree of design
   documents to keep in sync.
 - **One command to install**, from a clone you check out at the revision you want.
@@ -49,7 +50,7 @@ tooling.
 
 ## What It Costs
 
-Every component boundary needs its promises written down, and every promise needs a named test —
+Every system boundary needs its promises written down, and every promise needs a named test —
 that is the adoption cost on an existing codebase, and it is real. Restructures need your approval at
 each step, so the process cannot run unattended on the work that matters most. And the trade itself —
 a small cost per contract change in exchange for none per file change — only pays on a design that is
@@ -71,7 +72,7 @@ against them rather than argue about them. Each says something no feature bullet
   every agent — so no two agents can hold different ideas of what a tier means.
 - A large restructure can proceed in stages without disabling any check.
 - The standards an agent must load for any one task are typically two and never more than four.
-- Nothing below component level is documented as a requirement, design, or verification artifact.
+- Nothing below system level is documented as a requirement, design, or verification artifact.
 
 ## How It Works
 
@@ -151,7 +152,7 @@ stop earning their place.
 - **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
 - **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
 - **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
-- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
+- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this process
 
 ## Installation
 

@@ -88,8 +88,9 @@ kind, not degree, because it is the only mode permitted to span multiple commits
   `docs/architecture/` and is not restated here.
 - Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
   here, not forbidden.
-- Contract clauses that describe systems not yet built are marked planned and carry an exit
-  condition (see `system-contracts.md`).
+- Contract clauses describing systems not yet built are **planned**: written now, and named with a
+  `TODO` test that `check-contracts.ps1` reports as an unfulfilled obligation until the stage that
+  builds them (see `system-contracts.md`). `MIGRATION.md` carries the exit condition for each.
 - Ends when every planned clause is satisfied and the exit conditions are met. **Delete
   `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
   one left behind claims a migration that never ends.
@@ -130,9 +131,8 @@ A clause is added, narrowed, removed, or given different meaning; or the system'
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
 - **Documentation**: `docs/architecture/{system}.md` only.
-- **Agents**: `architecture-update` updates the contract **first**, then `apply` implements
-  against it,
-  then `tier-check` verifies.
+- **Agents**: `architecture-update` updates the contract **first**, then `apply` implements against
+  it, then `tier-check` verifies.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
 - **Pruning**: `architecture-update` performs the section-document prune check for the affected
   system.

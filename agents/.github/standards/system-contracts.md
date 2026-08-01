@@ -92,9 +92,11 @@ rots silently. Everything else in this process is judgement, deliberately. This 
 because a script does it faster and more reliably than an agent can.
 
 Clauses whose test name contains `TODO` are reported as **unfulfilled obligations** — a warning, not
-an error — so `architecture-design` can write a contract before its tests exist. The `tier-check`
-agent runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes them to errors once
-implementation is complete; that agent owns closing the obligation.
+an error — so `architecture-design` can write a contract before its tests exist. Such a clause is
+**planned**: a promise the repository intends to keep but has not yet built. The `tier-check` agent
+runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes them to errors once implementation
+is complete; that agent owns closing the obligation. During a Migration the planned clauses are
+closed stage by stage, and `MIGRATION.md` holds the exit condition for each.
 
 **Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
 the contract change deliberately.

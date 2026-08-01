@@ -14,11 +14,10 @@ for whether one is needed.
 
 All code MUST follow literate programming principles:
 
-- **Intent Documentation**: Function and method documentation (XmlDoc, Doxygen,
-  JSDoc, etc.) MUST explain WHY the function exists and its design purpose -
-  not just restate what it does
-- **Logical Separation**: Complex functions use block comments to separate and
-  describe logical steps within the implementation
+- **Intent Documentation**: Function and method documentation (XmlDoc, Doxygen, JSDoc, etc.) MUST
+  explain WHY the function exists and its design purpose — not just restate what it does
+- **Logical Separation**: Complex functions use block comments to separate and describe logical steps
+  within the implementation
 - **Boundary Documentation (MANDATORY)**: Every publicly visible symbol is fully documented, to the
   API Documentation standard below. Consumers cannot recover any of it from a signature, and in C#
   this is a build error rather than a matter of discipline.
@@ -43,23 +42,18 @@ This checklist applies to the **publicly visible surface** — the members a con
 system can reach. None of it is recoverable from a signature, which is why all of it is mandatory
 here and none of it is mandatory on a private helper:
 
-- **Self-Contained**: Each member's documentation must be fully understandable
-  in isolation - consumers must not need to read the implementation to call it
-  correctly
-- **Intent-Focused**: Explain WHY the member exists and WHAT problem it solves,
-  not just restate the name - this lets reviewers verify the implementation
-  matches design intent
-- **Parameter and Return Contracts**: Document valid ranges, null handling, and
-  boundary cases - agents and consumers rely on these contracts to call the API
-  correctly
-- **Error Conditions**: Document every exception or error code, the condition
-  that triggers it, and how the caller should respond - undocumented errors
-  cannot be handled correctly
-- **Side Effects**: Document I/O, state mutation, resource allocation, or
-  network calls - hidden side effects cause integration bugs that are hard to
-  diagnose
-- **Thread Safety**: State whether the API is safe for concurrent use - missing
-  this forces consumers to read the implementation or risk data races
+- **Self-Contained**: Each member's documentation must be fully understandable in isolation —
+  consumers must not need to read the implementation to call it correctly
+- **Intent-Focused**: Explain WHY the member exists and WHAT problem it solves, not just restate the
+  name — this lets reviewers verify the implementation matches design intent
+- **Parameter and Return Contracts**: Document valid ranges, null handling, and boundary cases —
+  agents and consumers rely on these contracts to call the API correctly
+- **Error Conditions**: Document every exception or error code, the condition that triggers it, and
+  how the caller should respond — undocumented errors cannot be handled correctly
+- **Side Effects**: Document I/O, state mutation, resource allocation, or network calls — hidden side
+  effects cause integration bugs that are hard to diagnose
+- **Thread Safety**: State whether the API is safe for concurrent use — missing this forces consumers
+  to read the implementation or risk data races
 
 ## Design
 
@@ -86,21 +80,17 @@ here and none of it is mandatory on a private helper:
 ## Universal Anti-Patterns
 
 - **Skip Literate Coding**: Don't skip literate programming comments
-- **Restating the Signature**: Don't write doc comments that repeat the member's
-  name or parameter list in prose - they are indistinguishable from real intent,
-  nothing verifies them, and subsequent agents copy the local convention
 - **Ignore Compiler Warnings**: Don't ignore compiler warnings
 - **Hidden Dependencies**: Don't create untestable code with hidden dependencies
-- **Undeclared Boundary Behavior**: Don't add consumer-observable behavior at a
-  system boundary without a matching contract clause - undeclared behavior gets
-  depended on and then cannot be changed
+- **Undeclared Boundary Behavior**: Don't add consumer-observable behavior at a system boundary
+  without a matching contract clause — undeclared behavior gets depended on and then cannot be changed
 - **Monolithic Functions**: Don't write monolithic functions with multiple responsibilities
 - **Overcomplicated Solutions**: Don't make solutions more complex than necessary
 - **Premature Optimization**: Don't optimize for performance before establishing correctness
-- **Copy-Paste Programming**: Don't duplicate logic - extract common functionality into reusable components
+- **Copy-Paste Programming**: Don't duplicate logic — extract common functionality into a shared unit
 - **Magic Numbers**: Don't use unexplained constants - either name them or add clear comments
 
 # Language-Specific Implementation
 
-For each detected language, read `{language}-language.md` from `.github/standards/`
-and apply its standards, tooling, and conventions.
+For each detected language, read `{language}-language.md` from `.github/standards/` and apply its
+standards, tooling, and conventions.
