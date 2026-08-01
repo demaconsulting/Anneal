@@ -108,6 +108,33 @@ understand is an error, never a silent skip — and it needs no tooling beyond P
 else is judgement, deliberately; an unenforced reference is prose that rots the moment somebody
 renames a test.
 
+Judgement that cannot be reduced to a script is delegated to an **oracle agent** — one invoked for a
+single question, given first-hand facts, and permitted to disagree. Is this change observable at its
+boundary? Did the implementation honour the tier it declared? `tier-check` answers the second by
+obtaining its own `git diff` and reading the contract, rather than trusting the summary of the agent
+it is checking. These are checks rather than steps: they exist to disagree, and the repair budget
+exists to spend on their disagreement.
+
+## Assumptions
+
+What this design takes to be true and cannot itself guarantee. If one of these stops holding, the
+architecture resting on it is the wrong shape — so they are stated here rather than left implicit in
+the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
+
+- **A focused agent is a reliable judge.** An agent given the specific facts and a single clear
+  question answers it reliably. Reliability degrades with breadth and vagueness far more than with
+  difficulty. This is why judgement is split into separate single-question invocations instead of
+  being asked as one part of a larger job.
+- **Judging and doing have different incentives.** An agent asked to complete work is under pressure
+  to call the work done. An agent asked only to judge is not. Classification and verification are
+  therefore never performed by the agent that did the work.
+- **Correlated error is the residual risk.** Separate invocations of the same model can share a blind
+  spot; independence of incentive is not independence of judgement. A judging agent is therefore
+  given first-hand facts rather than the working agent's summary of them.
+- **The prompt files are the reliability mechanism.** Because reliability follows from the quality of
+  the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
+  downstream agent works from. Prompt changes are the highest-risk changes in this repository.
+
 ## The Architecture Tree
 
 | Level | File | Altitude | Answers |

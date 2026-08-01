@@ -34,6 +34,19 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
 
 TODO: Two to four paragraphs on the organizing idea behind the product.
 
+## Assumptions
+
+<!-- TEMPLATE-DIRECTIVE: What this design takes to be true and cannot itself guarantee - about the
+     environment, the platform, the people, or the tools. An assumption is a belief the world could
+     falsify; a constraint in CONSTRAINTS.md is a condition you have decided the system must meet.
+     Test: could reality prove this wrong without anyone changing their mind? Then it is an
+     assumption. Record only load-bearing ones - if it were false, the shape below would be wrong.
+     Three to six bullets, or omit the section entirely if the design rests on nothing unusual. An
+     assumption that is disproved is a re-cut trigger, not a bug. Remove this block. -->
+
+- **TODO: the belief, in a bold lead-in** — TODO: what rests on it, and what would follow if it
+  turned out to be false.
+
 ## Installation
 
 ```pwsh

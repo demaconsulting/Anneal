@@ -26,12 +26,13 @@ before doing anything else.
 
 Determine the **mode** first, because three of the four fix the tier automatically:
 
-- **Intake** — append one bullet to `BACKLOG.md`, or to the **Not Yet Satisfied** section of
-  `CONSTRAINTS.md`, whichever the admission test selects. If the register does not exist yet, create
-  it from its template counterpart (resolved per the `# Reference Template` section of `AGENTS.md`);
-  if the template cannot be resolved, report INCOMPLETE rather than inventing a format. Say which
-  file you wrote to and why the admission test chose it. Do not proceed to Step 2; there is nothing
-  to implement.
+- **Intake** — append one bullet to whichever destination the admission test selects: `BACKLOG.md`,
+  the **Not Yet Satisfied** section of `CONSTRAINTS.md`, or the **Assumptions** section of
+  `README.md`. If a register does not exist yet, create it from its template counterpart (resolved
+  per the `# Reference Template` section of `AGENTS.md`); if the template cannot be resolved, report
+  INCOMPLETE rather than inventing a format. `README.md` always exists — append to it, and never
+  recreate it. Say which file you wrote to and why the admission test chose it. Do not proceed to
+  Step 2; there is nothing to implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
   passing that bound to `developer` as a hard limit. If the request has no bound, ask for one instead
   of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:

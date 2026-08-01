@@ -29,9 +29,10 @@ stop being filed.
 @evolve file this for later: we will eventually need an S3 storage backend
 ```
 
-- **You get**: one bullet appended to `BACKLOG.md`, or to the **Not Yet Satisfied** section of
-  `CONSTRAINTS.md` if the need is a standing property the system must always satisfy rather than a
-  piece of work that finishes. No code, no tests, no contract.
+- **You get**: one bullet appended to whichever of three destinations fits — `BACKLOG.md` for work
+  that finishes, the **Not Yet Satisfied** section of `CONSTRAINTS.md` for a standing property the
+  system must satisfy, or the **Assumptions** section of `README.md` for a belief the design rests on
+  that reality could disprove. No code, no tests, no contract.
 - `evolve` stops there. Nothing is implemented and nothing is scheduled.
 
 ## Make a Change
@@ -144,15 +145,18 @@ When the systems themselves are wrong — not the code inside them.
 
 ## Decide What to Work on Next
 
-Two files, both plain markdown, both meant to be read by a person.
+Three places, all plain markdown, all meant to be read by a person.
 
 - `BACKLOG.md` — wanted, not scheduled. Work that finishes: "add a `--version` flag".
 - `CONSTRAINTS.md` — standing properties the architecture must satisfy: "runs on Windows", "supports
   .NET Standard 2.0". **Not Yet Satisfied** is the pressure arguing for a re-cut; **Satisfied** is what
   the current shape is protecting.
+- The **Assumptions** section of `README.md` — what the design takes on faith: "our users have
+  outbound internet access". These change when reality disproves them, not when someone decides.
 
 A constraint is never deleted for being met — it moves to **Satisfied** and stays as the guard rail
-against regressing it.
+against regressing it. A disproved assumption is a reason to re-cut, so take it to
+`@architecture-design` rather than quietly rewording it.
 
 ## Get a Change Ready for Review
 

@@ -22,6 +22,11 @@ still meet — the current shape upholds them, and a re-cut is the easiest way t
 **Not Yet Satisfied** entries are what the current decomposition gets in the way of, and are usually
 the reason a re-cut is being considered. Move any the new tree meets into **Satisfied**.
 
+Read the **Assumptions** section of `README.md` alongside it. Those are the beliefs the current shape
+was chosen under, and a re-cut is the moment to ask whether each still holds. An assumption that has
+been disproved is a first-class reason to re-cut; one that still holds constrains the new tree the
+same way a Satisfied constraint does. Update the section to match what you and the user conclude.
+
 # Re-Cutting an Existing Repository
 
 When `docs/architecture/` already exists, read it before asking the first question. The current tree
@@ -90,6 +95,10 @@ A system that cannot answer "what would a consumer notice if this were rewritten
   targets, security boundaries, throughput. Skip attributes that do not shape the decomposition.
 - **Volatility**: what is expected to change often, and what must stay stable. This directly
   determines where section documents are warranted.
+- **Assumptions**: what the design is taking on faith about its environment, platform, users, or
+  tooling — the beliefs that would invalidate the decomposition if they turned out to be false. Ask
+  what would have to be true for the proposed shape to be the right one. Record the load-bearing
+  answers; a design resting on nothing unusual records none.
 
 # Output Format
 
@@ -127,8 +136,10 @@ Write the tree directly into the repository:
   genuine non-obvious specific meeting a creation test
 
 Also update `README.md` to the shape the template gives it — product, features, how it works,
-installation, usage, and a link to the overview. Do not reduce it to a pointer: level 0 is the only
-place "what the user gets" can live, because contracts describe what systems promise *each other*.
+assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer: level 0
+is the only place "what the user gets" can live, because contracts describe what systems promise
+*each other*. Carry any load-bearing assumption from the interview into its section, and omit the
+section entirely rather than inventing entries for it.
 
 **On a bootstrap**, fetch each file's counterpart from the template (resolved per the
 `# Reference Template` section of `AGENTS.md`) and fill it in. Execute and then delete every

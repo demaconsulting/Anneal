@@ -23,7 +23,7 @@ rather than from this template. They are deliberately absent from the map and ar
 
 | File | Purpose |
 | --- | --- |
-| `README.md` | Level 0 of the architecture tree; product purpose and entry point |
+| `README.md` | Level 0 of the architecture tree; product purpose, entry point, and the design's assumptions |
 | `CONSTRAINTS.md` | Conditions the architecture must satisfy, met and unmet (see below) |
 | `BACKLOG.md` | Wanted but unscheduled work (see below) |
 | `.editorconfig` | Code formatting rules |

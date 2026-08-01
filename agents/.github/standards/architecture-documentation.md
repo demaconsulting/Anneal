@@ -59,6 +59,18 @@ map one-to-one onto contract clauses. *"Rearrange the interior without paperwork
 *"supports CSV, JSON, and XML export"* is a contract wearing a feature's clothes and dirties this
 file every time a format is added.
 
+`README.md` also owns the product's **assumptions**: what the design takes to be true and cannot
+itself guarantee — about its environment, platform, users, or tooling. Record only load-bearing
+ones, where the shape of everything below would be wrong if the belief were false. Distinguish them
+from `CONSTRAINTS.md` by asking whether reality could prove the statement wrong without anyone
+changing their mind: if yes it is an assumption, and if it could only change by decision it is a
+constraint. Assumptions live at level 0 because they underpin the whole decomposition; a belief that
+constrains only one system belongs in that system's decomposition rationale instead.
+
+An assumption that is disproved is a **re-cut trigger**, not a defect to be patched. Say so plainly
+in your report rather than adjusting the surrounding prose to keep the assumption looking true —
+that is the level 0 form of editing a clause to match the code.
+
 **`overview.md`** — the system inventory and the interactions *between* systems: data flow, control
 flow, process and deployment boundaries, and repository-wide decisions that constrain every system
 (language, runtime, error-handling philosophy, concurrency model). It does **not** describe what is

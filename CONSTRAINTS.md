@@ -12,6 +12,9 @@ An entry belongs here only if it **holds** rather than **completes** — a stand
 "supports .NET Standard 2.0", not a unit of work like "add a `--version` flag". See the Intake
 admission test in `change-classification.md`. Work that finishes goes in [BACKLOG.md](BACKLOG.md).
 
+A belief the world could prove wrong is an **assumption** rather than a constraint; those live in the
+Assumptions section of [README.md](README.md).
+
 ## Satisfied
 
 Conditions the current design meets. Breaking one is a regression, not a trade-off to be made

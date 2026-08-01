@@ -27,7 +27,7 @@ automatically.
 
 | Mode | Triggered by | May touch | Tier |
 | --- | --- | --- | --- |
-| **Intake** | someone raises a need or an idea | `CONSTRAINTS.md`, `BACKLOG.md` | n/a |
+| **Intake** | someone raises a need or an idea | `CONSTRAINTS.md`, `BACKLOG.md`, README assumptions | n/a |
 | **Change** | a requested behavior change | code, tests, contracts per tier | 0, 1, or 2 |
 | **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | always 0 |
 | **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
@@ -40,16 +40,21 @@ the register goes empty.
 
 Apply the admission test: *does it hold, or does it complete?*
 
-A **constraint** is a standing property the system must satisfy — "runs on Windows", "supports
-.NET Standard 2.0", "starts in under a second". It is never finished, and every future change has to
-respect it. Append one bullet to `CONSTRAINTS.md`: **Satisfied** if the current design already meets
-it, **Not Yet Satisfied** if it does not. A constraint that needs work before it holds is still a
-constraint, not backlog.
+Something that **completes** is a discrete piece of work, finished and stays finished — "add a
+`--version` flag". Append one bullet to `BACKLOG.md`.
 
-Everything else is a discrete piece of work that finishes and stays finished — "add a `--version`
-flag". Append one bullet to `BACKLOG.md`.
+Something that **holds** is a standing statement, and splits again on who could change it. If it
+could only change by a decision, it is a **constraint** — "runs on Windows", "supports .NET
+Standard 2.0", "starts in under a second". Append one bullet to `CONSTRAINTS.md`: **Satisfied** if
+the current design already meets it, **Not Yet Satisfied** if it does not. A constraint that needs
+work before it holds is still a constraint, not backlog.
 
-Either way the item is recorded and nothing else happens.
+If instead reality could prove it wrong without anyone changing their mind, it is an **assumption** —
+"our users have outbound internet access". Append one bullet to the **Assumptions** section of
+`README.md`, per `architecture-documentation.md`. Recording it is all that happens here; judging
+whether it is load-bearing belongs to `architecture-design` at the next re-cut.
+
+Whichever file it lands in, the item is recorded and nothing else happens.
 
 ## Change
 

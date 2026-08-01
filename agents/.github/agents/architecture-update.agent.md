@@ -78,6 +78,11 @@ Apply the change at the level chosen in Step 2 and nowhere else. Then:
 - Confirm no level summarizes a level below it.
 - Confirm each document is within its size budget, or note why it is not.
 
+If the change contradicts an assumption recorded in `README.md`, stop and report INCOMPLETE naming
+the assumption. A disproved assumption is a re-cut trigger belonging to `architecture-design`, not
+prose for you to adjust so the assumption keeps looking true — that is the level 0 form of editing a
+clause to match the code.
+
 When a system is added, removed, renamed, split, or merged, the source and test layout has to move
 with it —
 `src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not perform that

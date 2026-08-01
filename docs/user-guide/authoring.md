@@ -13,6 +13,25 @@ remove it from the level that should not own it.
 This single test catches most authoring mistakes, and it is worth applying deliberately until it
 becomes reflex.
 
+## Writing Assumptions
+
+`README.md` owns the design's assumptions — what it takes to be true and cannot itself guarantee.
+`architecture-documentation.md` holds the rules; the practical part is telling them apart from
+constraints and knowing when to write one.
+
+Ask whether reality could prove the statement wrong without anyone changing their mind. "Our users
+are on a corporate network with no outbound access" is an assumption — someone can discover it is
+false. "The tool must run offline" is a constraint in `CONSTRAINTS.md`; it changes only by decision.
+The two often pair up, the constraint being what you chose *because* of the assumption.
+
+Write one only if it is load-bearing: if the belief were false, the shape below would be wrong. Most
+designs have three to six, and a design resting on nothing unusual has none — an empty section beats
+an invented one.
+
+The payoff comes later. When an assumption is disproved, that is a re-cut trigger rather than a bug,
+and having written it down is what lets you notice. An architecture whose assumptions were never
+recorded fails in a way nobody can attribute.
+
 ## Writing `overview.md`
 
 This file owns the system inventory and what happens *between* systems. It does not describe what is
