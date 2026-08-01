@@ -1,0 +1,166 @@
+---
+name: Architecture Documentation
+description: Follow these standards when creating or maintaining the progressive-disclosure architecture tree.
+globs: ["README.md", "docs/architecture/**/*.md"]
+---
+
+# Purpose
+
+The architecture tree is a **progressive-disclosure** map of the repository. A reader — human or
+agent — starts at the top and descends only as far as the task requires. Each level answers a
+different question at a different altitude.
+
+The tree exists to make change **cheap**, not to make the design **immovable**. Every rule below
+exists to keep documentation weight proportional to how slowly a thing changes.
+
+# The Four Levels
+
+| Level | File | Altitude | Answers |
+| --- | --- | --- | --- |
+| 0 | `README.md` | 50,000 ft | What is this product, who is it for, why does it exist? |
+| 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
+| 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
+| 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+
+Level 3 is **optional and exceptional**. Most systems have zero or one section documents. A system
+with more than five section documents is a signal that the system should be split, not documented
+harder.
+
+# Exclusive Ownership (MANDATORY)
+
+Each level owns content that **no other level restates**. A parent may *name* its children and give
+each a one-line role in the parent's composition. A parent MUST NOT summarize a child's content.
+
+This is the single most important rule in this standard. Summaries create N-way coupling: every
+child edit dirties its ancestors, and the tree becomes the same inertial mass this process exists to
+avoid.
+
+**The one-file test**: for any change, ask *"how many documentation files must I edit?"* If the
+answer is more than one, ownership has been violated somewhere. Fix the duplication rather than
+editing both files.
+
+## What Each Level Owns
+
+**`README.md`** — two to three paragraphs. Product purpose, intended audience, and the problem it
+solves. Plus installation and a pointer to `docs/architecture/overview.md`. It does **not** list
+subsystems, describe internals, or enumerate features.
+
+**`overview.md`** — the system inventory and the interactions *between* systems: data flow, control
+flow, process and deployment boundaries, and repository-wide decisions that constrain every system
+(language, runtime, error-handling philosophy, concurrency model). It does **not** describe what is
+inside any system.
+
+**`{system}.md`** — the system's `## Contract` (see `system-contracts.md`), its dependencies, its
+internal decomposition and the *rationale* for that decomposition, and the decisions local to this
+system. It does **not** restate the interactions already described in `overview.md`, and it does not
+document individual classes.
+
+**`{system}/{section}.md`** — exactly one non-obvious specific, in depth. It does **not** repeat the
+system's contract or decomposition.
+
+# Navigation
+
+Because this tree is read on disk and on the web — not compiled into a PDF — **relative markdown
+links are required** for downward navigation. They are how progressive disclosure actually works.
+
+- Every level MUST link to each of its direct children.
+- A child SHOULD link back to its parent in a single line at the top.
+- Never link sideways across systems in body prose; route through `overview.md` so that
+  cross-system coupling stays visible in exactly one place.
+
+Downward links carry a one-line role, never a summary:
+
+```markdown
+- [Ingest](architecture/ingest.md) — accepts and validates inbound records
+- [Store](architecture/store.md) — durable persistence and query
+```
+
+# Drift Anchors (MANDATORY)
+
+Every level 2 and level 3 document begins with front matter naming the source it describes:
+
+```yaml
+---
+level: system
+covers:
+  - src/Ingest/**
+---
+```
+
+`covers` lets tooling and the `contract-check` agent detect **drift**: source under `covers` changed
+while the document did not. Drift is advisory — it raises a review flag, never a hard failure.
+Blocking gates on every file change are precisely what makes evolution expensive.
+
+# When to Create a Section Document
+
+Create a level 3 document only when the subject meets at least one of these tests:
+
+- **Hidden invariant** — something a reader would plausibly violate, that the code cannot express.
+- **Non-local correctness** — an algorithm whose correctness depends on constraints not visible at
+  the call site.
+- **Compatibility surface** — a wire format, file format, schema, or protocol that must remain
+  compatible across versions.
+- **Settled debate** — a decision with a seriously considered rejected alternative, documented so it
+  is not re-litigated.
+- **Cross-cutting mechanism** — a pattern that many units must participate in correctly.
+
+Do **not** create a section document to:
+
+- Describe class or module structure — the code and the decomposition section already do this.
+- Restate the public API — that belongs in doc comments on the members themselves.
+- Describe what the tests cover — the tests do this.
+- Record history or migration narrative — that belongs in git and release notes.
+- Satisfy a sense that a system "ought to have" documentation.
+
+# When to Delete a Section Document (MANDATORY)
+
+Deletion is a first-class action and is never deferred. Delete in the **same change** that triggers
+it:
+
+- The subject was removed or replaced.
+- The content became derivable by reading a single file of source.
+- The document has decayed into restating names and signatures.
+- The rejected alternative it preserved is no longer a plausible option.
+
+The `architect` agent MUST perform a prune check on every Tier 1 and Tier 2 change: list the section
+documents under the affected system and confirm each still meets a creation test. Undeleted
+documentation is the mechanism by which a tree silently becomes an anchor.
+
+# Size Budgets
+
+Budgets are smell detectors, not lint rules. Exceeding one means *re-examine*, not *reformat*.
+
+| Document | Budget |
+| --- | --- |
+| `README.md` | 3 paragraphs before installation |
+| `overview.md` | 2 pages |
+| `{system}.md` | 3 pages |
+| `{system}/{section}.md` | 2 pages |
+
+If a system document exceeds its budget, the usual cause is that decomposition detail has crept in
+that belongs in a section document — or that the system is too large.
+
+# Writing Guidelines
+
+- **State the why.** Facts recoverable by reading the code do not belong here; reasons do.
+- **Prefer prose to bullets** for rationale. Bullets fragment reasoning into assertions.
+- **Name concrete things.** Real system names, real paths, real formats — never placeholders.
+- **Write for a reader who will stop here.** Each level must be coherent alone.
+- **Present tense, current state.** No changelog voice, no "we will", no "recently changed".
+
+# Markdown Conventions
+
+- 120-character line limit; break at punctuation or logical boundaries.
+- ATX headings, blank lines around headings, lists, and fenced blocks.
+- Language identifiers on all fenced code blocks.
+- Relative links for intra-repository navigation; absolute URLs in `README.md`.
+
+# Quality Gates
+
+- [ ] Every level owns distinct content; no level summarizes a level below it
+- [ ] The one-file test passes for the change just made
+- [ ] Every document links to its direct children; children link back to their parent
+- [ ] Level 2 and 3 documents carry `level` and `covers` front matter
+- [ ] Every section document still satisfies at least one creation test
+- [ ] Section documents whose subject was removed were deleted in the same change
+- [ ] No document exceeds its size budget without a deliberate reason
