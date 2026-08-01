@@ -18,8 +18,7 @@ what the contract already promised. If yes, ask whether the set of systems or th
 change: no means Tier 1, yes means Tier 2.
 
 That is the entire routing decision. `change-classification.md` holds the authoritative rules; this
-page is
-about applying them.
+page is about applying them.
 
 ## What Each Mode and Tier Costs
 

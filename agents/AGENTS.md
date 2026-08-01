@@ -60,10 +60,9 @@ file.
 
 # Classification (ALL Agents)
 
-**Classify before working.** Read `.github/standards/change-classification.md` and classify along
-both axes
-before touching anything. That file is the **single definition** of both — this file names them and
-routes; it never restates what they mean.
+**Classify before working.** Read `.github/standards/change-classification.md` and classify along both
+axes before touching anything. That file is the **single definition** of both — this file names them
+and routes; it never restates what they mean.
 
 - **Mode** — `Intake`, `Change`, `Maintenance`, or `Migration`. Decides what you may touch.
 - **Tier** — `0`, `1`, or `2`, within Change mode. Decides how much documentation moves.
@@ -99,7 +98,8 @@ is judgement, deliberately.
 # Standards Application (ALL Agents Must Follow)
 
 Read the relevant standards from `.github/standards/` before working. Load only what your task
-needs — **usually two or three** — selecting by the file in scope and the **languages** field above:
+needs — **usually two or three, never more than four** — selecting by the file in scope and the
+**languages** field above:
 
 - **Any code**: `coding-principles.md`
 - **C# code**: `coding-principles.md`, `csharp-language.md`
@@ -127,7 +127,8 @@ the skill over reconstructing a procedure from memory.
 
 The default agent handles simple, well-understood tasks directly. Delegate only for:
 
-- **Any non-trivial change** → `dispatch` (classifies the tier and routes to the minimum process)
+- **Any non-trivial change** → `dispatch` (classifies the mode and tier, then routes to the minimum
+  process)
 - **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its tier** → `tier-check`

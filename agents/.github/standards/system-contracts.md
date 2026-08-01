@@ -6,9 +6,10 @@ globs: ["docs/architecture/*.md"]
 
 # Principle
 
-A **contract** is what consumers outside a system may rely on. It is the only requirement-like
-artifact in this process, and it lives in exactly one place: the `## Contract` section of
-`docs/architecture/{system}.md`.
+A **contract** is what consumers outside a system may rely on. Below level 0 it is the only
+requirement-like artifact in this process, and it lives in exactly one place: the `## Contract`
+section of `docs/architecture/{system}.md`. Level 0 carries the product's own promises to a person,
+which `architecture-documentation.md` owns.
 
 There are deliberately **no subsystem or unit requirements**. Interior structure must be free to
 churn without documentation cost — that freedom is the entire point of this process. Requirements

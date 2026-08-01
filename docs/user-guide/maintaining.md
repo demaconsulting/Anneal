@@ -44,8 +44,8 @@ These are the decisions the process rests on. Changing one is a redesign, not a 
 recorded with the alternative that was rejected, so it is not re-litigated from scratch.
 
 **Classification is defined in exactly one file.** `change-classification.md` is the sole definition
-of both
-modes and tiers; `AGENTS.md`, the agent prompts, and the README link to it and never restate it.
+of both modes and tiers; `AGENTS.md`, the agent prompts, and the README link to it and never restate
+it.
 Rejected: a convenient summary in each place an agent might look. The summaries drift — this process
 carried tier definitions in three files for months, and they had already disagreed with each other
 about whether a bug fix was Tier 0 before anyone noticed. A rule stated twice is a rule whose meaning

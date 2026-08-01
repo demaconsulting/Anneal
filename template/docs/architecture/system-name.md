@@ -21,8 +21,8 @@ The second half matters most: what would a consumer notice if this were rewritte
 
 ## Contract
 
-<!-- TEMPLATE-DIRECTIVE: This is the ONLY requirement-like artifact in this repository.
-     Every clause must be observable from OUTSIDE the system - if it can only be checked
+<!-- TEMPLATE-DIRECTIVE: Below the README this is the ONLY requirement-like artifact in this
+     repository. Every clause must be observable from OUTSIDE the system - if it can only be checked
      by reading internals, delete it. Every clause names at least one contract test that
      exists and passes. IDs are stable forever and retired numbers are never reused.
      Healthy range is 5-25 clauses; over 40 means the decomposition is wrong or this has

@@ -110,15 +110,8 @@ ordinary markdown links work and are encouraged:
 # README.md
 
 The README is level 0 of the architecture tree. `architecture-documentation.md` owns what it may
-contain; this section covers only its shape.
-
-- **What it is** — the product, its audience, the problem it solves.
-- **Features** — what the user gets, as outcomes that survive implementation change.
-- **How it works** — two to four paragraphs on the organizing idea.
-- **Installation** — exact commands, exact version prerequisites.
-- **Usage** — one or two concrete examples with real expected output.
-- **Architecture** — a single link to `docs/architecture/overview.md`.
-- **License** — statement and link.
+contain, and the template's `README.md` is its shape — section order included. Do not restate either
+here; a fourth description of one document is how the four drift apart.
 
 It does **not** list subsystems, restate contracts, or describe internals. Those are owned by lower
 levels of the tree and restating them here creates the coupling this process exists to avoid.

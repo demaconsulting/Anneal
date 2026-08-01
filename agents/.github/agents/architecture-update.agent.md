@@ -23,8 +23,7 @@ Read from `.github/standards/`:
 
 If the caller supplied no tier — you were invoked directly rather than by `dispatch` — classify the
 change yourself with `change-classification.md` before going further, and state the tier you chose.
-Step 2
-branches on it.
+Step 2 branches on it.
 
 # Step 2 — Locate the Change
 
@@ -84,11 +83,10 @@ prose for you to adjust so the assumption keeps looking true — that is the lev
 clause to match the code.
 
 When a system is added, removed, renamed, split, or merged, the source and test layout has to move
-with it —
-`src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not perform that
-move; you are documentation-only. State it in your report as an implementation obligation, naming the
-directories involved, because `covers` will point at paths that do not exist yet until `apply`
-makes them.
+with it — `src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not
+perform that move; you are documentation-only. State it in your report as an implementation
+obligation, naming the directories involved, because `covers` will point at paths that do not exist
+yet until `apply` makes them.
 
 # Step 5 — Prune (MANDATORY for Tier 1 and Tier 2)
 

@@ -26,14 +26,6 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
 - **TODO: outcome** — TODO: one sentence on what that means for the person using it.
 - **TODO: outcome** — TODO: one sentence on what that means for the person using it.
 
-## How It Works
-
-<!-- TEMPLATE-DIRECTIVE: Two to four paragraphs on the organizing idea - the shape a reader needs
-     before anything below makes sense. Name the central mechanism and what follows from it. Do NOT
-     enumerate systems; overview.md owns that. Remove this block. -->
-
-TODO: Two to four paragraphs on the organizing idea behind the product.
-
 ## Requirements
 
 <!-- TEMPLATE-DIRECTIVE: The invariants of the product contract - properties that must hold for the
@@ -45,6 +37,14 @@ TODO: Two to four paragraphs on the organizing idea behind the product.
      bullets. Remove this block. -->
 
 - TODO: a property that must hold, stated so it can be checked.
+
+## How It Works
+
+<!-- TEMPLATE-DIRECTIVE: Two to four paragraphs on the organizing idea - the shape a reader needs
+     before anything below makes sense. Name the central mechanism and what follows from it. Do NOT
+     enumerate systems; overview.md owns that. Remove this block. -->
+
+TODO: Two to four paragraphs on the organizing idea behind the product.
 
 ## Assumptions
 

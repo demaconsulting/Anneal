@@ -14,8 +14,7 @@ this agent and nothing else.
 
 If a tier was supplied by a calling agent, use it. Otherwise read
 `.github/standards/change-classification.md` and classify the change yourself, stating the tier and
-reason in
-one sentence.
+reason in one sentence.
 
 **If you determine the change is Tier 1 or Tier 2 and the contract has not already been updated,
 stop and report INCOMPLETE.** Contracts are written before implementation, by the

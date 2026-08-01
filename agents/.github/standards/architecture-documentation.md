@@ -166,9 +166,8 @@ it:
 - The rejected alternative it preserved is no longer a plausible option.
 
 The `architecture-update` agent MUST perform a prune check on every Tier 1 and Tier 2 change: list
-the section
-documents under the affected system and confirm each still meets a creation test. Undeleted
-documentation is the mechanism by which a tree silently becomes an anchor.
+the section documents under the affected system and confirm each still meets a creation test.
+Undeleted documentation is the mechanism by which a tree silently becomes an anchor.
 
 # Size Budgets
 
@@ -176,7 +175,7 @@ Budgets are smell detectors, not lint rules. Exceeding one means *re-examine*, n
 
 | Document | Budget |
 | --- | --- |
-| `README.md` | 3 paragraphs before installation |
+| `README.md` | 3 pages before Installation |
 | `overview.md` | 2 pages |
 | `{system}.md` | 3 pages |
 | `{system}/{section}.md` | 2 pages |

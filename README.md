@@ -61,15 +61,6 @@ multi-retry orchestration. Each was left out because its cost is paid on **every
 [Maintaining](docs/user-guide/maintaining.md) has the full rationale, the trade-offs, and what must
 not be reintroduced.
 
-## Documentation
-
-- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
-- **[Common Tasks](docs/user-guide/common-tasks.md)** — the prompt to use for each day-to-day job
-- **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
-- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
-- **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
-- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
-
 ## Requirements
 
 What the process must hold true to deliver the features above, stated so you can check a repository
@@ -92,8 +83,7 @@ That freedom is the point; it is what lets a design keep moving after the first 
 Work is classified twice before it starts. **Mode** — recording an idea, making a change, tidying,
 or migrating — decides what an agent is allowed to touch. **Tier** decides how far a change reaches
 into published contracts, and therefore how much documentation moves with it. The two are
-independent, and most work lands on the cheapest combination of both. Classification is defined in
-exactly one place, so no two agents can hold different ideas of what a tier means.
+independent, and most work lands on the cheapest combination of both.
 
 Documentation is a descent, not a pile. Each level answers a different question at a different
 altitude, no level restates the one below it, and a reader descends only as far as the task requires.
@@ -144,9 +134,8 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
-Level 3 is exceptional. Most systems have none, and the `architecture-update` agent prunes those
-that stop
-earning their place.
+Level 3 is exceptional. Most systems have none, and the `architecture-update` agent prunes those that
+stop earning their place.
 
 ## Repository Layout
 
@@ -154,6 +143,15 @@ earning their place.
   `.github/standards/`
 - **`template/`** — the canonical repository layout and file templates
 - **`docs/user-guide/`** — how to use and maintain this process
+
+## Documentation
+
+- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
+- **[Common Tasks](docs/user-guide/common-tasks.md)** — the prompt to use for each day-to-day job
+- **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
+- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
+- **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
+- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this system
 
 ## Installation
 

@@ -145,8 +145,7 @@ boundary between systems changes.
 - **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience actually changed — usually it has not.
 - **Agents**: `architecture-update` updates `overview.md` and the affected system documents, then
-  `apply`,
-  then `tier-check`.
+  `apply`, then `tier-check`.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
 

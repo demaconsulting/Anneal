@@ -76,14 +76,14 @@ Call the **apply** agent as a sub-agent with:
   stopping point. Editing outside the bound is a scope violation to report, not a judgement call
 - **goal**: implement the change, with contract tests for any new or changed clause
 
-If `apply` returns FAILED, go to Step 5.
+If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. If it returns FAILED,
+go to Step 5.
 
 # Step 4 — Verify
 
 Call the **tier-check** agent as a sub-agent with:
 
-- **context**: the user's request, the declared tier, files changed, and the contract clauses in
-  scope
+- **context**: the user's request, the declared tier, files changed, and the contract clauses in scope
 - **goal**: verify the change against its declared tier
 
 If it returns SUCCEEDED, go to Step 5 and report.
