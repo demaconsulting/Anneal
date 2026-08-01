@@ -73,10 +73,10 @@ Routing once classified:
 | Mode / Tier | Route |
 | --- | --- |
 | Intake | `dispatch` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
-| Change, Tier 0 | `developer` |
-| Change, Tier 1 or 2 | `architecture-update` → `developer` → `tier-check` |
-| Maintenance | `developer`, within a declared bound |
-| Migration | `architecture-design` → approved `MIGRATION.md` → staged `developer` work |
+| Change, Tier 0 | `apply` |
+| Change, Tier 1 or 2 | `architecture-update` → `apply` → `tier-check` |
+| Maintenance | `apply`, within a declared bound |
+| Migration | `architecture-design` → approved `MIGRATION.md` → staged `apply` work |
 
 Modes and tiers may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
@@ -128,7 +128,7 @@ the skill over reconstructing a procedure from memory.
 The default agent handles simple, well-understood tasks directly. Delegate only for:
 
 - **Any non-trivial change** → `dispatch` (classifies the tier and routes to the minimum process)
-- **Scoped implementation with a known approach** → `developer`
+- **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its tier** → `tier-check`
 - **Bootstrapping or re-cutting system boundaries** → `architecture-design`

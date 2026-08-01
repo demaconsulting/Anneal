@@ -26,10 +26,10 @@ about applying them.
 | Mode / Tier | Agents | Documentation | Typical wall time |
 | --- | --- | --- | --- |
 | Intake | `dispatch` | One bullet in `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions | Seconds |
-| Maintenance | `developer`, bounded | None | Minutes |
-| Change, Tier 0 | `developer` | None | Minutes |
-| Change, Tier 1 | `architecture-update` → `developer` → `tier-check` | One system document | Tens of minutes |
-| Change, Tier 2 | `architecture-update` → `developer` → `tier-check` | Overview plus affected systems | Longer |
+| Maintenance | `apply`, bounded | None | Minutes |
+| Change, Tier 0 | `apply` | None | Minutes |
+| Change, Tier 1 | `architecture-update` → `apply` → `tier-check` | One system document | Tens of minutes |
+| Change, Tier 2 | `architecture-update` → `apply` → `tier-check` | Overview plus affected systems | Longer |
 | Migration | `architecture-design` → staged work | The tree, plus `MIGRATION.md` | Days, staged |
 
 The cost difference is the point. It is why classification happens first and why rounding up "to be
@@ -77,7 +77,7 @@ commits does not make it Tier 0.
 ## The Repair Pass
 
 `dispatch` gets at most two repairs, and they are not interchangeable: **one documentation repair**
-through `architecture-update`, and **one code repair** through `developer`. A documentation finding —
+through `architecture-update`, and **one code repair** through `apply`. A documentation finding —
 wrong tier, missing clause, stale tree — routes to the agent that owns `docs/architecture/` and then
 continues into implementation, because a corrected clause still needs a test. Neither is a planning
 phase.
@@ -126,7 +126,7 @@ Four questions, in order:
 
 ## When Not to Use `dispatch`
 
-- The change is trivial and obviously interior — call `developer` directly.
+- The change is trivial and obviously interior — call `apply` directly.
 - You are only fixing lint — call `lint-fix`.
 - You are reshaping system boundaries — call `architecture-design`; that is a design conversation, not
   a change.

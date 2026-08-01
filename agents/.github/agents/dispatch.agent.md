@@ -8,7 +8,7 @@ user-invocable: true
 # Dispatch Agent
 
 Route a change through the least process that is correct for it. Most changes touch no
-documentation and need only the `developer` agent — reaching that conclusion quickly is this agent's
+documentation and need only the `apply` agent — reaching that conclusion quickly is this agent's
 primary job.
 
 This is deliberately **not** a heavyweight state machine. There is no planning phase, and repairs are
@@ -34,13 +34,13 @@ Determine the **mode** first, because three of the four fix the tier automatical
   recreate it. Say which file you wrote to and why the admission test chose it. Do not proceed to
   Step 2; there is nothing to implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
-  passing that bound to `developer` as a hard limit. If the request has no bound, ask for one instead
+  passing that bound to `apply` as a hard limit. If the request has no bound, ask for one instead
   of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
   Maintenance is defined by touching nothing a consumer can observe.
 - **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
   INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
   it does exist, the tree is already written and each stage is bounded implementation work: report
-  INCOMPLETE naming the stage and directing the user to `developer`, which is what lands a stage.
+  INCOMPLETE naming the stage and directing the user to `apply`, which is what lands a stage.
   Either way you stop here.
 - **Change** — continue, and determine the tier.
 
@@ -66,7 +66,7 @@ returns FAILED, stop and report FAILED.
 
 # Step 3 — Implement
 
-Call the **developer** agent as a sub-agent with:
+Call the **apply** agent as a sub-agent with:
 
 - **context**: the user's request, the declared tier, and — for Tier 1 and 2 — the updated contract
   clauses the implementation must satisfy, together with the Implementation Obligations from
@@ -76,7 +76,7 @@ Call the **developer** agent as a sub-agent with:
   stopping point. Editing outside the bound is a scope violation to report, not a judgement call
 - **goal**: implement the change, with contract tests for any new or changed clause
 
-If the developer returns FAILED, go to Step 5.
+If `apply` returns FAILED, go to Step 5.
 
 # Step 4 — Verify
 
@@ -95,11 +95,11 @@ implementation owes.
 
 - If the finding is that the documentation itself is wrong — a misclassified tier, a missing clause
   for behavior that turned out to be consumer-observable, or a tree left stale — re-enter Step 2.
-  Those are `architecture-update`'s to fix, and `developer` is forbidden to edit `docs/architecture/`.
+  Those are `architecture-update`'s to fix, and `apply` is forbidden to edit `docs/architecture/`.
   Continue on through Step 3, because a corrected or added clause needs an implementation and a
   contract test, then re-run **tier-check**. This spends the documentation repair, not the code
   repair, so a code finding that survives can still be repaired once.
-- Otherwise call the **developer** agent once more with the specific findings, then re-run
+- Otherwise call the **apply** agent once more with the specific findings, then re-run
   **tier-check**. This spends the code repair.
 
 Stop early if a repair does not clear the finding it targeted. A finding that survives its owning
@@ -131,7 +131,7 @@ summary to the caller.
 ## Work Performed
 
 - **Architecture Update**: {report path and summary, or "skipped (Tier 0)"}
-- **Developer**: {report path, files changed}
+- **Apply**: {report path, files changed}
 - **Tier Check**: {report path, findings}
 
 ## Documentation Changes

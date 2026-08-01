@@ -1,11 +1,11 @@
 ---
-name: developer
-description: Core development agent for code, tests, and documentation. Implements changes against
-  system contracts, applying the standards relevant to the detected languages and file types.
+name: apply
+description: Core working agent for code, tests, and documentation. Implements a change against the
+  system contracts, loading the standards relevant to the files in scope.
 user-invocable: true
 ---
 
-# Developer Agent
+# Apply Agent
 
 Implement the requested change. This is the core working agent of the process — most changes need
 this agent and nothing else.
@@ -80,10 +80,10 @@ Generate the completion report per the AGENTS.md reporting requirements.
 # Report Template
 
 ```markdown
-# Developer Report
+# Apply Report
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
-**Report**: `.agent-logs/developer-{subject}-{unique-id}.md`
+**Report**: `.agent-logs/apply-{subject}-{unique-id}.md`
 **Tier**: (0|1|2)
 **Tier Rationale**: {one sentence}
 

@@ -148,7 +148,7 @@ configuration, and `lint-fix.agent.md` with one section retargeted.
 
 **Rewritten** — `coding-principles.md` (the requirement-traceability anti-pattern replaced with
 undeclared boundary behavior), `testing-principles.md`, `technical-documentation.md`, and the
-`developer`, `architecture-design`, and `template-sync` agents.
+`apply`, `architecture-design`, and `template-sync` agents.
 
 **Deliberately dropped** — `requirements-principles.md`, `software-items.md`, `reqstream-usage.md`,
 `reviewmark-usage.md`, `design-documentation.md`, `verification-documentation.md`,
@@ -180,6 +180,11 @@ Before adding a rule to an agent prompt:
 Checklist for a new agent:
 
 - [ ] Front matter: `name`, `description`, `user-invocable`
+- [ ] Named for what it owns or does, never for a role. An agent that owns a named artifact takes
+      `{artifact}-{verb}` (`architecture-update`, `tier-check`, `lint-fix`); one that acts on
+      whatever the work requires takes a bare verb (`dispatch`, `apply`). Check the name against the
+      four modes, the other agents, the scripts, and your host's built-in agent names — a name that
+      collides with any of them costs more than it saves
 - [ ] A stated purpose narrow enough that "when not to use this" is obvious
 - [ ] Explicit standards to load, by name
 - [ ] A report template with `**Result**` as the first metadata field

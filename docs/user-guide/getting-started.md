@@ -112,7 +112,7 @@ For a change where you already know the approach and it clearly touches nothing 
 skip the routing:
 
 ```text
-@developer extract the retry logic in HttpClient into its own class
+@apply extract the retry logic in HttpClient into its own class
 ```
 
 ## Before Opening a Pull Request

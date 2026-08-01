@@ -66,17 +66,17 @@ The entry point for any non-trivial change.
   See [Common Tasks](common-tasks.md) for the prompt to use for each.
 - **Produces**: mode and tier with rationale, contract impact, sub-agent reports, documentation
   changes
-- **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `developer`, `tier-check`
-- **Not for**: trivial interior work (`developer` is faster), lint-only cleanup (`lint-fix`), or
+- **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `apply`, `tier-check`
+- **Not for**: trivial interior work (`apply` is faster), lint-only cleanup (`lint-fix`), or
   reshaping system boundaries (`architecture-design`)
 
 Returns INCOMPLETE when the tier cannot be determined without information only you can supply.
 
-### `developer`
+### `apply`
 
 The core working agent. Most changes need this and nothing else.
 
-- **Invoke**: `@developer <change with a known approach>`
+- **Invoke**: `@apply <change with a known approach>`
 - **Does**: descends the architecture tree for context, loads the relevant standards, declares scope,
   implements, runs `fix.ps1`, `build.ps1`, and `check-contracts.ps1`
 - **Produces**: files changed with interior/boundary classification, contract test status, interior
@@ -92,7 +92,7 @@ Owns `docs/architecture/` and the contracts inside it.
 - **Does**: locates the single correct level for a change, updates the contract **before**
   implementation, updates the tree, and **prunes** section documents that no longer earn their place
 - **Produces**: contract changes with breaking flags, tree changes, prune results, ownership check,
-  implementation obligations for `developer`
+  implementation obligations for `apply`
 - **Never**: writes implementation code, documents interior structure below the decomposition
   rationale, or creates a requirement below system level
 
@@ -135,7 +135,7 @@ Pre-pull-request sweep.
 - **Invoke**: `@lint-fix`
 - **Does**: runs `fix.ps1`, then loops `lint.ps1` fixing issues, up to five iterations
 - **Never**: refactors, makes functional changes, or "fixes" a contract-to-test failure — that is
-  semantic and belongs to `architecture-update` or `developer`
+  semantic and belongs to `architecture-update` or `apply`
 
 ### `template-sync`
 
@@ -177,7 +177,7 @@ The runbook for `check-contracts.ps1`.
 
 - **Covers**: which invocation to use for each tier, when to use `-Strict`, and the correct fix for
   every failure the script emits
-- **Used by**: `developer` (Step 7) and `tier-check` (Step 3), which reference it rather than
+- **Used by**: `apply` (Step 7) and `tier-check` (Step 3), which reference it rather than
   restating the procedure
 - **Does not cover**: the script's parameters — those live in the script's own header, so the two
   cannot drift

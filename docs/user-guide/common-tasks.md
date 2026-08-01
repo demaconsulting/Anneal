@@ -7,12 +7,12 @@ works this way; this page is the lookup table.
 | --- | --- |
 | Record something you are not acting on now | `dispatch` (Intake) |
 | Make a change and not think about how big it is | `dispatch` |
-| Make a small change you already understand | `developer` |
+| Make a small change you already understand | `apply` |
 | Update a contract or the tree without writing code | `architecture-update` |
 | Split or add a system | `dispatch` (Tier 2) |
 | Tidy code without changing behavior | `dispatch` (Maintenance) |
 | Reshape system boundaries | `architecture-design` |
-| Land a stage of an approved migration | `developer` |
+| Land a stage of an approved migration | `apply` |
 | Decide what to work on next | `BACKLOG.md`, `CONSTRAINTS.md` |
 | Get a change ready for review | `lint-fix`, `tier-check` |
 | Recover from a failed check | [When a Check Fails](#when-a-check-fails) |
@@ -48,7 +48,7 @@ The default. Use this whenever you are not certain how far a change reaches — 
 ```
 
 - **You get**: a declared tier with its rationale, then only the agents that tier needs —
-  `architecture-update` first on Tier 1 and 2, then `developer`, then `tier-check`.
+  `architecture-update` first on Tier 1 and 2, then `apply`, then `tier-check`.
 - **Read the Tier and Tier Rationale fields.** If the tier looks wrong, say so immediately;
   misclassification is the main way this process degrades.
 - **Check the Breaking field.** Narrowing or removing a clause breaks consumers who relied on it, and
@@ -59,12 +59,12 @@ The default. Use this whenever you are not certain how far a change reaches — 
 Skip the routing when the work is obviously interior and you know the approach.
 
 ```text
-@developer extract the retry logic in HttpClient into its own class
+@apply extract the retry logic in HttpClient into its own class
 ```
 
 - **You get**: the change, with `fix.ps1` and `build.ps1` run for you. `check-contracts.ps1` runs
   only on Tier 1 and 2, so an interior change like this one is verified by the build and its tests.
-- If it turns out to need a contract change, `developer` reports INCOMPLETE rather than writing the
+- If it turns out to need a contract change, `apply` reports INCOMPLETE rather than writing the
   contract itself. That is deliberate — go through `dispatch` instead.
 
 ## Tidy Code Without Changing Behavior
@@ -98,7 +98,7 @@ building, or correcting documentation that has drifted from what the code actual
   `check-contracts.ps1` reports as an unfulfilled obligation rather than an error. Naming a real test
   that does not exist yet **is** an error, so the marker is what keeps the repository green.
 - It never writes implementation code. New clauses come back as implementation obligations for
-  `developer`, which is why the contract ends up written before the code rather than after it.
+  `apply`, which is why the contract ends up written before the code rather than after it.
 - **The second prompt usually comes back INCOMPLETE with a question, and that is the correct
   answer.** When a contract and the code disagree, one of them is a defect, and the agent will not
   guess which. Say which side is authoritative — "the contract is right, the code is wrong" sends it
@@ -116,7 +116,7 @@ A Tier 2 change. It costs more than the others because the system inventory itse
 
 - **You get**: `architecture-update` first, rewriting `overview.md` and every affected `{system}.md`,
   re-homing surviving clauses onto the new system's identifiers, and pruning section documents across
-  both. Then `developer` moves `src/` and `test/` to match. Then `tier-check`.
+  both. Then `apply` moves `src/` and `test/` to match. Then `tier-check`.
 - **Check the clause table in the architecture report.** Every promise the old system made must appear
   against the system that now keeps it, with the old identifier recorded. A promise that vanishes in a
   split is a silent breaking change.
@@ -150,15 +150,15 @@ When the systems themselves are wrong — not the code inside them.
 Only after `architecture-design` has written the target tree and `MIGRATION.md`.
 
 ```text
-@developer land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
+@apply land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
 ```
 
-- **Use `developer`, not `dispatch`.** The tree is already written and approved, so there is nothing
+- **Use `apply`, not `dispatch`.** The tree is already written and approved, so there is nothing
   left to classify; each stage is bounded implementation work. `dispatch` will stop and say so.
 - **Give it the stage's bound explicitly**, the way you would bound a Maintenance task. The stage
   boundary is the point — what it must leave working is in `MIGRATION.md`.
 - Every commit says Migration mode and references `MIGRATION.md`. Staging is required here — the rule
-  against splitting a change to stay at a lower tier is about evasion, and does not apply.
+  against splitting a change to stay at a lower tier is about evasion, and does not bind here.
 - **Do not run `tier-check` between stages.** It checks contracts with `-Strict`, which treats a
   planned clause with no test yet as an error — correct at the end of a change, wrong halfway through
   a migration where later stages have not landed. Run it after the final stage.
@@ -214,9 +214,9 @@ looping. What to do next:
 - **Read the Repairs Used field.** It says whether the documentation repair, the code repair, or both
   were consumed, which tells you where the change got stuck.
 - If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — re-run
-  `dispatch`, which routes those back through `architecture-update`. `developer` is not allowed to edit
+  `dispatch`, which routes those back through `architecture-update`. `apply` is not allowed to edit
   `docs/architecture/`, so sending a documentation finding to it directly cannot work.
-- If the finding is a genuine implementation gap, `@developer` it directly with the finding quoted.
+- If the finding is a genuine implementation gap, `@apply` it directly with the finding quoted.
   You do not need to re-enter `dispatch` for a fix you already understand.
 - Do not re-run `dispatch` on the same request hoping for a different route. It classifies from the
   request, so the same request produces the same tier.
@@ -262,9 +262,10 @@ pwsh ./install.ps1 -TargetRepository ../my-product -Force
   `.github/agents/`, so delete any that no longer exist in the new version — a stale agent file still
   works and will still be picked. Compare `.github/agents/` against the Anneal `agents/.github/agents/`
   directory to find them. If you installed before the renames, delete `architect.agent.md`,
-  `software-architect.agent.md`, `contract-check.agent.md`, and `evolve.agent.md`; they are now
-  `architecture-update`, `architecture-design`, `tier-check`, and `dispatch`. Delete the stale
-  standard `change-tiers.md` too; it is now `change-classification.md`.
+  `software-architect.agent.md`, `contract-check.agent.md`, `evolve.agent.md`, and
+  `developer.agent.md`; they are now `architecture-update`, `architecture-design`, `tier-check`,
+  `dispatch`, and `apply`. Delete the stale standard `change-tiers.md` too; it is now
+  `change-classification.md`.
 - Then run **`@template-sync Scaffold`** to create template files added since you installed, followed
   by `@template-sync Patch` to insert new sections into files you already have. Scaffold is the one
   that matters: `Patch` only touches files that already exist, so on its own it will never create a

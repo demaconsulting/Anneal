@@ -54,7 +54,7 @@ For Tier 1 and Tier 2, write the contract before any implementation exists:
 - Add, narrow, or remove clauses per `system-contracts.md`, which owns identifier discipline —
   including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
-  exist yet — the `developer` agent is obliged to create it under that name.
+  exist yet — the `apply` agent is obliged to create it under that name.
 - When no implementation will follow — you were invoked directly rather than by `dispatch` — put
   `TODO` in that test name. `check-contracts.ps1` reports a `TODO` name as an unfulfilled obligation
   but errors on a real name that resolves to no test, so this is what leaves the repository green
@@ -87,7 +87,7 @@ When a system is added, removed, renamed, split, or merged, the source and test 
 with it —
 `src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not perform that
 move; you are documentation-only. State it in your report as an implementation obligation, naming the
-directories involved, because `covers` will point at paths that do not exist yet until `developer`
+directories involved, because `covers` will point at paths that do not exist yet until `apply`
 makes them.
 
 # Step 5 — Prune (MANDATORY for Tier 1 and Tier 2)
@@ -159,7 +159,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 ## Implementation Obligations
 
-{Contract tests the developer agent must create, by name, and the behavior each must prove}
+{Contract tests the `apply` agent must create, by name, and the behavior each must prove}
 
 {For Tier 2: source and test directories and the solution file to create, move, or delete. Clauses
 whose identifier changed owner are in the Contract Changes table above; their tests are renamed to

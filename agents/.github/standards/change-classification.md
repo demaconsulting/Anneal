@@ -117,7 +117,7 @@ restore already-promised behavior, dependency bumps, and test additions.
 
 - **Documentation**: none — unless the change invalidates an existing section document, in which
   case update or delete that one file.
-- **Agents**: `developer` alone.
+- **Agents**: `apply` alone.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
   untouched — that is the proof the tier is correct.
 
@@ -130,7 +130,7 @@ A clause is added, narrowed, removed, or given different meaning; or the system'
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
 - **Documentation**: `docs/architecture/{system}.md` only.
-- **Agents**: `architecture-update` updates the contract **first**, then `developer` implements
+- **Agents**: `architecture-update` updates the contract **first**, then `apply` implements
   against it,
   then `tier-check` verifies.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
@@ -145,7 +145,7 @@ boundary between systems changes.
 - **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience actually changed — usually it has not.
 - **Agents**: `architecture-update` updates `overview.md` and the affected system documents, then
-  `developer`,
+  `apply`,
   then `tier-check`.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
