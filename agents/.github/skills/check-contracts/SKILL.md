@@ -26,6 +26,7 @@ not an agent is involved.
 | Tier 1 or 2, implementing | `pwsh ./check-contracts.ps1` |
 | Tier 1 or 2, verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
 | Bootstrapping a tree, tests not yet written | `pwsh ./check-contracts.ps1` |
+| Landing a migration stage with later stages outstanding | `pwsh ./check-contracts.ps1` |
 
 `-Strict` promotes unfulfilled `TODO` obligations, and absent test results, from warnings to errors.
 Use it once implementation is complete — before that, a `TODO` obligation is a deliberate placeholder

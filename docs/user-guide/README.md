@@ -15,8 +15,8 @@ guide covers how to work with it.
   examples and the failure modes to watch for. Read this second; it is the part people get wrong.
 - **[Authoring](authoring.md)** — how to write the architecture tree and system contracts well.
   Reference this when writing or reviewing documentation.
-- **[Reference](reference.md)** — every agent, skill, and standard: what it does, when to invoke it,
-  what it produces, and when *not* to use it.
+- **[Reference](reference.md)** — where each kind of information belongs, what the vocabulary means,
+  and every agent, skill, and standard: what it does, when to invoke it, and when *not* to use it.
 - **[Maintaining](maintaining.md)** — how this repository is put together, the design invariants that
   must be preserved, and how to add or change an agent or standard safely.
 

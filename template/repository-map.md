@@ -60,6 +60,11 @@ A constraint is never deleted for being met — it moves to **Satisfied** and st
 against regressing it. It is removed only when the condition stops being required. Backlog entries
 are deleted when they ship or stop being wanted.
 
+`MIGRATION.md` is a third root-level working file and is **deliberately absent from the map above**.
+It holds the stages of an approved migration, exists only while one is landing, and is deleted in its
+final commit — so scaffolding one into a repository would assert a migration that is not happening.
+`change-classification.md` owns it.
+
 ## Architecture Tree
 
 | File | Level | Required |

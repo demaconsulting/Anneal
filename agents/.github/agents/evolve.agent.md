@@ -37,8 +37,11 @@ Determine the **mode** first, because three of the four fix the tier automatical
   passing that bound to `developer` as a hard limit. If the request has no bound, ask for one instead
   of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
   Maintenance is defined by touching nothing a consumer can observe.
-- **Migration** — an agent never enters this mode on its own. If the work needs it, stop and report
-  INCOMPLETE saying an approved proposal is required.
+- **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
+  INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
+  it does exist, the tree is already written and each stage is bounded implementation work: report
+  INCOMPLETE naming the stage and directing the user to `developer`, which is what lands a stage.
+  Either way you stop here.
 - **Change** — continue, and determine the tier.
 
 If the request is ambiguous enough that the tier could be either 0 or 1, resolve it by reading the

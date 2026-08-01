@@ -72,11 +72,11 @@ Routing once classified:
 
 | Mode / Tier | Route |
 | --- | --- |
-| Intake | `evolve` appends one bullet to `CONSTRAINTS.md` or `BACKLOG.md`; no other agent runs |
+| Intake | `evolve` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
 | Change, Tier 0 | `developer` |
 | Change, Tier 1 or 2 | `architecture-update` → `developer` → `tier-check` |
 | Maintenance | `developer`, within a declared bound |
-| Migration | approved proposal → `architecture-design` → staged `developer` work |
+| Migration | `architecture-design` → approved `MIGRATION.md` → staged `developer` work |
 
 Modes and tiers may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a

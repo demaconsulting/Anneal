@@ -25,12 +25,12 @@ about applying them.
 
 | Mode / Tier | Agents | Documentation | Typical wall time |
 | --- | --- | --- | --- |
-| Intake | `evolve` | One bullet in `CONSTRAINTS.md` or `BACKLOG.md` | Seconds |
+| Intake | `evolve` | One bullet in `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions | Seconds |
 | Maintenance | `developer`, bounded | None | Minutes |
 | Change, Tier 0 | `developer` | None | Minutes |
 | Change, Tier 1 | `architecture-update` → `developer` → `tier-check` | One system document | Tens of minutes |
 | Change, Tier 2 | `architecture-update` → `developer` → `tier-check` | Overview plus affected systems | Longer |
-| Migration | proposal → `architecture-design` → staged work | The tree | Days, staged |
+| Migration | `architecture-design` → staged work | The tree, plus `MIGRATION.md` | Days, staged |
 
 The cost difference is the point. It is why classification happens first and why rounding up "to be
 safe" is a real cost, not free insurance.

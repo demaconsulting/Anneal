@@ -95,6 +95,8 @@ A system that cannot answer "what would a consumer notice if this were rewritten
   targets, security boundaries, throughput. Skip attributes that do not shape the decomposition.
 - **Volatility**: what is expected to change often, and what must stay stable. This directly
   determines where section documents are warranted.
+- **Staging** (re-cut only): what must keep working while the move happens, and what may break
+  temporarily. This decides what the stages *are*, not merely their order.
 - **Assumptions**: what the design is taking on faith about its environment, platform, users, or
   tooling — the beliefs that would invalidate the decomposition if they turned out to be false. Ask
   what would have to be true for the proposed shape to be the right one. Record the load-bearing
@@ -141,6 +143,14 @@ level 0 is the product contract, and it is the only place "what the user gets" c
 system contracts describe what systems promise *each other*. Carry any load-bearing assumption from
 the interview into its section, and omit the section entirely rather than inventing entries for it.
 
+**When re-cutting a repository that already has code**, the tree you write is the *target*, not the
+current state, and moving code to match it will span commits. Also write **`MIGRATION.md`** at the
+repository root: the stages in order, what each one leaves working, and the exit condition for each
+planned clause. Mark the last stage as final and say in it that the commit landing it deletes this
+file — whoever lands that stage is reading `MIGRATION.md`, and may not be reading anything else. This
+file is the approved proposal that every Migration commit references; `change-classification.md` owns
+the rest of its lifecycle. A bootstrap has no stages and writes no such file.
+
 **On a bootstrap**, fetch each file's counterpart from the template (resolved per the
 `# Reference Template` section of `AGENTS.md`) and fill it in. Execute and then delete every
 `TEMPLATE-DIRECTIVE` comment, and resolve every `TODO` placeholder from what the interview
@@ -186,6 +196,11 @@ Run `pwsh ./fix.ps1`, then report per the AGENTS.md reporting requirements.
 ## Implementation Obligations
 
 {Every contract test named but not yet written, and the behavior it must prove}
+
+## Stages
+
+{Re-cut only: the number of stages written to `MIGRATION.md` and what the first one lands. Write
+"none — bootstrap" otherwise}
 
 ## Open Concerns
 

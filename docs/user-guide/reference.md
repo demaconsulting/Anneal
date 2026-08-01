@@ -1,7 +1,53 @@
 # Reference
 
 Every agent, skill, and standard: what it does, when to invoke it, what it produces, and when not to
-use it.
+use it — plus where each kind of information belongs and what the vocabulary means.
+
+## Where Information Lives
+
+Every kind of information this process produces has exactly one home. If something seems to fit two
+rows, it is stated at the wrong altitude; pick the row and delete the other copy.
+
+| Information | Home | Owner |
+| --- | --- | --- |
+| What the product gives a person — features, requirements | `README.md` | `architecture-documentation.md` |
+| What the design takes on faith and cannot guarantee | `README.md` § Assumptions | `architecture-documentation.md` |
+| Standing statements only a decision could change | `CONSTRAINTS.md` | `change-classification.md` |
+| Wanted work that would finish and stay finished | `BACKLOG.md` | `change-classification.md` |
+| What systems exist and how they interact | `docs/architecture/overview.md` | `architecture-documentation.md` |
+| What a system promises other code | `docs/architecture/{system}.md` § Contract | `system-contracts.md` |
+| Why a system is composed the way it is | `docs/architecture/{system}.md` | `architecture-documentation.md` |
+| One non-obvious specific, in depth | `docs/architecture/{system}/{section}.md` | `architecture-documentation.md` |
+| How a unit works | the code and its doc comments | `coding-principles.md` |
+| The stages of a migration in flight | `MIGRATION.md` | `change-classification.md` |
+| Why a change was made, and all history | git history | `technical-documentation.md` |
+| What an agent did on one run | `.agent-logs/` (untracked) | `AGENTS.md` |
+
+The first four rows are the ones people get wrong, and one question separates them: *does it hold, or
+does it complete?* Something that completes is backlog. Something that holds is a constraint if only
+a decision could change it, and an assumption if reality could prove it wrong on its own.
+
+`MIGRATION.md` exists only while a migration is in flight; its presence is the signal, so it is
+deleted in the migration's final commit. Everything else in the table is permanent or absent.
+
+## Vocabulary
+
+One-line glosses, so terms are not guessed at. The owning file has the actual rule.
+
+| Term | Means | Defined by |
+| --- | --- | --- |
+| **Mode** | What kind of work this is: Intake, Change, Maintenance, or Migration | `change-classification.md` |
+| **Tier** | How far a Change reaches into published contracts: 0, 1, or 2 | `change-classification.md` |
+| **Level** | An altitude in the architecture tree, 0 to 3 | `architecture-documentation.md` |
+| **System** | A unit with a contract, replaceable whole without the rest noticing | `architecture-documentation.md` |
+| **Contract** | What a system promises other code, in observable terms | `system-contracts.md` |
+| **Clause** | One numbered promise within a contract, verified by a named test | `system-contracts.md` |
+| **Product contract** | Level 0 read as a promise to a person, not to other code | `architecture-documentation.md` |
+| **Breaking** | Narrowing or removing an existing promise, at any level | `system-contracts.md` |
+| **Boundary vs interior** | Whether a change shows across a contract or only inside it | `change-classification.md` |
+| **Planned clause** | A clause for a system not yet built, carrying an exit condition | `system-contracts.md` |
+| **Prune** | Deleting a document in the change that stops it earning its place | `architecture-documentation.md` |
+| **Re-cut** | Redrawing system boundaries on a repository that already has some | `architecture-design.agent.md` |
 
 ## Agents
 
@@ -16,8 +62,8 @@ The entry point for any non-trivial change.
 - **Does**: determines the work mode first, then for a Change classifies the tier, routes to the
   minimum set of agents, and allows one documentation repair and one code repair
 - **Modes**: Change is the default; **Intake** files a need and stops; **Maintenance** runs a bounded
-  tidy; **Migration** it refuses to enter without an approved proposal. See
-  [Common Tasks](common-tasks.md) for the prompt to use for each.
+  tidy; **Migration** it refuses to enter unless `MIGRATION.md` already holds an approved proposal.
+  See [Common Tasks](common-tasks.md) for the prompt to use for each.
 - **Produces**: mode and tier with rationale, contract impact, sub-agent reports, documentation
   changes
 - **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `developer`, `tier-check`
@@ -76,7 +122,8 @@ Interactive interview that establishes or re-cuts system boundaries.
   boundaries, writes `docs/architecture/` and `README.md` when you confirm
 - **On an existing repository**: reads the current tree first and refines it rather than replacing
   it. Decisions, `README.md`, and still-valid contract clauses carry across; documents for dropped
-  systems are deleted and reported
+  systems are deleted and reported. It also writes `MIGRATION.md` — the stages the move will land in,
+  which is the approved proposal every Migration commit then references
 - **Produces**: the initial tree, contract clauses naming tests that do not yet exist, and those
   tests listed as implementation obligations
 - **Not for**: ordinary change — use `evolve`

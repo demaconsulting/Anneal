@@ -15,7 +15,7 @@ under `docs/architecture/`.
 - **Written to be read partially.** Assume the reader stops after the first screen. Front-load the
   answer, and apply the stop test below.
 - **Current state only.** Documentation describes how things are, not how they came to be. History
-  lives in git and release notes.
+  lives in git.
 - **Concrete over abstract.** Real names, real commands, real output. Placeholders in prose are a
   defect.
 - **Agent-legible.** Consistent heading hierarchy and fenced blocks with language identifiers, so

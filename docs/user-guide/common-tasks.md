@@ -12,6 +12,7 @@ works this way; this page is the lookup table.
 | Split or add a system | `evolve` (Tier 2) |
 | Tidy code without changing behavior | `evolve` (Maintenance) |
 | Reshape system boundaries | `architecture-design` |
+| Land a stage of an approved migration | `developer` |
 | Decide what to work on next | `BACKLOG.md`, `CONSTRAINTS.md` |
 | Get a change ready for review | `lint-fix`, `tier-check` |
 | Recover from a failed check | [When a Check Fails](#when-a-check-fails) |
@@ -141,7 +142,28 @@ When the systems themselves are wrong — not the code inside them.
 - It reads `CONSTRAINTS.md` too: **Satisfied** entries are what the new tree must not regress,
   **Not Yet Satisfied** entries are usually why you are here.
 - This is also how a **Migration** proposal is produced. The tree it proposes plus the stages it
-  would land in is what you approve; no agent enters Migration on its own.
+  would land in is what you approve; the stages are written to `MIGRATION.md` so the commits that
+  follow can point at them. No agent enters Migration on its own.
+
+## Land a Stage of an Approved Migration
+
+Only after `architecture-design` has written the target tree and `MIGRATION.md`.
+
+```text
+@developer land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
+```
+
+- **Use `developer`, not `evolve`.** The tree is already written and approved, so there is nothing
+  left to classify; each stage is bounded implementation work. `evolve` will stop and say so.
+- **Give it the stage's bound explicitly**, the way you would bound a Maintenance task. The stage
+  boundary is the point — what it must leave working is in `MIGRATION.md`.
+- Every commit says Migration mode and references `MIGRATION.md`. Staging is required here — the rule
+  against splitting a change to stay at a lower tier is about evasion, and does not apply.
+- **Do not run `tier-check` between stages.** It checks contracts with `-Strict`, which treats a
+  planned clause with no test yet as an error — correct at the end of a change, wrong halfway through
+  a migration where later stages have not landed. Run it after the final stage.
+- **Delete `MIGRATION.md` in that final commit.** While it exists, the repository is claiming a
+  migration is still in flight.
 
 ## Decide What to Work on Next
 

@@ -124,12 +124,11 @@ A healthy system contract has roughly **5 to 25 clauses**. Interpret the extreme
 # Changing a Contract
 
 Changing a clause is the definition of a **Tier 1** change (see `change-classification.md`) and is
-the
-project's breaking-change signal:
+the project's breaking-change signal:
 
 - **Adding** a clause is additive; consumers are unaffected.
-- **Narrowing or removing** a clause is breaking; it must be called out in the change summary and in
-  release notes.
+- **Narrowing or removing** a clause is breaking; it must be called out in the change summary, which
+  is the durable record of it and what any release note is drawn from.
 - **Rewording without semantic change** is free — but confirm it is genuinely free before treating
   it as such.
 

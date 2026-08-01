@@ -82,10 +82,17 @@ kind, not degree, because it is the only mode permitted to span multiple commits
 - Requires an **approved proposal** before any file changes. The proposal is the output of a
   `architecture-design` session — the target decomposition, the stages, and what each stage leaves
   working — and the user approves it.
-- Every commit declares Migration mode; splitting work is required here, not forbidden.
+- The approved proposal lives in **`MIGRATION.md`** at the repository root. It must be tracked,
+  because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
+  the stages and their exit conditions only; the target tree it approves lives in
+  `docs/architecture/` and is not restated here.
+- Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
+  here, not forbidden.
 - Contract clauses that describe systems not yet built are marked planned and carry an exit
   condition (see `system-contracts.md`).
-- Ends when every planned clause is satisfied and the exit conditions are met.
+- Ends when every planned clause is satisfied and the exit conditions are met. **Delete
+  `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
+  one left behind claims a migration that never ends.
 
 # The Classifying Question (Change Mode)
 
@@ -189,5 +196,6 @@ boundary between systems changes.
 - [ ] Tier 0 changes left contract tests passing untouched
 - [ ] Tier 1 and 2 changes updated the contract before implementation
 - [ ] No change was split across commits to avoid a higher tier
-- [ ] Every Migration commit declared Migration mode and referenced its approved proposal
+- [ ] Every Migration commit declared Migration mode and referenced `MIGRATION.md`
+- [ ] A completed Migration deleted `MIGRATION.md`
 - [ ] Prune check was performed for every Tier 1 and Tier 2 change
