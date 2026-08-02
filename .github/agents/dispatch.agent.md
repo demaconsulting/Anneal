@@ -76,10 +76,18 @@ Call the **apply** agent as a sub-agent with:
   stopping point. Editing outside the bound is a scope violation to report, not a judgement call
 - **goal**: implement the change, with contract tests for any new or changed clause
 
-If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. If it returns FAILED,
-go to Step 5.
+**Always** delegate. Never implement the change yourself, however small or however fully specified
+it appears — this holds for every mode that reaches this step, Change at any tier and Maintenance.
+`apply` loads the standards and descends the tree, and whether that added anything is only knowable
+afterwards.
 
-# Step 4 — Verify
+If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. If it returns FAILED,
+go to Step 5. If it returns SUCCEEDED, go to Step 5 for Tier 0 and for Maintenance; continue to
+Step 4 for Tier 1 and Tier 2.
+
+# Step 4 — Verify (Tier 1 and Tier 2 only)
+
+Skip entirely for Tier 0 and for Maintenance.
 
 Call the **tier-check** agent as a sub-agent with:
 
@@ -122,25 +130,37 @@ summary to the caller.
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/dispatch-{subject}-{unique-id}.md`
-**Tier**: (0|1|2)
-**Tier Rationale**: {one sentence}
-**Breaking**: (yes|no) — yes if any clause was narrowed or removed
+**Mode**: (Intake|Change|Maintenance|Migration)
+**Tier**: (0|1|2) for Change; `0 (fixed by mode)` for Maintenance; `n/a` for Intake and Migration
+**Rationale**: {one sentence giving the mode and, for a Change, the tier}
+**Breaking**: (yes|no) — yes only if a clause was narrowed or removed; always no for Intake,
+Maintenance and Tier 0
 **Repairs Used**: (none | documentation | code | both)
 **Residual**: (none | findings-only | gate)
 
 ## Contract Impact
 
-{Clauses added, changed, or removed - or "none (Tier 0)"}
+{Clauses added, changed, or removed - or "none", with the reason: the contract is unchanged (Tier 0),
+nothing was implemented (Intake), the bound forbids it (Maintenance), or the tree is already written
+and this run stopped at Step 1 (Migration)}
 
 ## Work Performed
 
-- **Architecture Update**: {report path and summary, or "skipped (Tier 0)"}
-- **Apply**: {report path, files changed}
-- **Tier Check**: {report path, findings}
+One line per sub-agent. Each is either a report path with a summary, or `not run — {reason}`.
 
-## Documentation Changes
+- **Architecture Update**: {report path and summary, or "not run — Tier 0 / Maintenance", or
+  "not run — nothing ran (Intake / Migration)"}
+- **Apply**: {report path, files changed, or "not run — nothing ran (Intake / Migration)"}
+- **Tier Check**: {report path, findings, or "not run — Tier 0 / Maintenance", or "not run — nothing
+  ran (Intake / Migration)", or "not run — `apply` returned FAILED"}
+- **Bound** (Maintenance only): {the declared file set, the permitted categories of edit, the
+  stopping point, and whether `apply` stayed inside it}
 
-{Architecture files updated or deleted, or "none - interior change only"}
+## Documentation and Register Changes
+
+{For Tier 1 and 2: architecture files updated or deleted. For Intake: the register appended to and
+why the admission test chose it. Otherwise "none", with the reason: interior change only (Tier 0),
+the bound forbids it (Maintenance), or nothing was written (Migration)}
 
 ## Unknowns (only when Result is INCOMPLETE)
 

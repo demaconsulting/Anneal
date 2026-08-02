@@ -55,3 +55,18 @@ where `architecture-design` will read them. See the Intake admission test in
   detection before any write, `-Prune` with the retired-payload list, and a claim that the installed
   layout matches this repository's own. All of that is currently verified by hand. Model it on
   `test-check-contracts.ps1`, which exists for the same reason.
+- **Decide whether a narrow class of trivial edits may run inline in `dispatch`** — Step 3 is now
+  unconditional: `dispatch` always calls `apply` and never edits directly. That is the safe default,
+  because `dispatch` cannot know *in advance* that a sub-agent would add nothing — `apply` selects
+  standards by file type and descends the architecture tree, neither of which `dispatch` does, so
+  "it added nothing" is only ever available after the work and cannot gate the decision to skip it.
+  The reason to revisit it is cost: `fix.ps1` takes 11.3s and `lint.ps1` 7.5s in this repository, so
+  a three-agent chain spends the large majority of its wall-clock on model reasoning in separate
+  contexts rather than on tooling, and a two-line change measured 4m53s end to end. Any exemption
+  must be checkable before the work rather than after; the shape discussed was mode is Maintenance
+  or Change/Tier 0, the routed request already names the exact files and the exact final text, no
+  file created or deleted, no test touched, nothing under `src/`, plus a requirement that `dispatch`
+  record `performed inline` with its reason and run the gates itself. Weigh against the risk that
+  decided the default: a self-granted exemption does not stay narrow, and unless the boundary is
+  stated precisely it degrades into "whenever `dispatch` is confident", which is how a process
+  quietly stops being followed.

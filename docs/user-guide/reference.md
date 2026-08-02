@@ -93,7 +93,8 @@ The entry point for any non-trivial change.
   See [Common Tasks](common-tasks.md) for the prompt to use for each.
 - **Produces**: mode and tier with rationale, contract impact, sub-agent reports, documentation
   changes
-- **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `apply`, `tier-check`
+- **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `apply`, `tier-check` (Tier 1 and 2
+  only)
 - **Not for**: trivial interior work, lint-only cleanup, or reshaping system boundaries — `helper`
   sends those to `apply`, `lint-fix`, and `architecture-design` instead
 

@@ -4,7 +4,6 @@ description: Interactive agent that interviews the user and produces the progres
   architecture tree for a new or restructured repository.
 user-invocable: true
 disable-model-invocation: true
-default-mode: sync
 ---
 
 # Architecture Design Agent

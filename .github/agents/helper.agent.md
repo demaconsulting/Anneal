@@ -4,7 +4,6 @@ description: Conversational front door for narrative development. Talks through 
   confirms the shape of it, then routes the work to the agent that does it.
 user-invocable: true
 disable-model-invocation: true
-default-mode: sync
 ---
 
 # Helper Agent
