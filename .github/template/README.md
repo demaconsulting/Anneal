@@ -78,6 +78,17 @@ TODO: a real command
 TODO: its real expected output
 ```
 
+## Technology
+
+<!-- TEMPLATE-DIRECTIVE: The languages and platforms this repository is written in. Agents read this
+     to choose which standards to load, so name the language exactly (`C#`, not `.NET languages`).
+     Stable by design - this changes when the product is re-platformed, not when a system changes.
+     Do NOT list libraries, packages, or tools; those belong to the systems that use them. One or two
+     bullets. Remove this block. -->
+
+- **Languages** — TODO: languages used, e.g. `C#`
+- **Platform** — TODO: key platform or framework, e.g. `.NET 8`
+
 ## Architecture
 
 See [Architecture Overview](docs/architecture/overview.md).

@@ -287,8 +287,9 @@ pwsh ./install.ps1 -TargetRepository ../my-product -Force -Prune
 
 - `-Force` is required to replace the installed agents. It overwrites **every** file the payload
   owns: `AGENTS.md`, `.github/agents/`, `.github/skills/`, `.github/standards/`, and the vendored
-  `.github/template/`. There is no backup and no diff. Commit first, and expect to restore your
-  `AGENTS.md` Project Overview values and any locally edited standard from the diff afterwards.
+  `.github/template/`. There is no backup and no diff. Commit first, and expect to restore any
+  locally edited standard from the diff afterwards. `AGENTS.md` needs no such care — it carries no
+  per-repository values, so replacing it outright is how you get process updates.
 - `install.ps1` only writes files, so an agent renamed or removed upstream is left behind — and a
   stale agent file still works and still gets picked. **`-Prune` finds them.** It lists every file in
   the payload directories that this payload does not provide, split into ones Anneal retired and ones
@@ -301,3 +302,15 @@ pwsh ./install.ps1 -TargetRepository ../my-product -Force -Prune
   into files you already have. Scaffold is the one
   that matters: `Patch` only touches files that already exist, so on its own it will never create a
   newly-introduced file such as `CONSTRAINTS.md`.
+
+### Upgrading From a Pre-`README.md` Install
+
+Earlier versions kept project facts in a **Project Overview** section of `AGENTS.md`. That section is
+gone, and `-Force` will remove it along with the values you filled in. Before upgrading, move them
+into `README.md`: the name, description and owner belong in the title, opening paragraphs and
+license, and the languages and platform belong in a `## Technology` section, which is what the agents
+now read when choosing standards.
+
+The vendored `.github/template/` is also where `AGENTS.md` is resolved from, and the fallback
+`template-url` moved when the template did. An install that still has its vendored copy is
+unaffected; one that deleted it should re-run the installer to restore it.

@@ -31,3 +31,15 @@ where `architecture-design` will read them. See the Intake admission test in
   on itself and let CI run `check-contracts.ps1` against a real repository rather than only fixtures,
   but `check-contracts.ps1` assumes `*.cs`, xUnit attributes and TRX, so it is a tooling change as
   much as a documentation one. Weigh against documenting something because it ought to exist.
+- **Detect drift between paired root and template files** — Anneal now keeps most root files twice,
+  and the `AGENTS.md` pair is checked mechanically because it is the one pair that must be exactly
+  equal. The rest legitimately differ, so identity comparison is useless and an allowlist of permitted
+  divergences would not help either: `.cspell.yaml` would sit on that list, and the drift actually
+  found in it was a missing policy comment inside a file that was supposed to differ. Until something
+  better exists, the **Template Stewardship** section of `AGENTS.md` carries this as prose, and prose
+  is exactly what failed the first time.
+- **Update `AGENTS.md` downstream without a reinstall** — `template-sync` Patch inserts missing
+  sections but cannot update content that changed inside a section that already exists, which is most
+  process edits. `AGENTS.md` now carries no customization, so `install.ps1 -Force` replaces it safely
+  and is the recommended route; a `template-sync` mode that refreshes an uncustomized mapped file
+  wholesale would remove the need to know that.

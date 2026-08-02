@@ -15,10 +15,14 @@ words:
   - Dema
   - nameof
   - paramref
+  - Setext
   - slnx
+  - thirdparty
+  - venv
   - xunit
   - Xunit
   - yamlfix
+  - yamllint
 ignorePaths:
   - '**/.git/**'
   - '**/node_modules/**'

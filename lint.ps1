@@ -84,7 +84,9 @@ npm install --silent
 if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipNpm = $true }
 
 if (-not $skipNpm) {
-    npx cspell --no-progress --no-color --quiet "**/*.{md,yaml,yml,json,cs,txt}"
+    # --dot is required: without it the glob skips dot-directories entirely, so
+    # .github/ - agents, standards, and the vendored template - goes unchecked.
+    npx cspell --no-progress --no-color --quiet --dot "**/*.{md,yaml,yml,json,cs,txt}"
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
     npx markdownlint-cli2 "**/*.md"
@@ -97,5 +99,52 @@ if (-not $skipNpm) {
 #       npx eslint "src/**/*.ts"
 #       if ($LASTEXITCODE -ne 0) { $lintError = $true }
 #   }
+
+# [PROJECT-SPECIFIC] AGENTS.md drift.
+# Anneal ships the process it uses, so AGENTS.md exists twice: this repository's
+# copy, and the pristine copy installed into other repositories. The pristine one
+# carries no per-repository customization, so the two must be identical apart from
+# the one section that only makes sense here. A reminder would not hold - the
+# template and root .cspell.yaml drifted exactly that way - so it is checked.
+Write-Host "Linting: AGENTS.md against the pristine copy..."
+
+$annealSection = "# Template Stewardship (This Repository Only)"
+$rootAgents = "AGENTS.md"
+$pristineAgents = ".github/template/AGENTS.pristine.md"
+
+if (-not (Test-Path $rootAgents) -or -not (Test-Path $pristineAgents)) {
+    Write-Host "error: expected both $rootAgents and $pristineAgents" -ForegroundColor Red
+    $lintError = $true
+}
+else {
+    $rootLines = @(Get-Content $rootAgents)
+    $marker = $rootLines.IndexOf($annealSection)
+
+    if ($marker -lt 0) {
+        Write-Host "error: $rootAgents is missing the '$annealSection' section" -ForegroundColor Red
+        $lintError = $true
+    }
+    else {
+        # Everything above the Anneal-only section must match the pristine copy.
+        $shared = $rootLines[0..($marker - 1)]
+        while ($shared.Count -gt 0 -and $shared[-1] -eq "") { $shared = $shared[0..($shared.Count - 2)] }
+
+        $pristineLines = @(Get-Content $pristineAgents)
+        while ($pristineLines.Count -gt 0 -and $pristineLines[-1] -eq "") {
+            $pristineLines = $pristineLines[0..($pristineLines.Count - 2)]
+        }
+
+        $drift = Compare-Object $shared $pristineLines
+        if ($drift) {
+            Write-Host "error: $rootAgents has drifted from $pristineAgents" -ForegroundColor Red
+            Write-Host "  Everything before '$annealSection' must match the pristine copy exactly." -ForegroundColor Red
+            foreach ($line in $drift | Select-Object -First 10) {
+                $side = if ($line.SideIndicator -eq "<=") { "only in $rootAgents" } else { "only in $pristineAgents" }
+                Write-Host "  $side : $($line.InputObject)" -ForegroundColor Red
+            }
+            $lintError = $true
+        }
+    }
+}
 
 exit ($lintError ? 1 : 0)

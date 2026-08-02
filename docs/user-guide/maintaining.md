@@ -61,7 +61,7 @@ The tier ladder stops at 2 deliberately; anything that felt like "Tier 3" was re
 `docs/architecture/`. Rejected: applying the full tree to itself for its own sake. Most of what would
 go in an `overview.md` here is *normative* content that belongs in a standard — the mode and tier
 tables are rules agents follow, not descriptions of structure — and once relocated, the remaining
-inventory is already covered by `AGENTS.md` and `template/repository-map.md`. Creating a level
+inventory is already covered by `AGENTS.md` and `.github/template/repository-map.md`. Creating a level
 nothing descends into is the premature-boundary failure this process rejects elsewhere. This decision
 expires when any of the following becomes true:
 
@@ -122,21 +122,27 @@ start, and grinding will not fix it.
 
 ```text
 Anneal/
+├── AGENTS.md              This repository's own instructions; pristine plus one section
 ├── README.md              Project overview
 ├── docs/user-guide/       This guide
-├── agents/                Drop-in payload for consuming repositories
-│   ├── AGENTS.md          Top-level instructions, loaded by every agent
-│   └── .github/
-│       ├── agents/        Agent prompts
-│       ├── skills/        Procedures loaded on demand
-│       └── standards/     Detailed standards, loaded selectively
-├── template/              Canonical repository layout and file templates
+├── .github/
+│   ├── agents/            Agent prompts
+│   ├── skills/            Procedures loaded on demand
+│   ├── standards/         Detailed standards, loaded selectively
+│   └── template/          Canonical repository layout and file templates
+│       └── AGENTS.pristine.md   Installed to the target root as AGENTS.md
 ├── retired-payload.txt    Payload files retired by rename or removal, read by install.ps1 -Prune
 └── lint.ps1, fix.ps1      Tooling for this repository itself
 ```
 
-`agents/` is copied to the root of a consuming repository. `template/` is fetched by URL — see the
-`# Reference Template` section of `agents/AGENTS.md`.
+**Anneal is laid out exactly as a repository that has installed Anneal.** That is deliberate: the
+process can be maintained using its own agents, and the payload paths need no translation between
+this repository and the ones it installs into. The cost is that most root files exist twice — the
+working copy here and the pristine copy under `.github/template/` — which the **Template
+Stewardship** section of `AGENTS.md` governs.
+
+`.github/` is copied to the root of a consuming repository. `.github/template/` is also fetched by
+URL — see the `# Reference Template` section of `AGENTS.md`.
 
 The two live in one repository on one branch, so a change to an agent and the template file it
 references lands in one commit. `Agents` split these across `main` and a `template` branch, which
@@ -231,7 +237,7 @@ the one-file test fails.
 
 ## Changing the Template
 
-- [ ] Add or update the entry in `template/repository-map.md` — `template-sync` uses it as the
+- [ ] Add or update the entry in `.github/template/repository-map.md` — `template-sync` uses it as the
       authoritative list
 - [ ] `TEMPLATE-DIRECTIVE` comment blocks are instructions to the agent filling the file in, and must
       be removed from the written output
@@ -283,8 +289,8 @@ results.
 ## Known Gaps
 
 - **No release packaging.** `Agents` packaged `src/` into a release zip on each release; the
-  equivalent for `agents/` has not been written. `install.ps1` covers installation from a clone, and
-  `template/.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not
+  equivalent for the payload has not been written. `install.ps1` covers installation from a clone, and
+  `.github/template/.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not
   publish an artifact.
 - **C# only.** `cpp-language.md` and `cpp-testing.md` were dropped; the process targets .NET
   repositories for now. Re-adding a language means a standards pair, `-TestFilePatterns` and

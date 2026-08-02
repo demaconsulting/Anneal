@@ -11,19 +11,21 @@ pwsh ./install.ps1 -TargetRepository ../my-product
 This lays down the whole payload:
 
 ```text
-agents/AGENTS.md            → AGENTS.md
-agents/.github/agents/      → .github/agents/
-agents/.github/skills/      → .github/skills/
-agents/.github/standards/   → .github/standards/
-template/                   → .github/template/
+.github/template/AGENTS.pristine.md  → AGENTS.md
+.github/agents/                      → .github/agents/
+.github/skills/                      → .github/skills/
+.github/standards/                   → .github/standards/
+.github/template/                    → .github/template/
 ```
 
 It refuses to overwrite existing files unless you pass `-Force`, so re-running it after an upgrade
 will not silently discard local edits.
 
-Then open `AGENTS.md` and replace the `TODO` values in the **Project Overview** section. Everything
-else in that file is process definition and should not be edited per-repository — if a rule does not
-fit your repository, change it in Anneal so every repository gets the fix.
+`AGENTS.md` needs no editing. It holds no project-specific values — what your product is and what it
+is written in belong in `README.md`, which the agents read as level 0 of the architecture tree. That
+is what makes `-Force` safe on it: an upgrade replaces the file outright and you gain the process
+improvements without a merge. If a rule does not fit your repository, change it in Anneal so every
+repository gets the fix.
 
 ### Why the Template Is Vendored
 
@@ -42,10 +44,10 @@ For a repository that does not yet have the layout, run:
 @helper scaffold the repository structure from the template
 ```
 
-This creates the files listed in `template/repository-map.md` that do not already exist. It never
-overwrites anything.
+This creates the files listed in `.github/template/repository-map.md` that do not already exist. It
+never overwrites anything.
 
-You can also copy `template/` by hand. The pieces that matter are `docs/architecture/`,
+You can also copy `.github/template/` by hand. The pieces that matter are `docs/architecture/`,
 `check-contracts.ps1`, and the `Contract/` subfolder under your test project.
 
 ## Establish the Architecture Tree
@@ -75,9 +77,9 @@ If you would rather write the tree yourself, copy the three templates and read
 [Authoring](authoring.md):
 
 ```text
-template/docs/architecture/overview.md                     → docs/architecture/overview.md
-template/docs/architecture/system-name.md                  → docs/architecture/{system}.md
-template/docs/architecture/system-name/section-name.md     → only if genuinely needed
+.github/template/docs/architecture/overview.md                     → docs/architecture/overview.md
+.github/template/docs/architecture/system-name.md                  → docs/architecture/{system}.md
+.github/template/docs/architecture/system-name/section-name.md     → only if genuinely needed
 ```
 
 Delete every `TEMPLATE-DIRECTIVE` comment block as you fill each section in.

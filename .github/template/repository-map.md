@@ -6,9 +6,23 @@ and scaffold repositories.
 Files present in a repository but absent from this map are **not** deviations — repositories are
 expected to contain content the template does not describe.
 
-`AGENTS.md`, `.github/agents/`, and `.github/standards/` are installed from the `agents/` payload
-rather than from this template. They are deliberately absent from the map and are out of scope for
+`.github/agents/`, `.github/skills/`, and `.github/standards/` are installed from the payload rather
+than described by this map. They are deliberately absent from it and out of scope for
 `template-sync`.
+
+`AGENTS.md` **is** in the map, so `template-sync` can carry process updates into a repository that
+already has one. Two things about it are unlike every other mapped file:
+
+- It is stored here as `AGENTS.pristine.md`. A second file literally named `AGENTS.md` inside a
+  repository can be picked up as instructions for that repository, which is exactly wrong for a
+  template artifact full of placeholders. It installs to the root under its real name.
+- It carries **no per-repository customization** — project facts live in `README.md` — so unlike
+  every other mapped file it is safe to overwrite wholesale, and `install.ps1 -Force` does.
+
+That last point matters, because Patch mode only inserts **missing sections**: it cannot update
+content that changed inside a section which already exists. For most mapped files that is the safe
+behavior. For `AGENTS.md` it is not sufficient, so treat a wholesale replacement as the way to update
+it and Patch as a fallback.
 
 ## Placeholders
 
@@ -23,6 +37,7 @@ rather than from this template. They are deliberately absent from the map and ar
 
 | File | Purpose |
 | --- | --- |
+| `AGENTS.md` | Process instructions; stored here as `AGENTS.pristine.md`, carries no customization |
 | `README.md` | Level 0 of the architecture tree; product purpose, entry point, and the design's assumptions |
 | `CONSTRAINTS.md` | Conditions the architecture must satisfy, met and unmet (see below) |
 | `BACKLOG.md` | Wanted but unscheduled work (see below) |

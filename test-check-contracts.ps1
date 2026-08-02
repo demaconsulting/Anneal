@@ -1,7 +1,7 @@
 # test-check-contracts.ps1
 #
 # PURPOSE:
-#   Exercises template/check-contracts.ps1 against purpose-built fixture
+#   Exercises .github/template/check-contracts.ps1 against purpose-built fixture
 #   repositories, one per documented failure mode.
 #
 #   check-contracts.ps1 is the only mechanically enforced relationship in this
@@ -27,7 +27,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$script:Checker = Join-Path $PSScriptRoot "template/check-contracts.ps1"
+$script:Checker = Join-Path $PSScriptRoot ".github/template/check-contracts.ps1"
 $script:Passed = 0
 $script:Failed = 0
 $script:Failures = [System.Collections.Generic.List[string]]::new()

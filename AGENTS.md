@@ -1,13 +1,8 @@
-# Project Overview
+# Project Facts
 
-> **Downstream customization required**: Replace the `TODO` values below with
-> values specific to the target repository.
-
-- **project-name**: TODO — repository/project name
-- **organization**: TODO — organization name
-- **description**: TODO — full project description, may be multiple sentences
-- **languages**: TODO — programming languages used (e.g., `C#`)
-- **technologies**: TODO — key technologies and frameworks (e.g., `.NET`)
+This file is identical in every repository that installs this process — it holds no project-specific
+values. What the product is, who owns it, and what it is written in live in `README.md`, level 0 of
+the architecture tree. Read it before choosing standards.
 
 # Process Model
 
@@ -99,7 +94,7 @@ is judgement, deliberately.
 
 Read the relevant standards from `.github/standards/` before working. Load only what your task
 needs — **usually two or three, never more than four** — selecting by the file in scope and the
-**languages** field above:
+**Technology** section of `README.md`:
 
 - **Any code**: `coding-principles.md`
 - **C# code**: `coding-principles.md`, `csharp-language.md`
@@ -182,7 +177,7 @@ Resolve the template in this order, and use the first that is available:
 
 1. **`.github/template/`** in this repository — a vendored copy, if present. Prefer it; it needs no
    network and is guaranteed to match the agents installed alongside it.
-2. **`template-url`**: `https://github.com/demaconsulting/Anneal/raw/refs/heads/main/template`
+2. **`template-url`**: `https://github.com/demaconsulting/Anneal/raw/refs/heads/main/.github/template`
 
 - **Repository map**: `{template-root}/repository-map.md`
 - **Template files**: `{template-root}/{file-path}` for files described in the map
@@ -220,3 +215,27 @@ pwsh ./fix.ps1
 This applies all available fixers silently and **always exits 0** — agents do not respond to its
 output. Full lint compliance is a **pre-PR responsibility**: invoke `lint-fix` once before opening a
 pull request.
+
+# Template Stewardship (This Repository Only)
+
+Anneal ships the process it uses. This repository is laid out exactly as an installed repository is,
+so most root files exist twice: the working copy here, and the pristine copy under
+`.github/template/` that downstream repositories receive.
+
+`.github/template/repository-map.md` is the list of paired files — there is no second list. When you
+change a file that appears in it, say which of these applies, in your report:
+
+- **Flows to the template** — a generic improvement. Change both copies in the same commit.
+- **Adopted from the template** — the template is ahead and this repository is behind. Change both.
+- **Deliberately divergent** — the change is specific to Anneal. Change only this copy, and say why.
+
+The third outcome is not a formality. Anneal has no .NET solution, so its `lint.ps1` and `build.ps1`
+legitimately differ from the template's; syncing them would break the build. Over-syncing is worse
+than drift, because it fails immediately and looks like the safe choice.
+
+`AGENTS.md` is exempt from that judgement. It carries no per-repository customization, so this copy
+must equal `.github/template/AGENTS.pristine.md` exactly, plus this one section — `lint.ps1` checks
+it. Any change to the process belongs in the pristine copy, and is mirrored here unchanged.
+
+Anneal has no `src/` or `test/` tree, so the Project Structure above describes the shape this process
+expects of a product repository rather than the contents of this one.

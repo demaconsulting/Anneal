@@ -141,14 +141,23 @@ stop earning their place.
 
 ## Repository Layout
 
-- **`agents/`** — the drop-in payload: `AGENTS.md`, `.github/agents/`, `.github/skills/`,
-  `.github/standards/`
-- **`template/`** — the canonical repository layout and file templates
+This repository is laid out exactly as a repository that has installed Anneal, so the process can be
+maintained using its own agents.
+
+- **`.github/agents/`, `.github/skills/`, `.github/standards/`** — the payload, live here and shipped
+  unchanged
+- **`.github/template/`** — the canonical repository layout and file templates, including the
+  pristine `AGENTS.md`
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`test-check-contracts.ps1`** — fixture suite proving `check-contracts.ps1` still fails in every
   way its skill file documents
+
+## Technology
+
+- **Languages** — PowerShell, with Markdown and YAML as the primary content
+- **Platform** — PowerShell 7; Node and Python supply the lint tooling
 
 ## Documentation
 
@@ -165,10 +174,13 @@ stop earning their place.
 pwsh ./install.ps1 -TargetRepository ../my-product
 ```
 
-This copies the `agents/` payload to the target repository root and vendors `template/` to
-`.github/template/`. The vendored copy matters: `AGENTS.md` resolves the template from there first,
-and it pins the template to the agent versions installed beside it. Then open `AGENTS.md` and replace
-the `TODO` placeholders in the **Project Overview** section.
+This copies the payload to the target repository and vendors the template to `.github/template/`. The
+vendored copy matters: `AGENTS.md` resolves the template from there first, and it pins the template to
+the agent versions installed beside it.
+
+There is nothing to fill in afterwards. `AGENTS.md` holds no project-specific values — what your
+product is and what it is written in belong in `README.md`, which agents read as level 0 of the
+architecture tree — so an upgrade can replace it outright with `-Force`.
 
 For a new repository, run `@helper scaffold the repository structure from the template` to lay down
 the layout, then `@architecture-design` to interview and generate the architecture tree.

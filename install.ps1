@@ -3,12 +3,21 @@
 # PURPOSE:
 #   Installs the Anneal payload into a target repository.
 #
-#   The payload is the contents of agents/ PLUS a vendored copy of template/ at
-#   .github/template/. AGENTS.md resolves the template from .github/template/
+#   This repository is laid out exactly as an installed repository is, so every
+#   payload path below is its own destination. The one exception is AGENTS.md:
+#   it is stored as .github/template/AGENTS.pristine.md so that it is not picked
+#   up as instructions for this repository or for the repositories it installs
+#   into, and it lands at the target root under its real name.
+#
+#   The payload is the contents of .github/ PLUS a vendored copy of the template
+#   at .github/template/. AGENTS.md resolves the template from .github/template/
 #   first and from template-url second, so the vendored copy is preferred rather
 #   than required: it needs no network, and it pins the template to the agent
 #   versions installed beside it, so the two cannot drift apart. With neither
 #   available, template-sync and architecture-design can only report INCOMPLETE.
+#
+#   AGENTS.md carries no per-repository customization, so -Force may overwrite
+#   it to pick up a newer version. Project facts live in README.md instead.
 #
 # USAGE:
 #   pwsh ./install.ps1 -TargetRepository ../my-product
@@ -49,11 +58,11 @@ $target = (Resolve-Path -LiteralPath $TargetRepository).Path
 
 # Source path relative to this repository, destination relative to the target.
 $payload = @(
-    @{ From = "agents/AGENTS.md";          To = "AGENTS.md" }
-    @{ From = "agents/.github/agents";     To = ".github/agents" }
-    @{ From = "agents/.github/skills";     To = ".github/skills" }
-    @{ From = "agents/.github/standards";  To = ".github/standards" }
-    @{ From = "template";                  To = ".github/template" }
+    @{ From = ".github/template/AGENTS.pristine.md"; To = "AGENTS.md" }
+    @{ From = ".github/agents";                      To = ".github/agents" }
+    @{ From = ".github/skills";                      To = ".github/skills" }
+    @{ From = ".github/standards";                   To = ".github/standards" }
+    @{ From = ".github/template";                    To = ".github/template" }
 )
 
 # ==============================================================================
@@ -203,7 +212,7 @@ if ($stale.Count -eq 0 -and $Prune) {
 
 Write-Host ""
 Write-Host "Next steps:"
-Write-Host "  1. Replace the TODO values in AGENTS.md under 'Project Overview'."
+Write-Host "  1. Fill in README.md - AGENTS.md needs no editing."
 Write-Host "  2. Run @helper scaffold the repository structure from the template."
 Write-Host "  3. Run @architecture-design to establish the architecture tree."
 Write-Host ""

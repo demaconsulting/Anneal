@@ -169,7 +169,7 @@ Pre-pull-request sweep.
 
 ### `template-sync`
 
-Compares a repository against `template/`.
+Compares a repository against `.github/template/`.
 
 - **Reached via**: `helper` — say you want the repository checked against the template
 - **Modes**: Audit reports only; Scaffold creates missing files; Patch inserts missing sections into

@@ -27,7 +27,10 @@ words:
   - reqstream
   - retargeted
   - reviewmark
+  - Setext
   - sysml
+  - thirdparty
+  - venv
   - WeasyPrint
   - weasyprinttool
   - xunit

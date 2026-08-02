@@ -65,7 +65,9 @@ npm install --silent
 if ($LASTEXITCODE -ne 0) { $lintError = $true; $skipNpm = $true }
 
 if (-not $skipNpm) {
-    npx cspell --no-progress --no-color --quiet "**/*.{md,yaml,yml,json,cs,txt}"
+    # --dot is required: without it the glob skips dot-directories entirely, so
+    # .github/ - agents, standards, and the vendored template - goes unchecked.
+    npx cspell --no-progress --no-color --quiet --dot "**/*.{md,yaml,yml,json,cs,txt}"
     if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
     npx markdownlint-cli2 "**/*.md"
