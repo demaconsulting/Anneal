@@ -2,7 +2,7 @@
 name: template-sync
 description: Audits or synchronizes repository files against the canonical template.
   Supports three modes - Audit, Scaffold, and Patch.
-user-invocable: true
+user-invocable: false
 ---
 
 # Template Sync Agent

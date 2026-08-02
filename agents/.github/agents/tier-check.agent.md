@@ -2,7 +2,7 @@
 name: tier-check
 description: Verifies a change against its declared tier - contract conformance, tier honesty,
   and architecture tree accuracy. Deliberately narrow; not a general compliance audit.
-user-invocable: true
+user-invocable: false
 ---
 
 # Tier Check Agent

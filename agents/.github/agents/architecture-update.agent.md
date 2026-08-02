@@ -2,7 +2,7 @@
 name: architecture-update
 description: Maintains the progressive-disclosure architecture tree and system contracts.
   Updates the correct level for a change and prunes documentation that no longer earns its place.
-user-invocable: true
+user-invocable: false
 ---
 
 # Architecture Update Agent

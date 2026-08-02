@@ -3,13 +3,18 @@ name: architecture-design
 description: Interactive agent that interviews the user and produces the progressive-disclosure
   architecture tree for a new or restructured repository.
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 default-mode: sync
 ---
 
 # Architecture Design Agent
 
 Interview the user, then write the initial `docs/architecture/` tree and system contracts.
+
+This agent and `helper` are the only two a user invokes directly, and it is deliberately not
+model-invocable. Its whole method is a live interview, so called headless it would have nobody to ask
+and would invent the answers — producing a plausible tree nobody agreed to, which is worse than
+producing none. `helper` sends users here by name rather than calling it.
 
 Use this to bootstrap a repository or to re-cut an existing one whose system boundaries have drifted
 out of shape. Re-cutting an existing repository is also how a **Migration** proposal is produced: the

@@ -1,7 +1,7 @@
 ---
 name: lint-fix
 description: Fixes all lint issues. Run this once before submitting a pull request.
-user-invocable: true
+user-invocable: false
 ---
 
 # Lint Fix Agent

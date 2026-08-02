@@ -170,11 +170,13 @@ This copies the `agents/` payload to the target repository root and vendors `tem
 and it pins the template to the agent versions installed beside it. Then open `AGENTS.md` and replace
 the `TODO` placeholders in the **Project Overview** section.
 
-For a new repository, run `@architecture-design` to interview and generate the architecture tree, or
-`@template-sync Scaffold` to lay down the structure from the template.
+For a new repository, run `@helper scaffold the repository structure from the template` to lay down
+the layout, then `@architecture-design` to interview and generate the architecture tree.
 
-The payload installs seven agents — `dispatch` is the entry point for any non-trivial change — and the
-standards they load. [Reference](docs/user-guide/reference.md) describes each one.
+The payload installs eight agents and the standards they load. You invoke two of them: `@helper` is
+the front door for everything you want done, and `@architecture-design` interviews you when system
+boundaries need establishing or re-cutting. The other six run as sub-agents, so there are no trigger
+words to learn. [Reference](docs/user-guide/reference.md) describes each one.
 
 ## License
 

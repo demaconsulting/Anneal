@@ -127,6 +127,9 @@ the skill over reconstructing a procedure from memory.
 
 The default agent handles simple, well-understood tasks directly. Delegate only for:
 
+- **Work you would rather talk through than specify** → `helper` (discusses it with you, confirms,
+  then routes). This is the only agent a user invokes for ordinary work; the ones below run as
+  sub-agents, and `architecture-design` is the one other agent a user starts by name
 - **Any non-trivial change** → `dispatch` (classifies the mode and tier, then routes to the minimum
   process)
 - **Scoped implementation with a known approach** → `apply`

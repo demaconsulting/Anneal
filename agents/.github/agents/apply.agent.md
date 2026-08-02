@@ -2,7 +2,7 @@
 name: apply
 description: Core working agent for code, tests, and documentation. Implements a change against the
   system contracts, loading the standards relevant to the files in scope.
-user-invocable: true
+user-invocable: false
 ---
 
 # Apply Agent

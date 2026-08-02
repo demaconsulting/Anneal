@@ -51,14 +51,41 @@ One-line glosses, so terms are not guessed at. The owning file has the actual ru
 
 ## Agents
 
+You invoke two of these. `helper` is the front door for everything you want done, and
+`architecture-design` is a sitting-down-to-design interview you start deliberately. The rest run as
+sub-agents, reached by describing what you want rather than by naming them — so the routing table
+below is worth understanding, but not worth memorizing.
+
 All agents write a report to `.agent-logs/{agent-name}-{subject}-{unique-id}.md` and return a summary
 whose first field is `**Result**: (SUCCEEDED|FAILED|INCOMPLETE)`.
+
+### `helper`
+
+The front door. Everything except designing boundaries starts here.
+
+- **Invoke**: `@helper <what is on your mind>`
+- **Does**: asks one question at a time until the work is clear, establishes what a consumer would
+  observe afterwards and whether you want it built or recorded, confirms the shape back to you, and
+  routes only once you agree
+- **Produces**: the confirmed request, its consumer-observable effect, the classification it expects
+  `dispatch` to reach, and the bound for a tidy-up
+- **Never**: writes code, documentation, or a register entry — routing is its whole output
+- **Not for**: establishing or re-cutting system boundaries, which is `architecture-design`
+
+It does not insist on a conversation. A request that is already clear, or a failure report that
+already names its fix, is routed immediately with a sentence saying so.
+
+Only you can invoke it. It is deliberately not model-invocable, because a sub-agent has no live user
+to interview and could only guess at the answers.
+
+Returns INCOMPLETE when the conversation stops making progress without a decision, rather than
+routing on a guess.
 
 ### `dispatch`
 
 The entry point for any non-trivial change.
 
-- **Invoke**: `@dispatch <what you want done>`
+- **Reached via**: `helper`, for any work you want done
 - **Does**: determines the work mode first, then for a Change classifies the tier, routes to the
   minimum set of agents, and allows one documentation repair and one code repair
 - **Modes**: Change is the default; **Intake** files a need and stops; **Maintenance** runs a bounded
@@ -67,16 +94,17 @@ The entry point for any non-trivial change.
 - **Produces**: mode and tier with rationale, contract impact, sub-agent reports, documentation
   changes
 - **Sub-agents**: `architecture-update` (Tier 1 and 2 only), `apply`, `tier-check`
-- **Not for**: trivial interior work (`apply` is faster), lint-only cleanup (`lint-fix`), or
-  reshaping system boundaries (`architecture-design`)
+- **Not for**: trivial interior work, lint-only cleanup, or reshaping system boundaries — `helper`
+  sends those to `apply`, `lint-fix`, and `architecture-design` instead
 
-Returns INCOMPLETE when the tier cannot be determined without information only you can supply.
+Returns INCOMPLETE when the tier cannot be determined without information only you can supply, which
+`helper` is meant to have settled before calling it.
 
 ### `apply`
 
 The core working agent. Most changes need this and nothing else.
 
-- **Invoke**: `@apply <change with a known approach>`
+- **Reached via**: `helper`, once the approach is settled or a finding names the fix
 - **Does**: descends the architecture tree for context, loads the relevant standards, declares scope,
   implements, runs `fix.ps1`, `build.ps1`, and `check-contracts.ps1`
 - **Produces**: files changed with interior/boundary classification, contract test status, interior
@@ -88,7 +116,7 @@ The core working agent. Most changes need this and nothing else.
 
 Owns `docs/architecture/` and the contracts inside it.
 
-- **Invoke**: `@architecture-update <contract or structural change>`
+- **Reached via**: `dispatch`, on a Tier 1 or Tier 2 change
 - **Does**: locates the single correct level for a change, updates the contract **before**
   implementation, updates the tree, and **prunes** section documents that no longer earn their place
 - **Produces**: contract changes with breaking flags, tree changes, prune results, ownership check,
@@ -103,7 +131,7 @@ kept-or-deleted verdict and the reason.
 
 Verifies a completed change against its declared tier. Deliberately narrow.
 
-- **Invoke**: `@tier-check <what was changed>`
+- **Reached via**: `dispatch`, after implementation; or `helper`, to verify finished work
 - **Does**: runs `check-contracts.ps1`, then judges what a script cannot — undeclared boundary
   behavior, tier honesty, tree accuracy, level ownership, orphaned documents
 - **Produces**: priority-ordered required fixes with specific actions
@@ -117,7 +145,9 @@ Length observations and drift flags are **advisory** and never fail the result.
 
 Interactive interview that establishes or re-cuts system boundaries.
 
-- **Invoke**: `@architecture-design` — then answer its questions
+- **Invoke**: `@architecture-design` — then answer its questions. One of the two agents you invoke
+  directly, and deliberately not model-invocable: called headless it would have nobody to interview
+  and would invent the answers, so `helper` sends you here by name rather than calling it
 - **Does**: asks one question at a time, shows the tree and concerns every few questions, focuses on
   boundaries, writes `docs/architecture/` and `README.md` when you confirm
 - **On an existing repository**: reads the current tree first and refines it rather than replacing
@@ -126,13 +156,13 @@ Interactive interview that establishes or re-cuts system boundaries.
   which is the approved proposal every Migration commit then references
 - **Produces**: the initial tree, contract clauses naming tests that do not yet exist, and those
   tests listed as implementation obligations
-- **Not for**: ordinary change — use `dispatch`
+- **Not for**: ordinary change — that starts at `helper`
 
 ### `lint-fix`
 
 Pre-pull-request sweep.
 
-- **Invoke**: `@lint-fix`
+- **Reached via**: `helper` — say you are getting a change ready for review
 - **Does**: runs `fix.ps1`, then loops `lint.ps1` fixing issues, up to five iterations
 - **Never**: refactors, makes functional changes, or "fixes" a contract-to-test failure — that is
   semantic and belongs to `architecture-update` or `apply`
@@ -141,7 +171,7 @@ Pre-pull-request sweep.
 
 Compares a repository against `template/`.
 
-- **Invoke**: `@template-sync [Audit|Scaffold|Patch]` (default Audit)
+- **Reached via**: `helper` — say you want the repository checked against the template
 - **Modes**: Audit reports only; Scaffold creates missing files; Patch inserts missing sections into
   existing files
 - **Never**: deletes content without a template counterpart, or overwrites hand-written architectural

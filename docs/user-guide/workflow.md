@@ -123,9 +123,11 @@ Four questions, in order:
 
 `check-contracts.ps1` already proved the clause-to-test links, so do not re-check those by hand.
 
-## When Not to Use `dispatch`
+## When `dispatch` Is Not What Runs
 
-- The change is trivial and obviously interior — call `apply` directly.
-- You are only fixing lint — call `lint-fix`.
-- You are reshaping system boundaries — call `architecture-design`; that is a design conversation, not
-  a change.
+`helper` routes past `dispatch` entirely when there is nothing to classify:
+
+- The change is trivial and obviously interior — it goes straight to `apply`.
+- You are only fixing lint — `lint-fix`.
+- You are reshaping system boundaries — `helper` hands you to `architecture-design`, because that is a
+  design conversation rather than a change, and it needs you in the room.

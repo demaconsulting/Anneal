@@ -2,7 +2,7 @@
 name: dispatch
 description: Entry point for any non-trivial change. Classifies the work by mode and tier, then
   routes it to the minimum set of agents needed.
-user-invocable: true
+user-invocable: false
 ---
 
 # Dispatch Agent

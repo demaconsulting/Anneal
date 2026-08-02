@@ -3,15 +3,21 @@
 The day-to-day jobs, and how to ask for each one. [Workflow](workflow.md) explains *why* the routing
 works this way; this page is the lookup table.
 
-| You want to | Use |
+**You ask `helper` for all of it.** Say what you want in your own words and it works out the rest, so
+the right-hand column below is what happens underneath rather than something to choose between —
+worth understanding when you read a report, not worth memorizing. The one exception is
+`architecture-design`, which you invoke yourself because it interviews you.
+
+| You want to | Handled by |
 | --- | --- |
+| Talk something through before committing to it | `helper` itself |
 | Record something you are not acting on now | `dispatch` (Intake) |
 | Make a change and not think about how big it is | `dispatch` |
 | Make a small change you already understand | `apply` |
 | Update a contract or the tree without writing code | `architecture-update` |
 | Split or add a system | `dispatch` (Tier 2) |
 | Tidy code without changing behavior | `dispatch` (Maintenance) |
-| Reshape system boundaries | `architecture-design` |
+| Reshape system boundaries | `@architecture-design` — you invoke this one |
 | Land a stage of an approved migration | `apply` |
 | Decide what to work on next | `BACKLOG.md`, `CONSTRAINTS.md` |
 | Get a change ready for review | `lint-fix`, `tier-check` |
@@ -21,13 +27,33 @@ works this way; this page is the lookup table.
 One-time setup — installing, scaffolding, and building the first architecture tree — is in
 [Getting Started](getting-started.md).
 
+## Talk Something Through Before Committing To It
+
+You do not have to know what you want before you start. Describe the situation and let the
+conversation find the job.
+
+```text
+@helper I think the worker is losing pushes when the network drops, but I'm not sure what we want it
+to do instead
+```
+
+- **You get**: a conversation. It asks one question at a time, works out what someone outside the code
+  would observe afterwards, says the shape of the work back to you, and waits for you to agree.
+- **Then**: it routes to the agent that does the work. It writes nothing itself.
+- **Why it exists**: narrative requests systematically read as smaller than they are. "Make it retry
+  failed pushes" sounds like a repair and is new observable behavior, which is a contract change. This
+  is the cheapest place to catch that, because catching it later costs a repair cycle.
+- **It will not interrogate you.** A request that is already clear is routed straight through, with a
+  sentence saying so. The examples on the rest of this page are all clear enough to go straight
+  through.
+
 ## Record Something You Are Not Acting On Now
 
 Intake mode. The cheapest thing in the process, deliberately: if filing a need costs anything, needs
 stop being filed.
 
 ```text
-@dispatch file this for later: we will eventually need an S3 storage backend
+@helper file this for later: we will eventually need an S3 storage backend
 ```
 
 - **You get**: one bullet appended to whichever of three destinations fits — `BACKLOG.md` for work
@@ -42,9 +68,9 @@ The default. Use this whenever you are not certain how far a change reaches — 
 `dispatch`'s main job.
 
 ```text
-@dispatch add a --verbose flag to the CLI
-@dispatch return 404 instead of 400 when a record is missing
-@dispatch split Storage into Storage and Cache
+@helper add a --verbose flag to the CLI
+@helper return 404 instead of 400 when a record is missing
+@helper split Storage into Storage and Cache
 ```
 
 - **You get**: a declared tier with its rationale, then only the agents that tier needs —
@@ -59,13 +85,13 @@ The default. Use this whenever you are not certain how far a change reaches — 
 Skip the routing when the work is obviously interior and you know the approach.
 
 ```text
-@apply extract the retry logic in HttpClient into its own class
+@helper extract the retry logic in HttpClient into its own class
 ```
 
 - **You get**: the change, with `fix.ps1` and `build.ps1` run for you. `check-contracts.ps1` runs
   only on Tier 1 and 2, so an interior change like this one is verified by the build and its tests.
 - If it turns out to need a contract change, `apply` reports INCOMPLETE rather than writing the
-  contract itself. That is deliberate — go through `dispatch` instead.
+  contract itself. That is deliberate — the work goes back through classification instead.
 
 ## Tidy Code Without Changing Behavior
 
@@ -73,7 +99,7 @@ Maintenance mode. **Bound it before it starts** — a file set, the kinds of edi
 stopping point. Open-ended "improve the code" is not a task and will be refused.
 
 ```text
-@dispatch maintenance in src/Storage: delete dead code and extract duplicated retry
+@helper maintenance in src/Storage: delete dead code and extract duplicated retry
 logic, interior code and interior tests only, stop when those two are done
 ```
 
@@ -88,8 +114,8 @@ When the contract or the tree must change but no implementation follows it — d
 building, or correcting documentation that has drifted from what the code actually promises.
 
 ```text
-@architecture-update add a clause to Storage: blobs over 10 MB are rejected
-@architecture-update the Cache contract no longer matches what the code promises
+@helper add a clause to Storage: blobs over 10 MB are rejected
+@helper the Cache contract no longer matches what the code promises
 ```
 
 - **You get**: the change placed at exactly one level of the tree, a prune check on the affected
@@ -101,17 +127,17 @@ building, or correcting documentation that has drifted from what the code actual
   `apply`, which is why the contract ends up written before the code rather than after it.
 - **The second prompt usually comes back INCOMPLETE with a question, and that is the correct
   answer.** When a contract and the code disagree, one of them is a defect, and the agent will not
-  guess which. Say which side is authoritative — "the contract is right, the code is wrong" sends it
-  back as a Tier 0 bug fix through `dispatch`; "the code is right" makes it a real contract change.
-- `dispatch` runs this for you on Tier 1 and 2. Invoke it directly only when you want the documentation
-  to move without a change following it.
+  guess which. Say which side is authoritative — "the contract is right, the code is wrong" makes it a
+  Tier 0 bug fix; "the code is right" makes it a real contract change.
+- `dispatch` runs this for you on Tier 1 and 2. It runs on its own only when you want the
+  documentation to move without a change following it.
 
 ## Split or Add a System
 
 A Tier 2 change. It costs more than the others because the system inventory itself moves.
 
 ```text
-@dispatch split Storage into Storage and Cache
+@helper split Storage into Storage and Cache
 ```
 
 - **You get**: `architecture-update` first, rewriting `overview.md` and every affected `{system}.md`,
@@ -150,11 +176,12 @@ When the systems themselves are wrong — not the code inside them.
 Only after `architecture-design` has written the target tree and `MIGRATION.md`.
 
 ```text
-@apply land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
+@helper land stage 2 of MIGRATION.md: move Cache out of Storage, leaving Storage working
 ```
 
-- **Use `apply`, not `dispatch`.** The tree is already written and approved, so there is nothing
-  left to classify; each stage is bounded implementation work. `dispatch` will stop and say so.
+- **This lands through `apply`, not `dispatch`.** The tree is already written and approved, so there
+  is nothing left to classify; each stage is bounded implementation work, and saying it is a migration
+  stage is what routes it that way.
 - **Give it the stage's bound explicitly**, the way you would bound a Maintenance task. The stage
   boundary is the point — what it must leave working is in `MIGRATION.md`.
 - Every commit says Migration mode and references `MIGRATION.md`. Staging is required here — the rule
@@ -183,7 +210,7 @@ against regressing it. A disproved assumption is a reason to re-cut, so take it 
 ## Get a Change Ready for Review
 
 ```text
-@lint-fix
+@helper get this ready for review
 ```
 
 - **You get**: `fix.ps1`, then `lint.ps1` looped until clean, up to five passes. It never refactors
@@ -192,7 +219,7 @@ against regressing it. A disproved assumption is a reason to re-cut, so take it 
 To check a change you made outside `dispatch`:
 
 ```text
-@tier-check added the --verbose flag to the CLI
+@helper check the --verbose flag change I just finished
 ```
 
 - **You get**: `check-contracts.ps1`, plus what a script cannot judge — undeclared boundary
@@ -216,13 +243,14 @@ looping. What to do next:
 - **Read the Residual field.** `gate` means something is actually red — a build, a contract check, a
   test. `findings-only` means every gate passed and what remains is a finding the agent has already
   written the fix for, which is usually a single edit rather than a re-run.
-- If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — re-run
-  `dispatch`, which routes those back through `architecture-update`. `apply` is not allowed to edit
-  `docs/architecture/`, so sending a documentation finding to it directly cannot work.
-- If the finding is a genuine implementation gap, `@apply` it directly with the finding quoted.
-  You do not need to re-enter `dispatch` for a fix you already understand.
-- Do not re-run `dispatch` on the same request hoping for a different route. It classifies from the
-  request, so the same request produces the same tier.
+- If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — take it
+  back to `helper`, which routes those through `architecture-update`. `apply` is not allowed to edit
+  `docs/architecture/`, so sending a documentation finding to it cannot work.
+- If the finding is a genuine implementation gap, quote it to `helper`. A finding that already names
+  its fix goes straight to `apply` without a conversation — it does not re-classify work you have
+  already had diagnosed.
+- Do not repeat the same request hoping for a different route. Classification comes from the request,
+  so the same request produces the same tier.
 
 ### `check-contracts.ps1` failed
 
@@ -243,8 +271,8 @@ promise, and it defeats the only check in this process a machine performs.
 ## Check a Repository Against the Template
 
 ```text
-@template-sync
-@template-sync Patch
+@helper check this repository against the template
+@helper patch in template sections I am missing
 ```
 
 - **You get**: Audit by default, which only reports. `Scaffold` creates missing files; `Patch` inserts
@@ -268,7 +296,8 @@ pwsh ./install.ps1 -TargetRepository ../my-product -Force -Prune
   unrecognized group is where your own agents and standards appear, and they are yours to keep.
 - Without `-Prune` the installer still counts those files and says so, so an upgrade never leaves a
   stale agent behind silently.
-- Then run **`@template-sync Scaffold`** to create template files added since you installed, followed
-  by `@template-sync Patch` to insert new sections into files you already have. Scaffold is the one
+- Then run **`@helper scaffold the template files I am missing`** to create template files added since
+  you installed, followed by `@helper patch in template sections I am missing` to insert new sections
+  into files you already have. Scaffold is the one
   that matters: `Patch` only touches files that already exist, so on its own it will never create a
   newly-introduced file such as `CONSTRAINTS.md`.

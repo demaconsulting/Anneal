@@ -204,7 +204,10 @@ if ($stale.Count -eq 0 -and $Prune) {
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Replace the TODO values in AGENTS.md under 'Project Overview'."
-Write-Host "  2. Run @template-sync Scaffold to lay down the repository structure."
+Write-Host "  2. Run @helper scaffold the repository structure from the template."
 Write-Host "  3. Run @architecture-design to establish the architecture tree."
+Write-Host ""
+Write-Host "  @helper is the front door for everything afterwards. @architecture-design is the"
+Write-Host "  only other agent you invoke yourself; the rest run as sub-agents."
 
 exit 0

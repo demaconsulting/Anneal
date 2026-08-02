@@ -39,7 +39,7 @@ installed alongside it. With neither available, those agents can only report INC
 For a repository that does not yet have the layout, run:
 
 ```text
-@template-sync Scaffold
+@helper scaffold the repository structure from the template
 ```
 
 This creates the files listed in `template/repository-map.md` that do not already exist. It never
@@ -56,8 +56,10 @@ For a new repository, or one whose system boundaries have drifted:
 @architecture-design
 ```
 
-This is an interactive interview. It asks one question at a time, shows you the system tree as it
-develops, and writes `docs/architecture/` when you confirm you are done.
+This is an interactive interview, and one of only two agents you invoke by name — `helper` sends you
+here rather than running it, because an interview needs you present. It asks one question at a time,
+shows you the system tree as it develops, and writes `docs/architecture/` when you confirm you are
+done.
 
 The interview spends most of its time on **system boundaries**, because a boundary is where a
 contract lives, and a contract is what makes everything inside it free to change. Boundaries in the
@@ -99,26 +101,31 @@ duplicate ID, a clause with no test named, or a named test that is not a real te
 
 ## Your First Change
 
+Everything from here goes to `helper`. Say what you want in your own words:
+
 ```text
-@dispatch add a --verbose flag to the CLI
+@helper add a --verbose flag to the CLI
 ```
 
-`dispatch` classifies the work, routes it, and reports what it did. Read its report: the
+It works out how far the change reaches, routes it, and reports what it did. Read the report: the
 **Tier** and **Tier Rationale** fields tell you whether the process understood your change the way
 you did. If the tier looks wrong, that is worth correcting immediately — misclassification is the
 main way this process degrades.
 
-For a change where you already know the approach and it clearly touches nothing outside a system,
-skip the routing:
+You do not have to know what you want first. When you would rather talk it through, say so and it
+asks until the work is clear, confirms it back, and routes only once you agree:
 
 ```text
-@apply extract the retry logic in HttpClient into its own class
+@helper the worker keeps losing pushes when the network drops and I'm not sure what we want instead
 ```
+
+A request that is already clear is not slowed down by this — it is routed straight through with a
+sentence saying so.
 
 ## Before Opening a Pull Request
 
 ```text
-@lint-fix
+@helper get this ready for review
 ```
 
 Runs `lint.ps1` in a loop until the repository is clean. Lint compliance is deliberately a pre-PR
