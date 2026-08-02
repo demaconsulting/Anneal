@@ -69,7 +69,7 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
 - **Maintenance is Tier 0 by definition.** If the work would change a contract, it has left
   maintenance and must be re-classified as Change and re-approved.
 - **Maintenance may never edit the architecture tree**, `CONSTRAINTS.md`, or `BACKLOG.md`.
-  Discovering an architectural problem during maintenance is a *finding to report*, never a licence
+  Discovering an architectural problem during maintenance is a *finding to report*, never a license
   to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
   stopping point. Open-ended "improve the code" work with no bound is not a task.

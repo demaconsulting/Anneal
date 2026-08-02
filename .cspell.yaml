@@ -14,15 +14,23 @@ language: en
 
 # Project-specific technical terms and tool names
 words:
+  - cref
   - DEMA
   - Dema
+  - demaconsulting
+  - greppable
   - lifecycles
+  - nameof
   - Pandoc
+  - pandoctool
+  - paramref
   - reqstream
   - retargeted
   - reviewmark
   - sysml
   - WeasyPrint
+  - weasyprinttool
+  - xunit
   - yamlfix
   - yamllint
 

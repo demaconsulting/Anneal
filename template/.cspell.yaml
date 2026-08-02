@@ -11,7 +11,10 @@
 version: '0.2'
 language: en
 words:
+  - cref
   - Dema
+  - nameof
+  - paramref
   - slnx
   - xunit
   - Xunit

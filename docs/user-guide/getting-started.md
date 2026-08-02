@@ -30,9 +30,9 @@ fit your repository, change it in Anneal so every repository gets the fix.
 `template-sync` and `architecture-design` read the canonical template. `AGENTS.md` resolves it from a
 vendored `.github/template/` first, then from `template-url`.
 
-**Until Anneal is published, the URL is not reachable**, so without the vendored copy those agents
-can only report INCOMPLETE. `install.ps1` vendors it for you. Doing so also pins the template to the
-agent versions installed alongside it, which is worth having even once the URL works.
+The URL is reachable, so those agents can fall back to it. Prefer the vendored copy regardless:
+`install.ps1` writes it for you, it needs no network, and it pins the template to the agent versions
+installed alongside it. With neither available, those agents can only report INCOMPLETE.
 
 ## Lay Down the Structure
 

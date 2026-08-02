@@ -4,12 +4,11 @@
 #   Installs the Anneal payload into a target repository.
 #
 #   The payload is the contents of agents/ PLUS a vendored copy of template/ at
-#   .github/template/. The vendored copy is not optional in practice: AGENTS.md
-#   resolves the template from .github/template/ first and from template-url
-#   second, and until Anneal is published that URL is unreachable. Without the
-#   vendored copy, template-sync and architecture-design can only report
-#   INCOMPLETE. Vendoring also pins the template to the agent versions installed
-#   beside it, so the two cannot drift apart.
+#   .github/template/. AGENTS.md resolves the template from .github/template/
+#   first and from template-url second, so the vendored copy is preferred rather
+#   than required: it needs no network, and it pins the template to the agent
+#   versions installed beside it, so the two cannot drift apart. With neither
+#   available, template-sync and architecture-design can only report INCOMPLETE.
 #
 # USAGE:
 #   pwsh ./install.ps1 -TargetRepository ../my-product

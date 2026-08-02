@@ -298,9 +298,6 @@ results.
 - **Drift detection is unimplemented.** `covers` front matter is mandatory and is the intended
   anchor, but nothing computes drift — `tier-check` judges it by reading. Treat reported drift
   verdicts as opinion, not evidence.
-- **`Anneal` is not yet published.** Until it is, the `template-url` in `agents/AGENTS.md` cannot be
-  fetched. `install.ps1` vendors `template/` into `.github/template/` so this does not block
-  `template-sync` or `architecture-design`. See [Getting Started](getting-started.md).
 
 ## Health Signals
 
