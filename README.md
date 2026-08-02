@@ -145,6 +145,8 @@ stop earning their place.
   `.github/standards/`
 - **`template/`** — the canonical repository layout and file templates
 - **`docs/user-guide/`** — how to use and maintain this process
+- **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
+- **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`test-check-contracts.ps1`** — fixture suite proving `check-contracts.ps1` still fails in every
   way its skill file documents
 

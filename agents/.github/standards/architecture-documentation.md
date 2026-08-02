@@ -100,8 +100,10 @@ system's contract or decomposition.
 
 # Navigation
 
-Because this tree is read on disk and on the web — not compiled into a PDF — **relative markdown
-links are required** for downward navigation. They are how progressive disclosure actually works.
+This tree is read three ways — on disk, on the repository host, and as the compiled architecture PDF
+— so **relative markdown links are required** for downward navigation. They are how progressive
+disclosure actually works, and `collection-links.lua` turns them into cross-references when the tree
+is compiled.
 
 - Every level MUST link to each of its direct children.
 - A child SHOULD link back to its parent in a single line at the top.
@@ -169,6 +171,16 @@ The `architecture-update` agent MUST perform a prune check on every Tier 1 and T
 the section documents under the affected system and confirm each still meets a creation test.
 Undeleted documentation is the mechanism by which a tree silently becomes an anchor.
 
+# Publishing (MANDATORY)
+
+The tree is a document collection: `docs/architecture/definition.yaml` lists its files in reading
+order, and `docs/architecture/build.bat` compiles them into one PDF. **Adding or deleting a document
+means editing that list in the same change.** An unlisted document is absent from the published
+architecture no matter how good it is, and a listed file that no longer exists fails the build.
+
+Place a new system document after the systems it depends on, and a section document immediately
+after its parent system, so the compiled document reads top-down.
+
 # Length
 
 A document is the right length when a reader at that altitude can stop there and act. There is no
@@ -214,4 +226,5 @@ failure, because the reader then has to descend.
 - [ ] Level 2 and 3 documents carry `level` and `covers` front matter
 - [ ] Every section document still satisfies at least one creation test
 - [ ] Section documents whose subject was removed were deleted in the same change
+- [ ] Every added or deleted document was listed or unlisted in `definition.yaml` in the same change
 - [ ] No document is long for a reason that belongs at another level

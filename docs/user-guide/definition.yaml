@@ -1,0 +1,16 @@
+---
+resource-path:
+  - docs/user-guide
+  - docs/template
+input-files:
+  - docs/user-guide/title.txt
+  - docs/user-guide/README.md
+  - docs/user-guide/getting-started.md
+  - docs/user-guide/common-tasks.md
+  - docs/user-guide/workflow.md
+  - docs/user-guide/authoring.md
+  - docs/user-guide/reference.md
+  - docs/user-guide/maintaining.md
+template: template.html
+table-of-contents: true
+number-sections: true

@@ -97,15 +97,37 @@ Follow `.markdownlint-cli2.yaml`:
 
 # Links
 
-This repository's documentation is read on disk and on the web, not compiled into a single PDF, so
+Documentation is read three ways — on disk, on the repository host, and as the compiled PDF — so
 ordinary markdown links work and are encouraged:
 
 - **Relative links** for anything inside the repository — including from `README.md`. They resolve
-  both on disk and on the repository host, and they are how a reader descends the documentation tree.
+  both on disk and on the repository host, they are how a reader descends the documentation tree, and
+  `docs/template/collection-links.lua` turns a link to another document in the same collection into a
+  cross-reference when that collection is compiled.
 - **Absolute URLs** for external resources, and for anything that must survive being rendered
   outside repository context (a package registry description, for example).
 - **Verify link targets exist** when creating or moving files. A broken descent path defeats
   progressive disclosure.
+
+# Document Collections
+
+Everything under `docs/` is a **document**, never a loose page. A document is a folder:
+
+| File | Purpose |
+| --- | --- |
+| `definition.yaml` | The document itself — its input files, in reading order |
+| `title.txt` | Title-page metadata |
+| `build.bat` | Builds it, by calling `docs/build-doc.ps1` |
+| `*.md` | The content, one file per section |
+
+A markdown file dropped directly into `docs/` belongs to no document, is never compiled, and is
+therefore never published. Add content by adding a file to a collection **and listing it in that
+collection's `definition.yaml`** — an unlisted file does not appear in the document at all, so the
+listing belongs in the same change as the file.
+
+Name each file for its own heading (`ingest.md` opens with `# Ingest`). Links to it then resolve to a
+cross-reference when compiled; where the two disagree, the link silently stays a file link that the
+PDF reader cannot follow.
 
 # README.md
 

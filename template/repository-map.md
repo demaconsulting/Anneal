@@ -33,8 +33,9 @@ rather than from this template. They are deliberately absent from the map and ar
 | `.yamlfix.toml` | YAML auto-fix configuration |
 | `.gitignore` | Ignored paths |
 | `.gitattributes` | Line-ending and diff attributes |
-| `package.json` | Node dependencies for markdown and spell tooling |
+| `package.json` | Node dependencies for markdown, spell, and diagram tooling |
 | `pip-requirements.txt` | Python dependencies for YAML tooling |
+| `.config/dotnet-tools.json` | .NET local tools: Pandoc and WeasyPrint, used to compile documents |
 | `fix.ps1` | Applies all auto-fixers; always exits 0 |
 | `lint.ps1` | Runs all lint checks; exits 1 on failure |
 | `check-contracts.ps1` | Verifies every contract clause names a test that exists and passed |
@@ -69,15 +70,38 @@ final commit — so scaffolding one into a repository would assert a migration t
 
 | File | Level | Required |
 | --- | --- | --- |
+| `docs/architecture/definition.yaml` | — | Yes — lists the documents below, in reading order |
+| `docs/architecture/title.txt` | — | Yes — title-page metadata |
+| `docs/architecture/build.bat` | — | Yes — compiles the tree into a PDF |
 | `docs/architecture/overview.md` | 1 | Yes — exactly one |
 | `docs/architecture/{system-name}.md` | 2 | Yes — one per system |
 | `docs/architecture/{system-name}/{section-name}.md` | 3 | No — exceptional; most systems have none |
 
-Everything under `docs/` is a document collection that compiles to a PDF, so only files belonging in
-that document go there. The intake registers above are working files and live at the root.
+Everything under `docs/` is a **document collection** that compiles to a PDF, so only files belonging
+to that document go there. A loose markdown file dropped into `docs/` is part of no document and is
+never published. The intake registers above are working files and live at the root.
+
+`technical-documentation.md` owns the shape of a collection. Each one holds:
+
+| File | Purpose |
+| --- | --- |
+| `definition.yaml` | Input files in reading order, plus the Pandoc template and options |
+| `title.txt` | Title-page metadata |
+| `build.bat` | Builds this document; calls `docs/build-doc.ps1` |
+| `generated/` | Intermediate HTML and diagrams; git-ignored |
+
+Shared build inputs live in `docs/template/`, and the published PDFs in `docs/generated/`:
+
+| File | Purpose |
+| --- | --- |
+| `docs/build-doc.ps1` | The one implementation of the document build |
+| `docs/template/template.html` | Pandoc HTML template: title page, headers, print styles |
+| `docs/template/collection-links.lua` | Rewrites links between documents into cross-references |
+| `docs/template/README.md` | What these shared files are for |
 
 Level 3 documents are created only when the subject meets a creation test in
-`architecture-documentation.md`, and are deleted in the same change that obsoletes them.
+`architecture-documentation.md`, and are deleted in the same change that obsoletes them. Either way
+`docs/architecture/definition.yaml` is edited in that same change, or the document is not published.
 
 ## Source and Tests
 

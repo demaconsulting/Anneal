@@ -13,7 +13,7 @@ covers:
 
 [← Project README](../../README.md)
 
-# Architecture Overview
+# Overview
 
 TODO: One paragraph on the shape of the system as a whole — the organizing idea a reader needs
 before the inventory below makes sense.

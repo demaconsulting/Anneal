@@ -190,10 +190,15 @@ The runbook for `check-contracts.ps1`.
 | `lint.ps1` | All lint checks, including `check-contracts.ps1` | 1 on failure |
 | `check-contracts.ps1` | Verifies clause-to-test links | 1 on error |
 | `build.ps1` | Builds and runs all tests, emitting TRX to `artifacts/tests` | Non-zero on failure |
+| `docs/build-doc.ps1` | Compiles one document collection to HTML and then PDF | Non-zero on failure |
 | `install.ps1` | Installs the payload and vendors the template into a target repository | 1 on conflict |
 
 `build.ps1` clears `artifacts/tests` before each run so results cannot accumulate, and CI runs it
 **before** `lint.ps1` so the pass verification has results to read.
+
+Each document under `docs/` has a `build.bat` that calls `docs/build-doc.ps1` with its folder and its
+published name. The name is passed rather than derived because a document's title and its published
+file name legitimately differ. Pass `-NoRestore` where the tools are already restored.
 
 `install.ps1 -Prune` reviews files in the payload directories that the payload does not provide. It
 separates the ones Anneal retired, listed in `retired-payload.txt`, from ones it does not recognize,

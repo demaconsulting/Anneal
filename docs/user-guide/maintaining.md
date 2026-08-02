@@ -154,7 +154,11 @@ undeclared boundary behavior), `testing-principles.md`, `technical-documentation
 **Deliberately dropped** — `requirements-principles.md`, `software-items.md`, `reqstream-usage.md`,
 `reviewmark-usage.md`, `design-documentation.md`, `verification-documentation.md`,
 `sysml2-modeling.md`; the `implementation`, `planning`, `quality`, and `formal-review` agents; the
-Pandoc document collections, the SysML2 model, ReviewMark, and the compliance tool manifest.
+SysML2 model, ReviewMark, and the compliance tool manifest.
+
+**Kept** — the Pandoc document collections. Every folder under `docs/` still compiles to a PDF, which
+is what makes the architecture tree a deliverable rather than a pile of markdown, and what makes a
+loose file in `docs/` a structural error rather than a matter of taste.
 
 New in Anneal: `architecture-documentation.md`, `system-contracts.md`,
 `change-classification.md`, the `dispatch`, `architecture-update`, and `tier-check` agents,
@@ -260,6 +264,13 @@ once already, in the fixture for comment stripping.
 pwsh ./fix.ps1
 pwsh ./lint.ps1
 pwsh ./test-check-contracts.ps1
+```
+
+If the change touched anything under `docs/`, build the affected document too — a document that no
+longer compiles is broken whether or not it reads well:
+
+```pwsh
+./docs/user-guide/build.bat
 ```
 
 `.github/workflows/build.yml` runs the last two on every push and pull request.

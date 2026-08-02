@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "demaconsulting.pandoctool": {
+      "version": "3.10.0",
+      "commands": [
+        "pandoc"
+      ],
+      "rollForward": false
+    },
+    "demaconsulting.weasyprinttool": {
+      "version": "69.0.0",
+      "commands": [
+        "weasyprint"
+      ],
+      "rollForward": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+---
+title: Anneal User Guide
+subtitle: An evolutionary development process for AI coding agents
+author: DEMA Consulting
+description: User Guide for the Anneal evolutionary development process
+lang: en-US
+keywords:
+  - Anneal
+  - User Guide
+  - AI Agents
+  - Software Architecture
+  - Development Process
+---

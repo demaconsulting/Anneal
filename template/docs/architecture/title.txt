@@ -1,0 +1,13 @@
+---
+# <!-- TEMPLATE-DIRECTIVE:
+#      Use values from AGENTS.md Project Overview: {ProjectName} from project-name,
+#      {OrganizationName} from organization, {ProjectTagline} from project-tagline.
+#      Add project-specific technology keywords to the keywords list. -->
+title: "{ProjectName} Software Architecture"
+subtitle: "{ProjectTagline}"
+author: "{OrganizationName}"
+description: "Software Architecture Document for {ProjectName}"
+lang: en-US
+keywords:
+  - Software Architecture
+---

@@ -21,6 +21,7 @@ node_modules/
 
 # Generated build outputs (never committed)
 **/generated/
+mermaid-filter.err
 
 # Agent logs
 .agent-logs/

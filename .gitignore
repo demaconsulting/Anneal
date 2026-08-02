@@ -1,5 +1,9 @@
 node_modules/
 package-lock.json
 .venv/
-docs/*/generated/
+
+# Generated build outputs, including compiled documents (never committed)
+**/generated/
+mermaid-filter.err
+
 .agent-logs/
