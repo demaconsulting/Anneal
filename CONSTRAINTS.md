@@ -33,6 +33,10 @@ quietly.
   -Prune` lists payload-directory files the payload does not provide, separates the ones
   `retired-payload.txt` names as ours from ones the repository added itself, and deletes only what
   the user confirms.
+- **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
+  Anneal has no `src/`, no solution and no xUnit tests, so its root `lint.ps1`, `fix.ps1` and absent
+  `build.ps1` legitimately differ from their template counterparts. Syncing them to match Anneal
+  would break every downstream repository. Divergence in this direction is by design, not drift.
 
 ## Not Yet Satisfied
 

@@ -1,0 +1,15 @@
+---
+resource-path:
+  - docs/architecture
+  - docs/template
+input-files:
+  - docs/architecture/title.txt
+  - docs/architecture/overview.md
+  - docs/architecture/process.md
+  - docs/architecture/process/prompt-authoring.md
+  - docs/architecture/contract-check.md
+  - docs/architecture/installer.md
+  - docs/architecture/template.md
+template: template.html
+table-of-contents: true
+number-sections: true

@@ -28,10 +28,6 @@ where `architecture-design` will read them. See the Intake admission test in
   second script; weigh against the cost that "the **only** mechanically enforced relationship" is
   asserted in six files and would all need revisiting. The navigation rules are not candidates: a child
   linking its parent is a SHOULD, and no rule yet forbids linking more than one level down.
-- **Decide whether Anneal should host its own architecture tree** — it would demonstrate the process
-  on itself and let CI run `check-contracts.ps1` against a real repository rather than only fixtures,
-  but `check-contracts.ps1` assumes `*.cs`, xUnit attributes and TRX, so it is a tooling change as
-  much as a documentation one. Weigh against documenting something because it ought to exist.
 - **Detect drift between paired root and template files** — Anneal now keeps most root files twice,
   and the `AGENTS.md` pair is checked mechanically because it is the one pair that must be exactly
   equal. The rest legitimately differ, so identity comparison is useless and an allowlist of permitted
@@ -70,3 +66,26 @@ where `architecture-design` will read them. See the Intake admission test in
   decided the default: a self-granted exemption does not stay narrow, and unless the boundary is
   stated precisely it degrades into "whenever `dispatch` is confident", which is how a process
   quietly stops being followed.
+- **Match the TODO obligation on the placeholder form, not on the verifier name** — the detector in
+  `check-contracts.ps1` treats any verifier string containing `TODO` as an unfulfilled obligation, so
+  `CONTRACT-CHECK-10`, whose verifier is the genuine and existing fixture `test-check-contracts.ps1:
+  "TODO obligation is an error under -Strict"`, is reported against itself. The fixture suite already
+  carries a case asserting that "a genuine test named Todo... is checked normally", so the suite
+  believes this is handled and it is not — which is the more useful finding, because it says the
+  covering fixture does not exercise the shape that actually occurs. The only repair available today
+  is renaming a correctly-named test, which is the wrong repair. It is a warning-level false positive
+  by default but a hard error under `-Strict`, which is how `tier-check` invokes the script on Tier 1
+  and Tier 2 changes.
+- **Fail closed when no test sources are discovered** — running the check against this repository
+  accepted twelve ContractCheck clauses naming verifiers of the form `test-check-contracts.ps1:
+  "..."` without complaint, because there are no `test/**/Contract/` sources here and the script
+  located no test declarations at all. It cannot distinguish "this clause names a test that does not
+  exist" from "there are no tests here to check against", and it resolves that ambiguity by passing.
+  That is a fail-open path in a script whose stated invariant is that it fails closed, which makes it
+  the more serious of the two defects: a repository can hold a fully written contract naming
+  verifiers that were never written and see a green check. It is also the practical face of
+  `CONTRACT-CHECK-12`, which promises caller-supplied discovery patterns and is itself unimplemented
+  — Anneal's verifiers are PowerShell fixture cases rather than xUnit methods, so the defaults find
+  nothing. Weigh the two together: a fix that only fails closed on an empty discovery would turn this
+  repository's own check red until the patterns are configurable, so the ordering between them
+  matters.

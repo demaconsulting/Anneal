@@ -126,6 +126,15 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 - **The prompt files are the reliability mechanism.** Because reliability follows from the quality of
   the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
   downstream agent works from. Prompt changes are the highest-risk changes in this repository.
+- **Products adopting this process are .NET and C#.** The shipped layout defaults to `*.cs` sources,
+  xUnit attributes and TRX results, and the template's build and lint scripts assume a solution. The
+  process itself is language-neutral, but the repository it hands you is not. Adoption for another
+  ecosystem would not be a defect to patch — it would mean the template is the wrong shape.
+- **Structural properties of a prompt predict how an agent behaves.** Checking that references resolve,
+  that every result value is handled, and that the context budget holds is worth doing because those
+  properties correlate with reliable behavior. If they turn out not to, a mechanical contract over the
+  payload is theater: it would pass while agents still misbehaved, and verification would have to move
+  wholesale to inspection and sandbox runs.
 
 ## The Architecture Tree
 
@@ -148,6 +157,7 @@ maintained using its own agents.
   unchanged
 - **`.github/template/`** — the canonical repository layout and file templates, including the
   pristine `AGENTS.md`
+- **`docs/architecture/`** — Anneal's own architecture tree, maintained with its own agents
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
@@ -161,6 +171,7 @@ maintained using its own agents.
 
 ## Documentation
 
+- **[Architecture Overview](docs/architecture/overview.md)** — the systems Anneal is built from
 - **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
 - **[Common Tasks](docs/user-guide/common-tasks.md)** — the prompt to use for each day-to-day job
 - **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
