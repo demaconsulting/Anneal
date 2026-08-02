@@ -21,6 +21,12 @@ where `architecture-design` will read them. See the Intake admission test in
 - **Check sub-agent handoff coverage mechanically** — parse each agent's `**Result**` values and
   verify every calling agent handles all of them. The one defect class in the prompt files that a
   script can catch; a missing INCOMPLETE branch in `dispatch` survived five manual review rounds.
+- **Check the mechanical architecture rules in `check-contracts.ps1`** — `level:`/`covers:` front
+  matter presence and `definition.yaml` agreeing with the markdown files beside it are both MANDATORY,
+  both deterministic, and both have drifted in practice. Extend the existing check rather than adding a
+  second script; weigh against the cost that "the **only** mechanically enforced relationship" is
+  asserted in six files and would all need revisiting. The navigation rules are not candidates: a child
+  linking its parent is a SHOULD, and no rule yet forbids linking more than one level down.
 - **Decide whether Anneal should host its own architecture tree** — it would demonstrate the process
   on itself and let CI run `check-contracts.ps1` against a real repository rather than only fixtures,
   but `check-contracts.ps1` assumes `*.cs`, xUnit attributes and TRX, so it is a tooling change as

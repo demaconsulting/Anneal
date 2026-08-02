@@ -213,6 +213,9 @@ looping. What to do next:
   action each, because the repairs have to be spent well.
 - **Read the Repairs Used field.** It says whether the documentation repair, the code repair, or both
   were consumed, which tells you where the change got stuck.
+- **Read the Residual field.** `gate` means something is actually red — a build, a contract check, a
+  test. `findings-only` means every gate passed and what remains is a finding the agent has already
+  written the fix for, which is usually a single edit rather than a re-run.
 - If the finding is about the **documentation** — wrong tier, a missing clause, a stale tree — re-run
   `dispatch`, which routes those back through `architecture-update`. `apply` is not allowed to edit
   `docs/architecture/`, so sending a documentation finding to it directly cannot work.

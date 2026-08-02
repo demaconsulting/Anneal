@@ -106,6 +106,9 @@ Stop early if a repair does not clear the finding it targeted. A finding that su
 agent is a scoping problem, not a repair problem, and spending the other repair on it will not help.
 
 When both repairs are spent, or a repair failed to clear its finding, go to Step 5 and report FAILED.
+The result is FAILED either way, but record in `Residual` whether what remains is a red gate or only
+findings that already carry a stated remedy — a reviewer cannot otherwise tell a broken build apart
+from a change that is green everywhere and needs one known edit.
 
 # Step 5 — Report
 
@@ -123,6 +126,7 @@ summary to the caller.
 **Tier Rationale**: {one sentence}
 **Breaking**: (yes|no) — yes if any clause was narrowed or removed
 **Repairs Used**: (none | documentation | code | both)
+**Residual**: (none | findings-only | gate)
 
 ## Contract Impact
 

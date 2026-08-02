@@ -61,6 +61,13 @@ Then judge what the script cannot, for each system whose boundary was touched:
   FAIL — it will block future refactoring.
 - Clause prose still describes WHAT rather than HOW.
 
+When a finding requires a claim to be narrowed or removed — whether it is stated in a clause or in
+architecture prose — search `docs/` and `src/` for restatements of that claim before reporting, and
+report every location as **one** finding rather than one per copy. Name the owner of each location,
+because a clause and a design bullet are the documentation repair's while a code comment is the
+implementation's, and a finding split across cycles spends both budgets to fix one thing. This is a
+search for that one claim, not a general duplication audit.
+
 # Step 4 — Tier Honesty
 
 - **Tier 0**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
@@ -114,7 +121,8 @@ fix or the implementation's, because that decides which repair the caller spends
 ## Required Fixes (only when Result is FAILED)
 
 1. **[severity]** {one-line description}
-   - File: {path:line}
+   - Files: {path:line} — every location of this same finding
+   - Owner: (documentation|implementation) — per location where they differ
    - Action: {specific fix instruction}
 
 ## Build: (PASS|FAIL)

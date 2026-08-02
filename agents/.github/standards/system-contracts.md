@@ -56,6 +56,10 @@ One file, one edit.
   algorithm, or data structure. The system's own name is identity, not implementation.
 - **Every clause names at least one test.** A clause without verification is an aspiration. Use the
   test's real name so the link is greppable and breaks loudly when the test is renamed.
+- **Stated once.** The clause is the only place its claim is asserted. Architecture prose and code
+  comments may cite the clause by ID, explain why it exists, or describe how it is met — they must not
+  restate it as a general assertion. A copy carries no authority of its own and can only drift; when the
+  clause is later narrowed, every copy becomes a defect somebody has to find.
 - **Invariants** capture properties no single call can demonstrate: ordering, idempotency,
   thread-safety, resource bounds, and version-compatibility guarantees.
 - **Requires** lists what this system depends on, by advertised behavior — never by internal design.
