@@ -10,8 +10,9 @@ where `architecture-design` will read them. See the Intake admission test in
 - **Write a version marker on install** — record the Anneal version into the target repository so an
   upgrade knows what it is upgrading from, so `template-sync` can report drift against a known
   baseline, and so `-Prune` can match an installed manifest rather than a list of retired names.
-- **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve a customized
-  `AGENTS.md` and locally edited standards, or at minimum report what it replaced.
+- **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
+  standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
+  per-repository values, so replacing it outright is the intended upgrade path.
 - **Scan `docs/architecture/` recursively in `check-contracts.ps1`** — the scan is currently
   non-recursive, so a clause in a section document below the system level is not checked.
 - **Rename the level-3 "section document" concept** — "section" also means a markdown heading block,
@@ -43,3 +44,14 @@ where `architecture-design` will read them. See the Intake admission test in
   process edits. `AGENTS.md` now carries no customization, so `install.ps1 -Force` replaces it safely
   and is the recommended route; a `template-sync` mode that refreshes an uncustomized mapped file
   wholesale would remove the need to know that.
+- **Reconcile the paired root and template files once** — moving to a self-hosted layout made the
+  pairing visible but did not audit it. Ten root files differ from their template counterparts and
+  only `.cspell.yaml` has been examined, where the divergence turned out to be real drift rather than
+  an intended difference. `lint.ps1`, `fix.ps1`, `.markdownlint-cli2.yaml`, `.yamllint.yaml`,
+  `.yamlfix.toml` and `.gitignore` have not been looked at. Classify each as flows-to-template,
+  adopt-from-template, or deliberately divergent, and fix the first two.
+- **Give `install.ps1` a fixture suite** — it is the entry point every user runs first and it now
+  carries real logic: a payload table that renames `AGENTS.pristine.md` on the way in, collision
+  detection before any write, `-Prune` with the retired-payload list, and a claim that the installed
+  layout matches this repository's own. All of that is currently verified by hand. Model it on
+  `test-check-contracts.ps1`, which exists for the same reason.

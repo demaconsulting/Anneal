@@ -120,17 +120,20 @@ the skill over reconstructing a procedure from memory.
 
 # Agent Delegation Guidelines
 
-The default agent handles simple, well-understood tasks directly. Delegate only for:
+The default agent handles simple, well-understood tasks directly.
 
-- **Work you would rather talk through than specify** → `helper` (discusses it with you, confirms,
-  then routes). This is the only agent a user invokes for ordinary work; the ones below run as
-  sub-agents, and `architecture-design` is the one other agent a user starts by name
+Two agents cannot be delegated to at all: `helper` and `architecture-design` are started by the user
+and work by talking to them. When a request would be better talked through than specified, or when
+system boundaries need establishing or re-cutting, say so and name the agent — do not attempt the
+conversation on the user's behalf, and do not attempt the work instead.
+
+Delegate only for:
+
 - **Any non-trivial change** → `dispatch` (classifies the mode and tier, then routes to the minimum
   process)
 - **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its tier** → `tier-check`
-- **Bootstrapping or re-cutting system boundaries** → `architecture-design`
 - **Pre-PR lint cleanup** → `lint-fix`
 - **Repository layout versus template** → `template-sync`
 
