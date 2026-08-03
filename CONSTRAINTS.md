@@ -45,6 +45,11 @@ quietly.
 Conditions the current decomposition gets in the way of. These are the pressure that argues for a
 re-cut. An entry moves up to **Satisfied** when a change absorbs it.
 
+- **The agent-report corpus must be retained as diagnostic material** — `.agent-logs/` is the only
+  record of how the process actually behaves over time: which agents loop, which grow verbose, which
+  verdicts land. It is gitignored by design (derived, local, large), so it does not survive a fresh
+  clone or reach CI — but it must not be deleted by automation, and its absence from version control
+  is a cost accepted, not a cleanup to finish.
 - **Upgrading an installed payload must not silently destroy local customization** — `install.ps1
   -Force` overwrites every payload-owned file with no backup and no diff, including a customized
   `AGENTS.md` and any locally edited standard.

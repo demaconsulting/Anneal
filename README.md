@@ -168,6 +168,9 @@ maintained using its own agents.
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`test-check-contracts.ps1`** — fixture suite proving `check-contracts.ps1` still fails in every
   way its skill file documents
+- **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
+  every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
+  into a bounded behavioral summary
 
 ## Technology
 
