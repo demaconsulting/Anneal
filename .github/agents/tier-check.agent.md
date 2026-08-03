@@ -108,6 +108,12 @@ findings priority-ordered with a specific, actionable fix for each — the calle
 capped and it needs to spend them well. State plainly whether each finding is the documentation's to
 fix or the implementation's, because that decides which repair the caller spends.
 
+**The Report Template below is the closed set of body sections you may emit.** `Build`,
+`Contract Conformance`, `Tier Honesty` and `Tree Accuracy` are the only sections that may carry a
+PASS; do not add another, however real the concern. Everything else goes under
+`## Advisory (non-blocking)`, which carries no PASS and never contributes to **SUCCEEDED**. See
+`docs/architecture/process/prompt-authoring.md`, *What a Judging Prompt Must Demand*.
+
 # Report Template
 
 ```markdown
