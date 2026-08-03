@@ -100,6 +100,28 @@ if (-not $skipNpm) {
 #       if ($LASTEXITCODE -ne 0) { $lintError = $true }
 #   }
 
+# [PROJECT-SPECIFIC] System contracts.
+# Anneal runs the script it ships, in place from the template directory, because
+# it holds only one copy of it. Its own shape is not the C# one the defaults
+# describe: the verifiers named by docs/architecture/contract-check.md are cases
+# in test-check-contracts.ps1, declared by a quoted name rather than by an
+# attribute-marked method, in a flat repository with no Contract/ folder, and the
+# results are the text tally that suite writes rather than TRX. Every one of
+# those differences is a parameter, so the shipped script stays untouched.
+#
+# The results are produced by test-check-contracts.ps1, which CI runs before this
+# script for exactly that reason. Without them the pass check reports a warning
+# and verifies existence only.
+Write-Host "Linting: system contracts..."
+pwsh -NoProfile -File .github/template/check-contracts.ps1 `
+    -TestRoots "." `
+    -TestFilePatterns "test-check-contracts.ps1" `
+    -TestDeclarationPattern '^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"' `
+    -ContractTestFolder "" `
+    -TestResults "artifacts/tests/*.txt" `
+    -TestResultFormat text
+if ($LASTEXITCODE -ne 0) { $lintError = $true }
+
 # [PROJECT-SPECIFIC] AGENTS.md drift.
 # Anneal ships the process it uses, so AGENTS.md exists twice: this repository's
 # copy, and the pristine copy installed into other repositories. The pristine one

@@ -14,23 +14,32 @@
 #   1. Every system document declares a "## Contract" section
 #   2. Every clause in Provides/Invariants carries a well-formed, unique ID
 #   3. Every clause names at least one verifying test
-#   4. Every named test is declared as a test method in a contract test location
-#   5. Every named test passed, according to the MOST RECENT result for it
-#   6. Test results are not older than the test sources they describe
+#   4. Discovery found at least one test declaration, when a clause needs one
+#   5. Every named test is declared as a test in a contract test location
+#   6. Every named test passed, according to the MOST RECENT result for it
+#   7. Test results are not older than the test sources they describe
 #
 # FAIL-CLOSED:
 #   A clause the parser cannot understand is an error, never a silent skip.
 #   Anything that looks like a clause but does not parse would otherwise vanish
 #   from the report while appearing to pass, which is worse than no check.
 #
+#   Discovery is held to the same rule (check 4). A run that finds no test
+#   declarations anywhere has learned something, and reporting each clause as a
+#   missing test would send a reader off to write tests that already exist.
+#
 # EXIT CODES:
 #   0 - all checks passed (warnings do not fail)
 #   1 - one or more errors
 #
 # MODIFICATION POLICY:
-#   Only modify to adjust paths for a non-standard repository layout, to widen
-#   -TestFilePatterns and -TestAttributes for an additional language, or to add
-#   support for an additional test result format.
+#   Configure before editing. The parameters below cover the four things that
+#   vary between test frameworks - which files are searched, what a test
+#   declaration looks like, what marks a declaration as a boundary test, and what
+#   form a recorded result takes - and their defaults describe a C# xUnit
+#   repository, so a caller that supplies none of them gets the C# behavior.
+#   Only modify this file to add a result format -TestResultFormat does not yet
+#   offer, or for a layout no combination of the parameters can express.
 
 [CmdletBinding()]
 param(
@@ -46,17 +55,39 @@ param(
 
     # Directory name marking the contract test location. Contract tests are
     # required to live here so that their durable status is visible, and so an
-    # interior test cannot quietly stand in for a boundary one.
+    # interior test cannot quietly stand in for a boundary one. Set it to an
+    # empty string for a repository whose layout has no interior/boundary split -
+    # every discovered declaration then counts as a boundary test.
     [string] $ContractTestFolder = "Contract",
 
-    # Attribute names that mark a method as a test. Widen this for another
-    # framework or language; without it a clause could be satisfied by any
-    # identifier that merely appears in the test sources.
+    # Attribute names that mark a method as a test. Applies to the default
+    # declaration shape only; -TestDeclarationPattern replaces it outright.
+    # Without it a clause could be satisfied by any identifier that merely
+    # appears in the test sources.
     [string[]] $TestAttributes = @("Fact", "Theory"),
+
+    # Regex matched line by line against each test source, with a named capture
+    # group 'name' holding the declared test name - for a suite whose tests are
+    # named cases rather than attribute-marked methods, such as
+    #   ^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"
+    # Empty selects the default shape: an attribute from -TestAttributes followed
+    # by a method declaration, with comments stripped first. A custom pattern is
+    # matched against the file as written, so anchor it with ^\s* if a
+    # commented-out declaration must not count as a living test.
+    [string] $TestDeclarationPattern = "",
 
     # Glob for test result files, matched against the full repository-relative
     # path. Missing results downgrade the pass check to a warning.
     [string] $TestResults = "artifacts/**/*.trx",
+
+    # Form of the result files named by -TestResults:
+    #   trx  - Visual Studio test results (the C# default)
+    #   text - one result per line, an outcome token then the test name, as in
+    #          "Passed clean repository passes". Blank lines and lines opening
+    #          with # are ignored. The name is taken whole, so a case name may
+    #          contain spaces and punctuation.
+    [ValidateSet("trx", "text")]
+    [string] $TestResultFormat = "trx",
 
     # Treat unfulfilled TODO obligations, and absent test results, as errors
     # rather than warnings.
@@ -182,68 +213,195 @@ function Get-ContractClauses {
 
 # ==============================================================================
 # RESOLVE TEST DECLARATIONS
-# A clause is satisfied only by a real test method - an attribute-marked method
-# declaration - located in a contract test folder. Matching bare identifiers
-# against the test sources was far too generous: a private helper, or even a
-# string literal, could keep a clause's promise alive after its test was gone.
+# A clause is satisfied only by a real declared test - by default an
+# attribute-marked method declaration - located in a contract test location.
+# Matching bare identifiers against the test sources was far too generous: a
+# private helper, or even a string literal, could keep a clause's promise alive
+# after its test was gone.
 #
 # Declarations are recorded with their location so the check can tell "no such
 # test" apart from "that test exists, but it is an interior test".
 # ==============================================================================
 
-function Get-TestDeclarations {
-    param([string[]] $Roots, [string[]] $Patterns, [string[]] $Attributes, [string] $ContractFolder)
+# Directories whose contents are build output or vendored code rather than test
+# sources. Pruned during the walk, not filtered after it: a test root of "." in a
+# repository carrying node_modules costs seconds per pass otherwise.
+$script:ExcludedDirectories = @('bin', 'obj', 'node_modules', '.venv', '.git')
 
-    $declarations = @{}
-    $attributePattern = '(?<![\w])(' + (($Attributes | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')(?![\w])'
-    $contractPattern = '[/\\]' + [regex]::Escape($ContractFolder) + '[/\\]'
+# Hidden entries are skipped, exactly as Get-ChildItem without -Force skips
+# them. Walking them would be a fail-OPEN change: a stale copy of a deleted test
+# under a hidden directory would keep its clause alive, which is what the
+# declaration check exists to prevent.
+function Test-HiddenEntry {
+    param([System.IO.FileSystemInfo] $Entry)
+
+    if ($Entry.Attributes.HasFlag([System.IO.FileAttributes]::Hidden)) { return $true }
+
+    # Windows decides by attribute alone; the Unix-like platforms treat a
+    # dot-prefixed name as hidden, and so does PowerShell's own enumeration.
+    return (-not $IsWindows) -and $Entry.Name.StartsWith('.')
+}
+
+function Get-TestSourceFiles {
+    param([string[]] $Roots, [string[]] $Patterns)
+
+    $files = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+    $pending = [System.Collections.Generic.Queue[string]]::new()
 
     foreach ($root in $Roots) {
         if (-not (Test-Path $root)) { continue }
 
-        $files = Get-ChildItem -Path $root -Recurse -File -Include $Patterns |
-            Where-Object { $_.FullName -notmatch '[/\\](bin|obj|node_modules|\.venv)[/\\]' }
+        # Resolve-Path without -LiteralPath: a root may be a wildcard such as
+        # "test/*", which the previous Get-ChildItem -Path form expanded and
+        # -LiteralPath throws on.
+        foreach ($resolved in @(Resolve-Path -Path $root -ErrorAction SilentlyContinue)) {
+            if (Test-Path -LiteralPath $resolved.Path -PathType Container) { $pending.Enqueue($resolved.Path) }
+        }
 
-        foreach ($file in $files) {
-            $isContract = $file.FullName -match $contractPattern
+        while ($pending.Count -gt 0) {
+            $directory = [System.IO.DirectoryInfo]::new($pending.Dequeue())
 
-            # Doc comments routinely mention the test name of the clause they
-            # prove, so leaving comments in would defeat the existence check.
-            $text = [System.IO.File]::ReadAllText($file.FullName)
-            $text = [regex]::Replace($text, '/\*[\s\S]*?\*/', ' ')
-            $text = [regex]::Replace($text, '//[^\r\n]*', ' ')
+            foreach ($child in $directory.EnumerateDirectories()) {
+                if ($script:ExcludedDirectories -contains $child.Name) { continue }
+                if (Test-HiddenEntry -Entry $child) { continue }
+                $pending.Enqueue($child.FullName)
+            }
 
-            $pending = $false
-            foreach ($line in ($text -split '\r?\n')) {
-                # Attribute lines accumulate: [Theory] followed by [InlineData]
-                # must not clear the pending test marker.
-                if ($line -match '^\s*\[') {
-                    if ($line -match $attributePattern) { $pending = $true }
-                    if ($line -notmatch '\]\s*\S') { continue }
-                }
-
-                if (-not $pending) { continue }
-                if ($line -match '^\s*$') { continue }
-
-                if ($line -match '\b([A-Za-z_]\w*)\s*(?:<[^>()]*>)?\s*\(') {
-                    $name = $Matches[1]
-                    if (-not $declarations.ContainsKey($name)) {
-                        $declarations[$name] = [pscustomobject]@{ InContract = $false; Files = [System.Collections.Generic.List[string]]::new() }
-                    }
-                    if ($isContract) { $declarations[$name].InContract = $true }
-                    [void]$declarations[$name].Files.Add($file.Name)
-                    $pending = $false
-                    continue
-                }
-
-                # A non-blank, non-attribute line that is not a declaration ends
-                # the attribute run.
-                $pending = $false
+            foreach ($file in $directory.EnumerateFiles()) {
+                # -like rather than an enumeration filter: the platform's own
+                # matching would let "*.cs" reach a .csproj through its short name.
+                if (-not ($Patterns | Where-Object { $file.Name -like $_ })) { continue }
+                if (Test-HiddenEntry -Entry $file) { continue }
+                if ($seen.Add($file.FullName)) { $files.Add($file) }
             }
         }
     }
 
+    return $files
+}
+
+# The default shape: a method declaration preceded by a run of attribute lines,
+# at least one of which names a test attribute. Comments are stripped first
+# because doc comments routinely mention the test name of the clause they prove,
+# so leaving them in would defeat the existence check.
+function Get-AttributeDeclaration {
+    param([string] $Text, [string] $AttributePattern)
+
+    $names = [System.Collections.Generic.List[string]]::new()
+
+    $Text = [regex]::Replace($Text, '/\*[\s\S]*?\*/', ' ')
+    $Text = [regex]::Replace($Text, '//[^\r\n]*', ' ')
+
+    $pending = $false
+    foreach ($line in ($Text -split '\r?\n')) {
+        # Attribute lines accumulate: [Theory] followed by [InlineData]
+        # must not clear the pending test marker.
+        if ($line -match '^\s*\[') {
+            if ($line -match $AttributePattern) { $pending = $true }
+            if ($line -notmatch '\]\s*\S') { continue }
+        }
+
+        if (-not $pending) { continue }
+        if ($line -match '^\s*$') { continue }
+
+        if ($line -match '\b([A-Za-z_]\w*)\s*(?:<[^>()]*>)?\s*\(') {
+            $names.Add($Matches[1])
+            $pending = $false
+            continue
+        }
+
+        # A non-blank, non-attribute line that is not a declaration ends
+        # the attribute run.
+        $pending = $false
+    }
+
+    return $names
+}
+
+# The caller-supplied shape, for a suite whose tests are not attribute-marked
+# methods. Matched line by line so that a pattern can anchor itself against
+# commented-out declarations, which no generic comment stripper could do across
+# every language this parameter is meant to reach.
+function Get-PatternDeclaration {
+    param([string] $Text, [string] $Pattern)
+
+    $names = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($line in ($Text -split '\r?\n')) {
+        foreach ($match in [regex]::Matches($line, $Pattern)) {
+            $name = $match.Groups['name'].Value.Trim()
+            if ($name) { $names.Add($name) }
+        }
+    }
+
+    return $names
+}
+
+function Get-TestDeclarations {
+    param(
+        [string[]] $Roots,
+        [string[]] $Patterns,
+        [string[]] $Attributes,
+        [string] $ContractFolder,
+        [string] $DeclarationPattern
+    )
+
+    $declarations = @{}
+    $attributePattern = '(?<![\w])(' + (($Attributes | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')(?![\w])'
+
+    # An empty contract folder means the repository has no interior/boundary
+    # split in its layout, so location cannot disqualify a declaration.
+    $splitByLocation = -not [string]::IsNullOrWhiteSpace($ContractFolder)
+    $contractPattern = if ($splitByLocation) { '[/\\]' + [regex]::Escape($ContractFolder) + '[/\\]' } else { $null }
+
+    foreach ($file in (Get-TestSourceFiles -Roots $Roots -Patterns $Patterns)) {
+        $isContract = (-not $splitByLocation) -or ($file.FullName -match $contractPattern)
+
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        $names = if ($DeclarationPattern) {
+            Get-PatternDeclaration -Text $text -Pattern $DeclarationPattern
+        }
+        else {
+            Get-AttributeDeclaration -Text $text -AttributePattern $attributePattern
+        }
+
+        foreach ($name in $names) {
+            if (-not $declarations.ContainsKey($name)) {
+                $declarations[$name] = [pscustomobject]@{ InContract = $false; Files = [System.Collections.Generic.List[string]]::new() }
+            }
+            if ($isContract) { $declarations[$name].InContract = $true }
+            [void]$declarations[$name].Files.Add($file.Name)
+        }
+    }
+
     return $declarations
+}
+
+# A verifier is either a code identifier, possibly namespace-qualified, or a
+# named case quoted inside a file reference such as
+# `suite.ps1: "clean repository passes"`. The quoted form is taken whole:
+# splitting it on ':' leaves a fragment of the case name that no declaration can
+# match, which reads as a missing test rather than as the misreading it is.
+function Resolve-VerifierName {
+    param([string] $Verifier)
+
+    if ($Verifier -match '"([^"]+)"') { return $Matches[1] }
+    return ($Verifier -split '[.:]')[-1]
+}
+
+# A planned obligation is written in the placeholder form - TODO. or TODO_
+# followed by the name the test will take - so that is what is matched, not the
+# verifier string as a whole. Case-sensitive, and anchored: a real test named
+# TodoItemsAreReturned is not an obligation, nor is a genuine case named
+# `suite.ps1: "TODO obligation is an error"`, nor is every clause verified by a
+# suite file that happens to be called TODO-suite.ps1. Exempting any of those
+# would silently drop the only enforced check in the process.
+function Test-PlannedObligation {
+    param([string] $Verifier)
+
+    return $Verifier -cmatch '^\s*TODO[._]'
 }
 
 # ==============================================================================
@@ -281,8 +439,53 @@ function Get-TestResultFiles {
         })
 }
 
+function Read-TrxResult {
+    param([System.IO.FileInfo] $File)
+
+    $records = [System.Collections.Generic.List[object]]::new()
+
+    try {
+        [xml]$trx = Get-Content -LiteralPath $File.FullName -Raw
+    }
+    catch {
+        $script:warnings.Add("Could not parse test results: $($File.Name)")
+        return $records
+    }
+
+    foreach ($result in $trx.TestRun.Results.UnitTestResult) {
+        # A data-driven case is recorded as "Name(size: 1)"; the clause names the
+        # method, so the arguments are dropped and the cases merge.
+        $name = ($result.testName -split '\(')[0].Trim()
+        if (-not $name) { continue }
+        $records.Add([pscustomobject]@{ Name = $name; Outcome = $result.outcome })
+    }
+
+    return $records
+}
+
+function Read-TextResult {
+    param([System.IO.FileInfo] $File)
+
+    $records = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($line in [System.IO.File]::ReadAllLines($File.FullName)) {
+        if ($line -match '^\s*(#|$)') { continue }
+
+        # The rest of the line after the outcome is the name, taken whole: a
+        # named case is not an identifier and may hold spaces and punctuation.
+        if ($line -notmatch '^\s*(?<outcome>\S+)\s+(?<name>\S.*?)\s*$') {
+            $script:warnings.Add("Could not parse result line in $($File.Name): $line")
+            continue
+        }
+
+        $records.Add([pscustomobject]@{ Name = $Matches['name']; Outcome = $Matches['outcome'] })
+    }
+
+    return $records
+}
+
 function Get-TestOutcomes {
-    param([string] $Pattern)
+    param([string] $Pattern, [string] $Format)
 
     # Keyed by fully qualified test name, holding the outcome from the NEWEST
     # result file that mentions it. Unioning "Passed" names across every result
@@ -295,26 +498,18 @@ function Get-TestOutcomes {
 
     foreach ($file in ($files | Sort-Object LastWriteTimeUtc)) {
         if ($file.LastWriteTimeUtc -gt $newest) { $newest = $file.LastWriteTimeUtc }
-        try {
-            [xml]$trx = Get-Content -LiteralPath $file.FullName -Raw
-        }
-        catch {
-            $script:warnings.Add("Could not parse test results: $($file.Name)")
-            continue
-        }
 
-        foreach ($result in $trx.TestRun.Results.UnitTestResult) {
-            $name = ($result.testName -split '\(')[0].Trim()
-            if (-not $name) { continue }
+        $records = if ($Format -eq 'text') { Read-TextResult -File $file } else { Read-TrxResult -File $file }
 
-            $existing = $outcomes[$name]
+        foreach ($record in $records) {
+            $existing = $outcomes[$record.Name]
             if ($existing -and $existing.Time -gt $file.LastWriteTimeUtc) { continue }
 
             # Within one run a data-driven test yields several results; a single
             # failing case must not be overwritten by a passing sibling.
             if ($existing -and $existing.Time -eq $file.LastWriteTimeUtc -and $existing.Outcome -ne 'Passed') { continue }
 
-            $outcomes[$name] = [pscustomobject]@{ Outcome = $result.outcome; Time = $file.LastWriteTimeUtc }
+            $outcomes[$record.Name] = [pscustomobject]@{ Outcome = $record.Outcome; Time = $file.LastWriteTimeUtc }
         }
     }
 
@@ -325,13 +520,8 @@ function Get-NewestTestSource {
     param([string[]] $Roots, [string[]] $Patterns)
 
     $newest = $null
-    foreach ($root in $Roots) {
-        if (-not (Test-Path $root)) { continue }
-        Get-ChildItem -Path $root -Recurse -File -Include $Patterns |
-            Where-Object { $_.FullName -notmatch '[/\\](bin|obj|node_modules|\.venv)[/\\]' } |
-            ForEach-Object {
-                if (-not $newest -or $_.LastWriteTimeUtc -gt $newest.LastWriteTimeUtc) { $newest = $_ }
-            }
+    foreach ($file in (Get-TestSourceFiles -Roots $Roots -Patterns $Patterns)) {
+        if (-not $newest -or $file.LastWriteTimeUtc -gt $newest.LastWriteTimeUtc) { $newest = $file }
     }
     return $newest
 }
@@ -362,19 +552,39 @@ foreach ($clause in $clauses) {
     }
 }
 
-# --- Check 4: every named test is a test method in a contract test location ---
+# --- Check 4: discovery found tests to check against ---
+# Reported once, naming what matched nothing. Reporting each clause as a missing
+# test instead would describe the wrong repair - the tests exist, the patterns
+# point elsewhere - and a run whose clauses are all planned obligations is
+# exempt, because a tree being bootstrapped is not expected to resolve anything.
 $declarations = Get-TestDeclarations -Roots $TestRoots -Patterns $TestFilePatterns `
-    -Attributes $TestAttributes -ContractFolder $ContractTestFolder
+    -Attributes $TestAttributes -ContractFolder $ContractTestFolder `
+    -DeclarationPattern $TestDeclarationPattern
+
+$required = [System.Collections.Generic.List[string]]::new()
+foreach ($clause in $clauses) {
+    foreach ($test in $clause.Tests) {
+        if (-not (Test-PlannedObligation -Verifier $test)) { $required.Add($test) }
+    }
+}
+
+$discoveryFailed = ($declarations.Count -eq 0) -and ($required.Count -gt 0)
+
+if ($discoveryFailed) {
+    $shape = if ($TestDeclarationPattern) { $TestDeclarationPattern } else { "attribute-marked methods ($($TestAttributes -join ', '))" }
+    $errors.Add("No test declarations found in '$($TestRoots -join ', ')' matching '$($TestFilePatterns -join ', ')' - $($required.Count) verifiers need one, so fix the discovery patterns rather than the tests. Declaration shape: $shape")
+}
+
+# --- Check 5: every named test is a declared test in a contract test location ---
 $unresolved = [System.Collections.Generic.HashSet[string]]::new()
 
 foreach ($clause in $clauses) {
     foreach ($test in $clause.Tests) {
-        $leaf = ($test -split '[.:]')[-1]
+        $leaf = Resolve-VerifierName -Verifier $test
 
-        # Case-sensitive: a real test named TodoItemsAreReturned is not an
-        # unfulfilled obligation, and exempting it would silently drop the only
-        # enforced check in the process.
-        if ($test -cmatch 'TODO') {
+        # The obligation is the placeholder form, not any verifier mentioning
+        # TODO: a genuine test whose name carries the word is checked normally.
+        if (Test-PlannedObligation -Verifier $test) {
             $message = "$($clause.File): clause $($clause.Id) has an unfulfilled test obligation '$test'"
             if ($Strict) { $errors.Add($message) } else { $warnings.Add($message) }
             [void]$unresolved.Add($test)
@@ -385,7 +595,11 @@ foreach ($clause in $clauses) {
 
         if (-not $declaration) {
             [void]$unresolved.Add($test)
-            $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not declared as a test method in $($TestRoots -join ', ')")
+            # Suppressed when discovery itself failed: check 4 has already said
+            # why, and repeating it per clause would bury that finding.
+            if (-not $discoveryFailed) {
+                $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not declared as a test method in $($TestRoots -join ', ')")
+            }
             continue
         }
 
@@ -396,15 +610,15 @@ foreach ($clause in $clauses) {
     }
 }
 
-# --- Check 5: every named test passed, according to its most recent result ---
-$results = Get-TestOutcomes -Pattern $TestResults
+# --- Check 6: every named test passed, according to its most recent result ---
+$results = Get-TestOutcomes -Pattern $TestResults -Format $TestResultFormat
 
 if (-not $results.Found) {
     $message = "No test results matching '$TestResults' - run build.ps1 first; pass verification was skipped"
     if ($Strict) { $errors.Add($message) } else { $warnings.Add($message) }
 }
 else {
-    # --- Check 6: results must not predate the tests they claim to describe ---
+    # --- Check 7: results must not predate the tests they claim to describe ---
     # Stale results are worse than absent ones: they report a clause as verified
     # using an outcome recorded before the test was last changed.
     $newestSource = Get-NewestTestSource -Roots $TestRoots -Patterns $TestFilePatterns
@@ -414,9 +628,9 @@ else {
 
     foreach ($clause in $clauses) {
         foreach ($test in $clause.Tests) {
-            $leaf = ($test -split '[.:]')[-1]
+            $leaf = Resolve-VerifierName -Verifier $test
 
-            # Already reported by check 4; saying so twice buries the findings
+            # Already reported by check 5; saying so twice buries the findings
             # that need separate action.
             if ($unresolved.Contains($test)) { continue }
 

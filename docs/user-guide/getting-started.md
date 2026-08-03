@@ -95,7 +95,7 @@ Run `build.ps1` first — the pass check reads its TRX results, and without them
 that it verified nothing. The scaffolded test stubs fail deliberately until you write them, so a red
 first run is expected here.
 
-Expect warnings about unfulfilled `TODO` obligations at this stage — those are the contract tests you
+Expect warnings about unfulfilled obligations at this stage — those are the contract tests you
 have not written yet. Errors mean something is actually wrong: a system document with no `## Contract`
 section, a clause ID that does not parse (usually a `{SYSTEM}` placeholder you have not replaced), a
 duplicate ID, a clause with no test named, or a named test that is not a real test method under

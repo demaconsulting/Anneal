@@ -42,7 +42,7 @@ check first produces a failure that says nothing about the change.
 # Step 3 — Contract Conformance
 
 Use the **check-contracts** skill, with `-Strict` — implementation is complete by the time
-this agent runs, so an unfulfilled `TODO` obligation is a real gap rather than a bootstrap
+this agent runs, so an unfulfilled planned obligation is a real gap rather than a bootstrap
 placeholder. **Do not re-verify by hand what the script already proved** — that is wasted effort and
 less reliable than the script.
 

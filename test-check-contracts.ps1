@@ -8,12 +8,12 @@
 #   process - README feature 2 is a promise about this script. Every other rule
 #   Anneal ships is held by prompt and review, so this is the one place where a
 #   regression is silent rather than visible to a reader. The skill file
-#   documents eleven distinct failures; this proves each one actually fires, and
+#   documents twelve distinct failures; this proves each one actually fires, and
 #   that the passing case still passes.
 #
 #   Fixtures are written to a temporary directory and deleted afterwards. No
-#   .NET toolchain is required: TRX files are written directly, which also lets
-#   a case control result age and outcome precisely.
+#   .NET toolchain is required: result files are written directly, which also
+#   lets a case control result age and outcome precisely.
 #
 # USAGE:
 #   pwsh ./test-check-contracts.ps1
@@ -31,6 +31,13 @@ $script:Checker = Join-Path $PSScriptRoot ".github/template/check-contracts.ps1"
 $script:Passed = 0
 $script:Failed = 0
 $script:Failures = [System.Collections.Generic.List[string]]::new()
+
+# Anneal is its own second consumer of check-contracts.ps1: the clauses in
+# docs/architecture/contract-check.md name the cases in this file, so this run is
+# also the test run whose outcomes that check reads. Written in the text result
+# format rather than TRX because nothing here produces TRX.
+$script:Results = Join-Path $PSScriptRoot "artifacts/tests/check-contracts.txt"
+$script:Outcomes = [System.Collections.Generic.List[string]]::new()
 
 if (-not (Test-Path $script:Checker)) {
     Write-Host "check-contracts.ps1 not found at $script:Checker" -ForegroundColor Red
@@ -154,18 +161,66 @@ $rows
     [System.IO.File]::SetLastWriteTimeUtc($full, $stamp)
 }
 
+# The non-TRX result form: one result per line, an outcome token then the test
+# name. Outcomes is a list of "Test name=Outcome" strings, split on the LAST '='
+# so a case name may itself contain one.
+function Set-TextResults {
+    param(
+        [string] $Repo,
+        [string] $File = "results/tests.txt",
+        [string[]] $Outcomes,
+        [datetime] $Written = [datetime]::MinValue
+    )
+
+    $lines = ($Outcomes | ForEach-Object {
+            $split = $_.LastIndexOf('=')
+            "$($_.Substring($split + 1)) $($_.Substring(0, $split))"
+        }) -join "`n"
+
+    $full = Set-RepoFile -Repo $Repo -Path $File -Content "# outcome name`n$lines"
+
+    $stamp = if ($Written -eq [datetime]::MinValue) { (Get-Date).ToUniversalTime().AddMinutes(5) } else { $Written }
+    [System.IO.File]::SetLastWriteTimeUtc($full, $stamp)
+}
+
+# Marks a directory hidden in the platform's own terms: Windows decides by
+# attribute, the Unix-like platforms by a dot-prefixed name. Both are needed so
+# one fixture asserts the same thing everywhere.
+function Set-HiddenDirectory {
+    param([string] $Repo, [string] $Path)
+
+    $full = Join-Path $Repo $Path
+    New-Item -ItemType Directory -Path $full -Force | Out-Null
+    if ($IsWindows) {
+        $item = Get-Item -LiteralPath $full -Force
+        $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::Hidden
+    }
+}
+
+# The arguments a fixture-case repository needs: its tests are named cases in a
+# PowerShell script at the repository root, and its results are not TRX.
+function Get-FixtureCaseArguments {
+    return @(
+        "-TestRoots", ".",
+        "-TestFilePatterns", "*.ps1",
+        "-TestDeclarationPattern", '^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"',
+        "-ContractTestFolder", "",
+        "-TestResults", "results/*.txt",
+        "-TestResultFormat", "text")
+}
+
 # ==============================================================================
 # ASSERTION
 # ==============================================================================
 
 function Invoke-Checker {
-    param([string] $Repo, [switch] $Strict)
+    param([string] $Repo, [string[]] $Arguments = @(), [switch] $Strict)
 
     Push-Location $Repo
     try {
-        $arguments = @("-NoProfile", "-File", $script:Checker)
-        if ($Strict) { $arguments += "-Strict" }
-        $output = & pwsh @arguments 2>&1 | Out-String
+        $invocation = @("-NoProfile", "-File", $script:Checker) + $Arguments
+        if ($Strict) { $invocation += "-Strict" }
+        $output = & pwsh @invocation 2>&1 | Out-String
         return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
     }
     finally {
@@ -178,6 +233,7 @@ function Test-Case {
         [string] $Name,
         [string] $Repo,
         [int] $ExpectExit,
+        [string[]] $Arguments = @(),
         [string[]] $Expect = @(),
         [string[]] $Reject = @(),
         [switch] $Strict
@@ -188,7 +244,7 @@ function Test-Case {
         return
     }
 
-    $result = Invoke-Checker -Repo $Repo -Strict:$Strict
+    $result = Invoke-Checker -Repo $Repo -Arguments $Arguments -Strict:$Strict
     $problems = [System.Collections.Generic.List[string]]::new()
 
     if ($result.ExitCode -ne $ExpectExit) {
@@ -207,10 +263,12 @@ function Test-Case {
 
     if ($problems.Count -eq 0) {
         $script:Passed++
+        $script:Outcomes.Add("Passed $Name")
         Write-Host "  PASS  $Name" -ForegroundColor Green
     }
     else {
         $script:Failed++
+        $script:Outcomes.Add("Failed $Name")
         Write-Host "  FAIL  $Name" -ForegroundColor Red
         foreach ($problem in $problems) { Write-Host "          $problem" -ForegroundColor Red }
         $script:Failures.Add($Name)
@@ -377,22 +435,119 @@ Set-Trx -Repo $repo -Outcomes @("PreservesPerConnectionOrder=Passed")
 Test-Case -Name "TODO obligation is a warning by default" -Repo $repo -ExpectExit 0 `
     -Expect @("warning: ", "unfulfilled test obligation") -Reject @("error:")
 
+# One repository proving both halves of CONTRACT-CHECK-10, because a clause can
+# name only one verifier: the placeholder form IS reported (and is an error under
+# -Strict), and a verifier that is near-miss but not the placeholder form is NOT.
+# Each of the three near-miss witnesses differs from `TODO_` at the start in
+# exactly one dimension, so each one alone would become an obligation if the
+# detector lost that dimension:
+#   INGEST-02  Todo_ItemsAreReturned  - right shape, wrong case  -> bites if the
+#                                       match stops being case-sensitive
+#   INGEST-I1  List_TODO_Items        - right shape, not at the start -> bites if
+#                                       the match loses its '^' anchor
+#   INGEST-I2  TODOItemsAreReturned   - uppercase TODO at the start with no
+#                                       separator -> bites if the match drops the
+#                                       '[._]' separator class
+# All three are genuine, declared, passing tests and must be checked normally, so
+# none of the names may appear in the output at all.
 $repo = New-Repo
-Set-SystemDoc -Repo $repo -Body (Get-StandardContract).Replace("``AcceptedRecordIsDurable``", "``TODO_AcceptedRecordIsDurable``")
-Set-ContractTests -Repo $repo -Body (Get-StandardTests)
-Set-Trx -Repo $repo -Outcomes @("PreservesPerConnectionOrder=Passed")
-Test-Case -Name "TODO obligation is an error under -Strict" -Repo $repo -ExpectExit 1 -Strict `
-    -Expect @("error: ", "unfulfilled test obligation")
+Set-SystemDoc -Repo $repo -Body @'
+---
+level: system
+covers:
+  - src/Ingest/**
+---
+
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records and returns 202 once durably queued.
+  *Verified by:* `TODO_AcceptedRecordIsDurable`
+
+- **INGEST-02** - Returns the outstanding work queue.
+  *Verified by:* `Todo_ItemsAreReturned`
+
+### Invariants
+
+- **INGEST-I1** - Records are queued in arrival order.
+  *Verified by:* `List_TODO_Items`
+
+- **INGEST-I2** - The queue is never reordered after acceptance.
+  *Verified by:* `TODOItemsAreReturned`
+
+## Decisions
+
+Nothing yet.
+'@
+Set-ContractTests -Repo $repo -Body @'
+namespace Ingest.Tests.Contract;
+
+public class IngestContractTests
+{
+    [Fact]
+    public void Todo_ItemsAreReturned()
+    {
+    }
+
+    [Fact]
+    public void List_TODO_Items()
+    {
+    }
+
+    [Fact]
+    public void TODOItemsAreReturned()
+    {
+    }
+}
+'@
+Set-Trx -Repo $repo -Outcomes @("Todo_ItemsAreReturned=Passed", "List_TODO_Items=Passed",
+    "TODOItemsAreReturned=Passed")
+Test-Case -Name "a planned obligation is an error under -Strict" -Repo $repo -ExpectExit 1 -Strict `
+    -Expect @("4 clauses, 4 test links checked.",
+        "error: ",
+        "unfulfilled test obligation 'TODO_AcceptedRecordIsDurable'") `
+    -Reject @("Todo_ItemsAreReturned", "List_TODO_Items", "TODOItemsAreReturned")
 
 # --- A real test containing 'Todo' is checked, not exempted -----------------
-# The TODO match is case-sensitive on purpose: exempting TodoItemsAreReturned
-# would silently drop the only enforced check in the process.
+# End-to-end shape check, not the discrimination proof: a genuine failing test
+# whose name merely contains 'Todo' is reported as a failure rather than excused
+# as an obligation. What makes the detector case-sensitive, anchored and
+# separator-bearing is proven by the three near-miss witnesses above.
 $repo = New-Repo
 Set-SystemDoc -Repo $repo -Body (Get-StandardContract).Replace("``AcceptedRecordIsDurable``", "``TodoItemsAreReturned``")
 Set-ContractTests -Repo $repo -Body (Get-StandardTests).Replace("AcceptedRecordIsDurable", "TodoItemsAreReturned")
 Set-Trx -Repo $repo -Outcomes @("TodoItemsAreReturned=Failed", "PreservesPerConnectionOrder=Passed")
 Test-Case -Name "a genuine test named Todo... is checked normally" -Repo $repo -ExpectExit 1 `
     -Expect @("whose most recent result is 'Failed'") -Reject @("unfulfilled test obligation")
+
+# --- A genuine test whose name contains uppercase TODO is checked, not exempted
+# The obligation is the placeholder form, not the word: a case actually named
+# "TODO obligation is an error", declared and passing, is a real verifier - and
+# so is every clause verified by a suite file that happens to be called
+# TODO-suite.ps1. Matching the whole verifier string reported both as unfulfilled
+# obligations, which is a clause passing on a promise nobody checked.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body @'
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records.
+  *Verified by:* `TODO-suite.ps1: "TODO obligation is an error"`
+'@
+Set-RepoFile -Repo $repo -Path "TODO-suite.ps1" -Content @'
+Test-Case -Name "TODO obligation is an error" -ExpectExit 1
+'@ | Out-Null
+Set-TextResults -Repo $repo -Outcomes @("TODO obligation is an error=Passed")
+Test-Case -Name "a genuine test named TODO... is checked normally" -Repo $repo -ExpectExit 0 -Strict `
+    -Arguments (Get-FixtureCaseArguments) `
+    -Expect @("1 clauses, 1 test links checked.") `
+    -Reject @("error:", "warning:", "unfulfilled test obligation")
 
 # --- Missing results: warning by default, error under -Strict ---------------
 $repo = New-Repo
@@ -490,6 +645,145 @@ Set-Trx -Repo $repo -File "other/tests/results.trx" `
 Test-Case -Name "a .trx outside the configured location is ignored" -Repo $repo -ExpectExit 0 `
     -Expect @("No test results matching") -Reject @("error:")
 
+# --- A repository that is neither C# nor xUnit is checked through patterns ----
+# The four things that vary between frameworks are all supplied here: the files
+# searched, the declaration shape, the absence of an interior/boundary split in
+# the layout, and the result format. Nothing in the fixture is C#.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body @'
+---
+level: system
+covers:
+  - suite.ps1
+---
+
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records and returns 202 once durably queued.
+  *Verified by:* `suite.ps1: "accepted record is durable"`
+
+### Invariants
+
+- **INGEST-I1** - Records are queued in arrival order.
+  *Verified by:* `suite.ps1: "records keep arrival order"`
+
+## Decisions
+
+Nothing yet.
+'@
+Set-RepoFile -Repo $repo -Path "suite.ps1" -Content @'
+# A fixture suite: a case is named by a quoted argument, never by an identifier
+# in declaration position, so no attribute-and-method pattern can reach it.
+Test-Case -Name "accepted record is durable" -ExpectExit 0
+Test-Case -Name "records keep arrival order" -ExpectExit 0
+'@ | Out-Null
+Set-TextResults -Repo $repo -Outcomes @("accepted record is durable=Passed", "records keep arrival order=Passed")
+Test-Case -Name "a fixture-case repository is checked through discovery patterns" -Repo $repo -ExpectExit 0 `
+    -Arguments (Get-FixtureCaseArguments) `
+    -Expect @("2 clauses, 2 test links checked.") -Reject @("error:", "warning:")
+
+# --- A stale non-TRX result is still stale ----------------------------------
+# Check 7 is a property of the run, not of the format: a result file written
+# before the suite it describes cannot vouch for it whatever its shape.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body @'
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records.
+  *Verified by:* `suite.ps1: "accepted record is durable"`
+'@
+Set-RepoFile -Repo $repo -Path "suite.ps1" -Content @'
+Test-Case -Name "accepted record is durable" -ExpectExit 0
+'@ | Out-Null
+Set-TextResults -Repo $repo -Outcomes @("accepted record is durable=Passed") `
+    -Written (Get-Date).ToUniversalTime().AddDays(-2)
+Test-Case -Name "a stale result in the text format is rejected" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-FixtureCaseArguments) -Expect @("Test results are stale")
+
+# --- A failing non-TRX result fails its clause -------------------------------
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body @'
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records.
+  *Verified by:* `suite.ps1: "accepted record is durable"`
+'@
+Set-RepoFile -Repo $repo -Path "suite.ps1" -Content @'
+Test-Case -Name "accepted record is durable" -ExpectExit 0
+'@ | Out-Null
+Set-TextResults -Repo $repo -Outcomes @("accepted record is durable=Failed")
+Test-Case -Name "a failing result in the text format fails its clause" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-FixtureCaseArguments) -Expect @("whose most recent result is 'Failed'")
+
+# --- Discovery that matches nothing is reported once, as itself --------------
+# The repository is entirely well-formed; only the patterns are wrong. Reporting
+# a missing test per clause would send a reader off to write tests that already
+# exist, which is why the per-clause errors are replaced rather than joined.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body (Get-StandardContract)
+Set-ContractTests -Repo $repo -Body (Get-StandardTests)
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed", "PreservesPerConnectionOrder=Passed")
+Test-Case -Name "discovery that matches nothing is its own failure" -Repo $repo -ExpectExit 1 `
+    -Arguments @("-TestRoots", "no-such-directory") `
+    -Expect @("No test declarations found in 'no-such-directory' matching '*.cs'") `
+    -Reject @("is not declared as a test method")
+
+# --- ... and the same holds when the file patterns are the wrong ones --------
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body (Get-StandardContract)
+Set-ContractTests -Repo $repo -Body (Get-StandardTests)
+Test-Case -Name "file patterns matching no file are a discovery failure" -Repo $repo -ExpectExit 1 `
+    -Arguments @("-TestFilePatterns", "*.nope") `
+    -Expect @("No test declarations found", "*.nope") `
+    -Reject @("is not declared as a test method")
+
+# --- Bootstrap: planned clauses with no tests yet are not a discovery failure -
+# The escape hatch that keeps the check usable while a tree is being written. A
+# clause naming a TODO obligation is not expected to resolve to anything, so a
+# repository with no test sources at all stays green until it claims otherwise.
+$repo = New-Repo
+$planned = (Get-StandardContract).Replace("``AcceptedRecordIsDurable``", "``TODO_AcceptedRecordIsDurable``")
+$planned = $planned.Replace("``PreservesPerConnectionOrder``", "``TODO_PreservesPerConnectionOrder``")
+Set-SystemDoc -Repo $repo -Body $planned
+Test-Case -Name "a tree of planned clauses with no test sources is not a discovery failure" -Repo $repo -ExpectExit 0 `
+    -Expect @("unfulfilled test obligation") -Reject @("error:", "No test declarations found")
+
+# --- A stale copy under a hidden directory does not keep a clause alive -------
+# Discovery skips hidden directories, as Get-ChildItem without -Force does.
+# Walking them is the fail-open direction: the live test was deleted, and only a
+# copy under test/.old still declares it.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body (Get-StandardContract)
+Set-ContractTests -Repo $repo -Body (Get-StandardTests).Replace("AcceptedRecordIsDurable", "SomeOtherTest")
+Set-RepoFile -Repo $repo -Path "test/.old/Contract/OldTests.cs" -Content (Get-StandardTests) | Out-Null
+Set-HiddenDirectory -Repo $repo -Path "test/.old"
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed", "PreservesPerConnectionOrder=Passed")
+Test-Case -Name "a hidden directory does not supply test declarations" -Repo $repo -ExpectExit 1 `
+    -Expect @("names test 'AcceptedRecordIsDurable' which is not declared as a test method")
+
+# --- A wildcard test root is expanded, not thrown at --------------------------
+# Undocumented but previously working input, and it reaches every downstream
+# caller: a glob root must produce a report rather than a raw PowerShell error.
+$repo = New-Repo
+Set-SystemDoc -Repo $repo -Body (Get-StandardContract)
+Set-ContractTests -Repo $repo -Body (Get-StandardTests)
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed", "PreservesPerConnectionOrder=Passed")
+Test-Case -Name "a wildcard test root is expanded" -Repo $repo -ExpectExit 0 `
+    -Arguments @("-TestRoots", "test/*") `
+    -Expect @("2 clauses, 2 test links checked.") -Reject @("error:", "warning:")
+
 # ==============================================================================
 # REPORT
 # ==============================================================================
@@ -497,5 +791,14 @@ Test-Case -Name "a .trx outside the configured location is ignored" -Repo $repo 
 Write-Host ""
 Write-Host "  $script:Passed passed, $script:Failed failed." -ForegroundColor ($script:Failed -gt 0 ? "Red" : "Green")
 foreach ($failure in $script:Failures) { Write-Host "  failed: $failure" -ForegroundColor Red }
+
+# A filtered run has not exercised every case, so recording it would leave the
+# contract check reporting the unrun ones as having no result - which is exactly
+# what it should report, but for the wrong reason.
+if (-not $Filter) {
+    New-Item -ItemType Directory -Path (Split-Path $script:Results -Parent) -Force | Out-Null
+    Set-Content -LiteralPath $script:Results -Value $script:Outcomes -Encoding utf8
+    Write-Host "  Results written to $script:Results"
+}
 
 exit ($script:Failed -gt 0 ? 1 : 0)

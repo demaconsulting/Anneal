@@ -54,10 +54,12 @@ For Tier 1 and Tier 2, write the contract before any implementation exists:
   including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
   exist yet — the `apply` agent is obliged to create it under that name.
-- When no implementation will follow — you were invoked directly rather than by `dispatch` — put
-  `TODO` in that test name. `check-contracts.ps1` reports a `TODO` name as an unfulfilled obligation
-  but errors on a real name that resolves to no test, so this is what leaves the repository green
-  until the test is written.
+- When no implementation will follow — you were invoked directly rather than by `dispatch` — write the
+  verifier in the **placeholder form**: an uppercase `TODO.` or `TODO_` opening the verifier string,
+  followed by the name the test will take, as in `TODO.InstallCopiesPayloadOnly`. Only that exact form
+  is reported by `check-contracts.ps1` as an unfulfilled obligation; anything else naming a test that
+  does not exist is a hard error, so the prefix is what leaves the repository green until the test is
+  written. `system-contracts.md` owns this rule — consult it before deviating.
 - Mark narrowing or removal explicitly as breaking in your report.
 
 **Never edit a clause to match what the code does**, which `system-contracts.md` forbids generally

@@ -120,9 +120,10 @@ building, or correcting documentation that has drifted from what the code actual
 
 - **You get**: the change placed at exactly one level of the tree, a prune check on the affected
   system, and each new clause naming the test that will verify it.
-- Because no implementation follows, that test name carries a `TODO` marker, which
-  `check-contracts.ps1` reports as an unfulfilled obligation rather than an error. Naming a real test
-  that does not exist yet **is** an error, so the marker is what keeps the repository green.
+- Because no implementation follows, that verifier is written in the planned-obligation placeholder
+  form defined by `.github/standards/system-contracts.md`, which `check-contracts.ps1` reports as an
+  unfulfilled obligation rather than an error. Naming a real test
+  that does not exist yet **is** an error, so the placeholder is what keeps the repository green.
 - It never writes implementation code. New clauses come back as implementation obligations for
   `apply`, which is why the contract ends up written before the code rather than after it.
 - **The second prompt usually comes back INCOMPLETE with a question, and that is the correct

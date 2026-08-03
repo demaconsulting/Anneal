@@ -2,6 +2,9 @@ node_modules/
 package-lock.json
 .venv/
 
+# Test results written by test-check-contracts.ps1 and read by the contract check
+artifacts/
+
 # Generated build outputs, including compiled documents (never committed)
 **/generated/
 mermaid-filter.err

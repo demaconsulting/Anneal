@@ -88,8 +88,8 @@ kind, not degree, because it is the only mode permitted to span multiple commits
   `docs/architecture/` and is not restated here.
 - Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
   here, not forbidden.
-- Contract clauses describing systems not yet built are **planned**: written now, and named with a
-  `TODO` test that `check-contracts.ps1` reports as an unfulfilled obligation until the stage that
+- Contract clauses describing systems not yet built are **planned**: written now, and verified by a
+  placeholder that `check-contracts.ps1` reports as an unfulfilled obligation until the stage that
   builds them (see `system-contracts.md`). `MIGRATION.md` carries the exit condition for each.
 - Ends when every planned clause is satisfied and the exit conditions are met. **Delete
   `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so

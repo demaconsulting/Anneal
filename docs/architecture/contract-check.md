@@ -61,17 +61,28 @@ something deterministic enough to run in CI.
   run cannot vouch for current code.
   *Verified by:* `test-check-contracts.ps1: "stale results are rejected"`
 
-- **CONTRACT-CHECK-10** — Reports a clause whose verifier name contains `TODO` as an unfulfilled
-  obligation — a warning by default, an error under `-Strict`.
-  *Verified by:* `test-check-contracts.ps1: "TODO obligation is an error under -Strict"`
+- **CONTRACT-CHECK-10** — Reports a clause as an unfulfilled obligation — a warning by default, an error
+  under `-Strict` — when and only when its verifier string opens with the placeholder form: an uppercase
+  `TODO.` or `TODO_`, matched case-sensitively at the start of the string as written rather than against
+  the name it resolves to. Any other verifier mentioning the word is checked like any other.
+  *Verified by:* `test-check-contracts.ps1: "a planned obligation is an error under -Strict"`
 
 - **CONTRACT-CHECK-11** — Exempts `overview.md` from the contract requirement, and ignores clauses inside
   fenced examples and entries under `Requires`.
   *Verified by:* `test-check-contracts.ps1: "overview.md is exempt from the contract requirement"`
 
-- **CONTRACT-CHECK-12** — Discovers tests and results through caller-supplied patterns, so a repository
-  that is not C# and xUnit can be checked without modifying the script.
-  *Verified by:* `TODO.DiscoveryPatternsAreConfigurable`
+- **CONTRACT-CHECK-12** — Discovers tests and results through caller-supplied patterns covering all four
+  things that vary between test frameworks: which files are searched, what a test declaration looks like,
+  what marks a declaration as a boundary test rather than an interior one, and what form a recorded result
+  takes. A repository whose verifiers are named fixture cases rather than attribute-marked methods, and
+  whose results are not TRX, is checkable through those patterns alone. Their defaults describe a C# xUnit
+  repository, so a caller that supplies none of them gets the C# behavior unchanged.
+  *Verified by:* `test-check-contracts.ps1: "a fixture-case repository is checked through discovery patterns"`
+
+- **CONTRACT-CHECK-13** — Rejects a run that discovered no test declarations at all while some clause names
+  a verifier that is not a planned obligation, naming the discovery patterns that matched nothing rather
+  than reporting each clause as a missing test.
+  *Verified by:* `test-check-contracts.ps1: "discovery that matches nothing is its own failure"`
 
 ### Requires
 
@@ -92,7 +103,9 @@ The script runs in three passes that are kept separate on purpose: collect claus
 declared tests from the test sources, then reconcile both against recorded results. Merging them would be
 shorter and would lose the distinction between *a clause naming nothing*, *a clause naming something that
 does not exist*, and *a clause naming something that failed* — three failures with three different
-repairs, which the skill has to be able to tell apart.
+repairs, which the skill has to be able to tell apart. `CONTRACT-CHECK-13` is the same distinction applied
+to the second pass itself: *discovery found nothing anywhere* is a fourth failure with a fourth repair, and
+collapsing it into the third would send a reader off to write tests that already exist.
 
 The fixture suite is the other half of the system. `test-check-contracts.ps1` constructs a complete
 throw-away repository per case rather than asserting against strings, because the failures being tested
@@ -100,9 +113,13 @@ are properties of a repository, not of a function. One fixture per documented fa
 honest: a failure mode the skill describes and the suite does not cover is a gap that shows up as a
 missing fixture.
 
-`CONTRACT-CHECK-12` is the newest pressure on this system and the only clause here without a verifier.
-Anneal itself is the second consumer, and it is not a C# repository — so discovery patterns that were
-sensible defaults are now an interface.
+Anneal is its own second consumer, and it is not a C# repository: its verifiers are cases in that same
+fixture suite, named by the quoted case string rather than by a method identifier, and its results are a
+text tally that suite writes rather than a TRX file. That is what turns `CONTRACT-CHECK-12` from a
+defaulting convenience
+into an interface — a fixture-case repository is a first-class shape, not a variation on the C# one, so the
+patterns have to reach the declaration form and the result form and not only the file extension. The C#
+defaults are held still while that widens, because every downstream repository reads them.
 
 ## Decisions
 
@@ -110,10 +127,32 @@ sensible defaults are now an interface.
 a renamed heading would remove a clause from the check while the run still reported success, which is
 worse than having no check at all, because it manufactures false confidence.
 
+**An empty discovery is a finding, not a quiet baseline** — a run that looks for test declarations and
+finds none has learned something, and until `CONTRACT-CHECK-13` it discarded it. Silence there reads as
+"there are no tests here", which is indistinguishable from "the patterns point somewhere that has no
+tests", and the two have opposite repairs. The escape hatch is the one that already exists: a clause whose
+verifier is a planned obligation is not expected to resolve to anything, so a tree of planned
+clauses with no tests yet stays green and a bootstrapping repository is unaffected. A dedicated flag for
+tolerating an empty discovery was rejected — it would be set once while a repository was being scaffolded
+and never removed, and a permanently silenced check is the failure mode this decision exists to prevent.
+
+**Discovery is parameterized, and the defaults do not move** — the patterns are widened to reach a
+fixture-case repository, but every default keeps naming the C# xUnit shape, so a green check in a
+downstream repository keeps meaning exactly what it meant. Detecting the repository's shape automatically
+was rejected: the detection would itself be a silent decision made on the check's behalf, and a wrong guess
+would either look for the wrong tests or, worse, find something that is not a test.
+
 **Warn on planned clauses, error under `-Strict`** — `architecture-design` must be able to write a
-contract before its tests exist, so `TODO` verifiers are tolerated during design and promoted to errors
-once implementation is complete. Rejecting them outright would force either fabricated tests or an
+contract before its tests exist, so placeholder verifiers are tolerated during design and promoted to
+errors once implementation is complete. Rejecting them outright would force either fabricated tests or an
 undocumented contract.
+
+**The marker is a placeholder form, not a word** — `CONTRACT-CHECK-10` matches the verifier string as the
+author wrote it, not the name it resolves to, because those disagree in both directions: the standard
+`TODO.SomeTest` shape resolves to a name carrying no marker, while a real fixture case that discusses
+obligations resolves to one that does. Matching the resolved name, or matching the word anywhere, exempts
+genuine tests from the only enforced check in the process — which is a clause passing on a promise nobody
+verified. The narrow form costs an author one character of discipline and cannot fail open.
 
 **Verified by fixture repositories, not unit tests** — the suite pays the cost of building real
 directory trees because the behavior under test is repository-shaped. Unit-testing the parser was

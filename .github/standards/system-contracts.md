@@ -79,7 +79,10 @@ pwsh ./check-contracts.ps1
 - A bolded item under `Provides` or `Invariants` is not a well-formed clause ID
 - A clause ID is duplicated
 - A clause names no verifying test
-- A clause names a test that is not declared as a test method under `test/**/Contract/`
+- Discovery finds no test declaration anywhere, while some clause names a verifier that is not a
+  planned obligation
+- A clause names a test that is not declared as a test in a contract test location — by default a
+  test method under `test/**/Contract/`
 - A clause names a test whose most recent result is not `Passed`
 - The test results are older than the test sources they describe
 
@@ -87,20 +90,36 @@ Parsing **fails closed**. A clause the script cannot understand is an error, nev
 renamed heading or a malformed ID would otherwise remove the clause from the check while the run
 still reported success, which is worse than having no check at all.
 
-Because the pass verification reads TRX results, `build.ps1` must run **before** `lint.ps1`. The
-template CI workflow orders them that way; running lint alone leaves no results and downgrades the
-pass check to a warning.
+Because the pass verification reads recorded test results — TRX by default, and whatever form the
+caller selects otherwise — `build.ps1` must run **before** `lint.ps1`. The template CI workflow
+orders them that way; running lint alone leaves no results and downgrades the pass check to a
+warning.
 
 This matters because `*Verified by:*` is otherwise unenforced prose: rename the test and the promise
 rots silently. Everything else in this process is judgement, deliberately. This one thing is not,
 because a script does it faster and more reliably than an agent can.
 
-Clauses whose test name contains `TODO` are reported as **unfulfilled obligations** — a warning, not
-an error — so `architecture-design` can write a contract before its tests exist. Such a clause is
-**planned**: a promise the repository intends to keep but has not yet built. The `tier-check` agent
-runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes them to errors once implementation
-is complete; that agent owns closing the obligation. During a Migration the planned clauses are
-closed stage by stage, and `MIGRATION.md` holds the exit condition for each.
+A clause may be **planned**: a promise the repository intends to keep but has not yet built, so that
+`architecture-design` can write a contract before its tests exist. This section is the single owner of
+that authoring rule; everywhere else cites it rather than restating the form.
+
+Write the planned verifier in the **placeholder form** — an uppercase `TODO.` or `TODO_` opening the
+verifier string, followed by the name the test will take:
+
+```markdown
+*Verified by:* `TODO.AcceptedRecordIsDurable`
+```
+
+`check-contracts.ps1` reports exactly that form as an **unfulfilled obligation** — a warning, not an
+error. The match is case-sensitive and anchored at the start of the verifier as written, so nothing else
+is exempt: a real test named `TodoItemsAreReturned`, a fixture case whose title mentions TODO, and a
+suite file named `TODO-suite.ps1` are all checked normally. Any verifier that is not in the placeholder
+form and names no existing test is an **error**, so a bare `TODO` dropped into the middle of a name
+breaks the build rather than deferring the obligation.
+
+The `tier-check` agent runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes obligations to
+errors once implementation is complete; that agent owns closing them. During a Migration the planned
+clauses are closed stage by stage, and `MIGRATION.md` holds the exit condition for each.
 
 **Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
 the contract change deliberately.

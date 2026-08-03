@@ -247,19 +247,26 @@ that quietly stops looking while reporting success is worse than no check at all
 are exempt: they name depended-upon behavior and legitimately carry no ID.
 
 Test names may be bare or fully qualified, and parameterized suffixes are stripped. Comments are
-stripped from test sources before matching, and a clause is satisfied only by an attribute-marked
-method declaration, so neither a doc comment, a private helper, nor a string literal can keep a
-deleted promise alive. Requiring the `Contract/` location stops a disposable interior test from
-standing in for a durable boundary one.
+stripped from test sources before matching, and by default a clause is satisfied only by an
+attribute-marked method declaration, so neither a doc comment, a private helper, nor a string
+literal can keep a deleted promise alive. Requiring the `Contract/` location, also a default, stops
+a disposable interior test from standing in for a durable boundary one. Both are defaults rather
+than fixed rules: a repository whose tests are not attribute-marked methods, or whose layout has no
+interior/boundary split, says so at the call site instead of editing the script.
+
+If discovery matches no test declaration at all while a clause names a real test, that is its own
+error naming the patterns that matched nothing — not one "test not declared" error per clause. The
+tests are usually present and the patterns are pointing elsewhere.
 
 The pass check resolves each test to the outcome from the newest result file that mentions it, rather
 than accepting any historical pass. Because `artifacts/` is git-ignored, results used to accumulate
 locally, and an old pass could vouch for a test failing today. Staleness catches the other direction:
 a result recorded before the test last changed.
 
-Clauses whose test name contains an uppercase `TODO` are **warnings** — unfulfilled obligations — so a
-contract can be written before its tests exist. The match is case-sensitive, so a real test named
-`TodoItemsAreReturned` is checked normally. `tier-check` runs `-Strict` on Tier 1 and Tier 2
+Clauses whose verifier is written in the planned-obligation **placeholder form** are **warnings** rather
+than errors, so a contract can be written before its tests exist. `.github/standards/system-contracts.md`
+defines that form and owns the rule; nothing else is exempted, so a real test whose name merely mentions
+TODO is checked normally. `tier-check` runs `-Strict` on Tier 1 and Tier 2
 changes, which promotes obligations, and absent test results, to errors once implementation is
 complete.
 
@@ -268,7 +275,15 @@ pwsh ./check-contracts.ps1
 pwsh ./check-contracts.ps1 -Strict
 pwsh ./check-contracts.ps1 -TestRoots test,integration -TestResults "out/**/*.trx"
 pwsh ./check-contracts.ps1 -TestFilePatterns *.cs,*.fs -TestAttributes Fact,Theory,Test
+pwsh ./check-contracts.ps1 -TestRoots . -TestFilePatterns suite.ps1 `
+  -TestDeclarationPattern '^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"' `
+  -ContractTestFolder "" -TestResults "artifacts/tests/*.txt" -TestResultFormat text
 ```
+
+The last form is a repository that is neither C# nor xUnit: its tests are named cases in a
+PowerShell suite, it has no interior/boundary folder split, and its results are a text tally rather
+than TRX. Anneal's own `lint.ps1` runs this shape against this repository, with its own file name
+in place of `suite.ps1`.
 
 Run `pwsh ./check-contracts.ps1 -?` for the full parameter list and defaults. `-TestResults` is
 matched against the whole repository-relative path, not just the file name, so results outside the

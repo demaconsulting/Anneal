@@ -35,12 +35,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Lint
-        shell: pwsh
-        run: ./lint.ps1
-
       # The payload's only mechanically enforced rule. A regression here is
-      # silent - every other rule Anneal ships is visible to a reader.
+      # silent - every other rule Anneal ships is visible to a reader. It runs
+      # before the lint gate because it writes the test results that the
+      # contract check inside lint.ps1 reads.
       - name: Test check-contracts.ps1
         shell: pwsh
         run: ./test-check-contracts.ps1
+
+      - name: Lint
+        shell: pwsh
+        run: ./lint.ps1
