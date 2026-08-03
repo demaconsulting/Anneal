@@ -784,6 +784,163 @@ Test-Case -Name "a wildcard test root is expanded" -Repo $repo -ExpectExit 0 `
     -Arguments @("-TestRoots", "test/*") `
     -Expect @("2 clauses, 2 test links checked.") -Reject @("error:", "warning:")
 
+# A profile pair for a repository holding both kinds of test at once: C# boundary
+# tests recorded in TRX, and a root-level PowerShell suite of named cases
+# recording a text tally. Kept as constants because most of the profile cases
+# below vary exactly one field of one of them, and the case reads better when
+# what it changed is the only thing written out.
+$script:CSharpProfile = "TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/tests/*.trx;TestResultFormat=trx"
+$script:ScriptProfile = 'TestRoots=.;TestFilePatterns=suite.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=results/*.txt;TestResultFormat=text'
+
+# Profiles reach the script as ONE argument holding newline-separated records:
+# under `pwsh -File` a second value of an array parameter binds positionally and
+# is discarded, so passing them as separate arguments would silently check only
+# the first framework.
+function Get-ProfileArguments {
+    param([string[]] $Records)
+
+    return @("-TestProfiles", ($Records -join "`n"))
+}
+
+# A repository whose contract is verified in two languages at once: one clause by
+# a C# boundary test, one by a named case in a PowerShell suite.
+function Set-MixedRepository {
+    param([string] $Repo)
+
+    Set-SystemDoc -Repo $Repo -Body @'
+---
+level: system
+covers:
+  - src/Ingest/**
+---
+
+# Ingest
+
+## Contract
+
+### Provides
+
+- **INGEST-01** - Accepts records and returns 202 once durably queued.
+  *Verified by:* `AcceptedRecordIsDurable`
+
+### Invariants
+
+- **INGEST-I1** - Records are queued in arrival order.
+  *Verified by:* `suite.ps1: "records keep arrival order"`
+
+## Decisions
+
+Nothing yet.
+'@
+
+    Set-ContractTests -Repo $Repo -Body @'
+namespace Ingest.Tests.Contract;
+
+public class IngestContractTests
+{
+    [Fact]
+    public void AcceptedRecordIsDurable()
+    {
+    }
+}
+'@
+
+    Set-RepoFile -Repo $Repo -Path "suite.ps1" -Content @'
+Test-Case -Name "records keep arrival order" -ExpectExit 0
+'@ | Out-Null
+}
+
+# --- Two profiles resolve clauses in two languages in one invocation ----------
+# The case the profile facility exists for: no combination of the single-profile
+# parameters expresses this repository, because -ContractTestFolder must be
+# 'Contract' for the C# test and empty for the flat suite at the same time.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("Ingest.Tests.Contract.IngestContractTests.AcceptedRecordIsDurable=Passed")
+Set-TextResults -Repo $repo -Outcomes @("records keep arrival order=Passed")
+Test-Case -Name "two discovery profiles resolve clauses in both languages" -Repo $repo -ExpectExit 0 `
+    -Arguments (Get-ProfileArguments @($script:CSharpProfile, $script:ScriptProfile)) `
+    -Expect @("2 clauses, 2 test links checked.") -Reject @("error:", "warning:")
+
+# --- A profile that matches nothing is an error, not a silent skip ------------
+# The fail-closed property that makes the facility safe to add: the C# profile
+# still discovers everything it did before, so a whole-run emptiness check would
+# report success while one framework went entirely unchecked.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed")
+Set-TextResults -Repo $repo -Outcomes @("records keep arrival order=Passed")
+Test-Case -Name "a profile matching no test declarations is an error" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @($script:CSharpProfile,
+        ($script:ScriptProfile -replace 'TestFilePatterns=suite\.ps1', 'TestFilePatterns=renamed.ps1'))) `
+    -Expect @("profile 2: No test declarations found in '.' matching 'renamed.ps1'")
+
+# --- A failing test in the second profile still fails its clause --------------
+# Results pool across profiles, so this proves the pooling did not lose the
+# outcome of the framework that is not the first one.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed")
+Set-TextResults -Repo $repo -Outcomes @("records keep arrival order=Failed")
+Test-Case -Name "a failing test in the second profile fails its clause" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @($script:CSharpProfile, $script:ScriptProfile)) `
+    -Expect @("clause INGEST-I1 names test 'suite.ps1: `"records keep arrival order`"' whose most recent result is 'Failed'")
+
+# --- Missing results are reported against the profile that expected them ------
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed")
+Test-Case -Name "results missing for one profile are reported against that profile" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @($script:CSharpProfile, $script:ScriptProfile)) `
+    -Expect @("profile 2: No test results matching 'results/*.txt'",
+    "which has no result - it did not run")
+
+# --- Staleness is judged within a profile, not across them --------------------
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed")
+Set-TextResults -Repo $repo -Outcomes @("records keep arrival order=Passed") `
+    -Written (Get-Date).ToUniversalTime().AddDays(-2)
+Test-Case -Name "a stale result in one profile is rejected while the other is fresh" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @($script:CSharpProfile, $script:ScriptProfile)) `
+    -Expect @("profile 2: Test results are stale", "suite.ps1")
+
+# --- A misspelled profile field is rejected rather than defaulted -------------
+# The whole point of a closed field set: a field name the script does not know
+# would otherwise take its default silently, and the profile would check
+# something other than what the call site says it checks.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Set-Trx -Repo $repo -Outcomes @("AcceptedRecordIsDurable=Passed")
+Test-Case -Name "an unknown profile field is rejected" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @("TestRoots=test;TestFilePattern=*.cs")) `
+    -Expect @("profile 1: unknown field 'TestFilePattern'")
+
+# --- A field that is not Key=Value is rejected -------------------------------
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Test-Case -Name "a profile field that is not Key=Value is rejected" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @("TestRoots=test;*.cs")) `
+    -Expect @("profile 1: '*.cs' is not a Key=Value field")
+
+# --- A result format no reader implements is rejected ------------------------
+# -TestResultFormat is a ValidateSet on the parameter; a profile field has to
+# make the same rejection itself or the profile form would be the looser one.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Test-Case -Name "an unknown result format in a profile is rejected" -Repo $repo -ExpectExit 1 `
+    -Arguments (Get-ProfileArguments @("TestRoots=test;TestResultFormat=junit")) `
+    -Expect @("profile 1: TestResultFormat 'junit' is not one of: trx, text")
+
+# --- Profiles and the parameters they replace cannot both be supplied ---------
+# Rejected rather than merged: whichever won would be invisible at the call
+# site, and the call site is where a repository's layout is meant to be readable.
+$repo = New-Repo
+Set-MixedRepository -Repo $repo
+Test-Case -Name "profiles cannot be combined with the parameters they replace" -Repo $repo -ExpectExit 1 `
+    -Arguments ((Get-ProfileArguments @($script:CSharpProfile)) + @("-TestRoots", "test")) `
+    -Expect @("-TestProfiles cannot be combined with -TestRoots")
+
 # ==============================================================================
 # REPORT
 # ==============================================================================

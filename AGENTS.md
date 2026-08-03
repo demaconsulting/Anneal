@@ -233,13 +233,19 @@ change a file that appears in it, say which of these applies, in your report:
 - **Adopted from the template** — the template is ahead and this repository is behind. Change both.
 - **Deliberately divergent** — the change is specific to Anneal. Change only this copy, and say why.
 
-The third outcome is not a formality. Anneal has no .NET solution, so its `lint.ps1` and `build.ps1`
-legitimately differ from the template's; syncing them would break the build. Over-syncing is worse
-than drift, because it fails immediately and looks like the safe choice.
+The third outcome is not a formality. Anneal's `lint.ps1` legitimately differs from the template's,
+because it checks contracts against two profiles rather than one and enforces the `AGENTS.md` drift
+rule that exists nowhere else; syncing it would break the build. Over-syncing is worse than drift,
+because it fails immediately and looks like the safe choice. `CONSTRAINTS.md` owns the standing
+condition this protects — *the template must stay valid for a C# product repository* — and this
+section does not restate it.
 
 `AGENTS.md` is exempt from that judgement. It carries no per-repository customization, so this copy
 must equal `.github/template/AGENTS.pristine.md` exactly, plus this one section — `lint.ps1` checks
 it. Any change to the process belongs in the pristine copy, and is mirrored here unchanged.
 
-Anneal has no `src/` or `test/` tree, so the Project Structure above describes the shape this process
-expects of a product repository rather than the contents of this one.
+Anneal has a `src/` and `test/` tree holding the Toolkit and its contract tests, so the Project
+Structure above describes this repository as well as a product repository — but only that one system.
+Everything else Anneal ships is prose and scripts, which is why root `build.ps1` was **adopted from
+the template** and then given one project-specific step: it runs the root-level PowerShell suites
+alongside `dotnet test`.

@@ -29,17 +29,17 @@ presented requires owning the conversation, which requires code.
 - **TOOLKIT-01** — The tool is invoked as `dotnet anneal <action>` with the action named first, and an
   unrecognized action exits non-zero listing the actions that exist, so a caller discovers the surface
   without reading the source.
-  *Verified by:* `TODO.UnknownActionListsAvailableActions`
+  *Verified by:* `ToolkitContractTests.UnknownActionListsAvailableActions`
 
 - **TOOLKIT-02** — Every operation declares exactly one category — enforcement, research, advisory or
   authoring — and the category alone determines whether a non-zero exit gates a build. Only
   enforcement operations gate.
-  *Verified by:* `TODO.OnlyEnforcementOperationsGate`
+  *Verified by:* `ToolkitContractTests.OnlyEnforcementOperationsGate`
 
 - **TOOLKIT-03** — `verify-evidence` reports, for each evidence locator cited in an agent report,
   whether the quoted text is present at the file and line named. It reaches no verdict about the
   report's conclusion and consults no model.
-  *Verified by:* `TODO.EvidenceLocatorsAreCheckedAgainstSource`
+  *Verified by:* `ToolkitContractTests.EvidenceLocatorsAreCheckedAgainstSource`
 
 - **TOOLKIT-04** — `probe-rule-owner` names the single file that owns a given rule, or refuses when
   the rule is stated in more than one place or in none.

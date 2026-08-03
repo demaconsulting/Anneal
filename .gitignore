@@ -2,6 +2,14 @@ node_modules/
 package-lock.json
 .venv/
 
+# .NET build outputs, adopted from the template now that Anneal has a solution
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.slnx.user
+
 # Test results written by test-check-contracts.ps1 and read by the contract check
 artifacts/
 

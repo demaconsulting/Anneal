@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    Packaged as a .NET tool so that a repository restores it and invokes it as
+    "dotnet anneal <action>". Nothing publishes it yet: the tool manifest that
+    makes it restorable downstream is stage S2 of MIGRATION.md, so the package
+    identity is fixed here only to stop it moving once something depends on it.
+  -->
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>anneal</ToolCommandName>
+    <PackageId>DemaConsulting.Anneal.Toolkit</PackageId>
+    <Description>Operations an AI coding agent cannot perform reliably by reading a prompt.</Description>
+  </PropertyGroup>
+
+</Project>

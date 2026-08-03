@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/DemaConsulting.Anneal.Toolkit/DemaConsulting.Anneal.Toolkit.csproj" />
+  <Project Path="test/DemaConsulting.Anneal.Toolkit.Tests/DemaConsulting.Anneal.Toolkit.Tests.csproj" />
+</Solution>

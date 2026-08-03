@@ -1,10 +1,11 @@
 ---
 # Continuous integration for the Anneal payload itself.
 #
-# Anneal ships no compiled code, so there is no build step. What it ships is a
-# payload of prompt files plus one script that is genuinely enforced -
-# check-contracts.ps1 - and test-check-contracts.ps1 is what proves that script
-# still fails in every way its skill file documents.
+# Most of what Anneal ships is prose and scripts, plus one script that is
+# genuinely enforced - check-contracts.ps1 - and test-check-contracts.ps1 is
+# what proves that script still fails in every way its skill file documents.
+# Since the Toolkit landed there is also a .NET solution to build, so this
+# repository now runs build.ps1 like any product repository does.
 name: Build
 
 on:
@@ -25,6 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -35,19 +41,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The payload's only mechanically enforced rule. A regression here is
-      # silent - every other rule Anneal ships is visible to a reader. It runs
-      # before the lint gate because it writes the test results that the
-      # contract check inside lint.ps1 reads.
-      - name: Test check-contracts.ps1
+      # ORDERING MATTERS: build.ps1 runs before lint.ps1 because lint.ps1
+      # invokes check-contracts.ps1, and the clause-to-test pass verification
+      # reads the results build.ps1 produces - the TRX from the Toolkit tests
+      # and the text results of the two PowerShell suites alike. Linting first
+      # would leave no results to read, and the pass check would be skipped
+      # while CI still reported success.
+      - name: Build and test
         shell: pwsh
-        run: ./test-check-contracts.ps1
-
-      # The Process contract's verifiers. Same ordering and the same reason: it
-      # writes the results the contract check inside lint.ps1 reads.
-      - name: Test the Process contract
-        shell: pwsh
-        run: ./test-process-contract.ps1
+        run: ./build.ps1
 
       - name: Lint
         shell: pwsh

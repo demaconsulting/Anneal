@@ -41,9 +41,11 @@ quietly.
   `retired-payload.txt` names as ours from ones the repository added itself, and deletes only what
   the user confirms.
 - **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
-  Anneal has no `src/`, no solution and no xUnit tests, so its root `lint.ps1`, `fix.ps1` and absent
-  `build.ps1` legitimately differ from their template counterparts. Syncing them to match Anneal
-  would break every downstream repository. Divergence in this direction is by design, not drift.
+  Anneal now has a solution, a `src/` and `test/` tree and xUnit tests, but it is still mostly prose
+  and scripts, so its root `lint.ps1`, `fix.ps1` and `build.ps1` carry project-specific steps the
+  template's counterparts must not. Syncing the template down to match Anneal would break every
+  downstream repository. Divergence in this direction is by design, not drift; this entry owns that
+  rule and `AGENTS.md` § Template Stewardship points at it.
 
 ## Not Yet Satisfied
 

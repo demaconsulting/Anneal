@@ -102,30 +102,32 @@ if (-not $skipNpm) {
 
 # [PROJECT-SPECIFIC] System contracts.
 # Anneal runs the script it ships, in place from the template directory, because
-# it holds only one copy of it. Its own shape is not the C# one the defaults
-# describe: the verifiers named by docs/architecture/contract-check.md are cases
-# in test-check-contracts.ps1, declared by a quoted name rather than by an
-# attribute-marked method, in a flat repository with no Contract/ folder, and the
-# results are the text tally that suite writes rather than TRX. Every one of
-# those differences is a parameter, so the shipped script stays untouched.
+# it holds only one copy of it. It is now checked against two profiles at once,
+# because it holds two kinds of test and no single set of parameters describes
+# both: the Toolkit's clauses are verified by C# boundary tests under a Contract/
+# folder recorded in TRX, while the ContractCheck and Process clauses are
+# verified by named cases in flat root-level PowerShell suites, declared by a
+# quoted name rather than an attribute-marked method, recorded as the text tally
+# those suites write. -ContractTestFolder alone would have to be both 'Contract'
+# and empty. Every one of those differences is a profile field, so the shipped
+# script stays untouched.
 #
-# The results are produced by test-check-contracts.ps1 and
-# test-process-contract.ps1, which CI runs before this script for exactly that
-# reason. Without them the pass check reports a warning and verifies existence
-# only.
+# The results are produced by build.ps1 - dotnet test plus the two PowerShell
+# suites - which CI runs before this script for exactly that reason. Without them
+# the pass check reports a warning and verifies existence only.
 #
-# The two file patterns are comma-joined into one argument on purpose: under
-# `pwsh -File` every argument is a literal string, so a PowerShell array literal
-# would bind its second element positionally and silently check nothing. The
-# script splits the list itself.
+# The profiles are newline-joined into one argument on purpose: under
+# `pwsh -File` every argument is a literal string and only the FIRST value of an
+# array parameter binds, so a second profile passed as its own argument would be
+# discarded and half the contract would go unchecked. Fields within a profile are
+# comma-joined for the same reason, and the script splits both itself.
 Write-Host "Linting: system contracts..."
-pwsh -NoProfile -File .github/template/check-contracts.ps1 `
-    -TestRoots "." `
-    -TestFilePatterns "test-check-contracts.ps1,test-process-contract.ps1" `
-    -TestDeclarationPattern '^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"' `
-    -ContractTestFolder "" `
-    -TestResults "artifacts/tests/*.txt" `
-    -TestResultFormat text
+$contractProfiles = @(
+    "TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/tests/*.trx;TestResultFormat=trx",
+    'TestRoots=.;TestFilePatterns=test-check-contracts.ps1,test-process-contract.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=artifacts/tests/*.txt;TestResultFormat=text'
+) -join "`n"
+
+pwsh -NoProfile -File .github/template/check-contracts.ps1 -TestProfiles $contractProfiles
 if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
 # [PROJECT-SPECIFIC] AGENTS.md drift.

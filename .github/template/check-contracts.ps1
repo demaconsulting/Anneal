@@ -14,7 +14,8 @@
 #   1. Every system document declares a "## Contract" section
 #   2. Every clause in Provides/Invariants carries a well-formed, unique ID
 #   3. Every clause names at least one verifying test
-#   4. Discovery found at least one test declaration, when a clause needs one
+#   4. Discovery found at least one test declaration, per profile, when a clause
+#      needs one
 #   5. Every named test is declared as a test in a contract test location
 #   6. Every named test passed, according to the MOST RECENT result for it
 #   7. Test results are not older than the test sources they describe
@@ -26,7 +27,9 @@
 #
 #   Discovery is held to the same rule (check 4). A run that finds no test
 #   declarations anywhere has learned something, and reporting each clause as a
-#   missing test would send a reader off to write tests that already exist.
+#   missing test would send a reader off to write tests that already exist. With
+#   more than one discovery profile the rule is per profile, so a framework that
+#   stops being discovered cannot hide behind one that still is.
 #
 # EXIT CODES:
 #   0 - all checks passed (warnings do not fail)
@@ -38,6 +41,8 @@
 #   declaration looks like, what marks a declaration as a boundary test, and what
 #   form a recorded result takes - and their defaults describe a C# xUnit
 #   repository, so a caller that supplies none of them gets the C# behavior.
+#   A repository using more than one test framework at once supplies one
+#   -TestProfiles record per framework rather than editing anything here.
 #   Only modify this file to add a result format -TestResultFormat does not yet
 #   offer, or for a layout no combination of the parameters can express.
 
@@ -89,6 +94,34 @@ param(
     [ValidateSet("trx", "text")]
     [string] $TestResultFormat = "trx",
 
+    # Discovery profiles, for a repository whose tests are not all of one kind -
+    # C# boundary tests recorded in TRX alongside script-level suites recording
+    # a text tally, say. Each record describes ONE framework, using the same
+    # field names as the seven parameters above:
+    #
+    #   TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/**/*.trx;TestResultFormat=trx
+    #
+    # Fields are separated by ';' and omitted ones take the same default as the
+    # parameter of that name, so a record states only what makes it different. A
+    # field value therefore cannot itself contain ';'.
+    #
+    # Records are separated by newlines, because `pwsh -File` binds only the
+    # FIRST value of an array parameter and discards the rest without a word -
+    # so profiles cannot be separate arguments, and ',' is already the separator
+    # inside a list-valued field. A caller joins its records with "`n".
+    #
+    # Every profile contributes its declarations and its results to one shared
+    # pool, so a clause is satisfied by whichever framework declares its test.
+    # Each profile is held to the discovery and result checks separately: a
+    # profile that matches no test declaration is an error even when another
+    # profile matched plenty, or a mistyped pattern would be covered up by the
+    # framework that still works.
+    #
+    # Leave empty for a single-framework repository; supplying this together
+    # with any of the seven parameters above is an error rather than a merge,
+    # because which one wins would be invisible at the call site.
+    [string[]] $TestProfiles = @(),
+
     # Treat unfulfilled TODO obligations, and absent test results, as errors
     # rather than warnings.
     [switch] $Strict
@@ -113,6 +146,139 @@ $TestFilePatterns = Expand-ListArgument -Values $TestFilePatterns
 
 $errors = [System.Collections.Generic.List[string]]::new()
 $warnings = [System.Collections.Generic.List[string]]::new()
+
+# ==============================================================================
+# DISCOVERY PROFILES
+# One profile per test framework the repository uses. A single-framework
+# repository supplies none and gets exactly one profile built from the
+# parameters, which is why every check below reads a profile rather than a
+# parameter even when there is only ever one.
+#
+# The field names are the parameter names deliberately: this is a way to say the
+# same seven things more than once, not a configuration language. An unknown
+# field is an error rather than an ignored line - a misspelled field would
+# otherwise silently take its default, and the profile would check the wrong
+# thing while reporting success.
+# ==============================================================================
+
+$script:ProfileFields = @(
+    'TestRoots', 'TestFilePatterns', 'ContractTestFolder', 'TestAttributes',
+    'TestDeclarationPattern', 'TestResults', 'TestResultFormat')
+
+$script:BoundParameterNames = @($PSBoundParameters.Keys)
+
+function New-DiscoveryProfile {
+    param([hashtable] $Fields, [int] $Index)
+
+    # A field the record omits falls back to the parameter of the same name.
+    # Reading the live parameter rather than a copied default keeps the two from
+    # drifting: there is one statement of what "the C# shape" is, at the top.
+    function Get-Field {
+        param([string] $Name)
+
+        if ($Fields.ContainsKey($Name)) { return $Fields[$Name] }
+        return (Get-Variable -Name $Name -Scope Script).Value
+    }
+
+    $format = [string](Get-Field -Name 'TestResultFormat')
+    if ($format -notin @('trx', 'text')) {
+        $script:errors.Add("profile ${Index}: TestResultFormat '$format' is not one of: trx, text")
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Index              = $Index
+        Roots              = Expand-ListArgument -Values @(Get-Field -Name 'TestRoots')
+        Patterns           = Expand-ListArgument -Values @(Get-Field -Name 'TestFilePatterns')
+        ContractFolder     = [string](Get-Field -Name 'ContractTestFolder')
+        Attributes         = Expand-ListArgument -Values @(Get-Field -Name 'TestAttributes')
+        DeclarationPattern = [string](Get-Field -Name 'TestDeclarationPattern')
+        Results            = [string](Get-Field -Name 'TestResults')
+        Format             = $format
+        Label              = ''
+        Declarations       = @{}
+    }
+}
+
+function Get-DiscoveryProfiles {
+    $records = @($TestProfiles |
+        ForEach-Object { $_ -split '\r?\n' } |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ })
+
+    if ($records.Count -eq 0) {
+        return @(New-DiscoveryProfile -Fields @{} -Index 1)
+    }
+
+    # Both forms at once is rejected rather than merged. A parameter silently
+    # losing to a profile field, or winning over one, is invisible in the
+    # invocation that is meant to document the repository's layout.
+    $conflicting = @($script:ProfileFields | Where-Object { $script:BoundParameterNames -contains $_ })
+    if ($conflicting.Count -gt 0) {
+        $script:errors.Add("-TestProfiles cannot be combined with -$($conflicting -join ', -') - move those values into a profile record")
+        return @()
+    }
+
+    $profiles = [System.Collections.Generic.List[object]]::new()
+    $index = 0
+
+    foreach ($record in $records) {
+        $index++
+        $fields = @{}
+
+        foreach ($field in ($record -split ';')) {
+            if (-not $field.Trim()) { continue }
+
+            $split = $field.IndexOf('=')
+            if ($split -lt 1) {
+                $script:errors.Add("profile ${index}: '$($field.Trim())' is not a Key=Value field")
+                continue
+            }
+
+            $key = $field.Substring(0, $split).Trim()
+            $known = @($script:ProfileFields | Where-Object { $_ -eq $key })
+
+            if ($known.Count -eq 0) {
+                $script:errors.Add("profile ${index}: unknown field '$key' - expected one of: $($script:ProfileFields -join ', ')")
+                continue
+            }
+
+            if ($fields.ContainsKey($known[0])) {
+                $script:errors.Add("profile ${index}: field '$($known[0])' is set more than once")
+                continue
+            }
+
+            $fields[$known[0]] = $field.Substring($split + 1).Trim()
+        }
+
+        if ($fields.Count -eq 0) {
+            $script:errors.Add("profile ${index}: no recognized fields in '$record'")
+            continue
+        }
+
+        $parsed = New-DiscoveryProfile -Fields $fields -Index $index
+        if ($parsed) { $profiles.Add($parsed) }
+    }
+
+    return $profiles
+}
+
+$profiles = @(Get-DiscoveryProfiles)
+
+# A profile that did not parse cannot be checked against, and running the rest
+# of the checks with a partial set would report clauses as unverified for a
+# reason that is not theirs.
+if ($errors.Count -gt 0) {
+    Write-Host "Checking: system contracts..."
+    foreach ($item in $errors) { Write-Host "  error: $item" -ForegroundColor Red }
+    exit 1
+}
+
+# Only labelled when there is more than one, so a single-framework repository
+# reads exactly as it did before profiles existed.
+if ($profiles.Count -gt 1) {
+    foreach ($item in $profiles) { $item.Label = "profile $($item.Index): " }
+}
 
 # ==============================================================================
 # EXTRACT CLAUSES
@@ -369,9 +535,20 @@ function Get-TestDeclarations {
 
         foreach ($name in $names) {
             if (-not $declarations.ContainsKey($name)) {
-                $declarations[$name] = [pscustomobject]@{ InContract = $false; Files = [System.Collections.Generic.List[string]]::new() }
+                $declarations[$name] = [pscustomobject]@{
+                    InContract = $false
+                    Files      = [System.Collections.Generic.List[string]]::new()
+                    # The folder THIS profile expects a boundary test to sit in,
+                    # carried on the declaration so that a repository running
+                    # several profiles can name the right one when a clause
+                    # points at an interior test.
+                    Folders    = [System.Collections.Generic.List[string]]::new()
+                }
             }
             if ($isContract) { $declarations[$name].InContract = $true }
+            if ($splitByLocation -and -not $declarations[$name].Folders.Contains($ContractFolder)) {
+                [void]$declarations[$name].Folders.Add($ContractFolder)
+            }
             [void]$declarations[$name].Files.Add($file.Name)
         }
     }
@@ -553,13 +730,39 @@ foreach ($clause in $clauses) {
 }
 
 # --- Check 4: discovery found tests to check against ---
-# Reported once, naming what matched nothing. Reporting each clause as a missing
-# test instead would describe the wrong repair - the tests exist, the patterns
-# point elsewhere - and a run whose clauses are all planned obligations is
-# exempt, because a tree being bootstrapped is not expected to resolve anything.
-$declarations = Get-TestDeclarations -Roots $TestRoots -Patterns $TestFilePatterns `
-    -Attributes $TestAttributes -ContractFolder $ContractTestFolder `
-    -DeclarationPattern $TestDeclarationPattern
+# Reported once per profile, naming what matched nothing. Reporting each clause
+# as a missing test instead would describe the wrong repair - the tests exist,
+# the patterns point elsewhere - and a run whose clauses are all planned
+# obligations is exempt, because a tree being bootstrapped is not expected to
+# resolve anything.
+#
+# Declarations from every profile land in one pool: a clause names a test, not a
+# framework, so whichever profile declares it satisfies it. The emptiness check
+# stays per profile for the opposite reason - a profile matching nothing is a
+# broken pattern regardless of what the others found.
+$declarations = @{}
+
+foreach ($item in $profiles) {
+    $item.Declarations = Get-TestDeclarations -Roots $item.Roots -Patterns $item.Patterns `
+        -Attributes $item.Attributes -ContractFolder $item.ContractFolder `
+        -DeclarationPattern $item.DeclarationPattern
+
+    foreach ($name in $item.Declarations.Keys) {
+        $found = $item.Declarations[$name]
+
+        if (-not $declarations.ContainsKey($name)) {
+            $declarations[$name] = $found
+            continue
+        }
+
+        $merged = $declarations[$name]
+        if ($found.InContract) { $merged.InContract = $true }
+        foreach ($file in $found.Files) { [void]$merged.Files.Add($file) }
+        foreach ($folder in $found.Folders) {
+            if (-not $merged.Folders.Contains($folder)) { [void]$merged.Folders.Add($folder) }
+        }
+    }
+}
 
 $required = [System.Collections.Generic.List[string]]::new()
 foreach ($clause in $clauses) {
@@ -568,12 +771,17 @@ foreach ($clause in $clauses) {
     }
 }
 
-$discoveryFailed = ($declarations.Count -eq 0) -and ($required.Count -gt 0)
+foreach ($item in $profiles) {
+    if ($item.Declarations.Count -gt 0 -or $required.Count -eq 0) { continue }
 
-if ($discoveryFailed) {
-    $shape = if ($TestDeclarationPattern) { $TestDeclarationPattern } else { "attribute-marked methods ($($TestAttributes -join ', '))" }
-    $errors.Add("No test declarations found in '$($TestRoots -join ', ')' matching '$($TestFilePatterns -join ', ')' - $($required.Count) verifiers need one, so fix the discovery patterns rather than the tests. Declaration shape: $shape")
+    $shape = if ($item.DeclarationPattern) { $item.DeclarationPattern } else { "attribute-marked methods ($($item.Attributes -join ', '))" }
+    $errors.Add("$($item.Label)No test declarations found in '$($item.Roots -join ', ')' matching '$($item.Patterns -join ', ')' - $($required.Count) verifiers need one, so fix the discovery patterns rather than the tests. Declaration shape: $shape")
 }
+
+# Per-clause "not declared" errors are suppressed only when NOTHING was
+# discovered anywhere; a run where one profile worked still owes a per-clause
+# answer for the tests that profile did not declare.
+$discoveryFailed = ($declarations.Count -eq 0) -and ($required.Count -gt 0)
 
 # --- Check 5: every named test is a declared test in a contract test location ---
 $unresolved = [System.Collections.Generic.HashSet[string]]::new()
@@ -598,34 +806,68 @@ foreach ($clause in $clauses) {
             # Suppressed when discovery itself failed: check 4 has already said
             # why, and repeating it per clause would bury that finding.
             if (-not $discoveryFailed) {
-                $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not declared as a test method in $($TestRoots -join ', ')")
+                $searched = @($profiles | ForEach-Object { $_.Roots }) | Select-Object -Unique
+                $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not declared as a test method in $($searched -join ', ')")
             }
             continue
         }
 
         if (-not $declaration.InContract) {
             [void]$unresolved.Add($test)
-            $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not in a '$ContractTestFolder' folder (found in $($declaration.Files -join ', ')) - contract tests must be boundary tests")
+            $expected = if ($declaration.Folders.Count -gt 0) { $declaration.Folders -join "' or '" } else { $ContractTestFolder }
+            $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which is not in a '$expected' folder (found in $($declaration.Files -join ', ')) - contract tests must be boundary tests")
         }
     }
 }
 
 # --- Check 6: every named test passed, according to its most recent result ---
-$results = Get-TestOutcomes -Pattern $TestResults -Format $TestResultFormat
+# Outcomes pool across profiles exactly as declarations do, and by the same rule
+# within the pool as within one profile: the newest result for a name wins, and a
+# failure is never overwritten by a pass of the same age.
+$outcomes = @{}
+$anyResultsFound = $false
 
-if (-not $results.Found) {
-    $message = "No test results matching '$TestResults' - run build.ps1 first; pass verification was skipped"
-    if ($Strict) { $errors.Add($message) } else { $warnings.Add($message) }
-}
-else {
-    # --- Check 7: results must not predate the tests they claim to describe ---
-    # Stale results are worse than absent ones: they report a clause as verified
-    # using an outcome recorded before the test was last changed.
-    $newestSource = Get-NewestTestSource -Roots $TestRoots -Patterns $TestFilePatterns
-    if ($newestSource -and $newestSource.LastWriteTimeUtc -gt $results.Newest) {
-        $errors.Add("Test results are stale: '$($newestSource.Name)' changed after the newest result matching '$TestResults'. Re-run the tests.")
+foreach ($item in $profiles) {
+    $found = Get-TestOutcomes -Pattern $item.Results -Format $item.Format
+
+    if (-not $found.Found) {
+        # The single-profile wording says pass verification was skipped, which is
+        # true then and false when another profile did record results.
+        $consequence = if ($profiles.Count -gt 1) {
+            "tests recorded by this profile cannot be verified"
+        }
+        else {
+            "pass verification was skipped"
+        }
+
+        $message = "$($item.Label)No test results matching '$($item.Results)' - run build.ps1 first; $consequence"
+        if ($Strict) { $errors.Add($message) } else { $warnings.Add($message) }
+        continue
     }
 
+    $anyResultsFound = $true
+
+    # --- Check 7: results must not predate the tests they claim to describe ---
+    # Stale results are worse than absent ones: they report a clause as verified
+    # using an outcome recorded before the test was last changed. Compared within
+    # a profile, because a fresh C# run says nothing about an old script tally.
+    $newestSource = Get-NewestTestSource -Roots $item.Roots -Patterns $item.Patterns
+    if ($newestSource -and $newestSource.LastWriteTimeUtc -gt $found.Newest) {
+        $errors.Add("$($item.Label)Test results are stale: '$($newestSource.Name)' changed after the newest result matching '$($item.Results)'. Re-run the tests.")
+    }
+
+    foreach ($name in $found.Outcomes.Keys) {
+        $record = $found.Outcomes[$name]
+        $existing = $outcomes[$name]
+
+        if ($existing -and $existing.Time -gt $record.Time) { continue }
+        if ($existing -and $existing.Time -eq $record.Time -and $existing.Outcome -ne 'Passed') { continue }
+
+        $outcomes[$name] = $record
+    }
+}
+
+if ($anyResultsFound) {
     foreach ($clause in $clauses) {
         foreach ($test in $clause.Tests) {
             $leaf = Resolve-VerifierName -Verifier $test
@@ -634,16 +876,16 @@ else {
             # that need separate action.
             if ($unresolved.Contains($test)) { continue }
 
-            $matched = @($results.Outcomes.Keys | Where-Object { $_ -eq $leaf -or $_.EndsWith(".$leaf") })
+            $matched = @($outcomes.Keys | Where-Object { $_ -eq $leaf -or $_.EndsWith(".$leaf") })
 
             if ($matched.Count -eq 0) {
                 $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' which has no result - it did not run")
                 continue
             }
 
-            $failed = @($matched | Where-Object { $results.Outcomes[$_].Outcome -ne 'Passed' })
+            $failed = @($matched | Where-Object { $outcomes[$_].Outcome -ne 'Passed' })
             if ($failed.Count -gt 0) {
-                $outcome = $results.Outcomes[$failed[0]].Outcome
+                $outcome = $outcomes[$failed[0]].Outcome
                 $errors.Add("$($clause.File): clause $($clause.Id) names test '$test' whose most recent result is '$outcome'")
             }
         }
