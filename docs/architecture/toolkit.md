@@ -60,7 +60,10 @@ presented requires owning the conversation, which requires code.
   *Verified by:* `ToolkitContractTests.UnreachableModelFailsLoudly`
 
 - **TOOLKIT-08** — Every invocation appends a structured record of the operation, its inputs, its
-  outcome and any model usage, in a form a later query can aggregate without parsing prose.
+  outcome and any model usage, in a form a later query can aggregate without parsing prose. The record
+  identifies the outcome so that its meaning is fixed as new outcomes are added, so records aggregated
+  across versions — which is what aggregation means, since runs span releases — cannot silently change
+  meaning when the set of possible outcomes grows.
   *Verified by:* `TODO.InvocationsAppendStructuredRecords`
 
 - **TOOLKIT-09** — The tool reports the Anneal version it was built from, so an installed payload can
@@ -73,6 +76,13 @@ presented requires owning the conversation, which requires code.
   distinct from the codes carried by a gated failure and by a refusal, so a caller that scripts the
   wrong argument form cannot read its own mistake as a check that ran and passed.
   *Verified by:* `ToolkitContractTests.UsageErrorExitsAsCallerErrorWhateverTheCategory`
+
+- **TOOLKIT-11** — Every model interaction records a transcript of it — the prompt sent, the reply
+  received, the model consulted and the token usage — for every interaction rather than only for those
+  that failed or refused, and with no opt-in that could leave it off. A model asked the same question
+  later may answer differently, so this is the only evidence in the system that cannot be reconstructed
+  by re-running, and it is captured at the time or lost.
+  *Verified by:* `TODO.ModelInteractionsAreTranscribed`
 
 ### Requires
 
@@ -171,3 +181,39 @@ no check.
 solves the same problem at much larger scale, including retrieval, memory and a process engine. Its
 seams informed this design and none of its code is taken wholesale, because importing the parts that are
 not needed is how a small tool acquires a large one's maintenance cost.
+
+**The diagnostic trace is deliberately left out of the contract** — the tool emits a low-level, high-volume trace of
+its own execution for the purpose of debugging the tool itself, and that stream carries no `Provides`
+clause on purpose. Its entire value is being free to change: contracting its shape, volume or
+destination would turn a debugging aid into a promise and every restructuring of the tool's internals
+into a breaking change. It is named here so its absence from the contract reads as a decision rather than
+an omission. Whether such a trace exists at all, what it contains, and what produces it are interior
+matters for a later stage to settle.
+
+**The diagnostic trace, the invocation record and the transcript are three streams, not one** — the
+trace above, the queryable invocation record (`TOOLKIT-08`) and the model-interaction transcript
+(`TOOLKIT-11`) serve three different purposes, and serving them from a single structured sink is the
+obvious-looking simplification that must be refused. If the interior trace *were* also the contracted
+record, the interior would become contracted by accident: the trace could never be restructured without
+breaking `TOOLKIT-08`, and the very freedom that justifies leaving the trace out of the contract would be gone.
+The record and the transcript are contracted for what they promise a later query; the trace is free
+precisely because it promises nothing, and that separation is what keeps both properties true.
+
+**Transcripts are captured always, not on demand** — capture covers every model interaction, not only
+those that failed or refused, and is not placed behind an off-by-default flag. An opt-in guarantees the
+evidence is absent exactly when something surprising happened, and unlike a deterministic check the
+interaction cannot be recovered by re-running it. Failure-and-refusal-only capture misses the case a
+later audit stage exists to catch — the confidently wrong SUCCEEDED, which is silent by construction.
+The volume is real but small; a measurement run made sixteen probes. Because a transcript contains
+repository source, the files are gitignored and never committed. That capture happens is therefore what
+`TOOLKIT-11` contracts; where the transcripts live, their format, and any pruning of them are interior
+concerns.
+
+**An outcome is identified so its meaning survives the outcome set growing** — `TOOLKIT-08` requires the
+recorded outcome to keep its meaning as new outcomes are added, because aggregation is across runs and
+runs span releases. Identifying an outcome by a position that shifts when a member is inserted — as
+happened when a new outcome was added mid-set and moved an existing one's ordinal — would make a record
+written by one version mean something else when read against another, quietly corrupting the aggregation
+the clause promises. The clause states the stability as observable behavior and names no encoding,
+because how the identity is made stable is an interior decision and only the survival of meaning is the
+promise.

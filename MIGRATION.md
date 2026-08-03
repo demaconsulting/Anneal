@@ -81,16 +81,16 @@ it, and a bad number is a reason to revisit the design rather than to patch arou
 ## S2 — Shipping it
 
 Template gains `.config/dotnet-tools.json` and the role configuration file, Installer delivers both, and
-CI restores the tool. Roles become configurable per repository, and invocations begin appending
-structured records.
+CI restores the tool. Roles become configurable per repository, invocations begin appending structured
+records, and every model interaction begins capturing a transcript of itself.
 
 **Leaves working:** a repository that never invokes an operation, which still needs only the copied
 payload. Restore failure must not break a repository that calls nothing.
 
-**Exit conditions:** `TOOLKIT-05`, `TOOLKIT-08`, `TOOLKIT-09` verified. The *installed payload must be
-identifiable by version* entry in [CONSTRAINTS.md](CONSTRAINTS.md) moves up to Satisfied, and the
-*agent-report corpus* entry is absorbed by structured records. `agent-metrics.ps1`, which scrapes prose
-with regular expressions, is deleted rather than left as a second source.
+**Exit conditions:** `TOOLKIT-05`, `TOOLKIT-08`, `TOOLKIT-09`, `TOOLKIT-11` verified. The *installed
+payload must be identifiable by version* entry in [CONSTRAINTS.md](CONSTRAINTS.md) moves up to Satisfied,
+and the *agent-report corpus* entry is absorbed by structured records. `agent-metrics.ps1`, which
+scrapes prose with regular expressions, is deleted rather than left as a second source.
 
 ## S3 — Auditing verdicts
 
