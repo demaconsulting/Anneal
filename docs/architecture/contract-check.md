@@ -121,6 +121,13 @@ into an interface — a fixture-case repository is a first-class shape, not a va
 patterns have to reach the declaration form and the result form and not only the file extension. The C#
 defaults are held still while that widens, because every downstream repository reads them.
 
+Adding a fixture case follows a fixed shape: build a throw-away repository with `New-Repo`,
+`Set-SystemDoc`, `Set-ContractTests`, and `Set-Trx`, then assert with `Test-Case` on the exit code and
+message substrings. Assert with `-Reject` as well as `-Expect` where a case is about something *not*
+firing — both must agree for the case to mean anything. A new case earns its place by failing when the
+behavior it protects is removed: comment out the implementing line in `check-contracts.ps1`, watch the
+case fail, then restore it. A case that passes either way is documentation, not a test.
+
 ## Decisions
 
 **Fail closed, always** — a clause the parser cannot read is an error. Skipping it was rejected outright:

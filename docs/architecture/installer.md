@@ -76,7 +76,11 @@ code change — a property recorded as a constraint because it is easy to lose b
 is the irreversible half of an upgrade, and the classification it performs — payload files we retired
 versus files the repository added itself — is a judgement the user must be shown before it is acted on.
 `retired-payload.txt` exists because a file the payload no longer provides is indistinguishable from a
-file the repository authored, unless something remembers.
+file the repository authored, unless something remembers. **Renaming or deleting any payload file — an
+agent, a standard, or a skill — requires appending its installed path to `retired-payload.txt` in the
+same change.** A line never removed from it is what lets a repository upgrade from any earlier version;
+skipping it leaves a superseded file installed and selectable, which is worse than not shipping the
+rename at all.
 
 The system has no fixture suite, and that is its most significant gap. Every promise above is currently
 verified by hand, on the entry point every adopter runs first. `test-check-contracts.ps1` is the model to

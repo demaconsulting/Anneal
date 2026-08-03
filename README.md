@@ -60,8 +60,8 @@ still moving.
 Several things are deliberately absent: per-unit requirements, per-unit and per-subsystem design
 documents, verification design documents, an architecture model, formal review tracking, and
 multi-retry orchestration. Each was left out because its cost is paid on **every** subsequent change.
-[Maintaining](docs/user-guide/maintaining.md) has the full rationale, the trade-offs, and what must
-not be reintroduced.
+[Architecture Overview](docs/architecture/overview.md) has the full rationale, the trade-offs, and
+what must not be reintroduced.
 
 ## Requirements
 
@@ -169,15 +169,14 @@ maintained using its own agents.
 - **Languages** — PowerShell, with Markdown and YAML as the primary content
 - **Platform** — PowerShell 7; Node and Python supply the lint tooling
 
+To work on Anneal itself (not a repository that has installed it): `pwsh ./fix.ps1`, then
+`pwsh ./test-check-contracts.ps1`, then `pwsh ./lint.ps1`. The order matters — `lint.ps1` reads
+results that `test-check-contracts.ps1` writes.
+
 ## Documentation
 
 - **[Architecture Overview](docs/architecture/overview.md)** — the systems Anneal is built from
-- **[Getting Started](docs/user-guide/getting-started.md)** — install, bootstrap, first change
-- **[Common Tasks](docs/user-guide/common-tasks.md)** — the prompt to use for each day-to-day job
-- **[Workflow](docs/user-guide/workflow.md)** — classification and agent routing in practice
-- **[Authoring](docs/user-guide/authoring.md)** — writing the architecture tree and contracts well
-- **[Reference](docs/user-guide/reference.md)** — every agent, standard, skill, and script in detail
-- **[Maintaining](docs/user-guide/maintaining.md)** — design rationale and how to change this process
+- **[User Guide](docs/user-guide/README.md)** — installing, first run, and day-to-day usage
 
 ## Installation
 
@@ -199,7 +198,7 @@ the layout, then `@architecture-design` to interview and generate the architectu
 The payload installs eight agents and the standards they load. You invoke two of them: `@helper` is
 the front door for everything you want done, and `@architecture-design` interviews you when system
 boundaries need establishing or re-cutting. The other six run as sub-agents, so there are no trigger
-words to learn. [Reference](docs/user-guide/reference.md) describes each one.
+words to learn. [Process](docs/architecture/process.md) describes the full composition.
 
 ## License
 

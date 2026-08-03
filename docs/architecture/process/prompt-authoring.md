@@ -3,7 +3,6 @@ level: section
 covers:
   - .github/agents/**
   - .github/standards/**
-  - AGENTS.md
 ---
 
 [← Process](../process.md)
@@ -90,3 +89,58 @@ A developer or agent editing anything under `.github/agents/` or `.github/standa
 Editing a prompt also invalidates any behavioral verification recorded against that agent. Structural
 clauses are re-checked by script; behavioral claims must be re-established by inspection or a sandbox run,
 because the evidence described the prose that just changed.
+
+## When a Prohibition Earns Its Place
+
+Prohibitions and anti-pattern examples cost the same tokens as anything else, but they earn their place by
+a different test. A prohibition is worth its place only when it targets a **specific failure the agent is
+actually likely to commit** — a behavior the model defaults to, or one it has demonstrably chosen under
+pressure in this repository.
+
+The applicable test: ask whether removing the prohibition would cause the failure to recur within a small
+number of invocations. If yes, it pays for itself. If it warns against something an agent would not do
+unprompted, it is consuming attention that could go toward a rule the agent might break.
+
+A worked example clarifies the boundary. Stating that a parent document must not summarize its children
+earns its place, because summarizing is the default behavior of a model given a hierarchy — remove the
+prohibition and it recurs immediately. By contrast, listing diagnostic "symptoms" of a degrading process
+does not earn its place, because it names no specific act an agent could commit or avoid; it teaches
+recognition to a reader who cannot act on it inside a prompt.
+
+This is adjacent to "When a Why Earns Its Place" above and must not overlap it. A *why* earns its place
+by giving an agent something to reason from in a novel case. A *prohibition* earns its place by
+intercepting a specific default the agent would otherwise follow. One explains; the other blocks.
+
+## Checklists for New Payload Files
+
+These are the obligations that apply when creating a new agent, standard, or skill. They are recorded
+here because `prompt-authoring.md` is the single owner of "how payload files are authored" at level 3,
+and because each obligation flows from the structural contract in [process.md](../process.md).
+
+### New Agent
+
+- Front matter: `name` (matching filename), `description`, `user-invocable` or
+  `disable-model-invocation`
+- Named for what it owns or does — `{artifact}-{verb}` for an artifact owner, bare verb for a general
+  actor. Check the name against modes, other agents, scripts, and host built-in agent names
+- A stated purpose narrow enough that "when not to use this" is obvious
+- Explicit standards to load, by name
+- A report template with `**Result**` as the first metadata field
+- Listed in `AGENTS.md` under **Agent Delegation Guidelines**
+- `AGENTS.md` is kept in sync with `.github/template/AGENTS.pristine.md` — any edit to it must be made
+  in both copies, because `lint.ps1` enforces the match and `PROCESS-08` contracts it
+
+### New Standard
+
+- Front matter: `name`, `description`, optional `globs`
+- Every MANDATORY rule states **why**
+- Quality gates at the end as a checklist
+- Listed in the **Standards Application** matrix in `AGENTS.md` (same pristine-copy obligation applies)
+
+### New Skill
+
+- Front matter: `name`, `description` stating *when* to load it
+- Describes a procedure, not a parameter list
+- Says what to do when its subject is absent
+- The agent prompts that carried the procedure now reference the skill instead
+- Listed in the **Skills** section of `AGENTS.md` (same pristine-copy obligation applies)

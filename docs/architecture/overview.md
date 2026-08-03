@@ -79,6 +79,14 @@ collision detection before any write, and confirmation before deleting anything 
 
 ## Repository-Wide Decisions
 
+**What must not be reintroduced** — Anneal exists because the predecessor process made design change
+expensive. The cost came from four specific mechanisms: per-unit artifact fan-out (five artifacts per
+software item, down to individual classes), per-unit requirements (a requirements file per subsystem and
+unit, with identifier churn on every move), hard-fail companion gates (missing artifacts failed the
+build, turning every omission into a full retry), and multi-retry orchestration (PLANNING → DEVELOPMENT
+→ QUALITY with three retries, multiplying everything). Reintroducing any of these — or their
+structural equivalents — is a redesign, not an incremental regression.
+
 **Files, not tooling** — Anneal installs by file copy alone: no build step, no package manager, and no
 runtime dependency added to the target repository. The rejected alternative was distribution as a package
 with a version-resolved dependency, which buys upgrade mechanics at the cost of making adoption
@@ -102,3 +110,19 @@ so most root files exist twice, once working and once pristine under `.github/te
 a separate example repository, was rejected because it would be exercised only when someone remembered to
 exercise it. The cost is real and is bounded by a constraint: the template must stay valid for a C#
 product repository regardless of Anneal's own needs.
+
+**Doc comments replace unit-level requirements, design, and verification** — interior intent is recorded
+in doc comments because a doc comment is the only place that costs nothing to keep in sync: it is
+colocated, so a refactor edits it in the same file, and deleting the code deletes it. The same reasoning
+that embeds contracts in `{system}.md` rather than a parallel tree, applied one level down. Rejected on
+one side: recording interior intent in separate artifacts — the fan-out this process exists to remove.
+Rejected on the other: mandating a doc comment on every symbol regardless of whether it carries intent.
+Blanket coverage produces signature restatement at scale, and because nothing verifies a doc comment,
+filler propagates and compounds. So the boundary is mandatory and compiler-enforced, and interior members
+are documented by reason: intent that cannot be recovered from the code, or nothing.
+
+**`docs/user-guide/` is deliberately outside the tree's `covers` lists** — `technical-documentation.md`
+§ User Guides decouples user documentation from structure so that user-facing prose does not churn when
+internals move. The obligation to update the guide is triggered by a change to the surfaces it documents
+(`install.ps1`'s interface, `helper`'s behavior, `architecture-design`'s purpose), not by any interior
+change to the payload.

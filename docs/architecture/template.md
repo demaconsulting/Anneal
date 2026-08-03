@@ -25,6 +25,10 @@ touch `AGENTS.pristine.md`: **Process owns what that file says; Template owns th
 copy of it is present in the layout.** Content versus placement. A wording change edits Process, a layout
 change edits Template, and neither dirties the other.
 
+The same split applies to `.github/template/check-contracts.ps1`: **[ContractCheck](./contract-check.md)
+owns the script's behavior and failure taxonomy; Template owns its presence in the shipped layout.** A
+behavioral change edits ContractCheck, a placement change edits Template.
+
 ## Contract
 
 ### Provides

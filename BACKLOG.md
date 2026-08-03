@@ -46,6 +46,12 @@ where `architecture-design` will read them. See the Intake admission test in
   an intended difference. `lint.ps1`, `fix.ps1`, `.markdownlint-cli2.yaml`, `.yamllint.yaml`,
   `.yamlfix.toml` and `.gitignore` have not been looked at. Classify each as flows-to-template,
   adopt-from-template, or deliberately divergent, and fix the first two.
+- **No release packaging** — `install.ps1` covers installation from a clone, and
+  `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
+  artifact.
+- **No graduation path tooling** — the compelling story is evolving fast under Anneal and promoting a
+  stabilized repository into the `Agents` process once the design stops moving. Nothing automates
+  that today, and the mapping from contracts to system requirements would be the place to start.
 - **Give `install.ps1` a fixture suite** — it is the entry point every user runs first and it now
   carries real logic: a payload table that renames `AGENTS.pristine.md` on the way in, collision
   detection before any write, `-Prune` with the retired-payload list, and a claim that the installed

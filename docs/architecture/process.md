@@ -18,10 +18,9 @@ because an interface changed, but because agents would classify work differently
 and stop at different boundaries. The observable surface of a prompt is the behavior it produces.
 
 That makes the contract below unusual, and it is worth being explicit about what it does **not** cover.
-No clause here promises that an agent behaves well. Those promises exist, but they are properties of a
-conversation, and they are established by inspection or by a sandbox run rather than by a script — the
-repository-wide decision in [overview.md](./overview.md) records why. What the contract covers is the
-structural integrity of the payload: the properties that must hold for the prose to be loadable,
+No clause here promises that an agent behaves well — the repository-wide decision in
+[overview.md](./overview.md) records the verification split and why it exists. What the contract covers
+is the structural integrity of the payload: the properties that must hold for the prose to be loadable,
 routable, and internally consistent at all. A prompt that fails these is broken regardless of how well it
 is written.
 
@@ -163,6 +162,12 @@ person least equipped to do it consistently.
 **Standards are loaded on demand, never bundled** — an agent reads the two to four standards its task
 needs. Bundling them into `AGENTS.md` was rejected because that file is paid for on every invocation,
 which is the budget PROCESS-06 protects.
+
+**Bounded repairs, no planning phase** — `dispatch` allows one documentation repair and one code repair
+per change, because a documentation finding has to be fixed before implementation can use it, but
+grinding a finding that will not clear means the change was misunderstood at the start. The rejected
+alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three retries, which multiplied
+every cost by up to four and made the process expensive rather than the design.
 
 ## Details
 
