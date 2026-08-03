@@ -60,15 +60,16 @@ axes before touching anything. That file is the **single definition** of both �
 and routes; it never restates what they mean.
 
 - **Mode** — `Intake`, `Change`, `Maintenance`, or `Migration`. Decides what you may touch.
-- **Tier** — `0`, `1`, or `2`, within Change mode. Decides how much documentation moves.
+- **Tier** — `Tier 0 (Interior)`, `Tier 1 (Contract)`, or `Tier 2 (Structural)`, within Change mode.
+  Decides how much documentation moves.
 
 Routing once classified:
 
 | Mode / Tier | Route |
 | --- | --- |
 | Intake | `dispatch` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
-| Change, Tier 0 | `apply` |
-| Change, Tier 1 or 2 | `architecture-update` → `apply` → `tier-check` |
+| Change, Tier 0 (Interior) | `apply` |
+| Change, Tier 1 (Contract) or Tier 2 (Structural) | `architecture-update` → `apply` → `tier-check` |
 | Maintenance | `apply`, within a declared bound |
 | Migration | `architecture-design` → approved `MIGRATION.md` → staged `apply` work |
 

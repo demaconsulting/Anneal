@@ -167,9 +167,10 @@ it:
 - The document has decayed into restating names and signatures.
 - The rejected alternative it preserved is no longer a plausible option.
 
-The `architecture-update` agent MUST perform a prune check on every Tier 1 and Tier 2 change: list
-the section documents under the affected system and confirm each still meets a creation test.
-Undeleted documentation is the mechanism by which a tree silently becomes an anchor.
+The `architecture-update` agent MUST perform a prune check on every Tier 1 (Contract) and Tier 2
+(Structural) change: list the section documents under the affected system and confirm each still
+meets a creation test. Undeleted documentation is the mechanism by which a tree silently becomes an
+anchor.
 
 # Publishing (MANDATORY)
 

@@ -35,7 +35,7 @@ automatically.
 ## Intake
 
 Recording that something is wanted. **No code, no tests, no contract change.** The cheapest
-operation in the process, deliberately — if filing a need costs anything, needs stop being filed and
+step in the process, deliberately — if filing a need costs anything, needs stop being filed and
 the register goes empty.
 
 Apply the admission test: *does it hold, or does it complete?*
@@ -66,7 +66,7 @@ because someone asked for it.
 Improving what is already there without changing what it promises: renaming for clarity, extracting
 helpers, deleting dead code, tidying interior tests, bumping a dependency.
 
-- **Maintenance is Tier 0 by definition.** If the work would change a contract, it has left
+- **Maintenance is Tier 0 (Interior) by definition.** If the work would change a contract, it has left
   maintenance and must be re-classified as Change and re-approved.
 - **Maintenance may never edit the architecture tree**, `CONSTRAINTS.md`, or `BACKLOG.md`.
   Discovering an architectural problem during maintenance is a *finding to report*, never a license
@@ -101,7 +101,7 @@ Within Change mode, answer one question:
 
 > **Does this change what the contract promises?**
 
-If **no**, the change is Tier 0. Stop classifying and start working. Correcting an implementation so
+If **no**, the change is Tier 0 (Interior). Stop classifying and start working. Correcting an implementation so
 it finally does what the contract already promised is Tier 0, even though the observable output
 changes — the promise did not move.
 
@@ -109,7 +109,7 @@ If **yes**, ask the follow-up:
 
 > **Does the set of systems, or the interaction between them, change?**
 
-If no, it is Tier 1. If yes, it is Tier 2.
+If no, it is Tier 1 (Contract). If yes, it is Tier 2 (Structural).
 
 # Tier 0 — Interior Change
 

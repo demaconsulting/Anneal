@@ -18,7 +18,7 @@ Contract tests prove a clause in a system's `## Contract` (see `system-contracts
 - Named in the clause they verify, so the link is greppable in both directions.
 - Live in a dedicated location — `test/{System}.Tests/Contract/` — so their special status is
   visible.
-- **Survive refactoring untouched.** A Tier 0 change that breaks a contract test was misclassified:
+- **Survive refactoring untouched.** A Tier 0 (Interior) change that breaks a contract test was misclassified:
   either the change is actually Tier 1, or it is a defect.
 - Changing one requires a corresponding contract change. Never edit a contract test to make a build
   pass.

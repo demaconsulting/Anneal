@@ -213,6 +213,59 @@ function Get-PayloadDestination {
     return @([regex]::Matches($block, 'To\s*=\s*"([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
 }
 
+# Every payload file that carries prose an agent reads. Fenced blocks are
+# deliberately NOT stripped here, because the report templates - which live
+# inside fences - are exactly where the mode and tier declaration lines are.
+# The template tree is walked whole rather than by named file: everything under
+# .github/template/ ships to every installed repository, so a claim it makes
+# about the vocabulary is as binding as one an agent prompt makes, and a new
+# template document is covered the day it is added.
+function Get-PayloadTextFile {
+    $paths = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-AgentFile) { $paths.Add($file.FullName) }
+    foreach ($file in Get-StandardFile) { $paths.Add($file.FullName) }
+    $skills = @(Get-ChildItem -LiteralPath (Repo-Path ".github/skills") -Filter "*.md" -File -Recurse | Sort-Object FullName)
+    foreach ($file in $skills) { $paths.Add($file.FullName) }
+    $template = @(Get-ChildItem -LiteralPath (Repo-Path ".github/template") -Filter "*.md" -File -Recurse | Sort-Object FullName)
+    foreach ($file in $template) { $paths.Add($file.FullName) }
+    $paths.Add((Repo-Path "AGENTS.md"))
+    return $paths
+}
+
+# The work modes, read from the table under '# Work Modes' in the standard that
+# owns them. Read rather than listed, so that the check closes over the
+# vocabulary itself and not over a second copy of it that could drift.
+function Get-DefinedMode {
+    param([string] $Path)
+
+    $modes = [System.Collections.Generic.List[string]]::new()
+    $inSection = $false
+    foreach ($line in ((Read-Text $Path) -split "`n")) {
+        if ($line -match '^#\s') {
+            $inSection = ($line -match '^#\s*Work Modes\s*$')
+            continue
+        }
+        if (-not $inSection) { continue }
+        if ($line -match '^\s*\|\s*\*\*([^*|]+)\*\*\s*\|') { $modes.Add($Matches[1].Trim()) }
+    }
+    return $modes
+}
+
+# The tier scale, read from the '# Tier {n} - {Qualifier} Change' headings of the
+# same standard. The trailing word 'Change' is part of the heading's sentence,
+# not of the name, so 'Interior Change' yields the qualifier 'Interior'.
+function Get-DefinedTier {
+    param([string] $Path)
+
+    $tiers = [ordered]@{}
+    foreach ($line in ((Read-Text $Path) -split "`n")) {
+        if ($line -match '^#\s*Tier\s+(\d+)\s*—\s*(.+?)\s*$') {
+            $tiers[$Matches[1]] = ($Matches[2] -replace '\s+Change$', '')
+        }
+    }
+    return $tiers
+}
+
 # ==============================================================================
 # CASES
 # ==============================================================================
@@ -519,6 +572,79 @@ Test-Case -Name "WorstCaseInvocationWithinBudget" -Body {
     return $problems
 }
 
+# --- PROCESS-07 ---------------------------------------------------------------
+# The vocabulary is read from change-classification.md, never listed here: a mode
+# added there is covered the day it is added, and a mode renamed there fails
+# every payload file still carrying the old name. Two shapes are read, because
+# they fail differently - a report template can declare a mode that no longer
+# exists, and prose can name one that never did.
+Test-Case -Name "ModeVocabularyIsClosed" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    # Sentence-initial function words that legitimately precede the bare noun
+    # "mode" in ordinary English - "The mode and tier decide the workflow". They
+    # are exempted by name rather than by weakening the capture, because a
+    # narrower pattern would also stop seeing a genuinely undefined mode name.
+    # Not one of these words could plausibly name a mode, so the list gives up
+    # no coverage. The check has two other limits, both deliberate: the capture
+    # requires an initial capital, so a lower-case "patch mode" is not seen, and
+    # it reads only the payload files Get-PayloadTextFile returns.
+    $functionWords = @(
+        "The", "This", "That", "A", "An", "Each", "Every", "Any", "No", "One",
+        "Another", "Either", "Both", "Such", "Its", "Their", "Which",
+        "Whichever", "What", "Whatever", "Some", "Same", "Only"
+    )
+
+    $classification = Repo-Path ".github/standards/change-classification.md"
+    $modes = Get-DefinedMode -Path $classification
+
+    # Fail closed: if the table stops parsing, every name below would be
+    # "undefined" or - worse, had this been written as a skip - nothing would be
+    # checked at all and the clause would quietly stop being verified.
+    if ($modes.Count -lt 2) {
+        $problems.Add("only $($modes.Count) work mode(s) parsed from the '# Work Modes' table in change-classification.md; the vocabulary has no readable owner")
+        return $problems
+    }
+
+    $files = Get-PayloadTextFile
+    foreach ($path in $files) {
+        $name = Split-Path $path -Leaf
+        $number = 0
+        foreach ($line in ((Read-Text $path) -split "`n")) {
+            $number++
+
+            # A report template's mode field: every alternative of its (A|B|C)
+            # group and every backticked token on the line is a claim about the
+            # vocabulary.
+            if ($line -match '^\s*(?:-\s*)?\*\*Mode\*\*\s*(?::|—|-)') {
+                $tokens = [System.Collections.Generic.List[string]]::new()
+                foreach ($group in [regex]::Matches($line, '\(([^)]*)\)')) {
+                    foreach ($alternative in ($group.Groups[1].Value -split '\|')) { $tokens.Add($alternative.Trim()) }
+                }
+                foreach ($span in [regex]::Matches($line, '`([^`]+)`')) { $tokens.Add($span.Groups[1].Value.Trim()) }
+
+                foreach ($token in $tokens) {
+                    if ($token -eq "" -or $token -eq "n/a") { continue }
+                    if ($modes -contains $token) { continue }
+                    $problems.Add("$name line ${number}: the mode field names '$token', which change-classification.md does not define")
+                }
+            }
+
+            # The phrase form, wherever it appears: "Migration mode", "Change mode".
+            foreach ($match in [regex]::Matches($line, '\b([A-Z][A-Za-z]*)\s+[Mm]ode\b')) {
+                $word = $match.Groups[1].Value
+                if ($modes -contains $word) { continue }
+                if ($functionWords -contains $word) { continue }
+                $problems.Add("$name line ${number}: '$word mode' names a mode change-classification.md does not define")
+            }
+        }
+    }
+
+    Add-Note "modes: $($modes -join ', ')"
+    Add-Note "payload files scanned: $($files.Count)"
+    return $problems
+}
+
 # --- PROCESS-08 ---------------------------------------------------------------
 # The same comparison lint.ps1 makes, including its trimming; a different trim
 # reports a phantom one-line drift.
@@ -564,6 +690,72 @@ Test-Case -Name "AgentsFileMatchesPristine" -Body {
         $problems.Add("AGENTS.md and AGENTS.pristine.md agree for $limit lines, then $longer continues with '$extra'")
     }
 
+    return $problems
+}
+
+# --- PROCESS-09 ---------------------------------------------------------------
+# Three shapes, one vocabulary. The ordinal pass catches a scale that has been
+# extended; the qualifier pass catches one that has been re-labelled; the field
+# pass catches a report template that offers a tier no document defines. A
+# non-digit placeholder such as 'Tier N' is not an ordinal claim and is not
+# matched by any of them.
+Test-Case -Name "TierVocabularyIsClosed" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $classification = Repo-Path ".github/standards/change-classification.md"
+    $tiers = Get-DefinedTier -Path $classification
+
+    # Fail closed, for the same reason the mode case does.
+    if ($tiers.Count -lt 2) {
+        $problems.Add("only $($tiers.Count) tier heading(s) parsed from change-classification.md in the form '# Tier {n} — {Qualifier} Change'; the scale has no readable owner")
+        return $problems
+    }
+    $ordinals = @($tiers.Keys)
+
+    $sites = 0
+    $files = Get-PayloadTextFile
+    foreach ($path in $files) {
+        $name = Split-Path $path -Leaf
+        $number = 0
+        foreach ($line in ((Read-Text $path) -split "`n")) {
+            $number++
+
+            # Ordinals, including runs: 'Tier 1/2', 'Tier 1 or 2', 'Tier 1, 2'.
+            foreach ($match in [regex]::Matches($line, '(?i)\b[Tt]iers?\s+(\d+(?:\s*(?:/|,|\s(?:or|and)\s)\s*\d+)*)')) {
+                $sites++
+                foreach ($digit in [regex]::Matches($match.Groups[1].Value, '\d+')) {
+                    if ($ordinals -contains $digit.Value) { continue }
+                    $problems.Add("$name line ${number}: 'Tier $($digit.Value)' is not an ordinal change-classification.md defines")
+                }
+            }
+
+            # Qualifiers, compared exactly: a re-labelled tier is as much a
+            # vocabulary break as an invented one.
+            foreach ($match in [regex]::Matches($line, '\b[Tt]ier\s+(\d+)\s*\(([^)]*)\)')) {
+                $sites++
+                $ordinal = $match.Groups[1].Value
+                $qualifier = $match.Groups[2].Value
+                if ($ordinals -notcontains $ordinal) { continue }
+                if ($tiers[$ordinal] -cne $qualifier) {
+                    $problems.Add("$name line ${number}: 'Tier $ordinal ($qualifier)' contradicts change-classification.md, which names Tier $ordinal '$($tiers[$ordinal])'")
+                }
+            }
+
+            # A report template's tier field. '**Tier Verdict**' is a different
+            # field and deliberately does not match.
+            if ($line -match '^\s*(?:-\s*)?\*\*Tier\*\*\s*(?::|—|-)') {
+                $sites++
+                foreach ($digit in [regex]::Matches($line, '\d')) {
+                    if ($ordinals -contains $digit.Value) { continue }
+                    $problems.Add("$name line ${number}: the tier field offers '$($digit.Value)', which is not an ordinal change-classification.md defines")
+                }
+            }
+        }
+    }
+
+    $named = @(foreach ($ordinal in $ordinals) { "$ordinal ($($tiers[$ordinal]))" })
+    Add-Note "tiers: $($named -join ', ')"
+    Add-Note "tier sites checked: $sites across $($files.Count) payload files"
     return $problems
 }
 

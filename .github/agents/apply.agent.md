@@ -14,7 +14,7 @@ this agent and nothing else.
 
 If a mode and tier were supplied by a calling agent, use them. Otherwise read
 `.github/standards/change-classification.md` — the single definition of both axes — and classify the
-work yourself, stating the mode, the tier, and the reason in one sentence. Maintenance is Tier 0 by
+work yourself, stating the mode, the tier, and the reason in one sentence. Maintenance is Tier 0 (Interior) by
 definition and arrives with a declared bound; record that bound in the report.
 
 Migration is the exception to both sources: it arrives from the user naming a stage of an approved
@@ -104,7 +104,7 @@ Generate the completion report per the AGENTS.md reporting requirements.
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/apply-{subject}-{unique-id}.md`
 **Mode**: (Change|Maintenance|Migration)
-**Tier**: (0|1|2) for Change; `0 (fixed by mode)` for Maintenance; `n/a (Migration)` for a Migration
+**Tier**: (0|1|2) for Change, named: `1 (Contract)`; `0 (fixed by mode)` for Maintenance; `n/a` for a Migration
 stage
 **Rationale**: {one sentence giving the mode and, for a Change, the tier}
 **Bound** (Maintenance only): {the declared file set, the permitted categories of edit, the stopping

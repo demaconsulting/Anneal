@@ -117,9 +117,10 @@ suite file named `TODO-suite.ps1` are all checked normally. Any verifier that is
 form and names no existing test is an **error**, so a bare `TODO` dropped into the middle of a name
 breaks the build rather than deferring the obligation.
 
-The `tier-check` agent runs with `-Strict` on Tier 1 and Tier 2 changes, which promotes obligations to
-errors once implementation is complete; that agent owns closing them. During a Migration the planned
-clauses are closed stage by stage, and `MIGRATION.md` holds the exit condition for each.
+The `tier-check` agent runs with `-Strict` on Tier 1 (Contract) and Tier 2 (Structural) changes, which
+promotes obligations to errors once implementation is complete; that agent owns closing them. During
+a Migration the planned clauses are closed stage by stage, and `MIGRATION.md` holds the exit
+condition for each.
 
 **Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
 the contract change deliberately.

@@ -70,7 +70,7 @@ search for that one claim, not a general duplication audit.
 
 # Step 4 — Tier Honesty
 
-- **Tier 0**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
+- **Tier 0 (Interior)**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
   test on a Tier 0 change is a FAIL — the change was Tier 1.
 - **Tier 1 and 2**: the contract must have been updated **before** implementation. Evidence is that
   every changed boundary behavior has a matching clause, not the reverse. Clauses that merely
@@ -122,7 +122,7 @@ asserts conformance to a rule the caller cannot read.
 
 **Result**: (SUCCEEDED|FAILED)
 **Report**: `.agent-logs/tier-check-{subject}-{unique-id}.md`
-**Tier**: (0|1|2) — state whether it was declared by the caller or inferred by you
+**Tier**: (0|1|2) named: `1 (Contract)` — state whether it was declared by the caller or inferred by you
 **Tier Verdict**: (correct|should have been Tier N)
 
 ## Required Fixes (only when Result is FAILED)

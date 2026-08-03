@@ -57,13 +57,19 @@ is written.
   [Prompt Authoring](./process/prompt-authoring.md), counted by the method declared there.
   *Verified by:* `WorstCaseInvocationWithinBudget`
 
-- **PROCESS-07** — Every mode and tier named anywhere in the payload is one that
+- **PROCESS-07** — Every work mode the payload names — in a report template's mode field, in the
+  classification vocabulary `AGENTS.md` carries, or in the phrase form `{Name} mode` — is one that
   `change-classification.md` defines, so no agent can act on a classification no other agent recognizes.
-  *Verified by:* `TODO.ClassificationVocabularyIsClosed`
+  *Verified by:* `ModeVocabularyIsClosed`
 
 - **PROCESS-08** — The repository's `AGENTS.md` equals `.github/template/AGENTS.pristine.md` plus its
   Template Stewardship section, so process content cannot drift between the working and shipped copies.
   *Verified by:* `AgentsFileMatchesPristine`
+
+- **PROCESS-09** — Every tier the payload names is an ordinal `change-classification.md` defines, and
+  wherever one is named with its qualifier the qualifier is the one that document gives that ordinal, so
+  the scale agents route on cannot be extended, re-ordered, or re-labelled by a single file.
+  *Verified by:* `TierVocabularyIsClosed`
 
 ### Requires
 
@@ -186,6 +192,31 @@ per change, because a documentation finding has to be fixed before implementatio
 grinding a finding that will not clear means the change was misunderstood at the start. The rejected
 alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three retries, which multiplied
 every cost by up to four and made the process expensive rather than the design.
+
+**The classification vocabulary is contracted as two clauses, not one** — modes and tiers are one idea
+to a reader and two different problems to a checker, and PROCESS-07 spent a release as an unfulfilled
+obligation because of it. The mode half is only checkable while no payload file uses the word for
+something else: `template-sync` called its own three operations modes, and its report field declared
+them in a form indistinguishable from a work-mode declaration, so any pattern strict enough to catch a
+real mistake also caught that file. Renaming that agent's concept to **Operation** — rather than
+renaming the work modes, which a standard owns, five agents reference, and PROCESS-07 rides on — is
+what made the mode half honestly mechanizable, and the two halves then earn separate clauses because
+each is checked by a different reading of the payload and either could lose its mechanism without
+taking the other with it. The rejected alternative was one clause naming two tests, which would report
+a single verdict over two independent promises and hide which one had lapsed.
+
+**Tier ordinals carry their qualifier where a tier is decided** — routing tables, report-template field
+definitions, and the first use in each document write `Tier 1 (Contract)` rather than `Tier 1`, while
+every other site stays bare. The ordinals are kept because the process depends on the scale being
+ordered: modes and tiers may be raised but never silently lowered, and a name alone carries no
+direction. The names are added because `0`, `1`, `2` carries no direction either, and the priors a
+model brings point the wrong way — Tier 0 is the most severe class in incident and security usage, and
+Tier 1 is the top in capital and the simplest in support, while here Tier 0 is the trivial one. This is
+preventive: no agent has been observed inverting the scale, and saying so matters, because a rule
+justified by a defect that never happened is a rule the next reader cannot weigh. It is bounded to
+decision sites for the same reason the budget in [Prompt Authoring](./process/prompt-authoring.md)
+exists — naming all seventy-odd sites would spend attention everywhere to buy certainty in the few
+places a wrong reading changes what an agent does.
 
 ## Details
 

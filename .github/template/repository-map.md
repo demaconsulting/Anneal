@@ -19,10 +19,10 @@ already has one. Two things about it are unlike every other mapped file:
 - It carries **no per-repository customization** — project facts live in `README.md` — so unlike
   every other mapped file it is safe to overwrite wholesale, and `install.ps1 -Force` does.
 
-That last point matters, because Patch mode only inserts **missing sections**: it cannot update
-content that changed inside a section which already exists. For most mapped files that is the safe
-behavior. For `AGENTS.md` it is not sufficient, so treat a wholesale replacement as the way to update
-it and Patch as a fallback.
+That last point matters, because the Patch operation only inserts **missing sections**: it cannot
+update content that changed inside a section which already exists. For most mapped files that is
+the safe behavior. For `AGENTS.md` it is not sufficient, so treat a wholesale replacement as the
+way to update it and Patch as a fallback.
 
 ## Placeholders
 

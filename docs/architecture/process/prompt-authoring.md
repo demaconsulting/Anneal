@@ -27,13 +27,13 @@ current payload:
 
 | File | Tokens |
 | --- | --- |
-| `AGENTS.md` | 2,819 |
+| `AGENTS.md` | 2,842 |
 | `architecture-design.agent.md` — largest agent prompt | 2,708 |
-| `architecture-documentation.md` | 3,168 |
-| `change-classification.md` | 2,664 |
-| `system-contracts.md` | 2,364 |
+| `architecture-documentation.md` | 3,174 |
+| `change-classification.md` | 2,674 |
+| `system-contracts.md` | 2,370 |
 | `technical-documentation.md` | 2,106 |
-| **Worst case** | **15,829** |
+| **Worst case** | **15,874** |
 
 The measurement is recorded beside the ceiling on purpose. 20,000 leaves roughly a quarter of headroom: it
 does not fire today, and it fires well before the payload becomes a problem rather than after. Whoever

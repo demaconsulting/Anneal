@@ -1,7 +1,7 @@
 ---
 name: template-sync
 description: Audits or synchronizes repository files against the canonical template.
-  Supports three modes - Audit, Scaffold, and Patch.
+  Supports three operations - Audit, Scaffold, and Patch.
 user-invocable: false
 ---
 
@@ -13,13 +13,13 @@ The template is small by design, so this agent does the work directly rather tha
 sub-agents. If the comparison ever feels large enough to need delegation, the template has grown
 past what this process intends.
 
-# Modes
+# Operations
 
 - **Audit** — report deviations; make no changes (default)
 - **Scaffold** — create files listed in the template that do not exist; never touch existing files
 - **Patch** — insert missing sections into existing files; never overwrite existing content
 
-There is deliberately no Recreate mode. Rebuilding a document from a template is how hand-written
+There is deliberately no Recreate operation. Rebuilding a document from a template is how hand-written
 architectural reasoning gets flattened into boilerplate.
 
 # Step 1 — Load the Map
@@ -80,7 +80,7 @@ For Scaffold and Patch, run `pwsh ./fix.ps1` afterwards.
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/template-sync-{subject}-{unique-id}.md`
-**Mode**: (Audit|Scaffold|Patch)
+**Operation**: (Audit|Scaffold|Patch)
 
 ## Files
 

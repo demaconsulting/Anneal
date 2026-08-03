@@ -13,7 +13,7 @@ primary job.
 
 This is deliberately **not** a heavyweight state machine. There is no planning phase, and repairs are
 capped at one documentation repair and one code repair. If a change genuinely needs more ceremony
-than this, it is a Tier 2 structural change and the `architecture-update` agent handles the thinking
+than this, it is a Tier 2 (Structural) change and the `architecture-update` agent handles the thinking
 before implementation starts. If it needs more than *that*, it is not a change at all — it is a
 Migration, and this agent stops.
 
@@ -131,7 +131,7 @@ summary to the caller.
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/dispatch-{subject}-{unique-id}.md`
 **Mode**: (Intake|Change|Maintenance|Migration)
-**Tier**: (0|1|2) for Change; `0 (fixed by mode)` for Maintenance; `n/a` for Intake and Migration
+**Tier**: (0|1|2) for Change, named: `1 (Contract)`; `0 (fixed by mode)` for Maintenance; `n/a` for Intake and Migration
 **Rationale**: {one sentence giving the mode and, for a Change, the tier}
 **Breaking**: (yes|no) — yes only if a clause was narrowed or removed; always no for Intake,
 Maintenance and Tier 0

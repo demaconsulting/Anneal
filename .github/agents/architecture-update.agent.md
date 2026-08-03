@@ -30,7 +30,7 @@ Step 2 branches on it.
 Descend the tree rather than reading it all. Start at `docs/architecture/overview.md`, identify the
 affected systems, and read only those system documents and their section documents.
 
-For **Tier 2**, read `CONSTRAINTS.md` as well. Its **Satisfied** entries are conditions your change
+For **Tier 2 (Structural)**, read `CONSTRAINTS.md` as well. Its **Satisfied** entries are conditions your change
 must not regress — they are why the current shape is the shape it is. Its **Not Yet Satisfied**
 entries are pressure a re-shaping change may happen to relieve at no extra cost. Do not widen the
 change to chase one; just check whether the shape you are already producing resolves it.
@@ -131,7 +131,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/architecture-update-{subject}-{unique-id}.md`
-**Tier**: (1|2)
+**Tier**: (1|2) for Change, named: `1 (Contract)` or `2 (Structural)`
 
 ## Contract Changes
 

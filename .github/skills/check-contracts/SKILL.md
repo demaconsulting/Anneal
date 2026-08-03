@@ -33,9 +33,9 @@ script to teach it a new shape is the wrong repair — it ships to every reposit
 
 | Situation | Command |
 | --- | --- |
-| Tier 0 change | Not required — no clause changed |
-| Tier 1 or 2, implementing | `pwsh ./check-contracts.ps1` |
-| Tier 1 or 2, verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
+| Tier 0 (Interior) change | Not required — no clause changed |
+| Tier 1 (Contract) or Tier 2 (Structural), implementing | `pwsh ./check-contracts.ps1` |
+| Tier 1 (Contract) or Tier 2 (Structural), verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
 | Bootstrapping a tree, tests not yet written | `pwsh ./check-contracts.ps1` |
 | Landing a migration stage with later stages outstanding | `pwsh ./check-contracts.ps1` |
 
