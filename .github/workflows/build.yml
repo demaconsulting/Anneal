@@ -43,6 +43,12 @@ jobs:
         shell: pwsh
         run: ./test-check-contracts.ps1
 
+      # The Process contract's verifiers. Same ordering and the same reason: it
+      # writes the results the contract check inside lint.ps1 reads.
+      - name: Test the Process contract
+        shell: pwsh
+        run: ./test-process-contract.ps1
+
       - name: Lint
         shell: pwsh
         run: ./lint.ps1

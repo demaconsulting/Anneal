@@ -30,25 +30,32 @@ is written.
 
 - **PROCESS-01** — Every agent file carries front matter whose `name` matches its filename and whose
   invocation flags are well-formed, so an agent can be selected by name without reading its body.
-  *Verified by:* `TODO.AgentFrontMatterIsWellFormed`
+  *Verified by:* `AgentFrontMatterIsWellFormed`
 
-- **PROCESS-02** — Every standard, skill, script, and register file named by an agent prompt exists at
-  the path given.
-  *Verified by:* `TODO.AgentReferencesResolve`
+- **PROCESS-02** — Every standard, skill, and agent prompt named by an agent prompt exists at the path
+  given, and every other path an agent prompt names belongs to the repository layout this process
+  defines — the layout [Template](./template.md) ships, and the files and directories every installed
+  repository carries — so no reference resolves only in the repository the payload was authored in.
+  What is promised is membership in that layout, not presence on disk: `MIGRATION.md` belongs to the
+  layout while being absent from every repository outside a Migration. Build output the tooling
+  produces rather than the layout defines is outside this promise.
+  *Verified by:* `AgentReferencesResolve`
 
-- **PROCESS-03** — Every standard in `.github/standards/` is referenced by at least one agent, so no
-  standard ships that nothing loads.
-  *Verified by:* `TODO.NoOrphanedStandards`
+- **PROCESS-03** — Every standard in `.github/standards/` is reachable by an agent — named by an agent
+  prompt, or by the Standards Application matrix in `AGENTS.md` that every agent loads — so no standard
+  ships that nothing loads.
+  *Verified by:* `NoOrphanedStandards`
 
 - **PROCESS-04** — Every agent prompt defines a report template whose first metadata field is `**Result**`.
-  *Verified by:* `TODO.ReportTemplateShapeIsUniform`
+  *Verified by:* `ReportTemplateShapeIsUniform`
 
 - **PROCESS-05** — Every agent handles each result value that any agent it invokes is able to emit.
   *Verified by:* `TODO.HandoffCoverageIsComplete`
 
 - **PROCESS-06** — The worst-case single invocation — `AGENTS.md`, the largest agent prompt, and the four
-  largest standards — stays within the declared context budget.
-  *Verified by:* `TODO.WorstCaseInvocationWithinBudget`
+  largest standards — stays within the context budget declared in
+  [Prompt Authoring](./process/prompt-authoring.md), counted by the method declared there.
+  *Verified by:* `WorstCaseInvocationWithinBudget`
 
 - **PROCESS-07** — Every mode and tier named anywhere in the payload is one that
   `change-classification.md` defines, so no agent can act on a classification no other agent recognizes.
@@ -56,19 +63,21 @@ is written.
 
 - **PROCESS-08** — The repository's `AGENTS.md` equals `.github/template/AGENTS.pristine.md` plus its
   Template Stewardship section, so process content cannot drift between the working and shipped copies.
-  *Verified by:* `TODO.AgentsFileMatchesPristine`
+  *Verified by:* `AgentsFileMatchesPristine`
 
 ### Requires
 
 - **[ContractCheck](./contract-check.md)** — mechanical verification of clause-to-test links, and a
   failure taxonomy stable enough for a skill to explain.
-- **[Template](./template.md)** — presence of an unmodified `AGENTS.pristine.md` in the shipped layout.
+- **[Template](./template.md)** — presence of an unmodified `AGENTS.pristine.md` in the shipped layout,
+  and of the repository scripts the agent prompts instruct an agent to run together with the tooling
+  configuration those scripts read.
 
 ### Invariants
 
 - **PROCESS-I1** — Exactly two agents are user-invocable; every other agent is reachable only as a
   sub-agent.
-  *Verified by:* `TODO.EntryPointsAreExactlyTwo`
+  *Verified by:* `EntryPointsAreExactlyTwo`
 
 - **PROCESS-I2** — No normative rule is stated in more than one payload file; other files reference the
   owning file rather than restating it.
@@ -135,6 +144,15 @@ subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS
 a payload whose references do not resolve is not a smaller payload, it is a broken one. The **skills** sit
 below the standards and carry repeatable procedures that would otherwise bloat a prompt paid for on every
 invocation.
+
+The standards divide into two populations, and PROCESS-03 admits two loading surfaces because of it. The
+**process** standards — architecture documentation, change classification, system contracts — are named
+directly by the agent prompts, because every agent here does process work and knows at authoring time
+which of them it needs. The **product-code** standards — coding, C# language, C# testing, technical
+documentation, testing principles — are named by no prompt at all, and reached only through the Standards
+Application matrix keyed on the file types an agent discovers at runtime. That indirection is deliberate:
+requiring each prompt to name them would hard-code a product technology into agents that must stay
+technology-neutral, and would enlarge every prompt against the budget PROCESS-06 defends.
 
 The seam that must not move is the one between `helper` and `dispatch`. Everything upstream of it talks
 to a person; everything downstream is classified, bounded work. If that seam ever widens — if `helper`

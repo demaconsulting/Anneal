@@ -26,7 +26,9 @@ quietly.
 - **Every rule has exactly one owning file** — other files point at it rather than restating it. A
   rule stated twice drifts, and the drift is silent.
 - **Agent prompts and standards stay within a per-invocation context budget** — `AGENTS.md` loads on
-  every invocation, so it carries routing and defers detail to standards loaded on demand.
+  every invocation, so it carries routing and defers detail to standards loaded on demand. The ceiling
+  and the method it is counted by are owned by
+  [prompt-authoring.md](docs/architecture/process/prompt-authoring.md).
 - **The process is enforceable by one mechanical check** — `check-contracts.ps1` is the only thing
   that must pass; everything else is judgement recorded in a report.
 - **A removed or renamed agent must stop being selectable in a target repository** — `install.ps1

@@ -3,6 +3,7 @@ level: section
 covers:
   - .github/agents/**
   - .github/standards/**
+  - AGENTS.md
 ---
 
 [← Process](../process.md)
@@ -18,13 +19,38 @@ It is the one place in this repository where writing style is a correctness conc
 
 Prompt text is paid for on **every invocation**, unlike documentation a human reads once. The load for a
 single agent invocation is `AGENTS.md`, plus one agent prompt, plus the two to four standards that agent
-selects — nothing else. Measured against the current payload, the worst case is roughly six to thirteen
-thousand tokens, with `AGENTS.md` around a fifth of it.
+selects — nothing else.
 
-That budget is not currently under pressure, and stating so matters: the reason to write tersely here is
-**not** to save tokens. It is that a rule buried in a long passage is a rule an agent may not act on. The
-budget is a ceiling that `PROCESS-06` defends; conciseness is about attention, which no clause can
-measure.
+**The context budget is 20,000 tokens**, and this document is where that number is declared; `PROCESS-06`
+is the clause that defends it, over the worst-case load the clause itself defines. Measured against the
+current payload:
+
+| File | Tokens |
+| --- | --- |
+| `AGENTS.md` | 2,819 |
+| `architecture-design.agent.md` — largest agent prompt | 2,708 |
+| `architecture-documentation.md` | 3,168 |
+| `change-classification.md` | 2,664 |
+| `system-contracts.md` | 2,364 |
+| `technical-documentation.md` | 2,106 |
+| **Worst case** | **15,829** |
+
+The measurement is recorded beside the ceiling on purpose. 20,000 leaves roughly a quarter of headroom: it
+does not fire today, and it fires well before the payload becomes a problem rather than after. Whoever
+next wants to raise it then has to argue against a datum rather than against a preference.
+
+**A token is counted as one byte divided by four, after line endings are normalized to LF.** Both halves
+of that are load-bearing. The division is crude, but it is crude *consistently*, and this repository has
+no tokenizer dependency and must not acquire one to run a budget gate — the ceiling was chosen against
+this method and means nothing measured any other way. The normalization matters because the working tree
+is CRLF while git stores LF, so a raw byte count differs between a fresh clone and a Windows checkout of
+the same commit; a gate that passes in CI and fails locally is flaky, and a flaky gate gets disabled. The
+table above is the demonstration: `AGENTS.md` counts 2,819 normalized and 2,880 unnormalized on a Windows
+checkout, and the 61-token gap is exactly its 244 line endings.
+
+The budget is not currently under pressure, and stating so matters: the reason to write tersely here is
+**not** to save tokens. It is that a rule buried in a long passage is a rule an agent may not act on.
+Conciseness is about attention, which no clause can measure.
 
 The practical consequence is that content belongs at the cheapest level that still guarantees it is read:
 

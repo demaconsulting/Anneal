@@ -109,13 +109,19 @@ if (-not $skipNpm) {
 # results are the text tally that suite writes rather than TRX. Every one of
 # those differences is a parameter, so the shipped script stays untouched.
 #
-# The results are produced by test-check-contracts.ps1, which CI runs before this
-# script for exactly that reason. Without them the pass check reports a warning
-# and verifies existence only.
+# The results are produced by test-check-contracts.ps1 and
+# test-process-contract.ps1, which CI runs before this script for exactly that
+# reason. Without them the pass check reports a warning and verifies existence
+# only.
+#
+# The two file patterns are comma-joined into one argument on purpose: under
+# `pwsh -File` every argument is a literal string, so a PowerShell array literal
+# would bind its second element positionally and silently check nothing. The
+# script splits the list itself.
 Write-Host "Linting: system contracts..."
 pwsh -NoProfile -File .github/template/check-contracts.ps1 `
     -TestRoots "." `
-    -TestFilePatterns "test-check-contracts.ps1" `
+    -TestFilePatterns "test-check-contracts.ps1,test-process-contract.ps1" `
     -TestDeclarationPattern '^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)"' `
     -ContractTestFolder "" `
     -TestResults "artifacts/tests/*.txt" `

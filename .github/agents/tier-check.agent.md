@@ -111,8 +111,9 @@ fix or the implementation's, because that decides which repair the caller spends
 **The Report Template below is the closed set of body sections you may emit.** `Build`,
 `Contract Conformance`, `Tier Honesty` and `Tree Accuracy` are the only sections that may carry a
 PASS; do not add another, however real the concern. Everything else goes under
-`## Advisory (non-blocking)`, which carries no PASS and never contributes to **SUCCEEDED**. See
-`docs/architecture/process/prompt-authoring.md`, *What a Judging Prompt Must Demand*.
+`## Advisory (non-blocking)`, which carries no PASS and never contributes to **SUCCEEDED**. A section
+you add at judging time is a section whose criteria you also authored at judging time, so a PASS on it
+asserts conformance to a rule the caller cannot read.
 
 # Report Template
 
