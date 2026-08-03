@@ -34,8 +34,8 @@ public interface IOperation
     /// </summary>
     /// <param name="arguments">
     ///     The arguments following the action name, in the order given, never null and possibly empty. An
-    ///     implementation validates them itself and reports <see cref="OperationOutcome.Failed" /> rather than
-    ///     throwing when they are unusable.
+    ///     implementation validates them itself and reports <see cref="OperationOutcome.UsageError" /> rather
+    ///     than throwing when they are unusable, stating the form it expects as it does so.
     /// </param>
     /// <param name="output">
     ///     Where the operation writes its findings. Must not be null. Everything a caller is meant to read
@@ -44,8 +44,11 @@ public interface IOperation
     /// <returns>
     ///     <see cref="OperationOutcome.Succeeded" /> when the operation answered its question and the answer
     ///     is positive; <see cref="OperationOutcome.Refused" /> when the question could not be answered on the
-    ///     available evidence; <see cref="OperationOutcome.Failed" /> otherwise. The caller maps this to an exit
-    ///     code using <see cref="Category" />; the operation never decides that itself.
+    ///     available evidence; <see cref="OperationOutcome.UsageError" /> when the arguments could not be used
+    ///     and nothing was attempted; <see cref="OperationOutcome.Failed" /> when the operation ran and the
+    ///     answer is no. The caller maps this to an exit code using <see cref="Category" />, except for a usage
+    ///     error, which is the caller's own mistake and is category-independent; the operation never decides
+    ///     that itself.
     /// </returns>
     OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output);
 }

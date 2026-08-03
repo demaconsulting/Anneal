@@ -19,8 +19,8 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 public class ToolkitContractTests
 {
     /// <summary>
-    ///     TOOLKIT-01 — an unrecognized action exits non-zero and lists the actions that exist, so a caller
-    ///     discovers the surface without reading the source.
+    ///     TOOLKIT-01 — an unrecognized action exits with the caller-error code of TOOLKIT-10 and lists the
+    ///     actions that exist, so a caller discovers the surface without reading the source.
     /// </summary>
     [Fact]
     public void UnknownActionListsAvailableActions()
@@ -32,9 +32,9 @@ public class ToolkitContractTests
         var exitCode = AnnealTool.Run(["no-such-action"], output);
         var written = output.ToString();
 
-        // Assert: non-zero, and every shipped action is discoverable from the output alone
+        // Assert: the caller-error code, and every shipped action is discoverable from the output alone
         Assert.Multiple(
-            () => Assert.NotEqual(0, exitCode),
+            () => Assert.Equal(AnnealTool.ExitUsageError, exitCode),
             () => Assert.Contains("unknown action 'no-such-action'", written, StringComparison.Ordinal),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
             () => Assert.All(
@@ -65,6 +65,48 @@ public class ToolkitContractTests
                 categories.Where(category => category != OperationCategory.Enforcement),
                 category => Assert.Equal(AnnealTool.ExitSuccess, failingExitCodes[category])),
             () => Assert.Equal(AnnealTool.ExitSuccess, succeedingEnforcement));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-10 — an invocation whose arguments the named action cannot use exits with the caller-error
+    ///     code whatever category that action declares, while the outcomes of actions that actually ran keep
+    ///     the mapping TOOLKIT-02 and TOOLKIT-06 describe.
+    /// </summary>
+    [Fact]
+    public void UsageErrorExitsAsCallerErrorWhateverTheCategory()
+    {
+        // Arrange and act: the same usage error under a category that gates and one that does not
+        var researchMisuse = RunStub(OperationCategory.Research, OperationOutcome.UsageError);
+        var enforcementMisuse = RunStub(OperationCategory.Enforcement, OperationOutcome.UsageError);
+
+        // Act: the same two operations, having actually run and reported an answer
+        var researchFailure = RunStub(OperationCategory.Research, OperationOutcome.Failed);
+        var enforcementFailure = RunStub(OperationCategory.Enforcement, OperationOutcome.Failed);
+        var researchRefusal = RunStub(OperationCategory.Research, OperationOutcome.Refused);
+        var enforcementRefusal = RunStub(OperationCategory.Enforcement, OperationOutcome.Refused);
+
+        // Act: a caller who scripted an option the action does not take, as the reported defect did
+        var misuseOutput = new StringWriter();
+        AnnealTool.Run(
+            ["stub", "--rule", "some rule"],
+            misuseOutput,
+            [new StubOperation(OperationCategory.Research, OperationOutcome.UsageError)]);
+        var written = misuseOutput.ToString();
+
+        // Assert: the caller's own mistake never reads as a check that ran, in either direction, and the
+        // outcomes of operations that did run are exactly where TOOLKIT-02 and TOOLKIT-06 left them
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitUsageError, researchMisuse),
+            () => Assert.NotEqual(AnnealTool.ExitSuccess, researchMisuse),
+            () => Assert.Equal(AnnealTool.ExitUsageError, enforcementMisuse),
+            () => Assert.NotEqual(AnnealTool.ExitGatedFailure, enforcementMisuse),
+            () => Assert.Equal(researchMisuse, enforcementMisuse),
+            () => Assert.Contains("'stub'", written, StringComparison.Ordinal),
+            () => Assert.Contains("dotnet anneal stub", written, StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitSuccess, researchFailure),
+            () => Assert.Equal(AnnealTool.ExitGatedFailure, enforcementFailure),
+            () => Assert.Equal(AnnealTool.ExitRefused, researchRefusal),
+            () => Assert.Equal(AnnealTool.ExitRefused, enforcementRefusal));
     }
 
     /// <summary>
@@ -490,7 +532,9 @@ public class ToolkitContractTests
 
     /// <remarks>
     ///     Stands in for a real operation so that the gating rule can be exercised for every category,
-    ///     including the three no shipped operation currently declares.
+    ///     including the three no shipped operation currently declares. It states the argument form it wanted
+    ///     when it reports a usage error, as a real operation does, so the dispatcher's own message can be
+    ///     read alongside it.
     /// </remarks>
     private sealed class StubOperation(OperationCategory category, OperationOutcome outcome) : IOperation
     {
@@ -500,6 +544,12 @@ public class ToolkitContractTests
 
         public string Summary => "Reports a fixed outcome under a fixed category";
 
-        public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output) => outcome;
+        public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output)
+        {
+            if (outcome == OperationOutcome.UsageError)
+                output.WriteLine("stub: expected one argument, given positionally.");
+
+            return outcome;
+        }
     }
 }

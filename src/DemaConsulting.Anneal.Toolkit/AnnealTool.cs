@@ -29,10 +29,15 @@ public static class AnnealTool
     public const int ExitGatedFailure = 1;
 
     /// <summary>
-    ///     Exit code when no action was named, or the named action does not exist. Distinct from
-    ///     <see cref="ExitGatedFailure" /> so a caller can tell "I typed it wrong" from "the check found a
-    ///     problem".
+    ///     Exit code when the tool could not act on the invocation at all: no action was named, the named action
+    ///     does not exist, or the action could not use the arguments given. Distinct from
+    ///     <see cref="ExitGatedFailure" /> and <see cref="ExitRefused" /> so a caller can tell "I typed it wrong"
+    ///     from "the check found a problem" and from "the question was not answerable".
     /// </summary>
+    /// <remarks>
+    ///     It is reached whatever category the named action declares, because no outcome was reached for a
+    ///     category to weigh. A non-gating category must never turn the caller's own mistake into a zero exit.
+    /// </remarks>
     public const int ExitUsageError = 2;
 
     /// <summary>
@@ -62,7 +67,8 @@ public static class AnnealTool
     /// </param>
     /// <param name="output">Where the action list, and everything the operation reports, is written. Must not be null.</param>
     /// <returns>
-    ///     <see cref="ExitSuccess" />, <see cref="ExitGatedFailure" /> or <see cref="ExitUsageError" />.
+    ///     <see cref="ExitSuccess" />, <see cref="ExitGatedFailure" />, <see cref="ExitUsageError" /> or
+    ///     <see cref="ExitRefused" />, mapped as the three-argument overload documents.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="arguments" /> or <paramref name="output" /> is null.</exception>
     public static int Run(IReadOnlyList<string> arguments, TextWriter output) =>
@@ -80,10 +86,11 @@ public static class AnnealTool
     ///     empty set means every action is unknown.
     /// </param>
     /// <returns>
-    ///     <see cref="ExitSuccess" /> when the operation succeeded, or when it failed and its category does
+    ///     <see cref="ExitSuccess" /> when the operation succeeded, or when it ran, failed, and its category does
     ///     not gate; <see cref="ExitRefused" /> when the operation refused; <see cref="ExitGatedFailure" /> when
     ///     a failing operation declares <see cref="OperationCategory.Enforcement" />; <see cref="ExitUsageError" />
-    ///     when no action was named or the named action does not exist.
+    ///     when no action was named, the named action does not exist, or the action could not use the arguments
+    ///     given — the last of those whatever category the action declares.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
     public static int Run(IReadOnlyList<string> arguments, TextWriter output, IReadOnlyList<IOperation> operations)
@@ -115,6 +122,17 @@ public static class AnnealTool
         var outcome = operation.Execute([.. arguments.Skip(1)], output);
         if (outcome == OperationOutcome.Succeeded)
             return ExitSuccess;
+
+        // A misuse is not an outcome. The operation never ran, so the gating rule has nothing to weigh, and the
+        // caller gets the same code an unknown action already produces - whatever category was named. Reading
+        // the category first is exactly the fail-open path this short-circuit removes.
+        if (outcome == OperationOutcome.UsageError)
+        {
+            output.WriteLine(
+                $"anneal: '{operation.Name}' was given arguments it cannot use, so no check ran. " +
+                $"Invoke it as 'dotnet anneal {operation.Name}' with the arguments it names above.");
+            return ExitUsageError;
+        }
 
         // Refusal short-circuits the gating rule entirely. It is not a verdict, so no category may turn it into
         // one, and it gets its own code so a caller reading only the exit status cannot mistake it for an answer.

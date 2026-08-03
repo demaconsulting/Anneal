@@ -27,13 +27,13 @@ presented requires owning the conversation, which requires code.
 ### Provides
 
 - **TOOLKIT-01** — The tool is invoked as `dotnet anneal <action>` with the action named first, and an
-  unrecognized action exits non-zero listing the actions that exist, so a caller discovers the surface
-  without reading the source.
+  unrecognized action lists the actions that exist, so a caller discovers the surface without reading
+  the source. The exit code it leaves is the caller-error code of `TOOLKIT-10`.
   *Verified by:* `ToolkitContractTests.UnknownActionListsAvailableActions`
 
 - **TOOLKIT-02** — Every operation declares exactly one category — enforcement, research, advisory or
-  authoring — and the category alone determines whether a non-zero exit gates a build. Only
-  enforcement operations gate.
+  authoring — and for an operation that ran, the category alone determines whether the non-zero exit
+  of its outcome gates a build. Only enforcement operations gate.
   *Verified by:* `ToolkitContractTests.OnlyEnforcementOperationsGate`
 
 - **TOOLKIT-03** — `verify-evidence` reports, for each evidence locator cited in an agent report,
@@ -66,6 +66,13 @@ presented requires owning the conversation, which requires code.
 - **TOOLKIT-09** — The tool reports the Anneal version it was built from, so an installed payload can
   be identified by version rather than inferred from its contents.
   *Verified by:* `TODO.ToolReportsPayloadVersion`
+
+- **TOOLKIT-10** — An invocation the tool cannot act on — no action named, an action that does not
+  exist, or arguments the named action cannot use — exits with the caller-error code `2`, whatever
+  category the named action declares, and reports no outcome, because none was reached. That code is
+  distinct from the codes carried by a gated failure and by a refusal, so a caller that scripts the
+  wrong argument form cannot read its own mistake as a check that ran and passed.
+  *Verified by:* `ToolkitContractTests.UsageErrorExitsAsCallerErrorWhateverTheCategory`
 
 ### Requires
 
@@ -144,6 +151,16 @@ object body, and a retry that shows the model its own parse error. This is weake
 enforces a response format, and the difference is recorded because it is invisible in the type
 signature: `Probe<T>` looks equally reliable either way. Parse-failure rate is therefore something to
 measure rather than assume.
+
+**A misuse is not an outcome** — an operation that cannot use its arguments never ran, so it has nothing
+to report and the gating rule has nothing to weigh; `TOOLKIT-10` therefore routes it to the same
+caller-error code an unknown action already produced, independently of category. The rejected
+alternative was leaving a caller mistake to be reported as an ordinary failure, which is what the code
+did: a research operation given the wrong argument form exits zero, and an unattended agent reads that
+as a check that ran and found nothing. Fail-open on the caller's error is the shape this repository
+treats as worse than no check, so the outcome model has to be able to say "no answer was attempted"
+separately from "the answer is no" — which is the same distinction `TOOLKIT-06` draws for refusal, at
+the other end of the invocation.
 
 **Offline is a failure, not a degraded mode** — a model-backed operation that cannot reach a model
 stops. Falling back to a weaker deterministic answer was rejected because the caller cannot see which

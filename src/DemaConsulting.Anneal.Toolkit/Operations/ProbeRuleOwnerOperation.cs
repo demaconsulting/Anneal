@@ -94,7 +94,9 @@ public sealed class ProbeRuleOwnerOperation : IOperation
 
     /// <inheritdoc />
     /// <remarks>
-    ///     Expects exactly one argument: the rule, stated as a caller would state it to a colleague. Reports
+    ///     Expects exactly one argument: the rule, stated as a caller would state it to a colleague, and given
+    ///     positionally rather than behind an option. Reports <see cref="OperationOutcome.UsageError" /> when
+    ///     that argument is missing, blank or accompanied by anything else,
     ///     <see cref="OperationOutcome.Refused" /> when the rule has no single owner,
     ///     <see cref="OperationOutcome.Failed" /> when no model could be reached or no reply decoded, and
     ///     <see cref="OperationOutcome.Succeeded" /> only when one file was named.
@@ -106,8 +108,8 @@ public sealed class ProbeRuleOwnerOperation : IOperation
 
         if (arguments.Count != 1 || string.IsNullOrWhiteSpace(arguments[0]))
         {
-            output.WriteLine("probe-rule-owner: expected one argument, the rule to locate.");
-            return OperationOutcome.Failed;
+            output.WriteLine("probe-rule-owner: expected one argument, the rule to locate, stated as plain text.");
+            return OperationOutcome.UsageError;
         }
 
         var rule = arguments[0];

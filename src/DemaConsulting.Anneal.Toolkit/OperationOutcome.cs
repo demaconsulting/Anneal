@@ -16,10 +16,22 @@ public enum OperationOutcome
     Succeeded,
 
     /// <summary>
-    ///     The operation ran and the answer is negative: the condition it checks does not hold, or the inputs
-    ///     it was given are not usable. It is distinct from an unanswerable question, which is refusal.
+    ///     The operation ran and the answer is negative: the condition it checks does not hold. It is distinct
+    ///     from an unanswerable question, which is refusal, and from arguments it could not act on at all,
+    ///     which is <see cref="UsageError" />.
     /// </summary>
     Failed,
+
+    /// <summary>
+    ///     The arguments could not be used, so the operation never ran and has nothing to report.
+    /// </summary>
+    /// <remarks>
+    ///     Separate from <see cref="Failed" /> because the gating rule has nothing to weigh here: no answer was
+    ///     attempted, so no category may turn the caller's mistake into a passing check. A research operation
+    ///     given the wrong argument form once exited zero on this path, which let an unattended caller read its
+    ///     own error as a check that ran and found nothing.
+    /// </remarks>
+    UsageError,
 
     /// <summary>
     ///     The question could not be answered on the available evidence, and the operation declines to guess.

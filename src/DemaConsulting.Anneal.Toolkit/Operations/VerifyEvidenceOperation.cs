@@ -66,10 +66,11 @@ public sealed class VerifyEvidenceOperation : IOperation
 
     /// <inheritdoc />
     /// <remarks>
-    ///     Expects exactly one argument: the path of the report to check. Reports
-    ///     <see cref="OperationOutcome.Failed" /> when any cited quotation is not where the report says it is,
-    ///     when the report cannot be read, and when the report cites nothing at all — the last of those
-    ///     because a check that silently passes on finding no work to do is the failure mode this whole
+    ///     Expects exactly one argument: the path of the report to check, given positionally. Reports
+    ///     <see cref="OperationOutcome.UsageError" /> when that argument is missing or accompanied by anything
+    ///     else, and <see cref="OperationOutcome.Failed" /> when any cited quotation is not where the report
+    ///     says it is, when the report cannot be read, and when the report cites nothing at all — the last of
+    ///     those because a check that silently passes on finding no work to do is the failure mode this whole
     ///     process treats as worse than no check.
     /// </remarks>
     public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output)
@@ -80,7 +81,7 @@ public sealed class VerifyEvidenceOperation : IOperation
         if (arguments.Count != 1)
         {
             output.WriteLine("verify-evidence: expected one argument, the path of the report to check.");
-            return OperationOutcome.Failed;
+            return OperationOutcome.UsageError;
         }
 
         var reportPath = arguments[0];
