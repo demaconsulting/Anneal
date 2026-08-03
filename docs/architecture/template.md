@@ -57,6 +57,11 @@ behavioral change edits ContractCheck, a placement change edits Template.
   so an agent filling one in can confirm none remain.
   *Verified by:* `TODO.DirectivesAreRecognizable`
 
+- **TEMPLATE-07** — Ships a .NET tool manifest pinning the [Toolkit](./toolkit.md) version, and a role
+  configuration file mapping capability roles to concrete models, so a repository can restore the tool
+  and point its roles at different models without a Toolkit release.
+  *Verified by:* `TODO.ToolManifestAndRoleConfigAreShipped`
+
 ### Requires
 
 - **[Process](./process.md)** — the content of `AGENTS.pristine.md` and of the standards the layout

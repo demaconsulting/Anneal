@@ -134,12 +134,32 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 - **Products adopting this process are .NET and C#.** The shipped layout defaults to `*.cs` sources,
   xUnit attributes and TRX results, and the template's build and lint scripts assume a solution. The
   process itself is language-neutral, but the repository it hands you is not. Adoption for another
-  ecosystem would not be a defect to patch — it would mean the template is the wrong shape.
+  ecosystem would not be a defect to patch — it would mean the template is the wrong shape. The
+  [Toolkit](docs/architecture/toolkit.md) hardens this from a default into a dependency: it ships as a
+  .NET tool, so a repository outside that ecosystem can still read the process but cannot run its
+  operations.
 - **Structural properties of a prompt predict how an agent behaves.** Checking that references resolve,
   that every result value is handled, and that the context budget holds is worth doing because those
   properties correlate with reliable behavior. If they turn out not to, a mechanical contract over the
   payload is theater: it would pass while agents still misbehaved, and verification would have to move
   wholesale to inspection and sandbox runs.
+- **Where a response schema appears in a conversation changes how reliably it is followed.** A schema
+  presented after the reasoning is done is followed more closely than the same schema given at the
+  outset, because an instruction at the start is far behind by the time the answer is produced. This is
+  the assumption the [Toolkit](docs/architecture/toolkit.md) exists to exploit — it is why controlling
+  the conversation programmatically buys something no prompt file can. If a schema stated up front
+  proved just as reliable, the tool would still be useful for deterministic checks but would have lost
+  its main justification.
+- **A described schema is enough without constrained decoding.** The Copilot session API offers no
+  response-format facility, so a typed answer rests on a schema described in the prompt, tolerant
+  extraction of the JSON object, and a retry that shows the model its own parse error. The falsifier is
+  measurable and stage S1 of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
+  retry budget often enough to matter, typed probes need a provider that enforces the shape on the
+  wire.
+- **Consulting a model adds no new exposure of repository content.** Operations run under the ambient
+  Copilot account of the calling session — the same account the agents already run under — so content
+  reaches no party that was not already receiving it. This stops holding the moment an operation
+  authenticates as anything else, which is why the Toolkit supplies no token of its own.
 
 ## The Architecture Tree
 
@@ -174,8 +194,9 @@ maintained using its own agents.
 
 ## Technology
 
-- **Languages** — PowerShell, with Markdown and YAML as the primary content
-- **Platform** — PowerShell 7; Node and Python supply the lint tooling
+- **Languages** — PowerShell and C#, with Markdown and YAML as the primary content
+- **Platform** — PowerShell 7 and the .NET SDK; Node and Python supply the lint tooling
+- **Model access** — the GitHub Copilot SDK, under the ambient account of the calling session
 
 To work on Anneal itself (not a repository that has installed it): `pwsh ./fix.ps1`, then
 `pwsh ./test-check-contracts.ps1`, then `pwsh ./lint.ps1`. The order matters — `lint.ps1` reads

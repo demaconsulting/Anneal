@@ -31,11 +31,13 @@ only one whose product is a prompt.
 - [ContractCheck](./contract-check.md) — the one mechanical enforcement, and its failure taxonomy
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
+- [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents call
 
 ## Interactions
 
 The systems couple weakly and in one direction: Process defines content, Template defines where content
-sits, Installer moves both, and ContractCheck audits the result once it has arrived.
+sits, Installer moves both, ContractCheck audits the result once it has arrived, and Toolkit is called
+by the content after it has landed.
 
 ```mermaid
 flowchart LR
@@ -43,24 +45,32 @@ flowchart LR
         Process[Process]
         Template[Template]
         Installer[Installer]
+        Toolkit[Toolkit]
     end
     subgraph Target["Target repository"]
         Payload[Installed payload]
         Tree["docs/architecture/"]
         Check[ContractCheck]
+        Tool["Restored dotnet tool"]
     end
 
     Process -- "authored content" --> Installer
-    Template -- "layout and shipped scripts" --> Installer
+    Template -- "layout, scripts and tool manifest" --> Installer
     Installer -- "file copy" --> Payload
+    Toolkit -- "published package" --> Tool
     Payload -- "agents write" --> Tree
+    Payload -- "agents invoke" --> Tool
+    Tool -- "reads" --> Tree
     Tree -- "clauses read" --> Check
     Check -- "pass or fail" --> Payload
 ```
 
-Every edge is a **file**, never a call. Installer copies; ContractCheck reads markdown and test results
-from disk; agents read their own prompts when invoked. No system imports another, and nothing runs in a
-shared process, which is why a system can be replaced wholesale without recompiling anything.
+Every edge is a **file**, never a call — with one exception. Installer copies; ContractCheck reads
+markdown and test results from disk; agents read their own prompts when invoked. No system imports
+another. The exception is Toolkit: it arrives as a restored package rather than a copied file, runs as
+a process, and its model-backed operations reach the network. That exception is the whole substance of
+the superseded *Files, not tooling* decision below, and it is confined to one system so that everything
+else keeps the property — a system can still be replaced wholesale without recompiling anything.
 
 The one cycle in the diagram is deliberate. ContractCheck audits a tree that agents from the payload
 wrote, so the payload is both the author of the evidence and the subject of the audit. That is tolerable
@@ -68,14 +78,23 @@ only because the check is mechanical and fails closed — an agent cannot talk i
 
 ## Boundaries
 
-There are no process, deployment or concurrency boundaries: every system is files on disk, and every
-script is a short-lived PowerShell invocation.
+Every system but Toolkit is files on disk acted on by short-lived PowerShell invocations, with no
+process, deployment or concurrency boundary between them. Toolkit introduces the repository's only
+deployment boundary — it is versioned and published independently of the payload, so an installed
+repository may run a Toolkit older or newer than the agents that call it — and its only network
+boundary, since a model-backed operation leaves the machine.
 
-One trust boundary matters. `install.ps1` writes into a **different repository** than the one it runs
+Two trust boundaries matter. `install.ps1` writes into a **different repository** than the one it runs
 from, and it is the only component that does. Everything it writes is content the target repository will
-subsequently trust and act on, so the constraints protecting that write — copy-only installation,
-collision detection before any write, and confirmation before deleting anything — are recorded in
-[CONSTRAINTS.md](../../CONSTRAINTS.md) rather than left to the installer's own documentation.
+subsequently trust and act on, so the constraints protecting that write — copy-only installation of the
+payload, collision detection before any write, and confirmation before deleting anything — are recorded
+in [CONSTRAINTS.md](../../CONSTRAINTS.md) rather than left to the installer's own documentation.
+
+The second is Toolkit's model boundary. Repository content is sent to a model under the ambient Copilot
+account of the calling session, which is the account the agents already run under, so the boundary moves
+no data to a party that was not already receiving it. The tools granted to a model are read-only and
+explicitly enumerated, because the surrounding SDK exposes mutating built-ins when a tool allowlist is
+left absent; that is `TOOLKIT-I1` rather than a note here.
 
 ## Repository-Wide Decisions
 
@@ -87,16 +106,28 @@ build, turning every omission into a full retry), and multi-retry orchestration 
 → QUALITY with three retries, multiplying everything). Reintroducing any of these — or their
 structural equivalents — is a redesign, not an incremental regression.
 
-**Files, not tooling** — Anneal installs by file copy alone: no build step, no package manager, and no
-runtime dependency added to the target repository. The rejected alternative was distribution as a package
-with a version-resolved dependency, which buys upgrade mechanics at the cost of making adoption
-conditional on an ecosystem. This would be reconsidered if Anneal ever needed to ship executable content
-that a copy cannot carry.
+**Files, not tooling — superseded by Toolkit** — Anneal originally installed by file copy alone: no build
+step, no package manager, no runtime dependency in the target repository. The decision named its own
+reconsideration trigger — *"if Anneal ever needed to ship executable content that a copy cannot carry"* —
+and that trigger fired. Presenting a response schema at the end of a conversation rather than the start
+measurably improves reliability, and no arrangement of prompt files can express it, because a prompt
+cannot control where in a context window an instruction lands. What overturned the decision is therefore
+a capability that copying cannot provide at any effort, not a convenience.
 
-**One mechanical rule, everything else judgement** — only the clause-to-test link is enforced by script;
-every other rule in the process is held by prompt and review. More enforcement was rejected because a
-blocking gate on every file change is precisely the cost this process exists to avoid, and because a check
-that cannot be made to fail closed is worse than no check at all.
+What survives is the reasoning, narrowed: the **payload** still installs by file copy, so renaming an
+agent still needs no script change, and a repository that never invokes an operation still needs nothing
+but the copy. Only Toolkit is acquired as a package, and adoption stays unconditional on an ecosystem
+for everything else. The cost accepted is that Anneal now has a build, a published artifact and a
+version to keep straight, in a repository whose product was previously only prose.
+
+**One mechanical rule, everything else judgement — now one rule plus declared gates** — the clause-to-test
+link remains the only rule enforced across every change. Toolkit adds gating that is opt-in per
+operation rather than universal: an operation declares itself as enforcement, research, advisory or
+authoring, and only enforcement can fail a build. Blanket enforcement is still rejected for the original
+reason — a blocking gate on every file change is precisely the cost this process exists to avoid — and
+so is any gate that cannot fail closed. The category is what makes the addition safe: a research or
+advisory operation cannot become a gate by accident, because gating is a property of the declaration
+rather than of the exit code.
 
 **Verification splits by what is being verified** — structural properties of the payload are checked by
 script, and behavioral properties of agents are established by inspection or a sandbox run. Requiring
