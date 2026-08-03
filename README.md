@@ -123,6 +123,11 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 - **Correlated error is the residual risk.** Separate invocations of the same model can share a blind
   spot; independence of incentive is not independence of judgement. A judging agent is therefore
   given first-hand facts rather than the working agent's summary of them.
+- **An agent that must justify its answer is more reliable than one that merely states it.** Separating
+  incentives removes the motive to approve, but it does not oblige a judging agent to derive its verdict,
+  and an unobliged judge can ratify a plausible impression it never checked. If agents required to show
+  their reasoning proved no more accurate than agents asked only for a conclusion, the judging layer would
+  be ceremony and reliability would have to be sought outside the prompts.
 - **The prompt files are the reliability mechanism.** Because reliability follows from the quality of
   the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
   downstream agent works from. Prompt changes are the highest-risk changes in this repository.

@@ -48,3 +48,9 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   `AGENTS.md` and any locally edited standard.
 - **An installed payload must be identifiable by version** — nothing written into a target repository
   records which Anneal version produced it, so an upgrade cannot tell what it is upgrading from.
+- **A judging agent must show the basis for its verdict before stating it** — no agent prompt in the
+  payload obliges one to, and `tier-check`'s report template places `Required Fixes` ahead of every
+  section carrying what that verdict rests on, so a universally-quantified negative about a file the
+  agent never opened reads exactly like a checked finding. The paired belief is in the Assumptions
+  section of [README.md](README.md); how a prompt demands the basis is owned by
+  [prompt-authoring.md](docs/architecture/process/prompt-authoring.md).

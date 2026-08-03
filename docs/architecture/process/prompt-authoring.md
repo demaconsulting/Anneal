@@ -73,6 +73,33 @@ Avoid hedging inside a mandatory instruction. "Consider", "if appropriate" and "
 into a preference, and an agent under pressure will read them exactly that way. If the instruction is
 genuinely conditional, state the condition.
 
+## What a Judging Prompt Must Demand
+
+`Actionability` above governs the instruction an agent is *given*. This section governs the opposite
+direction: what a prompt obliges an agent to *emit* when the work it has been given is judgement. The two
+are easy to conflate, and keeping them apart matters because a perfectly actionable instruction can still
+be answered with a bare verdict — which is precisely how a judging agent fails here.
+
+**Evidence before verdict.** A prompt that asks an agent to judge must require the basis first and the
+conclusion second, and its report template must order its *body sections* that way — the `**Result**`
+metadata field required by `PROCESS-04` still comes first, so a caller can route on the outcome without
+parsing the report. An agent that writes out its reasoning *after* the section stating its conclusion
+spends that reasoning rationalizing toward it, so the ordering is not presentation: it is what stops the
+argument from being retrofitted to a conclusion already argued for. A one-word routing field commits no
+argument; a body section does.
+
+**The universally-quantified negative is the specific trap.** "Names no sub-agent", "contains no hedging",
+"all bad examples were excluded" — these are the claims an agent asserts from a gist of a file without
+opening it to check, and reviews accepted here have carried exactly that shape while being false. A prompt
+that asks for such a claim must demand the check that establishes it: for a negative claim over a file,
+quote the nearest surviving counter-candidate and say why it does not count. Absence shown by quoting the
+closest thing to a violation can be audited by the caller; absence asserted cannot.
+
+**A judgement with no demonstrated basis is not a finding**, and a prompt should say so, so that "I could
+not establish this" is an available answer rather than a failure to report something. The counterweight is
+part of the rule: demanding evidence must not push an agent into manufacturing findings to satisfy the
+demand, so an ambiguity it cannot resolve is reported as advisory, never as failure.
+
 ## Consequences
 
 A developer or agent editing anything under `.github/agents/` or `.github/standards/` must:
@@ -81,6 +108,9 @@ A developer or agent editing anything under `.github/agents/` or `.github/standa
   is the failure `PROCESS-I2` targets; a rule stated twice drifts, and the copy read first wins.
 - **Add the reason when the rule is a boundary, a stop condition, or counter-intuitive** — and leave it
   out when the rule is mechanical.
+- **Demand the basis wherever the prompt asks the agent to judge**, per "What a Judging Prompt Must
+  Demand" above. A verdict the prompt never obliged the agent to derive is the defect that passes every
+  mechanical gate and reaches the reader intact.
 - **Check the result values.** Adding a new outcome to an agent obliges every caller to handle it. This
   is the defect class that has survived manual review here before.
 - **Not trim prose that carries a rejected alternative.** A short prompt missing the *why* is the more
