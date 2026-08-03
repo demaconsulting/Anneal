@@ -57,7 +57,8 @@ function Initialize-PythonVenv {
 function Normalize-YamlLineEndings {
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
-    Get-ChildItem -Recurse -Include "*.yaml", "*.yml" |
+    # -Force: include dot-prefixed YAML files and files under dot-prefixed directories on Linux.
+    Get-ChildItem -Recurse -Include "*.yaml", "*.yml" -Force |
         Where-Object { $_.FullName -notmatch '[/\\](\.git|node_modules|\.venv|thirdparty|third-party|3rd-party|\.agent-logs|generated)[/\\]' } |
         ForEach-Object {
             $raw = [System.IO.File]::ReadAllText($_.FullName)

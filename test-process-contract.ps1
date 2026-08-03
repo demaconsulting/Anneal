@@ -342,7 +342,8 @@ Test-Case -Name "AgentReferencesResolve" -Body {
     foreach ($dir in $payloadDirs) {
         $full = Repo-Path $dir
         if (-not (Test-Path -LiteralPath $full)) { continue }
-        foreach ($item in (Get-ChildItem -LiteralPath $full -Recurse -File)) {
+        # -Force: include dot-prefixed files that PowerShell treats as hidden on Linux.
+        foreach ($item in (Get-ChildItem -LiteralPath $full -Recurse -File -Force)) {
             $shipped[$item.Name] = $true
         }
     }
@@ -357,7 +358,8 @@ Test-Case -Name "AgentReferencesResolve" -Body {
     foreach ($dir in $payloadDirs) {
         $full = Repo-Path $dir
         if (-not (Test-Path -LiteralPath $full)) { continue }
-        foreach ($item in (Get-ChildItem -LiteralPath $full -Recurse -File)) {
+        # -Force: include dot-prefixed files that PowerShell treats as hidden on Linux.
+        foreach ($item in (Get-ChildItem -LiteralPath $full -Recurse -File -Force)) {
             [void]$knownExtensions.Add([System.IO.Path]::GetExtension($item.Name))
         }
     }
@@ -430,6 +432,21 @@ Test-Case -Name "AgentReferencesResolve" -Body {
             if ($requiredDirs -contains $bare) { continue }
             $problems.Add("$where names '$token', which the process does not require every installed repository to have")
         }
+    }
+
+    # Regression guard: the shipped-file index must include dot-prefixed files.
+    # It cannot fail on Windows, where a leading dot means nothing and the index is
+    # complete with or without -Force; it fails on Linux, where PowerShell treats
+    # those names as hidden and omits them unless -Force is passed. That asymmetry
+    # is the point - this guard exists because the omission is invisible to the
+    # developer and only ever surfaces in CI.
+    foreach ($dotFile in @(".cspell.yaml", ".editorconfig")) {
+        if (-not $shipped.ContainsKey($dotFile)) {
+            $problems.Add("shipped-file index is missing '$dotFile' (dot-prefixed file not enumerated)")
+        }
+    }
+    if (-not $knownExtensions.Contains(".toml")) {
+        $problems.Add("knownExtensions is missing '.toml' (dot-prefixed .toml files not enumerated)")
     }
 
     return $problems
