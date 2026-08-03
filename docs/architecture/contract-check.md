@@ -84,6 +84,19 @@ something deterministic enough to run in CI.
   than reporting each clause as a missing test.
   *Verified by:* `test-check-contracts.ps1: "discovery that matches nothing is its own failure"`
 
+- **CONTRACT-CHECK-14** — Accepts several discovery configurations for one run, so a single invocation
+  resolves clauses whose verifying tests are written in different languages, laid out differently, and
+  recorded in different result formats. Configuring several at once and configuring a single one through
+  the settings they replace are alternatives: supplying both is rejected rather than merged, so which
+  layout a run checked is always readable at the call site.
+  *Verified by:* `test-check-contracts.ps1: "two discovery profiles resolve clauses in both languages"`
+
+- **CONTRACT-CHECK-15** — Judges emptiness, missing results, and staleness within each discovery
+  configuration rather than across the run, and names the configuration at fault. A configuration that
+  matches no tests, has no results, or has results older than the sources they describe is an error even
+  when another configuration in the same run is complete and fresh.
+  *Verified by:* `test-check-contracts.ps1: "a profile matching no test declarations is an error"`
+
 ### Requires
 
 - **PowerShell 7** — file globbing, XML parsing, and exit-code propagation.
@@ -113,13 +126,15 @@ are properties of a repository, not of a function. One fixture per documented fa
 honest: a failure mode the skill describes and the suite does not cover is a gap that shows up as a
 missing fixture.
 
-Anneal is its own second consumer, and it is not a C# repository: its verifiers are cases in that same
-fixture suite, named by the quoted case string rather than by a method identifier, and its results are a
-text tally that suite writes rather than a TRX file. That is what turns `CONTRACT-CHECK-12` from a
-defaulting convenience
+Anneal is its own second consumer, and it is no longer a single-framework repository: some of its
+verifiers are cases in that same fixture suite, named by the quoted case string rather than by a method
+identifier and recorded as a text tally that suite writes, while others are C# boundary tests recorded as
+TRX. That is what turns `CONTRACT-CHECK-12` from a defaulting convenience
 into an interface — a fixture-case repository is a first-class shape, not a variation on the C# one, so the
-patterns have to reach the declaration form and the result form and not only the file extension. The C#
-defaults are held still while that widens, because every downstream repository reads them.
+patterns have to reach the declaration form and the result form and not only the file extension — and it is
+why `CONTRACT-CHECK-14` exists: the two shapes disagree on every one of those patterns at once, so no
+single configuration describes the repository. The C# defaults are held still while that widens, because
+every downstream repository reads them.
 
 Adding a fixture case follows a fixed shape: build a throw-away repository with `New-Repo`,
 `Set-SystemDoc`, `Set-ContractTests`, and `Set-Trx`, then assert with `Test-Case` on the exit code and
@@ -148,6 +163,14 @@ fixture-case repository, but every default keeps naming the C# xUnit shape, so a
 downstream repository keeps meaning exactly what it meant. Detecting the repository's shape automatically
 was rejected: the detection would itself be a silent decision made on the check's behalf, and a wrong guess
 would either look for the wrong tests or, worse, find something that is not a test.
+
+**Emptiness is judged per configuration** — `CONTRACT-CHECK-15` applies the fail-closed property of
+`CONTRACT-CHECK-13` to each discovery configuration separately, because a whole-run check would pass as
+soon as any one configuration found something, and a repository that checks two frameworks would report
+success with one of them entirely unexamined. That is the failure this facility would otherwise introduce:
+silently checking less than the call site says it checks. Merging a set of configurations with the
+single-configuration settings they replace was rejected for the same reason — whichever won would be
+invisible to the reader.
 
 **Warn on planned clauses, error under `-Strict`** — `architecture-design` must be able to write a
 contract before its tests exist, so placeholder verifiers are tolerated during design and promoted to
