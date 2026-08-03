@@ -43,7 +43,7 @@ presented requires owning the conversation, which requires code.
 
 - **TOOLKIT-04** — `probe-rule-owner` names the single file that owns a given rule, or refuses when
   the rule is stated in more than one place or in none.
-  *Verified by:* `TODO.RuleOwnerProbeNamesOneFileOrRefuses`
+  *Verified by:* `ToolkitContractTests.RuleOwnerProbeNamesOneFileOrRefuses`
 
 - **TOOLKIT-05** — Every operation that consults a model declares the capability role it requires, and
   roles resolve to concrete models through repository configuration rather than through the operation.
@@ -52,12 +52,12 @@ presented requires owning the conversation, which requires code.
 - **TOOLKIT-06** — Refusal is reported as an outcome distinct from both success and failure, so a
   caller can tell "the question could not be answered on the available evidence" from "the answer is
   no".
-  *Verified by:* `TODO.RefusalIsDistinctFromFailure`
+  *Verified by:* `ToolkitContractTests.RefusalIsDistinctFromFailure`
 
 - **TOOLKIT-07** — A model-backed operation that cannot reach a model fails with a message naming the
   cause. It never falls back to a deterministic approximation, and never reports success on a
   judgement it did not obtain.
-  *Verified by:* `TODO.UnreachableModelFailsLoudly`
+  *Verified by:* `ToolkitContractTests.UnreachableModelFailsLoudly`
 
 - **TOOLKIT-08** — Every invocation appends a structured record of the operation, its inputs, its
   outcome and any model usage, in a form a later query can aggregate without parsing prose.
@@ -82,12 +82,12 @@ presented requires owning the conversation, which requires code.
 - **TOOLKIT-I1** — A model consulted by any operation is granted read-only repository tools. No
   operation grants a tool that executes a command or writes a file, and the granted tool set is always
   an explicit allowlist rather than an absent one.
-  *Verified by:* `TODO.ModelToolGrantsAreReadOnlyAndExplicit`
+  *Verified by:* `ToolkitContractTests.ModelToolGrantsAreReadOnlyAndExplicit`
 
 - **TOOLKIT-I2** — A probe result reaches a caller only as a fully decoded typed value. A response
   that cannot be decoded within the retry budget fails the operation; no partially populated result is
   returned.
-  *Verified by:* `TODO.UndecodableProbeResultFailsTheOperation`
+  *Verified by:* `ToolkitContractTests.UndecodableProbeResultFailsTheOperation`
 
 - **TOOLKIT-I3** — An enforcement operation given identical repository inputs reaches an identical
   verdict, so a gating check cannot change answer on unchanged input.

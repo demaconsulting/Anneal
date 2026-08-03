@@ -43,8 +43,9 @@ public interface IOperation
     /// </param>
     /// <returns>
     ///     <see cref="OperationOutcome.Succeeded" /> when the operation answered its question and the answer
-    ///     is positive; <see cref="OperationOutcome.Failed" /> otherwise. The caller maps this to an exit code
-    ///     using <see cref="Category" />; the operation never decides that itself.
+    ///     is positive; <see cref="OperationOutcome.Refused" /> when the question could not be answered on the
+    ///     available evidence; <see cref="OperationOutcome.Failed" /> otherwise. The caller maps this to an exit
+    ///     code using <see cref="Category" />; the operation never decides that itself.
     /// </returns>
     OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output);
 }

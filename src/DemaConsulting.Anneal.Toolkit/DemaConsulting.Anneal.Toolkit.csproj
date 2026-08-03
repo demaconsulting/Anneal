@@ -22,4 +22,15 @@
     <Description>Operations an AI coding agent cannot perform reliably by reading a prompt.</Description>
   </PropertyGroup>
 
+  <!--
+    Model access. Microsoft.Extensions.AI supplies only the message and tool
+    transport types the seam carries; GitHub.Copilot.SDK is the single provider
+    behind it, driven under the ambient Copilot account of the calling session
+    with no token supplied by the Toolkit.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.8.1" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.8" />
+  </ItemGroup>
+
 </Project>

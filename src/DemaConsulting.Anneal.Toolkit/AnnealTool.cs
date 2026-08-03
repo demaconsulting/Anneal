@@ -36,11 +36,22 @@ public static class AnnealTool
     public const int ExitUsageError = 2;
 
     /// <summary>
+    ///     Exit code when the operation refused: the question could not be answered on the available evidence.
+    /// </summary>
+    /// <remarks>
+    ///     Its own code because refusal is neither success nor failure, and a caller that cannot tell them apart
+    ///     will read a refusal as an answer. It is never <see cref="ExitGatedFailure" />, whatever the
+    ///     operation's category: refusing to guess is not a verdict a build may be failed on.
+    /// </remarks>
+    public const int ExitRefused = 3;
+
+    /// <summary>
     ///     The operations this tool ships. Each name in this list is a promise: an agent that invokes an
     ///     action by name depends on it, which is why the set is enumerated in the Toolkit contract rather
     ///     than left open.
     /// </summary>
-    public static IReadOnlyList<IOperation> DefaultOperations { get; } = [new VerifyEvidenceOperation()];
+    public static IReadOnlyList<IOperation> DefaultOperations { get; } =
+        [new VerifyEvidenceOperation(), new ProbeRuleOwnerOperation()];
 
     /// <summary>
     ///     Runs the action named by the first argument against the operations this tool ships.
@@ -70,9 +81,9 @@ public static class AnnealTool
     /// </param>
     /// <returns>
     ///     <see cref="ExitSuccess" /> when the operation succeeded, or when it failed and its category does
-    ///     not gate; <see cref="ExitGatedFailure" /> when a failing operation declares
-    ///     <see cref="OperationCategory.Enforcement" />; <see cref="ExitUsageError" /> when no action was
-    ///     named or the named action does not exist.
+    ///     not gate; <see cref="ExitRefused" /> when the operation refused; <see cref="ExitGatedFailure" /> when
+    ///     a failing operation declares <see cref="OperationCategory.Enforcement" />; <see cref="ExitUsageError" />
+    ///     when no action was named or the named action does not exist.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
     public static int Run(IReadOnlyList<string> arguments, TextWriter output, IReadOnlyList<IOperation> operations)
@@ -104,6 +115,14 @@ public static class AnnealTool
         var outcome = operation.Execute([.. arguments.Skip(1)], output);
         if (outcome == OperationOutcome.Succeeded)
             return ExitSuccess;
+
+        // Refusal short-circuits the gating rule entirely. It is not a verdict, so no category may turn it into
+        // one, and it gets its own code so a caller reading only the exit status cannot mistake it for an answer.
+        if (outcome == OperationOutcome.Refused)
+        {
+            output.WriteLine($"anneal: '{operation.Name}' refused - the question was not answerable.");
+            return ExitRefused;
+        }
 
         // The category decides, not the operation and not the exit code it would have liked. A non-gating
         // failure still says so, because a caller who cannot see the outcome in the exit code must be able
