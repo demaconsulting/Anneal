@@ -4,33 +4,79 @@ This file is the approved proposal every Migration commit references. It exists 
 outstanding; the commit landing the final stage deletes it.
 
 The move is staged so that Anneal proves the Toolkit on itself before any downstream repository depends
-on it. No stage before S2 changes what an installed repository receives, which means S1 can be abandoned
-without a downstream consequence.
+on it. Before S2 the only change an installed repository receives is to how `check-contracts.ps1`
+discovers tests — a facility that alters no repository's behavior until that repository adopts a second
+test framework — so the early stages can still be abandoned without a downstream consequence.
+
+**S1 was split into S1a and S1b by amendment**, after implementation found that the two halves carry
+unrelated risk. S1a is scaffolding and a deterministic operation: no model, no network, nothing that can
+fail in an unfamiliar way. S1b is the model seam, where every unknown lives. Bundled, a failure in the
+SDK integration would block the build scaffolding that every later stage needs. The exit conditions are
+unchanged in substance; they are divided between the two.
 
 `check-contracts.ps1` runs **without** `-Strict` until the final stage lands, because planned clauses are
 closed stage by stage and unfulfilled obligations are expected in between.
 
-## S1 — Skeleton and the two seed operations
+## S1a — Foundation and the deterministic operation
 
 Anneal acquires `src/`, `test/`, a solution and a working `build.ps1` — the last of which
 [AGENTS.md](AGENTS.md) and the check-contracts skill have both instructed agents to run for some time
 despite it not existing. The tool is built and tested here but published nowhere and shipped to nobody.
 
-Seed operations are `verify-evidence`, which is deterministic and consults no model, and
-`probe-rule-owner`, which is the first model-backed operation and therefore the first real exercise of
-the schema-last probe.
+The operation is `verify-evidence`: deterministic, consulting no model, reporting whether each evidence
+locator cited in an agent report is really present at the file and line named. It is the half of the
+*judging agent must show its basis* constraint that a machine can settle.
 
-**Leaves working:** everything. Anneal's existing PowerShell gates are untouched, and the payload is
-unchanged, so a downstream repository sees nothing.
+This stage also carries a payload change that implementation revealed to be unavoidable.
+`check-contracts.ps1` models one repository as having one test framework: `-TestResultFormat` takes a
+single value, and `-ContractTestFolder` must be empty for Anneal's flat root-level suites but `Contract`
+for C# boundary tests. Once Anneal has both, no combination of the parameters expresses its layout —
+which is the case the script's own modification policy reserves for editing it. The alternative,
+contorting Anneal's layout to fit one profile, was rejected because it requires emitting TRX from
+PowerShell purely to impersonate a C# result, and hand-written result parsing in PowerShell is
+specifically the cost this whole system exists to stop paying.
 
-**Exit conditions:** `TOOLKIT-01`, `TOOLKIT-02`, `TOOLKIT-03`, `TOOLKIT-04`, `TOOLKIT-06`, `TOOLKIT-07`,
-`TOOLKIT-I1`, `TOOLKIT-I2` are verified by tests that exist and pass. Anneal's own build runs the .NET
-tests alongside the PowerShell suites.
+The extension must stay narrow: repeatable discovery profiles, not a general configuration language.
+`check-contracts.ps1` is the one mechanically enforced check in the process and must fail closed, so its
+34-case suite is extended in the same change rather than afterwards.
 
-Because `TOOLKIT-04` is the first probe, this stage also produces the first measurement of parse-failure
-rate under a described schema with no constrained decode — the number the *schema is a prompt-level hint*
-decision in [toolkit.md](docs/architecture/toolkit.md) says must be measured rather than assumed. Record
-it; S3 and S5 both lean on it.
+Three documentation claims become false at the moment this stage lands, and are corrected in the **same
+commit** rather than before or after it: [AGENTS.md](AGENTS.md)'s Template Stewardship section states
+Anneal has no `src/` or `test/` tree and that `build.ps1` legitimately differs from the template's; the
+same claim is duplicated in [CONSTRAINTS.md](CONSTRAINTS.md), which by AGENTS.md's own one-owner rule is
+a defect to fix while both sentences are being rewritten anyway; and the stewardship label for
+`build.ps1` is *adopted from the template*, not *deliberately divergent*, because the file does not
+exist here at all.
+
+**Leaves working:** everything. The existing PowerShell suites keep passing unchanged, and a downstream
+repository receives only a discovery facility it does not yet use.
+
+**Exit conditions:** `TOOLKIT-01`, `TOOLKIT-02` and `TOOLKIT-03` are verified by tests that exist and
+pass. `TOOLKIT-06` closes here only if a deterministic operation can express refusal honestly; if it
+cannot, it moves to S1b rather than acquiring an invented refusal path to satisfy the check. Anneal's
+own build runs the .NET tests alongside the PowerShell suites, `check-contracts.ps1` resolves clauses
+in both languages in one invocation, and the three documentation claims above are true again.
+
+## S1b — The model seam
+
+The provider, the capability roles, and the schema-last probe: a conversation whose response schema is
+presented after the reasoning rather than before it. The operation is `probe-rule-owner`, which names
+the single file owning a given rule or refuses.
+
+This is where every unknown in the design lives, which is why it follows a stage that already produced
+a working build with tests running.
+
+**Leaves working:** everything S1a left working. The deterministic operation does not depend on this
+stage and must keep passing without a model reachable.
+
+**Exit conditions:** `TOOLKIT-04`, `TOOLKIT-07`, `TOOLKIT-I1`, `TOOLKIT-I2` verified, plus `TOOLKIT-06`
+if S1a left it open.
+
+Because `TOOLKIT-04` is the first probe, this stage produces the first measurement of parse-failure rate
+under a described schema with no constrained decode — the number the *schema is a prompt-level hint*
+decision in [toolkit.md](docs/architecture/toolkit.md) says must be measured rather than assumed, and
+the falsifier for the matching assumption in [README.md](README.md). Record it; S3 and S5 both lean on
+it, and a bad number is a reason to revisit the design rather than to patch around it.
 
 ## S2 — Shipping it
 
@@ -63,10 +109,10 @@ is worse than none.
 
 `check-contracts.ps1` becomes a Toolkit operation in the enforcement category.
 [contract-check.md](docs/architecture/contract-check.md) merges into
-[toolkit.md](docs/architecture/toolkit.md) and is deleted, and the system count returns to five.
+[toolkit.md](docs/architecture/toolkit.md) and is deleted, returning the repository to four systems.
 
-**Leaves working:** the enforcement gate, which must behave identically before and after. The existing
-34-case suite is the acceptance evidence and is ported, not discarded.
+**Leaves working:** the enforcement gate, which must behave identically before and after. The check's
+own suite is the acceptance evidence and is ported, not discarded.
 
 **Exit conditions:** the ported operation reproduces every failure in the documented taxonomy; the
 script is removed from the payload only once the tool has replaced it in CI for a full release; and

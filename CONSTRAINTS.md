@@ -71,5 +71,5 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   agent never opened reads exactly like a checked finding. The paired belief is in the Assumptions
   section of [README.md](README.md); how a prompt demands the basis is owned by
   [prompt-authoring.md](docs/architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
-  mechanical half at stage S1 of [MIGRATION.md](MIGRATION.md) — whether a cited quote really is at the
+  mechanical half at stage S1a of [MIGRATION.md](MIGRATION.md) — whether a cited quote really is at the
   line named — leaving the prompt obligation to state the basis still outstanding.

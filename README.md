@@ -153,7 +153,7 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 - **A described schema is enough without constrained decoding.** The Copilot session API offers no
   response-format facility, so a typed answer rests on a schema described in the prompt, tolerant
   extraction of the JSON object, and a retry that shows the model its own parse error. The falsifier is
-  measurable and stage S1 of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
+  measurable and stage S1b of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
   retry budget often enough to matter, typed probes need a provider that enforces the shape on the
   wire.
 - **Consulting a model adds no new exposure of repository content.** Operations run under the ambient
