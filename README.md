@@ -1,22 +1,24 @@
 # Anneal
 
-Agent definitions, standards, and a repository template for **evolutionary** software development —
-designs that must keep moving after the first version ships.
+**A development process for AI coding agents working in long-lived .NET codebases.**
 
-Repeated working makes metal brittle; annealing relieves the accumulated stress so it can be shaped
-again. Architectures stiffen the same way under accumulated change. This process is built to keep
-them workable, and to restructure them deliberately when they are not.
+Anneal installs into your repository as a set of agent prompts, coding standards, and a repository
+template. From then on you work by asking an agent for what you want, and the process decides how
+much rigor the request deserves — from none at all for a change nobody outside the code can observe,
+up to a staged, approved restructure when the architecture itself is the thing that is wrong. It is
+aimed at .NET and C# products that will be maintained for years by a mix of people and agents.
 
-Anneal gives AI coding agents enough structure to produce maintainable, reviewable software without
-the inertia of a formal process. It sits between unstructured prompting and regulated development.
+The mechanism is a single rule: **documentation work is triggered only when you change a promise
+other code depends on.** The interior of a system is therefore yours to rearrange as often as you
+like at no documentation cost. Those promises live in one file per system, and every one of them
+names a test that proves it — so the build fails the moment a promise loses its proof. Agents work
+inside a scope they declare before they start, and reaching the edge of it stops them and returns a
+report to you.
 
-**The idea, in one paragraph.** A repository is divided into **systems** — parts that could be
-replaced whole without the rest noticing. A system's **contract** is what other code is allowed to
-depend on, the promises it publishes at its boundary. Documentation work is triggered by a change to
-a contract, and by nothing else. Rewrite a system's internals however you like and you owe no
-documentation; change what it promises and you edit one file, where every promise names the test
-that proves it. Agents classify a task against that rule before starting, and the classification
-decides both how much process the task gets and what the agent is permitted to touch.
+That places Anneal between two unsatisfying options: unstructured prompting, which is quick until
+the design ossifies and nobody can say what anything still guarantees, and regulated development,
+which buys traceability at a price paid on every subsequent change. The name is the metaphor:
+annealing relieves the stress that repeated working builds up in metal, so it can be shaped again.
 
 > **Not a regulated-development process.** `Anneal` does not produce IEC 62304 or equivalent
 > compliance evidence.[^1]
@@ -43,69 +45,76 @@ decides both how much process the task gets and what the agent is permitted to t
   documents to keep in sync.
 - **One command to install**, from a clone you check out at the revision you want.
 
-**One of these is enforced by a machine; the rest are instructions.** `check-contracts.ps1` fails the
-build when a contract clause names no test, or names a test that is missing, stale, or failing — and
-`test-check-contracts.ps1` holds it to that, one fixture repository per documented failure.
-Everything else above is a rule agents are told to follow, held by prompt and review rather than by
-tooling.
-
-## What It Costs
-
-Every system boundary needs its promises written down, and every promise needs a named test —
-that is the adoption cost on an existing codebase, and it is real. Restructures need your approval at
-each step, so the process cannot run unattended on the work that matters most. And the trade itself —
-a small cost per contract change in exchange for none per file change — only pays on a design that is
-still moving.
-
-Several things are deliberately absent: per-unit requirements, per-unit and per-subsystem design
-documents, verification design documents, an architecture model, formal review tracking, and
-multi-retry orchestration. Each was left out because its cost is paid on **every** subsequent change.
-[Architecture Overview](docs/architecture/overview.md) has the full rationale, the trade-offs, and
-what must not be reintroduced.
-
-## Requirements
-
-What the process must hold true to deliver the features above, stated so you can check a repository
-against them rather than argue about them. Each says something no feature bullet already says:
-
-- Every kind of work a product receives has exactly **one** defined entry point.
-- How much process a task needs is decided from a **single** definition of classification, used by
-  every agent — so no two agents can hold different ideas of what a tier means.
-- A large restructure can proceed in stages without disabling any check.
-- The standards an agent must load for any one task are typically two and never more than four.
-- Nothing below system level is documented as a requirement, design, or verification artifact.
+**One of these is enforced by a machine; the rest are instructions.** The clause-to-test link fails
+the build, and a fixture suite holds that check to its own documented behavior. Everything else above
+is a rule agents are told to follow, carried by prompt and review rather than by tooling.
 
 ## How It Works
 
-The process rests on one rule: **documentation work is triggered by a change to what other code
-depends on, never by a change to a file.** Each system publishes a contract — the promises consumers
-outside it may rely on. Everything below that boundary is free to change without documentation cost.
-That freedom is the point; it is what lets a design keep moving after the first version ships.
+Anneal is a small set of parts installed into your repository, which work together to keep the code
+and the documents describing it in agreement.
 
-Work is classified twice before it starts. **Mode** — recording an idea, making a change, tidying,
-or migrating — decides what an agent is allowed to touch. **Tier** decides how far a change reaches
-into published contracts, and therefore how much documentation moves with it. The two are
-independent, and most work lands on the cheapest combination of both.
+**The parts:**
 
-Documentation is a descent, not a pile. Each level answers a different question at a different
-altitude, no level restates the one below it, and a reader descends only as far as the task requires.
-Any change should require editing exactly one documentation file. Levels are created when they are
-earned — a repository whose whole story fits in its README is correctly documented, not
-under-documented.
+- **Agents** (`.github/agents/`) — the workers. Two are conversational and you invoke them yourself:
+  `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
+  establishes system boundaries by interview. The other six are invoked by the process rather than by
+  you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
+  architecture documents with it, `tier-check` verifies the finished change, `lint-fix` clears lint
+  before a pull request, and `template-sync` keeps the repository aligned with the template.
+- **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
+  sole owner of its subject: coding principles and C# language, testing principles and C# testing,
+  system contracts, architecture and technical documentation, and change classification. An agent
+  loads the two or three relevant to the files in front of it, not all of them.
+- **Skills** (`.github/skills/`) — procedures loaded only when the situation arises, so a rarely
+  needed recipe costs nothing the rest of the time.
+- **Scripts** (repository root) — `build.ps1`, `lint.ps1`, `fix.ps1` and `check-contracts.ps1`. These
+  are what CI runs, so the checks apply whether a human or an agent made the change.
+- **A command-line tool** (`dotnet anneal`) — the checks that need real analysis rather than pattern
+  matching, packaged so they run identically on a laptop and in CI.
 
-One relationship is **mechanically enforced**: every contract clause names a boundary test that
-exists and passed. `check-contracts.ps1` fails CI when a clause names nothing, names something that
-is not a test, or is backed only by a stale or failing result. It fails closed — a clause it cannot
-understand is an error, never a silent skip — and it needs no tooling beyond PowerShell. Everything
-else is judgement, deliberately; an unenforced reference is prose that rots the moment somebody
-renames a test.
+**What steers them** is four documents in your repository, and the agents read and maintain these
+rather than carrying the knowledge in their prompts:
 
-Judgement that cannot be reduced to a script is delegated to an **oracle agent** — one invoked for a
-single question, given first-hand facts, and permitted to disagree. Is this change observable at its
-boundary? Did the implementation honour the tier it declared? `tier-check` answers the second by
-obtaining its own `git diff` and reading the contract, rather than trusting the summary of the agent
-it is checking. These are checks rather than steps: they exist to disagree, and the repair budget
-exists to spend on their disagreement.
+- **`README.md`** — what the product is, who it is for, and what it promises. The entry point.
+- **`CONSTRAINTS.md`** — what the product must respect regardless of what anyone asks for.
+- **`BACKLOG.md`** — work identified but not yet scheduled, so a good idea raised at a bad moment is
+  recorded instead of built.
+- **`docs/architecture/`** — the systems the product is divided into and what each publishes to the
+  others, in progressively finer detail.
+
+**How the parts meet.** A request reaches an agent, which reads only as far down that documentation
+as the work requires and loads only the standards that apply. It declares what it will touch, works
+inside that edge, and stops rather than widening it. A *different* agent then checks the result
+against the documents, fetching its own diff instead of trusting the first agent's account of it.
+Where a change alters something a system publishes, the document is edited before the code.
+
+One relationship in all of this is enforced by machine rather than judgement: every promise a system
+publishes must name a test that exists, sits on that system's boundary, and passed. The build fails
+if any promise cannot show one, and fails closed — a clause it cannot understand is an error, never
+a silent skip. Everything else is carried by prompt and review, deliberately.
+
+## Installation
+
+```pwsh
+pwsh ./install.ps1 -TargetRepository ../my-product
+```
+
+This copies the payload into the target repository and vendors the template to `.github/template/`.
+The vendored copy matters: `AGENTS.md` resolves the template from there first, which pins it to the
+agent versions installed beside it.
+
+There is nothing to fill in afterwards. `AGENTS.md` holds no project-specific values — what your
+product is and what it is written in belong in your own `README.md`, which agents read as level 0 of
+the architecture tree — so an upgrade can replace it outright with `-Force`.
+
+For a new repository, run `@helper scaffold the repository structure from the template` to lay down
+the layout, then `@architecture-design` to interview you and generate the architecture tree.
+
+The payload installs eight agents and the standards they load. You invoke two: `@helper` is the front
+door for anything you want done, and `@architecture-design` interviews you when system boundaries
+need establishing or re-cutting. The other six run as sub-agents.
+[Process](docs/architecture/process.md) describes the full composition.
 
 ## Assumptions
 
@@ -186,8 +195,11 @@ maintained using its own agents.
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
-- **`test-check-contracts.ps1`** — fixture suite proving `check-contracts.ps1` still fails in every
-  way its skill file documents
+- **`src/`, `test/`, `Anneal.slnx`** — the Toolkit, a .NET tool hosting operations that combine
+  deterministic checks with model-backed judgement
+- **`.anneal/`** — the role-to-model configuration the Toolkit resolves
+- **`test-check-contracts.ps1`**, **`test-process-contract.ps1`** — fixture suites holding
+  `check-contracts.ps1` and the payload itself to their documented behavior
 - **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
   every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
   into a bounded behavioral summary
@@ -199,35 +211,13 @@ maintained using its own agents.
 - **Model access** — the GitHub Copilot SDK, under the ambient account of the calling session
 
 To work on Anneal itself (not a repository that has installed it): `pwsh ./fix.ps1`, then
-`pwsh ./test-check-contracts.ps1`, then `pwsh ./lint.ps1`. The order matters — `lint.ps1` reads
-results that `test-check-contracts.ps1` writes.
+`pwsh ./build.ps1`, then `pwsh ./lint.ps1`. The order matters — `build.ps1` runs every test suite and
+records the results that `lint.ps1` reads when it checks that each promise still names a passing test.
 
 ## Documentation
 
 - **[Architecture Overview](docs/architecture/overview.md)** — the systems Anneal is built from
 - **[User Guide](docs/user-guide/README.md)** — installing, first run, and day-to-day usage
-
-## Installation
-
-```pwsh
-pwsh ./install.ps1 -TargetRepository ../my-product
-```
-
-This copies the payload to the target repository and vendors the template to `.github/template/`. The
-vendored copy matters: `AGENTS.md` resolves the template from there first, and it pins the template to
-the agent versions installed beside it.
-
-There is nothing to fill in afterwards. `AGENTS.md` holds no project-specific values — what your
-product is and what it is written in belong in `README.md`, which agents read as level 0 of the
-architecture tree — so an upgrade can replace it outright with `-Force`.
-
-For a new repository, run `@helper scaffold the repository structure from the template` to lay down
-the layout, then `@architecture-design` to interview and generate the architecture tree.
-
-The payload installs eight agents and the standards they load. You invoke two of them: `@helper` is
-the front door for everything you want done, and `@architecture-design` interviews you when system
-boundaries need establishing or re-cutting. The other six run as sub-agents, so there are no trigger
-words to learn. [Process](docs/architecture/process.md) describes the full composition.
 
 ## License
 
