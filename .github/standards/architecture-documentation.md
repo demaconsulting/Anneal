@@ -13,6 +13,11 @@ different question at a different altitude.
 The tree exists to make change **cheap**, not to make the design **immovable**. Every rule below
 exists to keep documentation weight proportional to how slowly a thing changes.
 
+**Finding your way around this standard.** `Decomposition and Ownership` carries the rule the rest of
+this file elaborates; read it always. Then add only what the task needs: writing or judging a
+`README.md` — `What Each Level Owns` and `Writing Guidelines`; adding or deleting a document — the two
+section-document rules, `Drift Anchors` and `Publishing`.
+
 # The Four Levels
 
 | Level | File | Altitude | Answers |
@@ -30,6 +35,23 @@ whose whole story fits in `README.md` is correctly documented, not under-documen
 Level 3 is **optional and exceptional**. Most systems have zero or one section documents. More than
 five is a signal that the system should be split, not documented harder.
 
+# Descending the Tree
+
+The tree is written to be **entered part-way and left early**. A reader descends by locating a part,
+not by reading levels through: enter at the altitude that matches the question, read until a named
+part matches the thing about to change, then open the document that part points to. **Stop at the
+level that answers the question.** Descending past it is how a small change acquires a large context,
+and the cost of that is paid on every change, not once.
+
+Level 0 confirms which product this is and what it is built from; an agent already working in the
+repository rarely needs more of it than the part names. A change confined to one system needs that
+system's document, and from its ancestors only the line that named it.
+
+**You have arrived** when the document names the thing you are about to change as one of its *own*
+parts. A level that names it only as somewhere to descend into is one level too high. A mechanism
+*inside* a part is documented at level 3 only when it independently meets a creation test below;
+otherwise it belongs to the system document and you have already arrived.
+
 # Decomposition and Ownership (MANDATORY)
 
 Every level is a **decomposition**. It names the parts at its own altitude, gives each a one-line
@@ -39,6 +61,17 @@ holds the next level of detail about it. A narrative — a story of a request mo
 system — fails this even when every sentence is true: it gives the reader nothing to locate
 themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
 descends, and that is not duplication — it is the handle a reader grabs in order to descend at all.
+
+A decomposition is this shape, and rarely needs more:
+
+```markdown
+- [Ingest](./ingest.md) — accepts and validates inbound records; rejects to Quarantine
+- [Store](./store.md) — durable persistence and query; the only writer to the database
+- [Report](./report.md) — reads Store, never writes; renders scheduled extracts
+```
+
+Each part is named once, given a role, placed against its siblings, and pointed at. What Ingest
+accepts, how Store indexes, and why Report may not write belong to those three documents.
 
 **Detail** — how a part works, what it promises, what is inside it — lives at exactly one level, and
 a parent MUST NOT restate a child's detail. Restated detail creates N-way coupling: every child edit
@@ -53,7 +86,9 @@ detail it does not own.
 ## What Each Level Owns
 
 **`README.md`** — what the product is, what it gives its user, the parts it is built from, how to
-install it, and a pointer to `docs/architecture/overview.md`.
+install it, and a pointer to `docs/architecture/overview.md`. Its parts are the **kinds** of thing the
+product is built from, which need not match level 1's system inventory: adding a system always edits
+`overview.md`, and edits `README.md` only if it introduces a new kind of part.
 
 Features and approach belong here at an **altitude that does not change when a system changes**: the
 value and the organizing idea, never the inventory of promises. No lower level owns "what the user
@@ -111,17 +146,13 @@ This tree is read on disk, on the repository host, and as the compiled architect
 into cross-references when the tree is compiled.
 
 - Every level MUST link to each of its direct children.
-- A child SHOULD link back to its parent in a single line at the top.
+- A child MUST link back to its parent in a single line at the top.
 - Never link sideways across systems in body prose; route through `overview.md` so that
   cross-system coupling stays visible in exactly one place.
 
-Downward links carry a one-line role, never a summary. Paths are relative to the linking document —
-`overview.md` sits alongside the system documents it links to:
-
-```markdown
-- [Ingest](./ingest.md) — accepts and validates inbound records
-- [Store](./store.md) — durable persistence and query
-```
+Downward links carry a one-line role, never a summary, in the shape shown under `Decomposition and
+Ownership`. Paths are relative to the linking document — `overview.md` sits alongside the system
+documents it links to.
 
 # Drift Anchors (MANDATORY)
 
@@ -189,14 +220,10 @@ after its parent system, so the compiled document reads top-down.
 
 # Length
 
-A document is the right length when a reader at that altitude can stop there and act. There is no
-page count: a hello-world repository and a product of eleven systems both have a correct `README.md`,
-and they are not the same size.
-
-Length should scale with the number of things at the document's **own** altitude — features and
-parts for the README, systems for `overview.md`, promises and parts for a system document — never
-with the volume of code beneath it. So the signal is never that a document is long. It is **what
-made it long**:
+A document is the right length when a reader at that altitude can stop there and act; there is no
+page count. Length should scale with the number of things at the document's **own** altitude, never
+with the volume of code beneath it. The signal is never that a document is long — it is **what made
+it long**:
 
 | Document | Re-examine when it grew because |
 | --- | --- |
@@ -205,9 +232,8 @@ made it long**:
 | `{system}.md` | decomposition detail crept in that a section document should own, or the system is too large |
 | `{system}/{section}.md` | it covers more than one non-obvious thing, or its subject no longer meets a creation test |
 
-Each of those is a reason to move material to the level that owns it, or to delete it. None is a
-reason to trim prose that earns its place: a short document missing the *why* is the more expensive
-failure, because the reader then has to descend.
+Each is a reason to move material to the level that owns it, or to delete it — never to trim prose
+that earns its place. A short document missing the *why* is the more expensive failure.
 
 # Writing Guidelines
 
@@ -220,10 +246,8 @@ failure, because the reader then has to descend.
 
 # Markdown Conventions
 
-- 120-character line limit; break at punctuation or logical boundaries.
-- ATX headings, blank lines around headings, lists, and fenced blocks.
-- Language identifiers on all fenced code blocks.
-- Relative links for intra-repository navigation; absolute URLs for external resources.
+`technical-documentation.md` owns these; follow it. Only the link rule is specific to this tree, and
+`Navigation` above states it.
 
 # Quality Gates
 
