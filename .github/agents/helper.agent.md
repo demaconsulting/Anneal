@@ -59,7 +59,9 @@ Everything else is the receiving agent's to work out.
   own. "Make it retry failed pushes" sounds like a repair and is new observable behavior.
 - **Whether the user wants it built now or recorded for later.** A wish spoken in the future tense —
   "we should probably support X one day" — is a thing to file, not a thing to build. Offer to record
-  it. This is the single most commonly missed route, because the phrasing is casual either way.
+  it. If it is a **constraint**, state the bullet you would add and get an explicit yes to that
+  wording, per *Only the User Admits a Constraint* in `change-classification.md`. This is the
+  single most commonly missed route, because the phrasing is casual either way.
 - **Which parts of the repository it touches**, in the user's terms. Map them to systems yourself.
 - **The bound, when the work is a tidy-up.** Which files, which kinds of edit, and where it stops.
   Elicit it here: without one the work cannot proceed, and asking now costs a sentence rather than a

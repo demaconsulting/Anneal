@@ -205,6 +205,30 @@ each is checked by a different reading of the payload and either could lose its 
 taking the other with it. The rejected alternative was one clause naming two tests, which would report
 a single verdict over two independent promises and hide which one had lapsed.
 
+**A constraint is proposed by an agent and admitted only by the user** — every other register in this
+process is written by whichever agent notices the need, and `CONSTRAINTS.md` is not. The asymmetry is in
+the **cost of being wrong**, not the cost of filing: a wrong `BACKLOG.md` line is one stale item somebody
+skips, while a wrong constraint is a barrier every later change has to route around, and the register
+deliberately makes removal a decision rather than bookkeeping — so anything an agent writes there is close
+to permanent. Requiring the user to admit it buys back the only exit the ratchet does not otherwise
+provide. The rule binds **every mode**, not just Intake, because no entry in the register has ever arrived
+through Intake: the seven entries the file was created with in `0f0fd12`, and every one added since, were
+written during Change-mode work that no mode authorized. Closing only the Intake path would have left the
+whole hole open. What an agent does instead is report the proposed entry in its completion report, in the
+wording and the section it would take, and stop — that is actionable by a sub-agent with no way to prompt
+anybody, which "ask the user" is not. Promoting an already-admitted entry to **Satisfied** remains an agent
+action, because the user already said yes to the condition and promotion only records that the current
+shape now meets it. The rejected alternative was extending admission to `BACKLOG.md` and the README
+assumptions as well, which would spend the cheapness that keeps those registers populated in order to
+guard entries whose worst case is one stale line. This entry records why the rule exists;
+`change-classification.md` § Intake owns the rule itself.
+
+No clause is added for it. Whether an agent proposes rather than files is a property of what agents do,
+not of whether the payload loads and routes, so it falls on the behavioral side of the verification split
+in [overview.md](./overview.md) and is established by inspection. Mechanizing it would mean deciding from
+text alone whether a mention of `CONSTRAINTS.md` authorizes a write or merely points at it — a judgement
+the four files that legitimately name the register would defeat.
+
 **Tier ordinals carry their qualifier where a tier is decided** — routing tables, report-template field
 definitions, and the first use in each document write `Tier 1 (Contract)` rather than `Tier 1`, while
 every other site stays bare. The ordinals are kept because the process depends on the scale being

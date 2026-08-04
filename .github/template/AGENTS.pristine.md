@@ -67,7 +67,7 @@ Routing once classified:
 
 | Mode / Tier | Route |
 | --- | --- |
-| Intake | `dispatch` appends one bullet to `BACKLOG.md`, `CONSTRAINTS.md`, or README assumptions; no other agent runs |
+| Intake | `dispatch` appends to `BACKLOG.md` or README assumptions, or proposes a constraint; no other agent runs |
 | Change, Tier 0 (Interior) | `apply` |
 | Change, Tier 1 (Contract) or Tier 2 (Structural) | `architecture-update` → `apply` → `tier-check` |
 | Maintenance | `apply`, within a declared bound |

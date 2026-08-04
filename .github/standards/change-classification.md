@@ -27,16 +27,17 @@ automatically.
 
 | Mode | Triggered by | May touch | Tier |
 | --- | --- | --- | --- |
-| **Intake** | someone raises a need or an idea | `CONSTRAINTS.md`, `BACKLOG.md`, README assumptions | n/a |
+| **Intake** | someone raises a need or an idea | `BACKLOG.md`, README assumptions; a `CONSTRAINTS.md` proposal | n/a |
 | **Change** | a requested behavior change | code, tests, contracts per tier | 0, 1, or 2 |
 | **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | always 0 |
 | **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
 
 ## Intake
 
-Recording that something is wanted. **No code, no tests, no contract change.** The cheapest
-step in the process, deliberately — if filing a need costs anything, needs stop being filed and
-the register goes empty.
+Recording that something is wanted. **No code, no tests, no contract change.** Filing to
+`BACKLOG.md` and to the README assumptions is the cheapest step in the process, deliberately — if
+filing a need costs anything, needs stop being filed and those registers go empty. `CONSTRAINTS.md`
+is the one exception, for the reason given under *Only the user admits a constraint* below.
 
 Apply the admission test: *does it hold, or does it complete?*
 
@@ -45,9 +46,10 @@ Something that **completes** is a discrete piece of work, finished and stays fin
 
 Something that **holds** is a standing statement, and splits again on who could change it. If it
 could only change by a decision, it is a **constraint** — "runs on Windows", "supports .NET
-Standard 2.0", "starts in under a second". Append one bullet to `CONSTRAINTS.md`: **Satisfied** if
-the current design already meets it, **Not Yet Satisfied** if it does not. A constraint that needs
-work before it holds is still a constraint, not backlog.
+Standard 2.0", "starts in under a second". It belongs in `CONSTRAINTS.md` as one bullet:
+**Satisfied** if the current design already meets it, **Not Yet Satisfied** if it does not. A
+constraint that needs work before it holds is still a constraint, not backlog. **Propose it; do not
+append it** — see below.
 
 If instead reality could prove it wrong without anyone changing their mind, it is an **assumption** —
 "our users have outbound internet access". Append one bullet to the **Assumptions** section of
@@ -55,6 +57,32 @@ If instead reality could prove it wrong without anyone changing their mind, it i
 whether it is load-bearing belongs to `architecture-design` at the next re-cut.
 
 Whichever file it lands in, the item is recorded and nothing else happens.
+
+### Only the User Admits a Constraint
+
+**No agent, in any mode, appends an entry to `CONSTRAINTS.md` — in either section.** Only the user
+admits one. This binds Change, Maintenance and Migration exactly as it binds Intake; a rule that
+covered only Intake would leave every other path into the file open.
+
+**To propose, mechanically:** state the bullet in the completion report, in the exact wording and
+under the exact section heading — **Satisfied** or **Not Yet Satisfied** — it would take, and stop.
+Do not append it, and do not treat silence, plausibility, or a general instruction to improve the
+repository as admission. Append the bullet only when the current request explicitly admits *that*
+constraint. This is actionable by a sub-agent with no way to prompt anybody, which "ask the user" is
+not.
+
+**Promotion is still an agent action.** Moving an already-admitted entry from **Not Yet Satisfied**
+to **Satisfied** is not admission — the user already said yes to the condition, and the move only
+records that the current shape now meets it. `architecture-update` does this as part of a Tier 2
+change. Nothing here restricts it.
+
+**Why this one register and not the others.** The asymmetry is the cost of being wrong, not the cost
+of filing. A wrong `BACKLOG.md` line or README assumption is one stale bullet somebody skips, so
+those stay frictionless and the argument above holds for them intact. A wrong constraint is a
+barrier every later change has to route around, and the register deliberately makes removal a
+decision rather than bookkeeping — *entries are never deleted for being met* — so anything an agent
+writes there is close to permanent. Requiring the user to admit it buys back the only exit the
+ratchet does not otherwise provide.
 
 ## Change
 

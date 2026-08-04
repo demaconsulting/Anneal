@@ -105,7 +105,8 @@ When a system is removed, delete its document and its entire section directory.
 
 Move a `CONSTRAINTS.md` entry to **Satisfied** if this change absorbs it, in this same change. Never
 delete one for being met — a satisfied constraint is the guard rail against regressing it. Report a
-new constraint you discovered rather than filing it yourself; recording needs is Intake's job.
+new constraint you discovered rather than filing it yourself: only the user admits an entry, per
+*Only the User Admits a Constraint* in `change-classification.md`.
 
 Report every deletion and every document examined and kept, with the reason for each. Keeping every
 document is a legitimate outcome when each one still meets a creation test; skipping the examination

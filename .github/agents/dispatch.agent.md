@@ -26,13 +26,15 @@ before doing anything else.
 
 Determine the **mode** first, because three of the four fix the tier automatically:
 
-- **Intake** — append one bullet to whichever destination the admission test selects: `BACKLOG.md`,
-  the **Not Yet Satisfied** section of `CONSTRAINTS.md`, or the **Assumptions** section of
-  `README.md`. If a register does not exist yet, create it from its template counterpart (resolved
-  per the `# Reference Template` section of `AGENTS.md`); if the template cannot be resolved, report
-  INCOMPLETE rather than inventing a format. `README.md` always exists — append to it, and never
-  recreate it. Say which file you wrote to and why the admission test chose it. Do not proceed to
-  Step 2; there is nothing to implement.
+- **Intake** — apply the admission test and act on what it selects. For `BACKLOG.md` or the
+  **Assumptions** section of `README.md`, append one bullet; this stays as cheap as it is today. For
+  a **constraint**, do not append: propose it per *Only the User Admits a Constraint* in
+  `change-classification.md` — state the bullet in its intended wording and section — and report
+  INCOMPLETE. If a register you must append to does not exist yet, create it from its template
+  counterpart (resolved per the `# Reference Template` section of `AGENTS.md`); if the template
+  cannot be resolved, report INCOMPLETE rather than inventing a format. `README.md` always exists —
+  append to it, and never recreate it. Say which file the admission test chose and why. Do not
+  proceed to Step 2; there is nothing to implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
   passing that bound to `apply` as a hard limit. If the request has no bound, ask for one instead
   of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
@@ -159,10 +161,13 @@ One line per sub-agent. Each is either a report path with a summary, or `not run
 ## Documentation and Register Changes
 
 {For Tier 1 and 2: architecture files updated or deleted. For Intake: the register appended to and
-why the admission test chose it. Otherwise "none", with the reason: interior change only (Tier 0),
-the bound forbids it (Maintenance), or nothing was written (Migration)}
+why the admission test chose it, or — when the test selected a constraint — the proposed bullet in
+its intended wording and section, awaiting the user's admission. Otherwise "none", with the reason:
+interior change only (Tier 0), the bound forbids it (Maintenance), or nothing was written
+(Migration)}
 
 ## Unknowns (only when Result is INCOMPLETE)
 
-{Each question the user must answer, and what can proceed without it}
+{Each question the user must answer, and what can proceed without it — including "does the user
+admit this constraint into `CONSTRAINTS.md`?", quoting the proposed bullet}
 ```
