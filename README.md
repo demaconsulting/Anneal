@@ -98,6 +98,33 @@ Those parts divide into systems, and
 [`docs/architecture/overview.md`](docs/architecture/overview.md) names them, says how they interact,
 and links to what each one promises. It is the next stop for any detail below this altitude.
 
+## Direction
+
+Anneal has a settled trajectory. The [Toolkit](docs/architecture/toolkit.md) grows into a
+substantially complete autonomous coding system: the actions `dotnet anneal` provides progressively
+absorb work that is done today by prose agents reading prompts and by PowerShell scripts running
+checks. Two agents remain conversational and are never absorbed — `helper` and `architecture-design`
+both work by talking to a person, and their end-state job is to drive the Toolkit. Along the way,
+Anneal takes on the capabilities of a separate, earlier autonomous-coding project built under a
+rigid regulated process that could not evolve, and replaces it.
+
+**The dividing line.** The Toolkit may absorb **control flow and context assembly** — sequencing
+steps, gating on their outcomes, and composing what a model is shown. It must never absorb
+**judgement as compiled behavior**. Prompts, standards and contracts stay data the tool composes:
+ordinary files, editable in one edit, without a release. A wrong prompt is corrected in one edit;
+a wrong encoded rule is corrected through build, test, publish and restore, and an agent editing
+the tool does not change the tool it is running under.
+
+The admission test underneath is the one *What must not be reintroduced* in
+[overview.md](docs/architecture/overview.md) turns on: does a mechanism add cost paid on every
+subsequent change? Anneal exists to refuse mechanisms that do. Automation that mechanizes work in
+order to *remove* per-change cost is the point of this direction, not a case against it.
+
+Two further items are held at lower confidence than the rest, and named here because they shape
+thinking below this line without being committed: an optional in-process REPL hosting the two
+conversational agents, and an on-premises model provider. Both would be re-decided when a stage
+that depends on them is approached.
+
 ## Installation
 
 ```pwsh

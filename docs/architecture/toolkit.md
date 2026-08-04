@@ -201,9 +201,12 @@ contract check already enforces. The cost is accepted for the visibility.
 **Judgement stays in the model; code owns control flow** — sequencing, gating and evidence handling move
 into the Toolkit because they are deterministic and were unreliable when expressed as prose for an agent
 to follow. The decisions themselves do not move, because a unit test can prove that a step ran and
-cannot prove that a verdict was right. The rejected alternative was a process engine that owns both,
-which is the shape of the predecessor this repository exists to escape — see *What must not be
-reintroduced* in [overview.md](./overview.md).
+cannot prove that a verdict was right, and because a rule compiled into a released tool is corrected
+through build, test, publish and restore where a prompt is corrected in one edit. Prompts, standards and
+contracts stay data the Toolkit composes. The rejected alternative was a process engine that owns both
+control flow and judgement — rejected because encoding judgement makes correcting it expensive on every
+subsequent change, which is the cost *What must not be reintroduced* in [overview.md](./overview.md)
+refuses.
 
 **Model configuration is data, not code** — roles appear in this contract; the models behind them do
 not. A repository changes the models behind its roles by editing a configuration file the Template

@@ -191,7 +191,9 @@ which is the budget PROCESS-06 protects.
 per change, because a documentation finding has to be fixed before implementation can use it, but
 grinding a finding that will not clear means the change was misunderstood at the start. The rejected
 alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three retries, which multiplied
-every cost by up to four and made the process expensive rather than the design.
+every cost by up to four and made the process expensive rather than the design. What was refused was
+the multiplier — cost paid on every subsequent change — not orchestration itself; sequencing bounded
+work is what `dispatch` already is.
 
 **The classification vocabulary is contracted as two clauses, not one** — modes and tiers are one idea
 to a reader and two different problems to a checker, and PROCESS-07 spent a release as an unfulfilled

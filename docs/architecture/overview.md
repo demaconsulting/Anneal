@@ -12,19 +12,22 @@ covers:
 
 # Overview
 
-Anneal ships a process rather than running one. Nothing here executes against a product: the payload is
-prose an AI coding agent reads, a template describing the repository that prose expects, a script that
-enforces the single rule the process refuses to leave to judgement, and an installer that puts all three
-into somebody else's repository. That is the organizing idea the inventory below rests on — three of the
-five systems exist to deliver and defend the first, and the fifth, Toolkit, is invoked by that delivered
-content rather than delivering it; the interesting design pressure is that the thing being delivered is
-instructions rather than behavior.
+Anneal delivers a process, and increasingly executes on it. Most of the payload is prose an AI coding
+agent reads, together with a template describing the repository that prose expects, a script that
+enforces the single rule the process refuses to leave to judgement, and an installer that puts all
+three into somebody else's repository. Alongside them Toolkit runs — a .NET tool hosting operations
+the agents call, executing deterministic checks and controlling the conversations behind model-backed
+judgement. That mix is the organizing idea the inventory below rests on. Three systems exist to
+deliver and defend the delivered content, the fifth executes rather than describes, and the
+interesting design pressure is that even the executing system composes context for judgement to
+happen against rather than encoding the judgement itself.
 
 The consequence runs through every decision recorded here. Instructions cannot be executed to see whether
 they work, so verification splits in two: properties of the files themselves are checked by script, and
 properties of what agents actually do are established by inspection or by a sandbox run against a
-throw-away repository. Anneal is the only repository where that split is load-bearing, because it is the
-only one whose product is a prompt.
+throw-away repository. The split is load-bearing here because the majority of what Anneal ships is
+instructions rather than behavior — the Toolkit is executed, but what it executes is context assembly
+for a model rather than encoded judgement.
 
 ## Systems
 
@@ -104,8 +107,12 @@ expensive. The cost came from four specific mechanisms: per-unit artifact fan-ou
 software item, down to individual classes), per-unit requirements (a requirements file per subsystem and
 unit, with identifier churn on every move), hard-fail companion gates (missing artifacts failed the
 build, turning every omission into a full retry), and multi-retry orchestration (PLANNING → DEVELOPMENT
-→ QUALITY with three retries, multiplying everything). Reintroducing any of these — or their
-structural equivalents — is a redesign, not an incremental regression.
+→ QUALITY with three retries, multiplying everything). Each was removed because its cost is paid on
+every subsequent change, and that cost — not the shape — is the admission test a new mechanism has to
+fail. Reproducing one of those cost patterns is a redesign, not an incremental regression. Automation
+that mechanizes work in order to remove per-change cost is the direction Anneal is moving in and is not
+caught by this rule; the [Direction](../../README.md#direction) section of the README states what does
+and does not qualify.
 
 **Files, not tooling — superseded by Toolkit** — Anneal originally installed by file copy alone: no build
 step, no package manager, no runtime dependency in the target repository. The decision named its own
