@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Providers;
 using DemaConsulting.Anneal.Toolkit.Operations;
@@ -11,25 +13,66 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 /// </summary>
 /// <remarks>
 ///     Everything here goes through the same surface a caller has: the action name is passed to
-///     <see cref="AnnealTool.Run(IReadOnlyList{string}, TextWriter)" /> and the assertions are on the exit
-///     code and the written output. The operation set is injected where a clause is about the dispatcher
-///     rather than about a shipped action, because a rule stated over categories cannot be proven by the one
-///     category that happens to ship today.
+///     <see cref="AnnealTool.RunAsync(IReadOnlyList{string}, TextWriter, CancellationToken)" /> and the
+///     assertions are on the exit code and the written output. The operation set is injected where a clause is
+///     about the dispatcher rather than about a shipped action, because a rule stated over categories cannot be
+///     proven by the one category that happens to ship today.
+///     <para>
+///         Two clauses are about what a caller receives rather than what a terminal shows — a finding returned
+///         as data, and a cancellation that lands — and those go through <see cref="IOperation" /> itself,
+///         which is public for exactly that reason. Nothing here reaches inside an operation.
+///     </para>
 /// </remarks>
 public class ToolkitContractTests
 {
+    /// <remarks>
+    ///     How long a cancellation test waits before declaring the invocation stuck. Generous, because a slow
+    ///     machine is not a defect, and bounded, because the failure this guards against — a signal that never
+    ///     reaches the thing it should stop — presents as a wait that never ends.
+    /// </remarks>
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(30);
+
+    /// <remarks>
+    ///     The exit code TOOLKIT-16 promises an interrupted run leaves. Stated as a literal rather than read
+    ///     from the tool, because the number itself is the promise: a caller reading exit codes has only the
+    ///     number, and a test that asked the tool what code it uses would agree with any answer it gave.
+    /// </remarks>
+    private const int ExitInterrupted = 130;
+
+    /// <remarks>
+    ///     How much of the report the interrupted run must be seen working through before the interrupt is
+    ///     raised. Small, because the point is only that a step is genuinely under way and not that a
+    ///     particular amount of it is done.
+    /// </remarks>
+    private const int ProgressBeforeInterrupt = 20;
+
+    /// <remarks>
+    ///     Citations in the report the interrupt test writes, and lines in the file each of them reads. Far
+    ///     more work than the tool can finish in the fraction of a second the test needs to see it start, so
+    ///     "it was still running" is a property of the workload rather than of the machine's speed.
+    /// </remarks>
+    private const int LongWorkloadCitations = 100_000;
+
+    private const int CitedFileLines = 5_000;
+
+    /// <remarks>
+    ///     How long the test host stays on the child's console after raising the interrupt. It is a bound and
+    ///     not a wait: the child normally exits within a few milliseconds and the attachment ends with it.
+    /// </remarks>
+    private const int InterruptDeliveryMilliseconds = 5_000;
+
     /// <summary>
     ///     TOOLKIT-01 — an unrecognized action exits with the caller-error code of TOOLKIT-10 and lists the
     ///     actions that exist, so a caller discovers the surface without reading the source.
     /// </summary>
     [Fact]
-    public void UnknownActionListsAvailableActions()
+    public async Task UnknownActionListsAvailableActions()
     {
         // Arrange: a caller who has named an action this tool does not have
         var output = new StringWriter();
 
         // Act: the action is named first, as "dotnet anneal <action>"
-        var exitCode = AnnealTool.Run(["no-such-action"], output);
+        var exitCode = await AnnealTool.RunAsync(["no-such-action"], output, TestContext.Current.CancellationToken);
         var written = output.ToString();
 
         // Assert: the caller-error code, and every shipped action is discoverable from the output alone
@@ -47,16 +90,17 @@ public class ToolkitContractTests
     ///     enforcement gates.
     /// </summary>
     [Fact]
-    public void OnlyEnforcementOperationsGate()
+    public async Task OnlyEnforcementOperationsGate()
     {
         // Arrange: the same failure, declared under each category in turn
         var categories = Enum.GetValues<OperationCategory>();
 
         // Act: run each one, plus a succeeding enforcement operation as the control
-        var failingExitCodes = categories.ToDictionary(
-            category => category,
-            category => RunStub(category, OperationOutcome.Failed));
-        var succeedingEnforcement = RunStub(OperationCategory.Enforcement, OperationOutcome.Succeeded);
+        var failingExitCodes = new Dictionary<OperationCategory, int>();
+        foreach (var category in categories)
+            failingExitCodes[category] = await RunStub(category, OperationOutcome.Failed);
+
+        var succeedingEnforcement = await RunStub(OperationCategory.Enforcement, OperationOutcome.Succeeded);
 
         // Assert: identical failures gate or not purely by category, and success never gates
         Assert.Multiple(
@@ -73,24 +117,25 @@ public class ToolkitContractTests
     ///     the mapping TOOLKIT-02 and TOOLKIT-06 describe.
     /// </summary>
     [Fact]
-    public void UsageErrorExitsAsCallerErrorWhateverTheCategory()
+    public async Task UsageErrorExitsAsCallerErrorWhateverTheCategory()
     {
         // Arrange and act: the same usage error under a category that gates and one that does not
-        var researchMisuse = RunStub(OperationCategory.Research, OperationOutcome.UsageError);
-        var enforcementMisuse = RunStub(OperationCategory.Enforcement, OperationOutcome.UsageError);
+        var researchMisuse = await RunStub(OperationCategory.Research, OperationOutcome.UsageError);
+        var enforcementMisuse = await RunStub(OperationCategory.Enforcement, OperationOutcome.UsageError);
 
         // Act: the same two operations, having actually run and reported an answer
-        var researchFailure = RunStub(OperationCategory.Research, OperationOutcome.Failed);
-        var enforcementFailure = RunStub(OperationCategory.Enforcement, OperationOutcome.Failed);
-        var researchRefusal = RunStub(OperationCategory.Research, OperationOutcome.Refused);
-        var enforcementRefusal = RunStub(OperationCategory.Enforcement, OperationOutcome.Refused);
+        var researchFailure = await RunStub(OperationCategory.Research, OperationOutcome.Failed);
+        var enforcementFailure = await RunStub(OperationCategory.Enforcement, OperationOutcome.Failed);
+        var researchRefusal = await RunStub(OperationCategory.Research, OperationOutcome.Refused);
+        var enforcementRefusal = await RunStub(OperationCategory.Enforcement, OperationOutcome.Refused);
 
         // Act: a caller who scripted an option the action does not take, as the reported defect did
         var misuseOutput = new StringWriter();
-        AnnealTool.Run(
+        await AnnealTool.RunAsync(
             ["stub", "--rule", "some rule"],
             misuseOutput,
-            [new StubOperation(OperationCategory.Research, OperationOutcome.UsageError)]);
+            [new StubOperation(OperationCategory.Research, OperationOutcome.UsageError)],
+            TestContext.Current.CancellationToken);
         var written = misuseOutput.ToString();
 
         // Assert: the caller's own mistake never reads as a check that ran, in either direction, and the
@@ -114,7 +159,7 @@ public class ToolkitContractTests
     ///     is at the file and line named, reaching no verdict about the report's own conclusion.
     /// </summary>
     [Fact]
-    public void EvidenceLocatorsAreCheckedAgainstSource()
+    public async Task EvidenceLocatorsAreCheckedAgainstSource()
     {
         // Arrange: a source file, and a report citing one locator that holds and one that does not
         var root = CreateTemporaryDirectory();
@@ -136,10 +181,12 @@ public class ToolkitContractTests
 
             // Act: check both reports through the command surface
             var honestOutput = new StringWriter();
-            var honestExit = AnnealTool.Run(["verify-evidence", honest], honestOutput, operations);
+            var honestExit = await AnnealTool.RunAsync(
+                ["verify-evidence", honest], honestOutput, operations, TestContext.Current.CancellationToken);
 
             var wrongOutput = new StringWriter();
-            var wrongExit = AnnealTool.Run(["verify-evidence", wrong], wrongOutput, operations);
+            var wrongExit = await AnnealTool.RunAsync(
+                ["verify-evidence", wrong], wrongOutput, operations, TestContext.Current.CancellationToken);
             var wrongWritten = wrongOutput.ToString();
 
             // Assert: each locator is reported individually, and nothing is said about the report's verdict
@@ -181,7 +228,7 @@ public class ToolkitContractTests
     ///     stated in more than one place or in none.
     /// </summary>
     [Fact]
-    public void RuleOwnerProbeNamesOneFileOrRefuses()
+    public async Task RuleOwnerProbeNamesOneFileOrRefuses()
     {
         // Arrange: a repository, and a model scripted to reach each of the three conclusions in turn
         var root = CreateTemporaryDirectory();
@@ -190,9 +237,9 @@ public class ToolkitContractTests
             File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
 
             // Act: the same question answered three ways
-            var owned = RunProbe(root, "owner.md states it and nothing else does.", Answer("SingleOwner", "owner.md"));
-            var several = RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""));
-            var nowhere = RunProbe(root, "Nothing states it.", Answer("StatedNowhere", ""));
+            var owned = await RunProbe(root, "owner.md states it and nothing else does.", Answer("SingleOwner", "owner.md"));
+            var several = await RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""));
+            var nowhere = await RunProbe(root, "Nothing states it.", Answer("StatedNowhere", ""));
 
             // Assert: one file is named on success, and neither of the two unanswerable cases reports one
             Assert.Multiple(
@@ -246,16 +293,16 @@ public class ToolkitContractTests
     ///     can tell "the question could not be answered" from "the answer is no".
     /// </summary>
     [Fact]
-    public void RefusalIsDistinctFromFailure()
+    public async Task RefusalIsDistinctFromFailure()
     {
         // Arrange: one operation, driven to each of the three outcomes
         var root = CreateTemporaryDirectory();
         try
         {
             // Act: an answer, a refusal, and a failure that is not a refusal
-            var answered = RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
-            var refused = RunProbe(root, "Several files state it.", Answer("StatedInSeveralPlaces", ""));
-            var failed = RunProbe(root, "unreachable", "unreachable", reachable: false);
+            var answered = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+            var refused = await RunProbe(root, "Several files state it.", Answer("StatedInSeveralPlaces", ""));
+            var failed = await RunProbe(root, "unreachable", "unreachable", reachable: false);
 
             // Assert: three distinct exit codes, and a refusal that reads as neither of the other two
             Assert.Multiple(
@@ -280,7 +327,7 @@ public class ToolkitContractTests
     ///     working with no model reachable.
     /// </summary>
     [Fact]
-    public void UnreachableModelFailsLoudly()
+    public async Task UnreachableModelFailsLoudly()
     {
         // Arrange: a repository whose model cannot be reached, and a report the deterministic check can verify
         var root = CreateTemporaryDirectory();
@@ -290,13 +337,14 @@ public class ToolkitContractTests
             var report = WriteReport(root, "report.md", "`subject.txt:2` - \"the promise this cites\"");
 
             // Act: the probe with no model reachable, and the deterministic operation under the same conditions
-            var probe = RunProbe(root, "unused", "unused", reachable: false);
+            var probe = await RunProbe(root, "unused", "unused", reachable: false);
 
             var evidenceOutput = new StringWriter();
-            var evidenceExit = AnnealTool.Run(
+            var evidenceExit = await AnnealTool.RunAsync(
                 ["verify-evidence", report],
                 evidenceOutput,
-                [new VerifyEvidenceOperation(root)]);
+                [new VerifyEvidenceOperation(root)],
+                TestContext.Current.CancellationToken);
 
             // Assert: the failure names the cause and claims nothing, and the deterministic check is unaffected
             Assert.Multiple(
@@ -377,20 +425,20 @@ public class ToolkitContractTests
     ///     be decoded within the retry budget fails the operation and returns nothing partial.
     /// </summary>
     [Fact]
-    public void UndecodableProbeResultFailsTheOperation()
+    public async Task UndecodableProbeResultFailsTheOperation()
     {
         // Arrange: a model that never produces valid JSON, and one that produces it only after being corrected
         var root = CreateTemporaryDirectory();
         try
         {
-            var hopeless = RunProbe(
+            var hopeless = await RunProbe(
                 root,
                 "owner.md states it.",
                 "I think owner.md owns it.",
                 "Still prose, sorry.",
                 "{ \"ownership\": ");
 
-            var rescued = RunProbe(
+            var rescued = await RunProbe(
                 root,
                 "owner.md states it.",
                 "{ \"ownership\": \"SingleOwner\" }",
@@ -429,13 +477,13 @@ public class ToolkitContractTests
     ///     provoking an error.
     /// </summary>
     [Fact]
-    public void HelpListsEveryActionAndSucceeds()
+    public async Task HelpListsEveryActionAndSucceeds()
     {
         // Arrange: a caller who wants to learn the surface deliberately, not by making a mistake
         var output = new StringWriter();
 
         // Act: "dotnet anneal help", with no action to describe
-        var exitCode = AnnealTool.Run(["help"], output);
+        var exitCode = await AnnealTool.RunAsync(["help"], output, TestContext.Current.CancellationToken);
         var written = output.ToString();
 
         // Assert: the success code, and every shipped action with its summary is present in the listing
@@ -455,19 +503,21 @@ public class ToolkitContractTests
     ///     defines, reported with the same list of existing actions an unknown action already produces.
     /// </summary>
     [Fact]
-    public void HelpForActionPrintsItsUsageAndRejectsUnknown()
+    public async Task HelpForActionPrintsItsUsageAndRejectsUnknown()
     {
         // Arrange: a shipped action to describe, and a name that ships nowhere
         var known = AnnealTool.DefaultOperations[0];
 
         // Act: "help <known>" describes it
         var knownOutput = new StringWriter();
-        var knownExit = AnnealTool.Run(["help", known.Name], knownOutput);
+        var knownExit = await AnnealTool.RunAsync(
+            ["help", known.Name], knownOutput, TestContext.Current.CancellationToken);
         var knownWritten = knownOutput.ToString();
 
         // Act: "help <unknown>" is a usage error listing what does exist
         var unknownOutput = new StringWriter();
-        var unknownExit = AnnealTool.Run(["help", "no-such-action"], unknownOutput);
+        var unknownExit = await AnnealTool.RunAsync(
+            ["help", "no-such-action"], unknownOutput, TestContext.Current.CancellationToken);
         var unknownWritten = unknownOutput.ToString();
 
         // Assert: the known action's detailed usage is printed and succeeds; the unknown one is the
@@ -488,7 +538,7 @@ public class ToolkitContractTests
     ///     declared source, so the two renderings cannot state the invocation differently or drift apart.
     /// </summary>
     [Fact]
-    public void HelpAndUsageErrorShareOneUsageSource()
+    public async Task HelpAndUsageErrorShareOneUsageSource()
     {
         // Arrange: a stub whose usage is a distinctive literal declared exactly once. If the two renderings
         // ever drew from separate strings, only one of them could contain this literal, and this test fails.
@@ -498,12 +548,14 @@ public class ToolkitContractTests
 
         // Act: the discovery rendering, "help <action>"
         var helpOutput = new StringWriter();
-        var helpExit = AnnealTool.Run(["help", "stub"], helpOutput, operations);
+        var helpExit = await AnnealTool.RunAsync(
+            ["help", "stub"], helpOutput, operations, TestContext.Current.CancellationToken);
         var helpWritten = helpOutput.ToString();
 
         // Act: the usage-error rendering, the action given arguments it cannot use
         var misuseOutput = new StringWriter();
-        var misuseExit = AnnealTool.Run(["stub", "--flag", "value"], misuseOutput, operations);
+        var misuseExit = await AnnealTool.RunAsync(
+            ["stub", "--flag", "value"], misuseOutput, operations, TestContext.Current.CancellationToken);
         var misuseWritten = misuseOutput.ToString();
 
         // Assert: both renderings carry the one declared literal verbatim, and each takes the exit its path owns
@@ -513,6 +565,270 @@ public class ToolkitContractTests
             () => Assert.Equal(AnnealTool.ExitUsageError, misuseExit),
             () => Assert.Contains(distinctiveUsage, misuseWritten, StringComparison.Ordinal));
     }
+
+    /// <summary>
+    ///     TOOLKIT-14 — an operation reports what it found as data carried beside its outcome, so a caller
+    ///     consumes the finding without parsing the text rendered for a person, while an operation with nothing
+    ///     structured to report carries none and that absence is an answer rather than a failure.
+    /// </summary>
+    [Fact]
+    public async Task OperationFindingsReachCallersAsData()
+    {
+        // Arrange: a repository, a report the deterministic check can verify, and a model scripted to answer
+        // and then to refuse. Every invocation below renders into TextWriter.Null, so nothing this test
+        // asserts can have come from the rendered text - there is none to read.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
+            File.WriteAllLines(Path.Combine(root, "subject.txt"), ["first line", "the promise this cites"]);
+            var report = WriteReport(root, "report.md", "`subject.txt:2` - \"the promise this cites\"");
+
+            // Act: a probe that answers, invoked through the public operation surface a composing caller holds
+            IOperation answering = new ProbeRuleOwnerOperation(
+                root,
+                () => Scripted("owner.md states it.", Answer("SingleOwner", "owner.md")));
+            var answered = await answering.ExecuteAsync(
+                ["each rule has exactly one owner"], TextWriter.Null, TestContext.Current.CancellationToken);
+
+            // Act: the same operation refusing - the outcome is a peer of the finding, not folded into it
+            IOperation refusing = new ProbeRuleOwnerOperation(
+                root,
+                () => Scripted("Two files state it.", Answer("StatedInSeveralPlaces", "")));
+            var refused = await refusing.ExecuteAsync(
+                ["each rule has exactly one owner"], TextWriter.Null, TestContext.Current.CancellationToken);
+
+            // Act: an operation whose whole answer is its outcome and its rendered lines
+            IOperation deterministic = new VerifyEvidenceOperation(root);
+            var verified = await deterministic.ExecuteAsync(
+                [report], TextWriter.Null, TestContext.Current.CancellationToken);
+
+            // Assert: the typed value the probe computed survives to the caller intact, beside an outcome that
+            // is still its own answer; and the operation with nothing structured carries none, and succeeds
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, answered.Outcome),
+                () => Assert.Equal(
+                    new RuleOwnerAnswer
+                    {
+                        Ownership = RuleOwnership.SingleOwner,
+                        OwningFile = "owner.md",
+                        Evidence = "I read the files."
+                    },
+                    Assert.IsType<RuleOwnerAnswer>(answered.Finding)),
+                () => Assert.Same(answered.Finding, answered.FindingAs<RuleOwnerAnswer>()),
+
+                // A refusal still carries what was found: the outcome says the question was not answerable,
+                // the finding says what the probe saw, and neither is recoverable from the other.
+                () => Assert.Equal(OperationOutcome.Refused, refused.Outcome),
+                () => Assert.Equal(
+                    RuleOwnership.StatedInSeveralPlaces,
+                    Assert.IsType<RuleOwnerAnswer>(refused.Finding).Ownership),
+
+                // Nothing structured to report is an answer, not a failure and not an invented payload.
+                () => Assert.Null(verified.Finding),
+                () => Assert.Equal(OperationOutcome.Succeeded, verified.Outcome));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-15 — a caller supplies a cancellation signal with an invocation, and cancelling it stops the
+    ///     invocation rather than letting it run to completion.
+    /// </summary>
+    /// <remarks>
+    ///     The stub waits on the signal it was handed and on nothing else, so it can only stop if the signal
+    ///     reached it: a dispatcher that substituted a token of its own, or dropped it, leaves the stub waiting
+    ///     forever and this test fails on its deadline rather than passing quietly. The completion flag makes
+    ///     "stopped" mean stopped rather than merely "finished" — a run that fell through to its end would set
+    ///     it.
+    /// </remarks>
+    [Fact]
+    public async Task CancellingAnInvocationStopsIt()
+    {
+        // Arrange: an invocation that will not finish on its own, under the caller's own signal
+        using var cancellation = new CancellationTokenSource();
+        var operation = new WaitingOperation();
+
+        // Act: start it, and wait until it is genuinely running rather than merely dispatched
+        var run = Task.Run(
+            () => AnnealTool.RunAsync(["waiting"], TextWriter.Null, [operation], cancellation.Token),
+            TestContext.Current.CancellationToken);
+
+        await operation.Started.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        var runningWhenCancelled = !run.IsCompleted;
+
+        // Act: the caller withdraws the request
+        await cancellation.CancelAsync();
+        var settled = await Task.WhenAny(run, Task.Delay(Deadline, TestContext.Current.CancellationToken));
+
+        // Assert: it stopped where it was, and never ran to completion
+        Assert.Multiple(
+            () => Assert.True(runningWhenCancelled, "the invocation had already finished before it was cancelled"),
+            () => Assert.Same(run, settled),
+            () => Assert.True(operation.ObservedCancellation),
+            () => Assert.False(operation.RanToCompletion));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run);
+    }
+
+    /// <summary>
+    ///     TOOLKIT-16 — an invocation interrupted at the terminal stops where it is rather than being killed,
+    ///     and exits with the interrupt code 130, which is distinct from every code an outcome maps to and from
+    ///     the caller-error code of TOOLKIT-10.
+    /// </summary>
+    /// <remarks>
+    ///     The only clause here about the process rather than the library, so it is the only test that runs the
+    ///     built executable: an interrupt is delivered to a process, and nothing an in-process test can do
+    ///     stands in for one without testing a copy of the entry point instead of the entry point.
+    ///     <para>
+    ///         Vacuity is guarded on both halves of the clause. The interrupt is not sent until the child has
+    ///         reported real progress through a step — locator lines it can only write by having started
+    ///         checking — so a run that had already finished, or never started, fails here rather than passing
+    ///         quietly. "Stopped rather than killed" is then read from three independent observations: the
+    ///         graceful line only the interrupt path writes, the tally line the operation writes at its end
+    ///         which must be absent, and the exit code itself, since a process killed at the terminal reports
+    ///         its killer's code and never 130. Folding the interrupt back into the outcome mapping fails the
+    ///         code assertions; removing the interrupt path entirely fails all three.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task InterruptedInvocationStopsAndExitsOutsideTheOutcomeCodes()
+    {
+        var root = CreateTemporaryDirectory();
+        var citations = WriteLongWorkload(root);
+
+        // Arrange: the tool as a caller runs it, checking far more citations than it can finish while the test
+        // watches, so the invocation is certain to be mid-step when the interrupt arrives
+        using var process = StartTool(root, "verify-evidence", "report.md");
+        try
+        {
+            var rendered = new List<string>();
+            var checking = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var draining = Task.Run(
+                async () =>
+                {
+                    while (await process.StandardOutput.ReadLineAsync(TestContext.Current.CancellationToken)
+                               .ConfigureAwait(false) is { } line)
+                    {
+                        lock (rendered)
+                        {
+                            rendered.Add(line);
+                            if (rendered.Count >= ProgressBeforeInterrupt)
+                                checking.TrySetResult();
+                        }
+                    }
+                },
+                TestContext.Current.CancellationToken);
+
+            // Act: wait until it is genuinely working through the report, then interrupt it at the terminal
+            await checking.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+            var workingWhenInterrupted = !process.HasExited;
+
+            Interrupt(process);
+
+            var exit = process.WaitForExitAsync(TestContext.Current.CancellationToken);
+            var settled = await Task.WhenAny(exit, Task.Delay(Deadline, TestContext.Current.CancellationToken));
+
+            var exitedOnItsOwn = process.HasExited;
+            var exitCode = exitedOnItsOwn ? process.ExitCode : int.MinValue;
+
+            // Only once it has exited is the end of its output the end of the story; a run still going has no
+            // last line to wait for, and the assertions below say so rather than timing out here.
+            if (exitedOnItsOwn)
+                await draining.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+
+            string[] written;
+            lock (rendered)
+                written = [.. rendered];
+
+            // Assert: it was interrupted mid-report, unwound rather than died, and left a code no outcome maps to
+            Assert.Multiple(
+                () => Assert.True(workingWhenInterrupted, "the invocation had already finished before it was interrupted"),
+                () => Assert.Same(exit, settled),
+                () => Assert.True(exitedOnItsOwn, "the interrupted invocation never exited"),
+                () => Assert.Contains(written, line => line.Contains("present  cited.txt", StringComparison.Ordinal)),
+                () => Assert.True(written.Length < citations, "the invocation ran the whole report to completion"),
+                () => Assert.DoesNotContain(written, line => line.Contains("locators:", StringComparison.Ordinal)),
+                () => Assert.Contains("anneal: interrupted.", written),
+                () => Assert.Equal(ExitInterrupted, exitCode),
+                () => Assert.NotEqual(AnnealTool.ExitSuccess, exitCode),
+                () => Assert.NotEqual(AnnealTool.ExitGatedFailure, exitCode),
+                () => Assert.NotEqual(AnnealTool.ExitUsageError, exitCode),
+                () => Assert.NotEqual(AnnealTool.ExitRefused, exitCode));
+        }
+        finally
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-I5 — the caller's signal is the only one in effect for the whole of an invocation, so a
+    ///     cancellation takes effect while a model call is still waiting for its reply rather than only after
+    ///     the reply arrives.
+    /// </summary>
+    /// <remarks>
+    ///     The endpoint never replies, which is what makes this test non-vacuous. Nothing can complete this
+    ///     invocation except cancellation reaching the seam, so every way of losing the signal between the entry
+    ///     point and the model — blocking on the asynchronous seam, or handing it a token of the operation's own
+    ///     — fails here rather than elsewhere: the run never settles and the deadline reports it. That the
+    ///     endpoint's token could be cancelled at all is asserted separately, because a signal that can never
+    ///     fire is exactly what a hardcoded absent one looks like from below.
+    /// </remarks>
+    [Fact]
+    public async Task CancellationTakesEffectWhileAModelCallIsInFlight()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange: a model that accepts the turn and then never answers it
+            var endpoint = new NeverRepliesEndpoint();
+            var roles = new ModelRoles(endpoint);
+            using var cancellation = new CancellationTokenSource();
+
+            // Act: run the probe through the command surface under the caller's signal
+            var run = Task.Run(
+                () => AnnealTool.RunAsync(
+                    ["probe-rule-owner", "each rule has exactly one owner"],
+                    TextWriter.Null,
+                    [new ProbeRuleOwnerOperation(root, () => roles)],
+                    cancellation.Token),
+                TestContext.Current.CancellationToken);
+
+            // Act: wait until a model call is genuinely in flight, then cancel during that wait
+            await endpoint.InFlight.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+            var waitingWhenCancelled = !run.IsCompleted;
+
+            await cancellation.CancelAsync();
+            var settled = await Task.WhenAny(run, Task.Delay(Deadline, TestContext.Current.CancellationToken));
+
+            // Assert: the cancellation landed inside the model call, which never produced a reply
+            Assert.Multiple(
+                () => Assert.True(waitingWhenCancelled, "the invocation finished without waiting on the model"),
+                () => Assert.Same(run, settled),
+                () => Assert.True(endpoint.TokenCouldBeCancelled, "the seam was handed a signal that can never fire"),
+                () => Assert.True(endpoint.CancelledWhileWaiting, "cancellation did not land during the wait"),
+                () => Assert.False(endpoint.Replied),
+                () => Assert.Equal(1, endpoint.Calls));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <returns>Endpoints serving every role from one script, for a probe invoked without the dispatcher.</returns>
+    private static ModelRoles Scripted(string reasoningReply, string probeReply) =>
+        new(new ScriptedEndpoint(probeReply), new ScriptedEndpoint(reasoningReply), new ScriptedEndpoint("unused"));
 
     /// <returns>A scripted reply carrying a complete answer, as the model would emit it.</returns>
     private static string Answer(string ownership, string owningFile) =>
@@ -543,13 +859,14 @@ public class ToolkitContractTests
     ///     Runs the probe against substituted endpoints, one per role, so that role resolution, the two-pass
     ///     ordering and the retry path are all exercised without a network call.
     /// </summary>
-    private static ProbeRun RunProbe(string root, string reasoningReply, params string[] probeReplies) =>
+    private static Task<ProbeRun> RunProbe(string root, string reasoningReply, params string[] probeReplies) =>
         RunProbe(root, reasoningReply, probeReplies, reachable: true);
 
-    private static ProbeRun RunProbe(string root, string reasoningReply, string probeReply, bool reachable) =>
+    private static Task<ProbeRun> RunProbe(string root, string reasoningReply, string probeReply, bool reachable) =>
         RunProbe(root, reasoningReply, [probeReply], reachable);
 
-    private static ProbeRun RunProbe(string root, string reasoningReply, string[] probeReplies, bool reachable)
+    private static async Task<ProbeRun> RunProbe(
+        string root, string reasoningReply, string[] probeReplies, bool reachable)
     {
         var reasoning = new ScriptedEndpoint(reasoningReply);
         var probing = new ScriptedEndpoint(probeReplies);
@@ -560,10 +877,11 @@ public class ToolkitContractTests
             : new ModelRoles(new UnreachableEndpoint());
 
         var output = new StringWriter();
-        var exitCode = AnnealTool.Run(
+        var exitCode = await AnnealTool.RunAsync(
             ["probe-rule-owner", "each rule has exactly one owner"],
             output,
-            [new ProbeRuleOwnerOperation(root, () => roles)]);
+            [new ProbeRuleOwnerOperation(root, () => roles)],
+            TestContext.Current.CancellationToken);
 
         return new ProbeRun(exitCode, output.ToString(), reasoning, probing, openEnded);
     }
@@ -591,8 +909,92 @@ public class ToolkitContractTests
 
         public Task<ChatTurnResult> CompleteAsync(ChatTurnRequest request, CancellationToken cancellationToken)
         {
+            // A real endpoint checks before it spends anything, and so does this one: a turn sent under an
+            // already-cancelled signal is a turn that should never have left.
+            cancellationToken.ThrowIfCancellationRequested();
+
             Requests.Add(request);
             return Task.FromResult(new ChatTurnResult(_replies.Count > 0 ? _replies.Dequeue() : "(script exhausted)"));
+        }
+    }
+
+    /// <remarks>
+    ///     Accepts a turn and then never answers it, so the only thing that can end the call is the caller's
+    ///     cancellation arriving while it waits. It records enough to tell a cancellation that landed mid-flight
+    ///     from one that landed after a reply, and to catch a signal that was handed over but could never fire.
+    /// </remarks>
+    private sealed class NeverRepliesEndpoint : IChatEndpoint
+    {
+        public TaskCompletionSource InFlight { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool TokenCouldBeCancelled { get; private set; }
+
+        public bool CancelledWhileWaiting { get; private set; }
+
+        public bool Replied { get; private set; }
+
+        public int Calls { get; private set; }
+
+        public async Task<ChatTurnResult> CompleteAsync(
+            ChatTurnRequest request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            TokenCouldBeCancelled = cancellationToken.CanBeCanceled;
+            InFlight.TrySetResult();
+
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                CancelledWhileWaiting = true;
+                throw;
+            }
+
+            Replied = true;
+            return new ChatTurnResult("a reply this endpoint never produces");
+        }
+    }
+
+    /// <remarks>
+    ///     Runs until the signal it was handed says stop, and records both that it saw the cancellation and
+    ///     that it never reached its own end. Without the second flag "it stopped" and "it finished" would be
+    ///     the same observation.
+    /// </remarks>
+    private sealed class WaitingOperation : IOperation
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool ObservedCancellation { get; private set; }
+
+        public bool RanToCompletion { get; private set; }
+
+        public string Name => "waiting";
+
+        public OperationCategory Category => OperationCategory.Research;
+
+        public string Summary => "Waits until its caller withdraws the request";
+
+        public string Usage => "usage: dotnet anneal waiting - waits until cancelled, taking no arguments";
+
+        public async Task<OperationResult> ExecuteAsync(
+            IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                ObservedCancellation = true;
+                throw;
+            }
+
+            RanToCompletion = true;
+            return new OperationResult(OperationOutcome.Succeeded);
         }
     }
 
@@ -602,14 +1004,164 @@ public class ToolkitContractTests
             throw new ModelUnavailableException("the Copilot account is not signed in on this machine");
     }
 
-    private static int RunStub(OperationCategory category, OperationOutcome outcome) =>
-        AnnealTool.Run(["stub"], new StringWriter(), [new StubOperation(category, outcome)]);
+    private static Task<int> RunStub(OperationCategory category, OperationOutcome outcome) =>
+        AnnealTool.RunAsync(
+            ["stub"],
+            new StringWriter(),
+            [new StubOperation(category, outcome)],
+            TestContext.Current.CancellationToken);
 
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-toolkit-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    /// <summary>
+    ///     Writes a report citing far more evidence than the tool can check while a test watches, so an
+    ///     invocation of <c>verify-evidence</c> against it is certain to still be working when interrupted.
+    /// </summary>
+    /// <returns>The number of citations the report makes.</returns>
+    private static int WriteLongWorkload(string root)
+    {
+        File.WriteAllLines(
+            Path.Combine(root, "cited.txt"),
+            Enumerable.Range(1, CitedFileLines).Select(line => $"line {line} of the cited file"));
+
+        var citation = "`cited.txt:1` - \"line 1 of the cited file\"" + Environment.NewLine;
+        File.WriteAllText(
+            Path.Combine(root, "report.md"),
+            string.Concat(Enumerable.Repeat(citation, LongWorkloadCitations)));
+
+        return LongWorkloadCitations;
+    }
+
+    /// <summary>
+    ///     Starts the built tool as a caller does, on a console of its own so that an interrupt can be raised
+    ///     on it without disturbing whatever console this test host was started from.
+    /// </summary>
+    /// <remarks>
+    ///     The tool is built beside the tests, because they reference it. Its launcher is preferred and the
+    ///     framework-dependent assembly is the fallback, so a platform that builds no launcher still runs the
+    ///     same entry point in a process of its own — which is the part this clause is about.
+    /// </remarks>
+    private static Process StartTool(string workingDirectory, params string[] arguments)
+    {
+        var launcher = Path.Combine(
+            AppContext.BaseDirectory,
+            "DemaConsulting.Anneal.Toolkit" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty));
+
+        var assembly = Path.Combine(AppContext.BaseDirectory, "DemaConsulting.Anneal.Toolkit.dll");
+
+        var start = new ProcessStartInfo
+        {
+            FileName = File.Exists(launcher) ? launcher : "dotnet",
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        if (!File.Exists(launcher))
+        {
+            Assert.True(File.Exists(assembly), $"the built tool is not beside the tests, at {assembly}");
+            start.ArgumentList.Add(assembly);
+        }
+
+        foreach (var argument in arguments)
+            start.ArgumentList.Add(argument);
+
+        return Process.Start(start) ?? throw new InvalidOperationException("the tool did not start");
+    }
+
+    /// <summary>
+    ///     Delivers the interrupt a terminal delivers — Ctrl+C on Windows, SIGINT elsewhere — to a running
+    ///     invocation, without killing it.
+    /// </summary>
+    /// <remarks>
+    ///     On Unix the signal names the process, so there is nothing else to arrange. On Windows it names a
+    ///     console rather than a process, so the test host leaves its own console for the moment it takes to
+    ///     raise the event on the child's, and ignores the event itself for exactly as long as it is attached
+    ///     to that console — otherwise the run that raises the interrupt is one of the processes interrupted
+    ///     by it.
+    /// </remarks>
+    private static void Interrupt(Process process)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            if (Interop.Kill(process.Id, Interop.Sigint) != 0)
+                throw new InvalidOperationException("the interrupt signal could not be delivered");
+
+            return;
+        }
+
+        var ownsConsole = !Console.IsOutputRedirected;
+
+        Interop.FreeConsole();
+        if (!Interop.AttachConsole((uint)process.Id))
+            throw new InvalidOperationException("the interrupted process's console could not be attached");
+
+        try
+        {
+            Interop.SetConsoleCtrlHandler(IntPtr.Zero, true);
+            if (!Interop.GenerateConsoleCtrlEvent(Interop.CtrlCEvent, 0))
+                throw new InvalidOperationException("the interrupt could not be raised on that console");
+
+            // Stay attached until the child has acted on the event, so it is never raised on a console this
+            // process is already walking away from.
+            process.WaitForExit(InterruptDeliveryMilliseconds);
+        }
+        finally
+        {
+            Interop.FreeConsole();
+            Interop.SetConsoleCtrlHandler(IntPtr.Zero, false);
+            Interop.AttachConsole(Interop.AttachParentProcess);
+
+            // Leaving a console invalidates the handles a writer opened on it. A test host writing to a pipe
+            // never had any, which is the case under "dotnet test"; one really attached to a terminal is given
+            // fresh writers over the console it has just rejoined.
+            if (ownsConsole)
+            {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+                Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
+            }
+        }
+    }
+
+    /// <remarks>
+    ///     The platform calls that deliver a terminal interrupt to another process, which no .NET API exposes.
+    ///     Each is called on the one platform it belongs to; the other is never reached there.
+    /// </remarks>
+    private static class Interop
+    {
+        /// <summary>CTRL_C_EVENT: the event a terminal raises for Ctrl+C.</summary>
+        internal const uint CtrlCEvent = 0;
+
+        /// <summary>ATTACH_PARENT_PROCESS: rejoin the console of whatever started this process.</summary>
+        internal const uint AttachParentProcess = 0xFFFFFFFF;
+
+        /// <summary>SIGINT: the signal a terminal sends for Ctrl+C.</summary>
+        internal const int Sigint = 2;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool FreeConsole();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool AttachConsole(uint processId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetConsoleCtrlHandler(IntPtr handler, [MarshalAs(UnmanagedType.Bool)] bool add);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GenerateConsoleCtrlEvent(uint controlEvent, uint processGroupId);
+
+        [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
+        internal static extern int Kill(int processId, int signal);
     }
 
     /// <returns>The path of the written report, relative to the root the operation resolves against.</returns>
@@ -640,6 +1192,8 @@ public class ToolkitContractTests
 
         public string Usage => usage;
 
-        public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output) => outcome;
+        public Task<OperationResult> ExecuteAsync(
+            IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken) =>
+            Task.FromResult(new OperationResult(outcome));
     }
 }

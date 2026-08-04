@@ -14,12 +14,14 @@ language: en
 
 # Project-specific technical terms and tool names
 words:
+  - aggregatable
   - cref
   - DEMA
   - Dema
   - demaconsulting
   - GHCP
   - greppable
+  - libc
   - lifecycles
   - nameof
   - Pandoc
@@ -32,6 +34,8 @@ words:
   - slnx
   - sysml
   - thirdparty
+  - unbuilt
+  - unpromised
   - venv
   - WeasyPrint
   - weasyprinttool

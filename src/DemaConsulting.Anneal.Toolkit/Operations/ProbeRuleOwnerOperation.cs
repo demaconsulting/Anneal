@@ -105,49 +105,53 @@ public sealed class ProbeRuleOwnerOperation : IOperation
     ///     <see cref="OperationOutcome.Refused" /> when the rule has no single owner,
     ///     <see cref="OperationOutcome.Failed" /> when no model could be reached or no reply decoded, and
     ///     <see cref="OperationOutcome.Succeeded" /> only when one file was named.
+    ///     <para>
+    ///         The decoded <see cref="RuleOwnerAnswer" /> is carried back as the finding on every path that
+    ///         obtained one, refusal included: what the probe concluded is data, and the lines written to the
+    ///         writer are a rendering of it rather than the only way out of the operation.
+    ///     </para>
     /// </remarks>
-    public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output)
+    public async Task<OperationResult> ExecuteAsync(
+        IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
 
+        // Withdrawn before it began is still withdrawn: no model is consulted and no outcome is invented.
+        cancellationToken.ThrowIfCancellationRequested();
+
         // No usage line is written here: the dispatcher renders Usage - the single declared source - on the
         // usage-error path, so the text a caller sees after a misuse cannot drift from what help prints.
         if (arguments.Count != 1 || string.IsNullOrWhiteSpace(arguments[0]))
-            return OperationOutcome.UsageError;
+            return new OperationResult(OperationOutcome.UsageError);
 
         var rule = arguments[0];
 
         try
         {
-            return Report(output, rule, Ask(rule));
+            return Report(output, rule, await Ask(rule, cancellationToken).ConfigureAwait(false));
         }
         catch (ModelUnavailableException exception)
         {
             // Named, and not softened into a deterministic guess: an operation that answers anyway is one whose
-            // caller cannot tell which answer they received.
+            // caller cannot tell which answer they received. No finding, because none was obtained.
             output.WriteLine($"probe-rule-owner: no judgement was obtained - {exception.Message}");
-            return OperationOutcome.Failed;
+            return new OperationResult(OperationOutcome.Failed);
         }
         catch (ModelParseException exception)
         {
             output.WriteLine($"probe-rule-owner: no judgement was obtained - {exception.Message}");
-            return OperationOutcome.Failed;
+            return new OperationResult(OperationOutcome.Failed);
         }
     }
 
-    /// <remarks>
-    ///     Blocking on the asynchronous seam here rather than making the operation surface asynchronous: this is
-    ///     a command-line tool whose process exists to run exactly one operation, so a synchronous boundary costs
-    ///     nothing and keeps <see cref="IOperation" /> free of a concern only one of its implementations has.
-    /// </remarks>
-    private RuleOwnerAnswer Ask(string rule)
+    private async Task<RuleOwnerAnswer> Ask(string rule, CancellationToken cancellationToken)
     {
         var session = new ModelSession(_endpoints(), Charter, RepositoryReadTools.CreateAll(_repositoryRoot));
 
         // Pass one: free-form, tools in scope, no schema. Nothing is decoded here, so there is nothing to
         // re-prompt against - the reply is reasoning, not transport.
-        session.RunAsync(
+        await session.RunAsync(
                 $"""
                  Find where this rule is stated in the repository:
 
@@ -157,26 +161,35 @@ public sealed class ProbeRuleOwnerOperation : IOperation
                  about it. Name the files by their repository-relative paths.
                  """,
                 role: null,
-                CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+                cancellationToken)
+            .ConfigureAwait(false);
 
         // Pass two: the schema, last, with no tools. The framework supplies the schema block; this question
         // cannot state it and cannot place it earlier.
-        return session.ProbeAsync<RuleOwnerAnswer>(
+        return await session.ProbeAsync<RuleOwnerAnswer>(
                 "From what you just found, report which single file owns the rule. If more than one file states " +
                 "it, or no file does, say so and leave the owning file empty.",
                 role: null,
-                CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
-    private static OperationOutcome Report(TextWriter output, string rule, RuleOwnerAnswer answer)
+    /// <remarks>
+    ///     The answer is returned beside the outcome as well as rendered, so a composing caller reads the typed
+    ///     value rather than these lines. The outcome is not folded into it: a refusal is a fact about the
+    ///     invocation, while the answer is what the probe found.
+    /// </remarks>
+    private static OperationResult Report(TextWriter output, string rule, RuleOwnerAnswer answer)
     {
         output.WriteLine($"probe-rule-owner: {rule}");
         output.WriteLine($"  evidence: {answer.Evidence}");
 
+        var outcome = WriteVerdict(output, answer);
+        return new OperationResult(outcome, answer);
+    }
+
+    private static OperationOutcome WriteVerdict(TextWriter output, RuleOwnerAnswer answer)
+    {
         switch (answer.Ownership)
         {
             case RuleOwnership.SingleOwner when !string.IsNullOrWhiteSpace(answer.OwningFile):

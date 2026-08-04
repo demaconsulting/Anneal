@@ -66,13 +66,16 @@ public static class AnnealTool
     ///     action: guessing what an unattended caller meant is how a tool runs the wrong check.
     /// </param>
     /// <param name="output">Where the action list, and everything the operation reports, is written. Must not be null.</param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the action it dispatches to.</param>
     /// <returns>
     ///     <see cref="ExitSuccess" />, <see cref="ExitGatedFailure" />, <see cref="ExitUsageError" /> or
-    ///     <see cref="ExitRefused" />, mapped as the three-argument overload documents.
+    ///     <see cref="ExitRefused" />, mapped as the four-argument overload documents.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="arguments" /> or <paramref name="output" /> is null.</exception>
-    public static int Run(IReadOnlyList<string> arguments, TextWriter output) =>
-        Run(arguments, output, DefaultOperations);
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
+    public static Task<int> RunAsync(
+        IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken) =>
+        RunAsync(arguments, output, DefaultOperations, cancellationToken);
 
     /// <summary>
     ///     Runs the action named by the first argument against a caller-supplied set of operations.
@@ -80,6 +83,12 @@ public static class AnnealTool
     /// <remarks>
     ///     <c>help</c> and <c>help &lt;action&gt;</c> are handled here, before dispatch, and are the only
     ///     invocations that reach the action list on a success exit; every other path to it is a usage error.
+    ///     <para>
+    ///         The caller's cancellation signal is passed to the action unchanged and none is substituted for
+    ///         it, so a withdrawn invocation stops where it is rather than running to completion. A cancelled
+    ///         invocation therefore produces no exit code at all: it reached no outcome, and inventing one would
+    ///         let a caller read its own withdrawal as an answer.
+    ///     </para>
     /// </remarks>
     /// <param name="arguments">
     ///     The command line, action first. Must not be null. An empty list is a usage error.
@@ -89,6 +98,7 @@ public static class AnnealTool
     ///     The operations to dispatch against. Must not be null; names are matched case-insensitively, and an
     ///     empty set means every action is unknown.
     /// </param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the action it dispatches to.</param>
     /// <returns>
     ///     <see cref="ExitSuccess" /> when the operation succeeded, or when it ran, failed, and its category does
     ///     not gate; <see cref="ExitRefused" /> when the operation refused; <see cref="ExitGatedFailure" /> when
@@ -97,7 +107,12 @@ public static class AnnealTool
     ///     given — the last of those whatever category the action declares.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
-    public static int Run(IReadOnlyList<string> arguments, TextWriter output, IReadOnlyList<IOperation> operations)
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
+    public static async Task<int> RunAsync(
+        IReadOnlyList<string> arguments,
+        TextWriter output,
+        IReadOnlyList<IOperation> operations,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
@@ -131,7 +146,15 @@ public static class AnnealTool
             return ExitUsageError;
         }
 
-        var outcome = operation.Execute([.. arguments.Skip(1)], output);
+        // The caller's token, unchanged. Substituting one here - or blocking on the result - would leave the
+        // invocation uninterruptible for as long as a model takes to answer, which is the whole of TOOLKIT-I5.
+        var result = await operation
+            .ExecuteAsync([.. arguments.Skip(1)], output, cancellationToken)
+            .ConfigureAwait(false);
+
+        // The finding travels back to whoever holds the operation; a process exit code is one bit of it, so
+        // this path reads the outcome only. Nothing here parses what was rendered.
+        var outcome = result.Outcome;
         if (outcome == OperationOutcome.Succeeded)
             return ExitSuccess;
 

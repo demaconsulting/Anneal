@@ -77,23 +77,35 @@ public sealed class VerifyEvidenceOperation : IOperation
     ///     says it is, when the report cannot be read, and when the report cites nothing at all — the last of
     ///     those because a check that silently passes on finding no work to do is the failure mode this whole
     ///     process treats as worse than no check.
+    ///     <para>
+    ///         It carries no finding. Its whole answer is the verdict its outcome already states and the
+    ///         per-locator lines it renders, so nothing structured is left over for a caller to consume;
+    ///         inventing a payload to look symmetrical with a model-backed operation would hand a composing
+    ///         caller a value promising more than this check knows. The work is synchronous — it reads files and
+    ///         compares text — so the task it returns is already complete, and the caller's signal is honored
+    ///         between locators rather than pretended to be awaited.
+    ///     </para>
     /// </remarks>
-    public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output)
+    public Task<OperationResult> ExecuteAsync(
+        IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
 
+        // Withdrawn before it began is still withdrawn: nothing is read and no outcome is invented.
+        cancellationToken.ThrowIfCancellationRequested();
+
         // No usage line is written here: the dispatcher renders Usage - the single declared source - on the
         // usage-error path, so the text a caller sees after a misuse cannot drift from what help prints.
         if (arguments.Count != 1)
-            return OperationOutcome.UsageError;
+            return Task.FromResult(new OperationResult(OperationOutcome.UsageError));
 
         var reportPath = arguments[0];
         var resolvedReport = Resolve(reportPath);
         if (resolvedReport is null || !File.Exists(resolvedReport))
         {
             output.WriteLine($"verify-evidence: report not found: {reportPath}");
-            return OperationOutcome.Failed;
+            return Task.FromResult(new OperationResult(OperationOutcome.Failed));
         }
 
         var locators = EvidenceLocator.ParseAll(File.ReadAllText(resolvedReport));
@@ -102,7 +114,7 @@ public sealed class VerifyEvidenceOperation : IOperation
         if (locators.Count == 0)
         {
             output.WriteLine("  no evidence locators cited - nothing in this report can be checked.");
-            return OperationOutcome.Failed;
+            return Task.FromResult(new OperationResult(OperationOutcome.Failed));
         }
 
         // Each locator is reported on its own line whether or not it holds, so the output is a record of what
@@ -110,6 +122,10 @@ public sealed class VerifyEvidenceOperation : IOperation
         var absent = 0;
         foreach (var locator in locators)
         {
+            // A report can cite a great many locators, each of them a file read, so a caller may withdraw
+            // between any two of them rather than only before the first.
+            cancellationToken.ThrowIfCancellationRequested();
+
             var problem = Check(locator);
             if (problem is null)
             {
@@ -122,7 +138,8 @@ public sealed class VerifyEvidenceOperation : IOperation
         }
 
         output.WriteLine($"  {locators.Count} locators: {locators.Count - absent} present, {absent} absent.");
-        return absent == 0 ? OperationOutcome.Succeeded : OperationOutcome.Failed;
+        return Task.FromResult(
+            new OperationResult(absent == 0 ? OperationOutcome.Succeeded : OperationOutcome.Failed));
     }
 
     /// <returns>Null when the quotation is present as cited, otherwise the reason it is not.</returns>

@@ -96,6 +96,24 @@ presented requires owning the conversation, which requires code.
   already produces, so `help` never fabricates guidance for a surface that does not exist.
   *Verified by:* `ToolkitContractTests.HelpForActionPrintsItsUsageAndRejectsUnknown`
 
+- **TOOLKIT-14** — An operation reports what it found as data, carried alongside its outcome and never
+  in place of it, so a caller — including another operation — consumes the finding without parsing the
+  text the operation renders for a person. An operation with nothing structured to report carries no
+  data, and that absence is an answer rather than an invented payload or a failure.
+  *Verified by:* `ToolkitContractTests.OperationFindingsReachCallersAsData`
+
+- **TOOLKIT-15** — A caller supplies a cancellation signal with an invocation, and cancelling it stops
+  the invocation rather than letting it run to completion, so a host that must stay responsive — an
+  interactive loop, or an agent abandoning a question — can withdraw a request that consults a model for
+  tens of seconds.
+  *Verified by:* `ToolkitContractTests.CancellingAnInvocationStopsIt`
+
+- **TOOLKIT-16** — An invocation interrupted at the terminal stops where it is rather than being killed,
+  and exits with the interrupt code `130`, which is distinct from every code an outcome maps to and from
+  the caller-error code of `TOOLKIT-10`, because an interrupted invocation reached no outcome to map. A
+  caller reading exit codes can therefore tell a run somebody stopped from any run that finished.
+  *Verified by:* `ToolkitContractTests.InterruptedInvocationStopsAndExitsOutsideTheOutcomeCodes`
+
 ### Requires
 
 - **[Process](./process.md)** — the agents that invoke operations, and the standards whose rules the
@@ -128,6 +146,12 @@ presented requires owning the conversation, which requires code.
   apart as the action changes.
   *Verified by:* `ToolkitContractTests.HelpAndUsageErrorShareOneUsageSource`
 
+- **TOOLKIT-I5** — The caller's cancellation signal is the only one in effect for the whole of an
+  invocation: no operation substitutes a signal of its own at any point between the invocation and the
+  model it consults. A cancellation therefore takes effect while a model call is still waiting for its
+  reply, rather than only after the reply arrives.
+  *Verified by:* `ToolkitContractTests.CancellationTakesEffectWhileAModelCallIsInFlight`
+
 ## Composition
 
 Three parts, cut where the reasoning differs.
@@ -142,7 +166,9 @@ This tree therefore records only two things about actions, and both are bounded 
 **inventory** — each action named with its one-line role, one clause per action — and the
 **participation rules** every action obeys whatever it does, which are contract clauses rather than
 per-action prose: category decides gating (`TOOLKIT-02`), a misuse maps to the caller-error code
-(`TOOLKIT-10`), and each action declares its detailed usage exactly once (`TOOLKIT-I4`). An action's
+(`TOOLKIT-10`), each action declares its detailed usage exactly once (`TOOLKIT-I4`), each runs under the
+caller's cancellation signal and no other (`TOOLKIT-15`, `TOOLKIT-I5`), and each reports what it found as
+data beside its outcome (`TOOLKIT-14`). An action's
 *usage* — how it is invoked and what arguments it takes — is per-action detail served by `help <action>`
 from the operation itself, never written into this tree. That routing is load-bearing, not a
 convenience: it is what holds this document's growth to one contract clause per new action rather than a
@@ -234,6 +260,63 @@ contract the moment it ships and flag parsing sits awkwardly against a tool whos
 and whose bare invocation is deliberately a usage error — `anneal --help` would have to decide whether
 `--help` is an action, and every answer complicates `TOOLKIT-10`. Should a caller ever need any of these,
 adding them is an additive Tier 1 change.
+
+**A finding is data; the text is a rendering of it** — an operation returns what it concluded as a value
+carried beside its outcome — typed but not type-parameterized: the value is a domain type while the slot
+holding it is not, so which type a given operation puts there is the caller's knowledge rather than the
+compiler's — and separately writes the human text it writes today (`TOOLKIT-14`).
+The forcing case is composition: the verdict auditor `MIGRATION.md` schedules re-checks verdicts another
+operation reported, and if the only channel out of an operation is a `TextWriter`, composing means
+re-parsing prose — the exact mistake stage S2 deletes when it retires `agent-metrics.ps1` for scraping
+reports with regular expressions. The evidence that the channel is wrong rather than merely narrow is
+that `probe-rule-owner` already computes a typed answer and flattens it to lines at the boundary: the
+structure exists and is being thrown away one layer before the caller. Two alternatives were rejected. A
+generic operation interface parameterized by its result type was rejected because the dispatcher — which
+is the surface consumers actually hold — must keep a heterogeneous set of actions, so it can only hold
+the non-generic form, and the type parameter buys nothing at the one boundary that matters while
+splitting the public surface into two shapes that must be kept aligned and forcing every operation with
+nothing structured to say to either pick the other shape or invent a payload. Keeping the writer as the
+only channel and treating separation alone as the answer was rejected because it supplies no data at all;
+what survives from it is adopted as a rule rather than as the mechanism — the writer is a rendering
+channel and never the data channel, which is why the seven observable invocations print exactly what they
+printed before and `help` is untouched. The outcome vocabulary is deliberately *not* folded into the
+payload: refusal stays an outcome distinct from success and failure (`TOOLKIT-06`) and exit codes keep
+mapping from the outcome, because a refusal is a fact about the invocation and not a value the operation
+found. **This is not `TOOLKIT-08`.** That clause promises a persisted, aggregatable record of every
+invocation, queryable across releases; this is an in-process return value that outlives nothing and is
+written nowhere. They resemble each other only in both being structured, and a later reader must not read
+`TOOLKIT-14` as `TOOLKIT-08` partly delivered — it remains entirely unbuilt, as does `TOOLKIT-11`.
+Streaming a finding as it is produced is a separate, later question; nothing here forecloses it, and it is
+deliberately unpromised. A middle option between the two rejected alternatives — a marker finding type,
+leaving the dispatcher heterogeneous while making the slot a domain type rather than an untyped one — was
+not evaluated, and is left as an open question for the user to rule on before the large batch of new
+operations lands, because at fifteen operations an untyped slot answers the same empty answer both to
+"nothing was found" and to "you asked for the wrong type".
+
+**The operation boundary is asynchronous, and the caller owns cancellation** — an invocation is
+asynchronous and takes the caller's cancellation signal, which reaches the model seam intact
+(`TOOLKIT-15`, `TOOLKIT-I5`). This reverses a rationale recorded in the code itself: that a process
+existing to run exactly one operation makes a synchronous boundary free, and keeps `IOperation` clear of a
+concern only one implementation has. That reasoning was true of the *process* and false of the
+*interface*. `IOperation` is public precisely so the tool can be hosted by something that is not this
+process, and the stated goal of an interactive loop is such a host: a synchronous boundary blocks it for
+the tens of seconds a reasoning model takes and offers no way to interrupt. The concern is also no longer
+one implementation's — the seam below is already asynchronous and every model-backed operation crosses
+it, so a synchronous surface above it means sync-over-async at the boundary, and blocking with a
+hardcoded absent cancellation signal is what the code does twice today. Relocating that block rather than
+removing it would satisfy the letter of the change and none of its purpose, which is why `TOOLKIT-I5`
+states the property as an observable one — a cancellation lands while a model call is still waiting —
+rather than as a prohibition on a construct. This is a **breaking change** to any external implementer of
+`IOperation`, in the sense `system-contracts.md` defines, and a compile-time one, exactly as requiring
+`Usage` was; it is admitted rather than softened. It is taken now because it is cheapest now: there are
+two implementations, no tag, nothing published, and a large batch of new operations is about to be
+commissioned against whichever shape exists. An overload preserving the synchronous form was rejected for
+the same reason a defaulted `Usage` was — it would leave the blocking path implementable, and therefore
+implemented, while the contract claimed otherwise. The clauses name no member, because how the signal is
+carried and how the finding is typed are interior; only that cancellation is the caller's and the finding
+is data are promises. For `TOOLKIT-15` to be observable in the tool anyone runs rather than only in the
+library, the signal has to originate at the process itself, which is why an interrupt there is contracted
+separately as `TOOLKIT-16`.
 
 **Offline is a failure, not a degraded mode** — a model-backed operation that cannot reach a model
 stops. Falling back to a weaker deterministic answer was rejected because the caller cannot see which

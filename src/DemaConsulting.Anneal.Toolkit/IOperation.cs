@@ -48,8 +48,22 @@ public interface IOperation
     string Usage { get; }
 
     /// <summary>
-    ///     Runs the operation and reports what it concluded.
+    ///     Runs the operation under the caller's cancellation signal, and reports what it concluded together
+    ///     with what it found.
     /// </summary>
+    /// <remarks>
+    ///     Asynchronous because <see cref="IOperation" /> is public so the tool can be hosted by something that
+    ///     is not a process existing to run one action — an interactive loop is such a host, and a synchronous
+    ///     boundary blocks it for the tens of seconds a reasoning model takes while offering no way to interrupt.
+    ///     The supplied signal is the only one in effect for the whole invocation: an implementation passes it
+    ///     onward unchanged and substitutes none of its own, so a cancellation lands while a model call is still
+    ///     waiting for its reply rather than only after the reply arrives.
+    ///     <para>
+    ///         The writer is a rendering channel and never the data channel. What the operation concluded is
+    ///         carried in <see cref="OperationResult.Finding" />, so a caller — including another operation —
+    ///         composes on the value rather than re-parsing prose written for a person.
+    ///     </para>
+    /// </remarks>
     /// <param name="arguments">
     ///     The arguments following the action name, in the order given, never null and possibly empty. An
     ///     implementation validates them itself and reports <see cref="OperationOutcome.UsageError" /> rather
@@ -58,17 +72,28 @@ public interface IOperation
     ///     shown after a misuse is the same text <c>help &lt;action&gt;</c> prints.
     /// </param>
     /// <param name="output">
-    ///     Where the operation writes its findings. Must not be null. Everything a caller is meant to read
-    ///     goes here, so that a test and a terminal see identical output.
+    ///     Where the operation renders what a person reads. Must not be null. Everything a caller is meant to
+    ///     read goes here, so that a test and a terminal see identical output — but nothing a caller must
+    ///     <em>parse</em> goes here alone.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     The caller's signal, carried unchanged to every asynchronous call the operation makes.
     /// </param>
     /// <returns>
+    ///     The outcome, and the finding beside it. The outcome is
     ///     <see cref="OperationOutcome.Succeeded" /> when the operation answered its question and the answer
     ///     is positive; <see cref="OperationOutcome.Refused" /> when the question could not be answered on the
     ///     available evidence; <see cref="OperationOutcome.UsageError" /> when the arguments could not be used
     ///     and nothing was attempted; <see cref="OperationOutcome.Failed" /> when the operation ran and the
-    ///     answer is no. The caller maps this to an exit code using <see cref="Category" />, except for a usage
+    ///     answer is no. The caller maps that to an exit code using <see cref="Category" />, except for a usage
     ///     error, which is the caller's own mistake and is category-independent; the operation never decides
-    ///     that itself.
+    ///     that itself. The finding is null when the operation has nothing structured to report, which is an
+    ///     answer and not a failure.
     /// </returns>
-    OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output);
+    /// <exception cref="OperationCanceledException">
+    ///     Thrown when <paramref name="cancellationToken" /> is cancelled. An invocation that is withdrawn
+    ///     reports no outcome, because it reached none.
+    /// </exception>
+    Task<OperationResult> ExecuteAsync(
+        IReadOnlyList<string> arguments, TextWriter output, CancellationToken cancellationToken);
 }
