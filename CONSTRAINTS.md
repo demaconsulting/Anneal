@@ -40,6 +40,9 @@ quietly.
   normal installed C# product does not, the root copy may diverge and the template copy stays the
   generic product version. Syncing Anneal-specific steps into the template is a regression, not
   cleanup; this entry owns that rule and `AGENTS.md` § Template Stewardship points at it.
+- **An installed payload must be identifiable by version** — a payload states which Anneal version it
+  was built from, so what an upgrade is upgrading from is read rather than inferred from the payload's
+  contents, and a record a run leaves behind can be attributed to the version that produced it.
 
 ## Not Yet Satisfied
 
@@ -60,9 +63,6 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
 - **Upgrading an installed payload must not silently destroy local customization** — `install.ps1
   -Force` overwrites every payload-owned file with no backup and no diff, including a customized
   `AGENTS.md` and any locally edited standard.
-- **An installed payload must be identifiable by version** — nothing written into a target repository
-  records which Anneal version produced it, so an upgrade cannot tell what it is upgrading from.
-  `TOOLKIT-09` absorbs this at stage S2 of [MIGRATION.md](MIGRATION.md).
 - **A judging agent must show the basis for its verdict before stating it** — no agent prompt in the
   payload obliges one to, and `tier-check`'s report template places `Required Fixes` ahead of every
   section carrying what that verdict rests on, so a universally-quantified negative about a file the

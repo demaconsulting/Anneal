@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DemaConsulting.Anneal.Toolkit.Recording;
 using Microsoft.Extensions.AI;
 
 namespace DemaConsulting.Anneal.Toolkit.Model;
@@ -19,6 +20,13 @@ namespace DemaConsulting.Anneal.Toolkit.Model;
 ///         The probe's question and its schema are assembled here rather than by the caller for the same reason:
 ///         a caller supplies its question and its authoritative context, and the framework contributes the schema.
 ///         A caller cannot forget it and cannot place it early.
+///     </para>
+///     <para>
+///         Every turn that crosses this type is transcribed — the messages sent, the reply, the model consulted
+///         and what it consumed — including the turns that produced no reply at all. There is no argument, flag
+///         or configuration key that suppresses it, because a transcript of a model interaction cannot be
+///         recovered by re-running the interaction: an opt-in would guarantee the evidence was missing exactly
+///         where something surprising happened.
 ///     </para>
 ///     <para>
 ///         Thread safety: <em>not</em> safe for concurrent use. A session owns a mutable conversation, and two
@@ -143,9 +151,12 @@ public sealed class ModelSession
 
         _conversation.Add(new ChatMessage(ChatRole.User, request));
 
-        var turn = await _roles
-            .Resolve(role ?? ModelRoles.DefaultRoleFor(ModelActivity.Run))
-            .CompleteAsync(new ChatTurnRequest(_conversation.ToArray(), _tools, _maxOutputTokens), cancellationToken)
+        var turn = await CompleteAsync(
+                ModelActivity.Run,
+                role ?? ModelRoles.DefaultRoleFor(ModelActivity.Run),
+                _conversation.ToArray(),
+                _tools,
+                cancellationToken)
             .ConfigureAwait(false);
 
         _conversation.Add(new ChatMessage(ChatRole.Assistant, turn.Text));
@@ -187,7 +198,7 @@ public sealed class ModelSession
 
         LastProbeAttempts = 0;
 
-        var endpoint = _roles.Resolve(role ?? ModelRoles.DefaultRoleFor(ModelActivity.Probe));
+        var resolved = role ?? ModelRoles.DefaultRoleFor(ModelActivity.Probe);
 
         // A private working copy: the bad reply and the correction that follows it are plumbing, and threading
         // them back into the conversation would leave every later turn reading a failed exchange.
@@ -203,8 +214,8 @@ public sealed class ModelSession
             LastProbeAttempts = attempt + 1;
 
             // No tools on a probe turn: an empty grant, never an absent one.
-            var turn = await endpoint
-                .CompleteAsync(new ChatTurnRequest(working.ToArray(), [], _maxOutputTokens), cancellationToken)
+            var turn = await CompleteAsync(
+                    ModelActivity.Probe, resolved, working.ToArray(), [], cancellationToken)
                 .ConfigureAwait(false);
 
             try
@@ -229,6 +240,68 @@ public sealed class ModelSession
             lastError!.Message,
             lastError);
     }
+
+    /// <summary>
+    ///     Completes one turn through the seam and transcribes it, whatever it produced.
+    /// </summary>
+    /// <remarks>
+    ///     Every path out of this method has already written a transcript: the reply path, the failure path, and
+    ///     the path where the caller withdrew mid-flight. That is the whole of the capture guarantee — it is a
+    ///     property of there being no other way to reach an endpoint from here, rather than of every call site
+    ///     remembering to record.
+    /// </remarks>
+    private async Task<ChatTurnResult> CompleteAsync(
+        ModelActivity activity,
+        ModelRole role,
+        IReadOnlyList<ChatMessage> messages,
+        IReadOnlyList<AITool> tools,
+        CancellationToken cancellationToken)
+    {
+        var model = _roles.ModelFor(role);
+        var at = DateTimeOffset.UtcNow;
+
+        try
+        {
+            var turn = await _roles
+                .Resolve(role)
+                .CompleteAsync(new ChatTurnRequest(messages, tools, _maxOutputTokens, model), cancellationToken)
+                .ConfigureAwait(false);
+
+            Transcribe(at, activity, role, model, messages, turn.Text, turn.Usage, ModelTranscript.Replied, null);
+            InvocationScope.Current?.Observe(turn.Usage);
+            return turn;
+        }
+        catch (Exception exception)
+        {
+            // A withdrawn turn is transcribed on the same path as a refused or unreachable one, deliberately:
+            // all three are interactions that produced no reply, and which of them happened is what the recorded
+            // failure says.
+            Transcribe(at, activity, role, model, messages, null, null, ModelTranscript.Failed, exception.Message);
+            InvocationScope.Current?.Observe(null);
+            throw;
+        }
+    }
+
+    private void Transcribe(
+        DateTimeOffset at,
+        ModelActivity activity,
+        ModelRole role,
+        string model,
+        IReadOnlyList<ChatMessage> messages,
+        string? reply,
+        ModelUsage? usage,
+        string result,
+        string? failure) =>
+        _roles.Transcripts.Append(new ModelTranscript(
+            at,
+            activity.ToString(),
+            role.ToString(),
+            model,
+            [.. messages.Select(message => new TranscriptMessage(message.Role.Value, message.Text))],
+            reply,
+            usage,
+            result,
+            failure));
 
     /// <remarks>
     ///     Question first, schema last: the block the model must obey is the final thing it reads before it

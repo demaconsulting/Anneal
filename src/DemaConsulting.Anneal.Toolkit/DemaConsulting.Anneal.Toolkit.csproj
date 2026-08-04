@@ -20,6 +20,15 @@
     <ToolCommandName>anneal</ToolCommandName>
     <PackageId>DemaConsulting.Anneal.Toolkit</PackageId>
     <Description>Operations an AI coding agent cannot perform reliably by reading a prompt.</Description>
+
+    <!--
+      The version the payload reports about itself. It is a development version
+      deliberately: publishing is a separate act requiring the user, and until
+      that act happens every build is honestly pre-release. What matters for
+      TOOLKIT-09 is not which version this is but that there is exactly one, read
+      back out of the built assembly rather than restated anywhere in source.
+    -->
+    <Version>0.1.0-dev</Version>
   </PropertyGroup>
 
   <!--

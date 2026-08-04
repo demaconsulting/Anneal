@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Providers;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Recording;
 using Microsoft.Extensions.AI;
 using Xunit;
 
@@ -279,7 +281,7 @@ public class ToolkitContractTests
                 () => Assert.Equal(
                     ModelSession.DefaultMaxOutputTokens,
                     CopilotEndpoint
-                        .BuildSessionConfig(owned.Reasoning.Requests[0], "a-model")
+                        .BuildSessionConfig(owned.Reasoning.Requests[0])
                         .ModelCapabilities?.Limits?.MaxOutputTokens));
         }
         finally
@@ -379,8 +381,8 @@ public class ToolkitContractTests
             var messages = new[] { new ChatMessage(ChatRole.User, "anything") };
 
             // Act: build the session configuration for each shape, and exercise every granted tool
-            var granting = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, tools, 100), "a-model");
-            var withheld = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, [], 100), "a-model");
+            var granting = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, tools, 100, "a-model"));
+            var withheld = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, [], 100, "a-model"));
 
             var results = tools.OfType<AIFunction>().ToDictionary(
                 tool => tool.Name,
@@ -587,14 +589,14 @@ public class ToolkitContractTests
             // Act: a probe that answers, invoked through the public operation surface a composing caller holds
             IOperation answering = new ProbeRuleOwnerOperation(
                 root,
-                () => Scripted("owner.md states it.", Answer("SingleOwner", "owner.md")));
+                Scripted("owner.md states it.", Answer("SingleOwner", "owner.md")));
             var answered = await answering.ExecuteAsync(
                 ["each rule has exactly one owner"], TextWriter.Null, TestContext.Current.CancellationToken);
 
             // Act: the same operation refusing - the outcome is a peer of the finding, not folded into it
             IOperation refusing = new ProbeRuleOwnerOperation(
                 root,
-                () => Scripted("Two files state it.", Answer("StatedInSeveralPlaces", "")));
+                Scripted("Two files state it.", Answer("StatedInSeveralPlaces", "")));
             var refused = await refusing.ExecuteAsync(
                 ["each rule has exactly one owner"], TextWriter.Null, TestContext.Current.CancellationToken);
 
@@ -790,7 +792,6 @@ public class ToolkitContractTests
         {
             // Arrange: a model that accepts the turn and then never answers it
             var endpoint = new NeverRepliesEndpoint();
-            var roles = new ModelRoles(endpoint);
             using var cancellation = new CancellationTokenSource();
 
             // Act: run the probe through the command surface under the caller's signal
@@ -798,7 +799,8 @@ public class ToolkitContractTests
                 () => AnnealTool.RunAsync(
                     ["probe-rule-owner", "each rule has exactly one owner"],
                     TextWriter.Null,
-                    [new ProbeRuleOwnerOperation(root, () => roles)],
+                    [new ProbeRuleOwnerOperation(root, _ => endpoint)],
+                    root,
                     cancellation.Token),
                 TestContext.Current.CancellationToken);
 
@@ -826,9 +828,418 @@ public class ToolkitContractTests
         }
     }
 
-    /// <returns>Endpoints serving every role from one script, for a probe invoked without the dispatcher.</returns>
-    private static ModelRoles Scripted(string reasoningReply, string probeReply) =>
-        new(new ScriptedEndpoint(probeReply), new ScriptedEndpoint(reasoningReply), new ScriptedEndpoint("unused"));
+    /// <summary>
+    ///     TOOLKIT-05 — every operation that consults a model declares the capability role it requires, and
+    ///     roles resolve to concrete models through repository configuration rather than through the operation.
+    /// </summary>
+    /// <remarks>
+    ///     The declaration and the resolution are asserted separately because the clause is two promises. The
+    ///     first is that the requirement is visible on the operation: a caller composing operations can see which
+    ///     of them will spend model tokens without running them. The second is that the operation does not get
+    ///     to answer which model serves its role — the repository does — which is what makes substituting a
+    ///     model an edit a downstream repository makes rather than a Toolkit release.
+    ///     <para>
+    ///         Resolution is proven by changing the configuration file and nothing else, and observing a
+    ///         different model reach the seam. An operation that had resolved its own role would be unmoved by
+    ///         that edit, and an assertion that only read the configured value back would pass whether or not
+    ///         anything used it.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task OperationRolesResolveThroughConfiguration()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
+
+            // Assert: the declaration is on the operation, and distinguishes the model-backed from the not
+            var probing = new ProbeRuleOwnerOperation(root);
+            var deterministic = new VerifyEvidenceOperation(root);
+
+            // Arrange: a repository that names its own models, none of which the Toolkit ships as a default
+            WriteModelConfiguration(root, "a-named-light-model", "a-named-medium-model", "a-named-heavy-model");
+
+            // Act: the same operation, run once against that configuration and once against an edited one
+            var configured = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+
+            WriteModelConfiguration(root, "a-replacement-light-model", "a-replacement-medium-model", "unused");
+            var reconfigured = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+
+            // Act: and once against a repository that configures nothing at all
+            File.Delete(Path.Combine(root, ModelConfiguration.RelativePath.Replace('/', Path.DirectorySeparatorChar)));
+            var defaulted = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+
+            Assert.Multiple(
+                // The requirement is declared, and declared as absent by the operation that consults no model.
+                () => Assert.NotNull(probing.RequiredRole),
+                () => Assert.Null(deterministic.RequiredRole),
+                () => Assert.All(
+                    AnnealTool.DefaultOperations,
+                    operation => Assert.True(
+                        operation.RequiredRole is null || Enum.IsDefined(operation.RequiredRole.Value),
+                        $"'{operation.Name}' declares a role that is not one of the capability tiers")),
+
+                // Each turn carries the model its role resolved to, and the resolution came from the file.
+                () => Assert.All(
+                    configured.Reasoning.Requests,
+                    request => Assert.Equal("a-named-medium-model", request.Model)),
+                () => Assert.All(
+                    configured.Probing.Requests,
+                    request => Assert.Equal("a-named-light-model", request.Model)),
+
+                // Editing only the repository's configuration moves which model answers.
+                () => Assert.All(
+                    reconfigured.Reasoning.Requests,
+                    request => Assert.Equal("a-replacement-medium-model", request.Model)),
+                () => Assert.All(
+                    reconfigured.Probing.Requests,
+                    request => Assert.Equal("a-replacement-light-model", request.Model)),
+
+                // A repository that configures nothing still resolves, to the shipped defaults.
+                () => Assert.All(
+                    defaulted.Reasoning.Requests,
+                    request => Assert.Equal(ModelConfiguration.Default.Medium, request.Model)),
+                () => Assert.All(
+                    defaulted.Probing.Requests,
+                    request => Assert.Equal(ModelConfiguration.Default.Light, request.Model)),
+
+                // And the roles were genuinely distinct, so "resolution" is not one model reached three ways.
+                () => Assert.NotEmpty(configured.Reasoning.Requests),
+                () => Assert.NotEmpty(configured.Probing.Requests),
+                () => Assert.Empty(configured.OpenEnded.Requests));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-08 — every invocation appends a structured record of the operation, its inputs, its outcome
+    ///     and any model usage, in a form a later query can aggregate without parsing prose, identifying the
+    ///     outcome so that its meaning is fixed as new outcomes are added.
+    /// </summary>
+    /// <remarks>
+    ///     Every assertion here reads the recorded file rather than the rendered output, because "without
+    ///     parsing prose" is the clause: a record a test had to interpret would be prose with punctuation. The
+    ///     four invocations deliberately reach four different outcomes, including one that never entered an
+    ///     operation, so the record cannot be a by-product of a successful run.
+    ///     <para>
+    ///         The outcome is asserted to be the member's name and asserted not to be its position, because the
+    ///         two are indistinguishable while the set has its present shape and diverge silently the moment a
+    ///         member is inserted mid-set. Records are aggregated across releases — that is what aggregation is
+    ///         for here — so a record written today is read by a version that has more outcomes than this one.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task InvocationsAppendStructuredRecords()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
+            File.WriteAllLines(Path.Combine(root, "subject.txt"), ["first line", "the promise this cites"]);
+            var honest = WriteReport(root, "honest.md", "`subject.txt:2` - \"the promise this cites\"");
+            var wrong = WriteReport(root, "wrong.md", "`subject.txt:1` - \"a line that is not there\"");
+
+            IReadOnlyList<IOperation> operations = [new VerifyEvidenceOperation(root)];
+
+            // Act: four invocations reaching four different outcomes, one of which never enters an operation
+            var succeeded = await AnnealTool.RunAsync(
+                ["verify-evidence", honest], TextWriter.Null, operations, root, TestContext.Current.CancellationToken);
+            var failed = await AnnealTool.RunAsync(
+                ["verify-evidence", wrong], TextWriter.Null, operations, root, TestContext.Current.CancellationToken);
+            var misused = await AnnealTool.RunAsync(
+                ["no-such-action"], TextWriter.Null, operations, root, TestContext.Current.CancellationToken);
+            var refused = await RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""));
+
+            // Assert: one record per invocation, in the order they ran, each of which a query can total without reading prose
+            var records = ReadRecords(RecordStore.InvocationsPathFor(root));
+            Assert.Equal(4, records.Length);
+
+            var success = records[0];
+            var failure = records[1];
+            var usageError = records[2];
+            var refusal = records[3];
+
+            Assert.Multiple(
+                // The operation and its inputs, as the caller gave them.
+                () => Assert.Equal("verify-evidence", Text(success, "action")),
+                () => Assert.Equal([honest], Strings(success, "arguments")),
+                () => Assert.Equal("probe-rule-owner", Text(refusal, "action")),
+                () => Assert.Equal(["each rule has exactly one owner"], Strings(refusal, "arguments")),
+                () => Assert.Equal("no-such-action", Text(usageError, "action")),
+                () => Assert.Empty(Strings(usageError, "arguments")),
+
+                // The outcome, by name, matching what the caller was told through the exit code.
+                () => Assert.Equal(nameof(OperationOutcome.Succeeded), Text(success, "outcome")),
+                () => Assert.Equal(nameof(OperationOutcome.Failed), Text(failure, "outcome")),
+                () => Assert.Equal(nameof(OperationOutcome.UsageError), Text(usageError, "outcome")),
+                () => Assert.Equal(nameof(OperationOutcome.Refused), Text(refusal, "outcome")),
+                () => Assert.Equal(succeeded, records[0].GetProperty("exitCode").GetInt32()),
+                () => Assert.Equal(failed, records[1].GetProperty("exitCode").GetInt32()),
+                () => Assert.Equal(misused, records[2].GetProperty("exitCode").GetInt32()),
+                () => Assert.Equal(refused.ExitCode, records[3].GetProperty("exitCode").GetInt32()),
+
+                // An outcome identified by name and never by position, so a record outlives the set growing.
+                () => Assert.All(
+                    records,
+                    record => Assert.False(
+                        int.TryParse(Text(record, "outcome"), out _),
+                        "an outcome recorded as a number changes meaning when a member is inserted mid-set")),
+                () => Assert.All(
+                    records,
+                    record => Assert.Contains(
+                        Text(record, "outcome"),
+                        Enum.GetNames<OperationOutcome>())),
+
+                // The version that produced the record, so records aggregated across releases stay attributable.
+                () => Assert.All(records, record => Assert.Equal(AnnealTool.Version, Text(record, "toolVersion"))),
+
+                // Model usage, totalled over the invocation - and absent where nothing consulted a model.
+                () => Assert.Equal(0, success.GetProperty("modelInteractions").GetInt32()),
+                () => Assert.False(success.TryGetProperty("usage", out _)),
+                () => Assert.Equal(2, refusal.GetProperty("modelInteractions").GetInt32()),
+                () => Assert.Equal(
+                    2 * ScriptedEndpoint.ReportedInputTokens,
+                    refusal.GetProperty("usage").GetProperty("inputTokens").GetInt64()),
+                () => Assert.Equal(
+                    2 * ScriptedEndpoint.ReportedOutputTokens,
+                    refusal.GetProperty("usage").GetProperty("outputTokens").GetInt64()),
+
+                // Enough to order and to cost a run without reading a line of it.
+                () => Assert.All(
+                    records,
+                    record => Assert.True(record.GetProperty("durationMilliseconds").GetDouble() >= 0)),
+                () => Assert.All(
+                    records,
+                    record => Assert.True(record.GetProperty("at").GetDateTimeOffset() > DateTimeOffset.MinValue)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-09 — the tool reports the Anneal version it was built from, so an installed payload can be
+    ///     identified by version rather than inferred from its contents.
+    /// </summary>
+    /// <remarks>
+    ///     The reported version is compared against the version stamped into the built assembly, not against a
+    ///     literal. A test that asserted a particular number would have to be edited at every release and would
+    ///     agree with a tool that reported a version it was not built from — which is the failure the clause
+    ///     names, since a payload whose self-report and whose contents disagree is worse than one that reports
+    ///     nothing.
+    ///     <para>
+    ///         The report is taken from the installed payload as a caller takes it, by running the built tool in
+    ///         a process of its own, because "an installed payload can be identified" is a claim about the thing
+    ///         on disk rather than about a property an in-process test can read.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task ToolReportsPayloadVersion()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange: the version stamped into the payload beside these tests, read from the file itself
+            var built = FileVersionInfo
+                .GetVersionInfo(Path.Combine(AppContext.BaseDirectory, "DemaConsulting.Anneal.Toolkit.dll"))
+                .ProductVersion;
+
+            // Act: ask the installed payload, as a caller does, in a process of its own
+            using var process = StartTool(root, "version");
+            var reported = await process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
+            await process.WaitForExitAsync(TestContext.Current.CancellationToken);
+
+            // Act: and through the command surface, so the record written below is from a known invocation
+            var output = new StringWriter();
+            var exitCode = await AnnealTool.RunAsync(
+                ["version"], output, AnnealTool.DefaultOperations, root, TestContext.Current.CancellationToken);
+
+            var records = ReadRecords(RecordStore.InvocationsPathFor(root));
+
+            Assert.Multiple(
+                // Reporting a version is something the tool does, not something it fails at.
+                () => Assert.Equal(0, process.ExitCode),
+                () => Assert.Equal(0, exitCode),
+
+                // One line, so a caller reads it without parsing.
+                () => Assert.Single(reported.Split('\n', StringSplitOptions.RemoveEmptyEntries)),
+                () => Assert.Equal(AnnealTool.Version, reported.Trim()),
+                () => Assert.Equal(AnnealTool.Version, output.ToString().Trim()),
+
+                // It is a version, and it is the one the payload was built from.
+                () => Assert.Matches(@"^\d+\.\d+\.\d+", AnnealTool.Version),
+                () => Assert.Equal(built, AnnealTool.Version),
+
+                // And every record the payload writes carries it, so a run can be attributed to a version later.
+                () => Assert.All(records, record => Assert.Equal(AnnealTool.Version, Text(record, "toolVersion"))));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-11 — every model interaction records a transcript of it: the prompt sent, the reply received,
+    ///     the model consulted and the token usage, for every interaction rather than only for those that failed
+    ///     or refused, and with no opt-in that could leave it off.
+    /// </summary>
+    /// <remarks>
+    ///     Three runs, chosen so that the set of transcripts cannot be explained by capture that happens only on
+    ///     one kind of ending: one that answered, one that refused, and one that never reached a model at all.
+    ///     The third is the important one — an interaction that produced no reply still produced a transcript,
+    ///     naming what went wrong, because the evidence a later audit needs is densest exactly where the
+    ///     interaction did not go as expected.
+    ///     <para>
+    ///         "No opt-in" is asserted structurally as well as by observation. Every run here transcribes, but a
+    ///         run that transcribed by default and could be told not to would pass an assertion about what it did;
+    ///         the public surface is checked to have no construction path that omits the destination, which is
+    ///         what makes leaving capture off impossible to state rather than merely unusual.
+    ///     </para>
+    /// </remarks>
+    [Fact]
+    public async Task ModelInteractionsAreTranscribed()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
+            WriteModelConfiguration(root, "a-transcribed-light-model", "a-transcribed-medium-model", "unused");
+
+            // Act: an interaction that answered, one that refused, and one that never reached a model
+            await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+            await RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""));
+            await RunProbe(root, "unreachable", Answer("SingleOwner", "owner.md"), reachable: false);
+
+            var transcripts = ReadRecords(RecordStore.TranscriptsPathFor(root));
+            var replied = transcripts.Where(entry => Text(entry, "result") == ModelTranscript.Replied).ToArray();
+            var unanswered = transcripts.Where(entry => Text(entry, "result") == ModelTranscript.Failed).ToArray();
+
+            Assert.Multiple(
+                // Every interaction, not only the ones that went wrong: two passes each for the two that ran.
+                () => Assert.Equal(4, replied.Length),
+                () => Assert.NotEmpty(unanswered),
+
+                // The prompt as it was sent, verbatim and in order.
+                () => Assert.All(
+                    transcripts,
+                    entry => Assert.NotEmpty(entry.GetProperty("prompt").EnumerateArray())),
+                () => Assert.All(
+                    transcripts,
+                    entry => Assert.All(
+                        entry.GetProperty("prompt").EnumerateArray(),
+                        message => Assert.False(string.IsNullOrEmpty(Text(message, "text"))))),
+                () => Assert.Contains(
+                    replied,
+                    entry => entry.GetProperty("prompt").EnumerateArray()
+                        .Any(message => Text(message, "text").Contains(
+                            "each rule has exactly one owner", StringComparison.OrdinalIgnoreCase))),
+
+                // The reply that came back, on the interactions that produced one.
+                () => Assert.All(replied, entry => Assert.False(string.IsNullOrEmpty(Text(entry, "reply")))),
+                () => Assert.Contains(replied, entry => Text(entry, "reply").Contains("SingleOwner", StringComparison.Ordinal)),
+
+                // The model consulted, named concretely rather than by the role that resolved to it.
+                () => Assert.All(transcripts, entry => Assert.False(string.IsNullOrEmpty(Text(entry, "model")))),
+                () => Assert.Contains(replied, entry => Text(entry, "model") == "a-transcribed-medium-model"),
+                () => Assert.Contains(replied, entry => Text(entry, "model") == "a-transcribed-light-model"),
+                () => Assert.All(
+                    transcripts,
+                    entry => Assert.Contains(Text(entry, "role"), Enum.GetNames<ModelRole>())),
+
+                // The token usage, where the provider reported any.
+                () => Assert.All(
+                    replied,
+                    entry => Assert.Equal(
+                        ScriptedEndpoint.ReportedInputTokens,
+                        entry.GetProperty("usage").GetProperty("inputTokens").GetInt64())),
+                () => Assert.All(
+                    replied,
+                    entry => Assert.Equal(
+                        ScriptedEndpoint.ReportedOutputTokens,
+                        entry.GetProperty("usage").GetProperty("outputTokens").GetInt64())),
+
+                // An interaction that produced no reply is transcribed too, and says why.
+                () => Assert.All(unanswered, entry => Assert.False(entry.TryGetProperty("reply", out _))),
+                () => Assert.All(unanswered, entry => Assert.False(string.IsNullOrEmpty(Text(entry, "failure")))),
+
+                // Nothing was switched on to obtain any of this, and nothing could switch it off: every way of
+                // building the seam demands the repository whose transcripts are being kept.
+                () => Assert.All(
+                    typeof(ModelRoles).GetConstructors(),
+                    constructor => Assert.Equal(
+                        "repositoryRoot",
+                        constructor.GetParameters().FirstOrDefault()?.Name)),
+                () => Assert.All(
+                    typeof(ModelRoles).GetConstructors().SelectMany(constructor => constructor.GetParameters()),
+                    parameter => Assert.NotEqual(typeof(bool), parameter.ParameterType)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     Writes the repository's role-to-model configuration, as a repository substituting a model does.
+    /// </summary>
+    private static void WriteModelConfiguration(string root, string light, string medium, string heavy)
+    {
+        var path = Path.Combine(root, ModelConfiguration.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(
+            path,
+            $$"""
+              {"models": {"light": "{{light}}", "medium": "{{medium}}", "heavy": "{{heavy}}" } }
+              """);
+    }
+
+    /// <summary>
+    ///     Reads an appended record stream back as structured data, which is the only way these clauses may be
+    ///     read: a test that pattern-matched the file as text would pass on prose that merely looked structured.
+    /// </summary>
+    private static JsonElement[] ReadRecords(string path)
+    {
+        Assert.True(File.Exists(path), $"nothing was recorded at {path}");
+
+        return
+        [
+            .. File.ReadAllLines(path)
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Select(line => JsonDocument.Parse(line).RootElement.Clone())
+        ];
+    }
+
+    /// <returns>A recorded string field, or the empty string when the record omits it.</returns>
+    private static string Text(JsonElement record, string field) =>
+        record.TryGetProperty(field, out var value) ? value.GetString() ?? string.Empty : string.Empty;
+
+    /// <returns>A recorded array of strings.</returns>
+    private static string[] Strings(JsonElement record, string field) =>
+        [.. record.GetProperty(field).EnumerateArray().Select(entry => entry.GetString() ?? string.Empty)];
+
+    /// <returns>
+    ///     A per-role endpoint selector serving every role from one script, for a probe invoked without the
+    ///     dispatcher. Substituting the provider rather than the resolution is deliberate: the operation still
+    ///     resolves its role through the repository's configuration, so the seam under test is the real one.
+    /// </returns>
+    private static Func<ModelRole, IChatEndpoint> Scripted(string reasoningReply, string probeReply) =>
+        Serving(new ScriptedEndpoint(probeReply), new ScriptedEndpoint(reasoningReply), new ScriptedEndpoint("unused"));
+
+    /// <returns>A selector handing each role its own endpoint.</returns>
+    private static Func<ModelRole, IChatEndpoint> Serving(
+        IChatEndpoint light, IChatEndpoint medium, IChatEndpoint heavy) =>
+        role => role switch
+        {
+            ModelRole.Light => light,
+            ModelRole.Medium => medium,
+            _ => heavy
+        };
 
     /// <returns>A scripted reply carrying a complete answer, as the model would emit it.</returns>
     private static string Answer(string ownership, string owningFile) =>
@@ -872,15 +1283,17 @@ public class ToolkitContractTests
         var probing = new ScriptedEndpoint(probeReplies);
         var openEnded = new ScriptedEndpoint("the open-ended tier is not consulted by this operation");
 
-        var roles = reachable
-            ? new ModelRoles(probing, reasoning, openEnded)
-            : new ModelRoles(new UnreachableEndpoint());
+        var unreachable = new UnreachableEndpoint();
+        var endpointFor = reachable
+            ? Serving(probing, reasoning, openEnded)
+            : _ => unreachable;
 
         var output = new StringWriter();
         var exitCode = await AnnealTool.RunAsync(
             ["probe-rule-owner", "each rule has exactly one owner"],
             output,
-            [new ProbeRuleOwnerOperation(root, () => roles)],
+            [new ProbeRuleOwnerOperation(root, endpointFor)],
+            root,
             TestContext.Current.CancellationToken);
 
         return new ProbeRun(exitCode, output.ToString(), reasoning, probing, openEnded);
@@ -903,6 +1316,15 @@ public class ToolkitContractTests
     /// </remarks>
     private sealed class ScriptedEndpoint(params string[] replies) : IChatEndpoint
     {
+        /// <summary>
+        ///     What every scripted reply reports having consumed. Distinctive figures, so a total that appears
+        ///     in an invocation record can only have come from adding these up.
+        /// </summary>
+        public const long ReportedInputTokens = 1100;
+
+        /// <inheritdoc cref="ReportedInputTokens" />
+        public const long ReportedOutputTokens = 7;
+
         private readonly Queue<string> _replies = new(replies);
 
         public List<ChatTurnRequest> Requests { get; } = [];
@@ -914,7 +1336,9 @@ public class ToolkitContractTests
             cancellationToken.ThrowIfCancellationRequested();
 
             Requests.Add(request);
-            return Task.FromResult(new ChatTurnResult(_replies.Count > 0 ? _replies.Dequeue() : "(script exhausted)"));
+            return Task.FromResult(new ChatTurnResult(
+                _replies.Count > 0 ? _replies.Dequeue() : "(script exhausted)",
+                new ModelUsage(ReportedInputTokens, ReportedOutputTokens)));
         }
     }
 
@@ -973,6 +1397,8 @@ public class ToolkitContractTests
         public string Name => "waiting";
 
         public OperationCategory Category => OperationCategory.Research;
+
+        public ModelRole? RequiredRole => null;
 
         public string Summary => "Waits until its caller withdraws the request";
 
@@ -1187,6 +1613,8 @@ public class ToolkitContractTests
         public string Name => "stub";
 
         public OperationCategory Category => category;
+
+        public ModelRole? RequiredRole => null;
 
         public string Summary => "Reports a fixed outcome under a fixed category";
 

@@ -88,9 +88,16 @@ records, and every model interaction begins capturing a transcript of itself.
 payload. Restore failure must not break a repository that calls nothing.
 
 **Exit conditions:** `TOOLKIT-05`, `TOOLKIT-08`, `TOOLKIT-09`, `TOOLKIT-11` verified. The *installed
-payload must be identifiable by version* entry in [CONSTRAINTS.md](CONSTRAINTS.md) moves up to Satisfied,
-and the *agent-report corpus* entry is absorbed by structured records. `agent-metrics.ps1`, which
-scrapes prose with regular expressions, is deleted rather than left as a second source.
+payload must be identifiable by version* entry in [CONSTRAINTS.md](CONSTRAINTS.md) moves up to Satisfied.
+
+**The absorption of the *agent-report corpus* entry was dropped from this stage by amendment**, on the
+same footing as the S1a/S1b split above. It named a [CONSTRAINTS.md](CONSTRAINTS.md) entry title that no
+longer exists, and no correct implementation could have satisfied it: `TOOLKIT-08` records the Toolkit's
+own invocations — what an operation was asked, what it decided, what it cost — and says nothing about
+agent behavior, which is what that entry was about. Widening `TOOLKIT-08` to cover agent behavior would
+have admitted a promise the user has not admitted, so the clause stands as contracted and the exit
+condition goes. `agent-metrics.ps1` survives this stage for the same reason: it reads a corpus the
+structured records do not replace, so deleting it would remove a source with nothing standing in for it.
 
 ## S3 — Auditing verdicts
 

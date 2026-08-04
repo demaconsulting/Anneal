@@ -23,21 +23,33 @@ namespace DemaConsulting.Anneal.Toolkit.Model;
 ///     question with no ceiling generates until it exhausts the context window, so every turn states a bound
 ///     rather than trusting the model to stop. Must be greater than zero.
 /// </param>
+/// <param name="Model">
+///     The concrete model to drive, which the caller's capability role resolved to through the repository's own
+///     configuration. Must not be null or blank. It travels with the turn rather than being fixed when an
+///     endpoint is built, because the role-to-model mapping is data a repository owns and one provider serves
+///     every role.
+/// </param>
 public sealed record ChatTurnRequest(
     IReadOnlyList<ChatMessage> Messages,
     IReadOnlyList<AITool> Tools,
-    int MaxOutputTokens);
+    int MaxOutputTokens,
+    string Model);
 
 /// <summary>
-///     The result of one completed model turn: the assistant text, and nothing else.
+///     The result of one completed model turn: the assistant text, and what producing it consumed.
 /// </summary>
 /// <remarks>
-///     Kept to a single field because everything above the seam works from the raw reply — the probe path runs
-///     its own tolerant extraction and visible parse retry over exactly this text — and a richer result would
-///     only invite a provider-shaped detail to leak upward.
+///     The text is everything above the seam works from — the probe path runs its own tolerant extraction and
+///     visible parse retry over exactly this string. The usage is carried beside it rather than folded into it
+///     because nothing above the seam can recompute a token count, and a transcript that omitted what an
+///     interaction cost would be a record of the exchange but not of its price.
 /// </remarks>
 /// <param name="Text">The assistant reply, or the empty string when the provider returned none. Never null.</param>
-public sealed record ChatTurnResult(string Text);
+/// <param name="Usage">
+///     What the turn consumed, or null when the provider reported nothing. Null means "not reported" and never
+///     "cost nothing".
+/// </param>
+public sealed record ChatTurnResult(string Text, ModelUsage? Usage = null);
 
 /// <summary>
 ///     The seam that hides how a single model turn is completed, so that no operation knows which provider

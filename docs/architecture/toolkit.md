@@ -47,7 +47,7 @@ presented requires owning the conversation, which requires code.
 
 - **TOOLKIT-05** — Every operation that consults a model declares the capability role it requires, and
   roles resolve to concrete models through repository configuration rather than through the operation.
-  *Verified by:* `TODO.OperationRolesResolveThroughConfiguration`
+  *Verified by:* `ToolkitContractTests.OperationRolesResolveThroughConfiguration`
 
 - **TOOLKIT-06** — Refusal is reported as an outcome distinct from both success and failure, so a
   caller can tell "the question could not be answered on the available evidence" from "the answer is
@@ -64,11 +64,11 @@ presented requires owning the conversation, which requires code.
   identifies the outcome so that its meaning is fixed as new outcomes are added, so records aggregated
   across versions — which is what aggregation means, since runs span releases — cannot silently change
   meaning when the set of possible outcomes grows.
-  *Verified by:* `TODO.InvocationsAppendStructuredRecords`
+  *Verified by:* `ToolkitContractTests.InvocationsAppendStructuredRecords`
 
 - **TOOLKIT-09** — The tool reports the Anneal version it was built from, so an installed payload can
   be identified by version rather than inferred from its contents.
-  *Verified by:* `TODO.ToolReportsPayloadVersion`
+  *Verified by:* `ToolkitContractTests.ToolReportsPayloadVersion`
 
 - **TOOLKIT-10** — An invocation the tool cannot act on — no action named, an action that does not
   exist, or arguments the named action cannot use — exits with the caller-error code `2`, whatever
@@ -82,7 +82,7 @@ presented requires owning the conversation, which requires code.
   that failed or refused, and with no opt-in that could leave it off. A model asked the same question
   later may answer differently, so this is the only evidence in the system that cannot be reconstructed
   by re-running, and it is captured at the time or lost.
-  *Verified by:* `TODO.ModelInteractionsAreTranscribed`
+  *Verified by:* `ToolkitContractTests.ModelInteractionsAreTranscribed`
 
 - **TOOLKIT-12** — `dotnet anneal help`, given no further argument, lists every shipped action with its
   one-line summary and exits with the success code `0`. The action list a caller could until now reach

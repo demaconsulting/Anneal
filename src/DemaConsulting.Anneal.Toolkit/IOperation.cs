@@ -1,3 +1,5 @@
+using DemaConsulting.Anneal.Toolkit.Model;
+
 namespace DemaConsulting.Anneal.Toolkit;
 
 /// <summary>
@@ -46,6 +48,23 @@ public interface IOperation
     ///     it is called.
     /// </remarks>
     string Usage { get; }
+
+    /// <summary>
+    ///     The capability role this operation requires of a model, or null when it consults no model at all.
+    /// </summary>
+    /// <remarks>
+    ///     A role names what the work needs — a cheap closed question, a conversation worth paying for, or
+    ///     open-ended reasoning — and never which model answers it. The model behind the role is read from the
+    ///     repository's own configuration, so a repository substitutes one by editing a file rather than by
+    ///     waiting for a Toolkit release, and an operation that named a model would have taken that decision
+    ///     away from it.
+    ///     <para>
+    ///         Null is the honest declaration for a deterministic check, not an omission: an operation that
+    ///         reaches its verdict from the repository alone requires no tier, and giving it one would suggest
+    ///         a model could change its answer.
+    ///     </para>
+    /// </remarks>
+    ModelRole? RequiredRole { get; }
 
     /// <summary>
     ///     Runs the operation under the caller's cancellation signal, and reports what it concluded together

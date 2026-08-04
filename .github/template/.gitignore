@@ -26,6 +26,12 @@ mermaid-filter.err
 # Agent logs
 .agent-logs/
 
+# Toolkit evidence: invocation records and model transcripts. Both quote repository
+# content - a transcript carries the files a model was shown, a record the arguments
+# it was given - so neither is ever committed. The role configuration beside them is.
+.anneal/records/
+.anneal/transcripts/
+
 # OS
 .DS_Store
 Thumbs.db

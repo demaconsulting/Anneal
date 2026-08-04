@@ -37,21 +37,15 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Providers;
 public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
 {
     private readonly CopilotClient _client;
-    private readonly string _model;
     private readonly SemaphoreSlim _startGate = new(1, 1);
     private bool _started;
 
     /// <summary>
-    ///     Creates an endpoint driving one Copilot model.
+    ///     Creates an endpoint over the Copilot SDK. Which model it drives is decided per turn, by the
+    ///     repository configuration behind the capability role the caller asked for.
     /// </summary>
-    /// <param name="model">The Copilot model identifier this endpoint drives. Must not be null or blank.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="model" /> is null, empty or blank.</exception>
-    public CopilotEndpoint(string model)
+    public CopilotEndpoint()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(model);
-
-        _model = model;
-
         // No token is passed and none is read from the environment: the SDK authenticates as whoever is logged
         // in to Copilot on this machine, which is the account the invoking agent is already running under.
         _client = new CopilotClient(new CopilotClientOptions { UseLoggedInUser = true });
@@ -81,7 +75,7 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
             // same thing to a caller - the judgement was not obtained - and translating it here is what stops an
             // operation quietly treating a transport fault as an answer.
             throw new ModelUnavailableException(
-                $"no model could be reached through the GitHub Copilot SDK using model '{_model}': " +
+                $"no model could be reached through the GitHub Copilot SDK using model '{request.Model}': " +
                 exception.Message,
                 exception);
         }
@@ -105,18 +99,16 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
     ///     <em>asserted</em> rather than hoped for: a test builds the configuration for a tool-granting turn and
     ///     for a no-tool turn and reads <c>AvailableTools</c> off both.
     /// </remarks>
-    /// <param name="request">The assembled turn. Must not be null.</param>
-    /// <param name="model">The Copilot model identifier to drive. Must not be null or blank.</param>
+    /// <param name="request">The assembled turn, whose <c>Model</c> names the model to drive. Must not be null.</param>
     /// <returns>
     ///     The configuration, whose <c>AvailableTools</c> is never null: exactly the granted tools' names, or an
     ///     empty list when the turn grants none.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="request" /> is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="model" /> is null, empty or blank.</exception>
-    public static SessionConfig BuildSessionConfig(ChatTurnRequest request, string model)
+    public static SessionConfig BuildSessionConfig(ChatTurnRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Model);
 
         // Only function-backed tools can be run by the SDK; each is wrapped so its declaration carries the
         // is_override flag, without which the session rejects a granted tool whose name collides with a built-in.
@@ -127,7 +119,7 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
 
         return new SessionConfig
         {
-            Model = model,
+            Model = request.Model,
             SystemMessage = new SystemMessageConfig { Content = ComposeSystemMessage(request.Messages) },
             Tools = [.. granted.Cast<AIFunctionDeclaration>()],
 
@@ -216,13 +208,19 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
     {
         await EnsureStartedAsync(cancellationToken).ConfigureAwait(false);
 
-        var config = BuildSessionConfig(request, _model);
+        var config = BuildSessionConfig(request);
         var prompt = ComposePrompt(request);
 
         await using var session = await _client.CreateSessionAsync(config, cancellationToken).ConfigureAwait(false);
 
         var output = new StringBuilder();
         var completion = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // What the turn consumed, accumulated as the provider reports it. A turn that granted tools makes
+        // several API calls, so the usage of one turn is their total rather than the last one's.
+        long inputTokens = 0;
+        long outputTokens = 0;
+        var usageReported = false;
 
         using var subscription = session.On<SessionEvent>(evt =>
         {
@@ -232,6 +230,15 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
                     lock (output)
                     {
                         output.Append(assistant.Data.Content);
+                    }
+
+                    break;
+                case AssistantUsageEvent usage:
+                    lock (output)
+                    {
+                        usageReported = true;
+                        inputTokens += usage.Data.InputTokens ?? 0;
+                        outputTokens += usage.Data.OutputTokens ?? 0;
                     }
 
                     break;
@@ -253,7 +260,11 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
 
         lock (output)
         {
-            return new ChatTurnResult(output.ToString().Trim());
+            // Null when the provider reported nothing, never a zeroed total: "not reported" and "cost nothing"
+            // are different facts, and a transcript that confused them would understate what a run spent.
+            return new ChatTurnResult(
+                output.ToString().Trim(),
+                usageReported ? new ModelUsage(inputTokens, outputTokens) : null);
         }
     }
 

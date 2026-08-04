@@ -46,7 +46,7 @@ public class OperationInvocationTests
         try
         {
             var endpoint = new CountingEndpoint();
-            IOperation operation = new ProbeRuleOwnerOperation(root, () => new ModelRoles(endpoint));
+            IOperation operation = new ProbeRuleOwnerOperation(root, _ => endpoint);
             using var cancellation = new CancellationTokenSource();
             await cancellation.CancelAsync();
 
@@ -133,6 +133,8 @@ public class OperationInvocationTests
         public string Name => "recording";
 
         public OperationCategory Category => OperationCategory.Research;
+
+        public ModelRole? RequiredRole => null;
 
         public string Summary => "Records the signal it was handed";
 

@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Reflection;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Recording;
 
 namespace DemaConsulting.Anneal.Toolkit;
 
@@ -59,6 +62,22 @@ public static class AnnealTool
         [new VerifyEvidenceOperation(), new ProbeRuleOwnerOperation()];
 
     /// <summary>
+    ///     The Anneal version this tool was built from.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the built assembly rather than written in the source, so it cannot state one version while
+    ///     the payload beside it is another. It is what makes an installed payload identifiable by version
+    ///     instead of inferred from its contents: <c>dotnet anneal version</c> reports it, and every invocation
+    ///     record carries it, so a repository that has run the tool once can say which version produced what is
+    ///     in it.
+    /// </remarks>
+    public static string Version { get; } =
+        typeof(AnnealTool).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion
+        ?? typeof(AnnealTool).Assembly.GetName().Version?.ToString()
+        ?? "unknown";
+
+    /// <summary>
     ///     Runs the action named by the first argument against the operations this tool ships.
     /// </summary>
     /// <param name="arguments">
@@ -112,12 +131,80 @@ public static class AnnealTool
         IReadOnlyList<string> arguments,
         TextWriter output,
         IReadOnlyList<IOperation> operations,
+        CancellationToken cancellationToken) =>
+        await RunAsync(arguments, output, operations, Directory.GetCurrentDirectory(), cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <summary>
+    ///     Runs the action named by the first argument, recording the invocation into a named repository.
+    /// </summary>
+    /// <remarks>
+    ///     The root is where this invocation's record is appended, which is the only reason the dispatcher needs
+    ///     one. It is a destination and not a switch: there is no value of it, and no other argument, that
+    ///     leaves an invocation unrecorded.
+    /// </remarks>
+    /// <param name="arguments">The command line, action first. Must not be null.</param>
+    /// <param name="output">Where everything a person reads is written. Must not be null.</param>
+    /// <param name="operations">The operations to dispatch against. Must not be null.</param>
+    /// <param name="repositoryRoot">
+    ///     The repository this invocation belongs to, and under which its record is appended. Must not be null
+    ///     or blank.
+    /// </param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the action it dispatches to.</param>
+    /// <returns>The exit code, mapped as the four-argument overload documents.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when any argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is empty or blank.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
+    public static async Task<int> RunAsync(
+        IReadOnlyList<string> arguments,
+        TextWriter output,
+        IReadOnlyList<IOperation> operations,
+        string repositoryRoot,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(operations);
+        ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
+        var at = DateTimeOffset.UtcNow;
+        var started = Stopwatch.GetTimestamp();
+
+        // The scope is what lets the record below state what the invocation spent on models without every
+        // operation signature carrying an accumulator to serve a fact only the dispatcher reports.
+        using var scope = InvocationScope.Begin();
+
+        var dispatched = await DispatchAsync(arguments, output, operations, cancellationToken)
+            .ConfigureAwait(false);
+
+        // An invocation withdrawn mid-flight never reaches here, and that is deliberate: it reached no outcome,
+        // and a record whose outcome field had to be invented would be the first untrue row in a file whose
+        // whole value is that it can be aggregated at face value.
+        new RecordStore(repositoryRoot).Append(new InvocationRecord(
+            at,
+            Version,
+            arguments.Count == 0 ? string.Empty : arguments[0],
+            [.. arguments.Skip(1)],
+            dispatched.Outcome.ToString(),
+            dispatched.Category?.ToString(),
+            dispatched.ExitCode,
+            scope.Interactions,
+            scope.Usage,
+            Stopwatch.GetElapsedTime(started).TotalMilliseconds));
+
+        return dispatched.ExitCode;
+    }
+
+    /// <remarks>
+    ///     Everything the dispatcher decides, separated from the recording of it so that no path can reach an
+    ///     exit code without an outcome the record can state.
+    /// </remarks>
+    private static async Task<Dispatched> DispatchAsync(
+        IReadOnlyList<string> arguments,
+        TextWriter output,
+        IReadOnlyList<IOperation> operations,
+        CancellationToken cancellationToken)
+    {
         // No action at all is the same failure as an unrecognized one: in both cases the caller does not yet
         // know what this tool offers, and the repair is the same list. Bare "anneal" is deliberately not an
         // alias for "help" - it stays the usage error TOOLKIT-10 fixes, so a script that omits its action can
@@ -126,7 +213,7 @@ public static class AnnealTool
         {
             output.WriteLine("anneal: no action named.");
             WriteAvailableActions(output, operations);
-            return ExitUsageError;
+            return new Dispatched(ExitUsageError, OperationOutcome.UsageError, null);
         }
 
         // "help" is a dispatcher verb, handled before dispatch rather than shipped as an operation: it lists
@@ -134,6 +221,12 @@ public static class AnnealTool
         // guaranteed by keeping it outside the outcome-and-category machinery entirely.
         if (string.Equals(arguments[0], "help", StringComparison.OrdinalIgnoreCase))
             return RunHelp([.. arguments.Skip(1)], output, operations);
+
+        // "version" is a dispatcher verb for the same reasons, and for one more: what it reports is a property
+        // of the payload rather than of anything the tool does, so there is no repository state it could read
+        // and no outcome it could reach other than success.
+        if (string.Equals(arguments[0], "version", StringComparison.OrdinalIgnoreCase))
+            return RunVersion([.. arguments.Skip(1)], output, operations);
 
         var action = arguments[0];
         var operation = operations.FirstOrDefault(candidate =>
@@ -143,7 +236,7 @@ public static class AnnealTool
         {
             output.WriteLine($"anneal: unknown action '{action}'.");
             WriteAvailableActions(output, operations);
-            return ExitUsageError;
+            return new Dispatched(ExitUsageError, OperationOutcome.UsageError, null);
         }
 
         // The caller's token, unchanged. Substituting one here - or blocking on the result - would leave the
@@ -156,7 +249,7 @@ public static class AnnealTool
         // this path reads the outcome only. Nothing here parses what was rendered.
         var outcome = result.Outcome;
         if (outcome == OperationOutcome.Succeeded)
-            return ExitSuccess;
+            return new Dispatched(ExitSuccess, outcome, operation.Category);
 
         // A misuse is not an outcome. The operation never ran, so the gating rule has nothing to weigh, and the
         // caller gets the same code an unknown action already produces - whatever category was named. Reading
@@ -168,7 +261,7 @@ public static class AnnealTool
             // Render the operation's single declared usage, the same text "help <action>" prints, so the two
             // cannot state the invocation differently. The operation itself writes no usage line.
             output.WriteLine(operation.Usage);
-            return ExitUsageError;
+            return new Dispatched(ExitUsageError, outcome, operation.Category);
         }
 
         // Refusal short-circuits the gating rule entirely. It is not a verdict, so no category may turn it into
@@ -176,7 +269,7 @@ public static class AnnealTool
         if (outcome == OperationOutcome.Refused)
         {
             output.WriteLine($"anneal: '{operation.Name}' refused - the question was not answerable.");
-            return ExitRefused;
+            return new Dispatched(ExitRefused, outcome, operation.Category);
         }
 
         // The category decides, not the operation and not the exit code it would have liked. A non-gating
@@ -186,10 +279,32 @@ public static class AnnealTool
         {
             output.WriteLine(
                 $"anneal: '{operation.Name}' failed, and does not gate ({Describe(operation.Category)}).");
-            return ExitSuccess;
+            return new Dispatched(ExitSuccess, outcome, operation.Category);
         }
 
-        return ExitGatedFailure;
+        return new Dispatched(ExitGatedFailure, outcome, operation.Category);
+    }
+
+    /// <summary>
+    ///     Reports the Anneal version the tool was built from.
+    /// </summary>
+    /// <remarks>
+    ///     One line and nothing else, so a script reads it without parsing. A trailing argument is a misuse
+    ///     rather than a request to describe some other payload's version: there is only one payload here, and
+    ///     the only version it can honestly report is its own.
+    /// </remarks>
+    private static Dispatched RunVersion(
+        IReadOnlyList<string> extra, TextWriter output, IReadOnlyList<IOperation> operations)
+    {
+        if (extra.Count > 0)
+        {
+            output.WriteLine("anneal: 'version' takes no arguments.");
+            WriteAvailableActions(output, operations);
+            return new Dispatched(ExitUsageError, OperationOutcome.UsageError, null);
+        }
+
+        output.WriteLine(Version);
+        return new Dispatched(ExitSuccess, OperationOutcome.Succeeded, null);
     }
 
     /// <summary>
@@ -205,13 +320,14 @@ public static class AnnealTool
     ///     usage error TOOLKIT-10 defines, repaired with that same list, so <c>help</c> never fabricates
     ///     guidance for a surface that does not exist.
     /// </remarks>
-    private static int RunHelp(IReadOnlyList<string> topics, TextWriter output, IReadOnlyList<IOperation> operations)
+    private static Dispatched RunHelp(
+        IReadOnlyList<string> topics, TextWriter output, IReadOnlyList<IOperation> operations)
     {
         // Bare "help": the whole surface, on a success exit rather than only when a caller errs.
         if (topics.Count == 0)
         {
             WriteAvailableActions(output, operations);
-            return ExitSuccess;
+            return new Dispatched(ExitSuccess, OperationOutcome.Succeeded, null);
         }
 
         // "help" describes one action at a time; more than one topic is a misuse, not a request to describe.
@@ -219,7 +335,7 @@ public static class AnnealTool
         {
             output.WriteLine("anneal: 'help' describes one action at a time; name a single action, or none.");
             WriteAvailableActions(output, operations);
-            return ExitUsageError;
+            return new Dispatched(ExitUsageError, OperationOutcome.UsageError, null);
         }
 
         var requested = topics[0];
@@ -232,11 +348,11 @@ public static class AnnealTool
         {
             output.WriteLine($"anneal: unknown action '{requested}'.");
             WriteAvailableActions(output, operations);
-            return ExitUsageError;
+            return new Dispatched(ExitUsageError, OperationOutcome.UsageError, null);
         }
 
         output.WriteLine(operation.Usage);
-        return ExitSuccess;
+        return new Dispatched(ExitSuccess, OperationOutcome.Succeeded, null);
     }
 
     private static void WriteAvailableActions(TextWriter output, IReadOnlyList<IOperation> operations)
@@ -254,4 +370,12 @@ public static class AnnealTool
 
     private static string Describe(OperationCategory category) =>
         category.ToString().ToLowerInvariant();
+
+    /// <remarks>
+    ///     What the dispatcher decided, in the terms the invocation record states it in. The outcome and the
+    ///     category travel beside the exit code rather than being inferred back out of it, because the mapping
+    ///     is deliberately lossy in both directions - a non-gating failure and a success share an exit code,
+    ///     and a usage error can arrive with or without an operation to attribute it to.
+    /// </remarks>
+    private sealed record Dispatched(int ExitCode, OperationOutcome Outcome, OperationCategory? Category);
 }

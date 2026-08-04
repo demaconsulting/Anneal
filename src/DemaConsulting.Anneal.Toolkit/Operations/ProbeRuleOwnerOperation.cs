@@ -1,5 +1,4 @@
 using DemaConsulting.Anneal.Toolkit.Model;
-using DemaConsulting.Anneal.Toolkit.Model.Providers;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -47,7 +46,7 @@ public sealed class ProbeRuleOwnerOperation : IOperation
         """;
 
     private readonly string _repositoryRoot;
-    private readonly Func<ModelRoles> _endpoints;
+    private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
 
     /// <summary>
     ///     Creates an operation that reads the current working directory and consults the configured models.
@@ -61,26 +60,26 @@ public sealed class ProbeRuleOwnerOperation : IOperation
     }
 
     /// <summary>
-    ///     Creates an operation against an explicit repository root and, optionally, a substituted model seam.
+    ///     Creates an operation against an explicit repository root and, optionally, a substituted provider.
     /// </summary>
     /// <param name="repositoryRoot">
-    ///     The repository the probe reads, and outside which every tool call is refused. Must not be null or
-    ///     blank.
+    ///     The repository the probe reads, whose configuration names the models behind the capability roles, and
+    ///     outside which every tool call is refused. Must not be null or blank.
     /// </param>
-    /// <param name="endpoints">
-    ///     Supplies the role-to-endpoint resolver, or null to resolve roles through the repository's own
-    ///     configuration and serve them from the GitHub Copilot SDK. Injected so the operation's whole
-    ///     behavior — the two passes, decoding, retry and refusal — is exercisable without a network call; a
-    ///     contract test that needed a live model would be a broken test, not an acceptable one. The factory is
-    ///     invoked once per execution and may throw <see cref="ModelUnavailableException" />.
+    /// <param name="endpointFor">
+    ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
+    ///     Injected so the operation's whole behavior — the two passes, decoding, retry and refusal — is
+    ///     exercisable without a network call; a contract test that needed a live model would be a broken test,
+    ///     not an acceptable one. It substitutes the provider and never the mapping: which model serves a role
+    ///     stays the repository configuration's decision on every path.
     /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
-    public ProbeRuleOwnerOperation(string repositoryRoot, Func<ModelRoles>? endpoints = null)
+    public ProbeRuleOwnerOperation(string repositoryRoot, Func<ModelRole, IChatEndpoint>? endpointFor = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
-        _endpoints = endpoints ?? DefaultEndpoints;
+        _endpointFor = endpointFor;
     }
 
     /// <inheritdoc />
@@ -91,6 +90,15 @@ public sealed class ProbeRuleOwnerOperation : IOperation
 
     /// <inheritdoc />
     public string Summary => "Name the single file that owns a rule, or refuse when it is stated in several or in none";
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     The middle tier: the reasoning pass reads real files through tools and has to hold what it found
+    ///     across several of them, which the cheapest tier does poorly and the capable tier does no better for
+    ///     several times the price. Which model serves that tier is not stated here and cannot be — it is read
+    ///     from the repository's configuration.
+    /// </remarks>
+    public ModelRole? RequiredRole => ModelRole.Medium;
 
     /// <inheritdoc />
     public string Usage =>
@@ -147,10 +155,14 @@ public sealed class ProbeRuleOwnerOperation : IOperation
 
     private async Task<RuleOwnerAnswer> Ask(string rule, CancellationToken cancellationToken)
     {
-        var session = new ModelSession(_endpoints(), Charter, RepositoryReadTools.CreateAll(_repositoryRoot));
+        // Roles are bound to models here and nowhere else in this operation: the mapping is read from the
+        // repository's configuration, so this file names a tier and never a model.
+        var roles = new ModelRoles(_repositoryRoot, _endpointFor);
+        var session = new ModelSession(roles, Charter, RepositoryReadTools.CreateAll(_repositoryRoot));
 
         // Pass one: free-form, tools in scope, no schema. Nothing is decoded here, so there is nothing to
-        // re-prompt against - the reply is reasoning, not transport.
+        // re-prompt against - the reply is reasoning, not transport. It runs at the tier this operation
+        // declares it requires.
         await session.RunAsync(
                 $"""
                  Find where this rule is stated in the repository:
@@ -160,12 +172,13 @@ public sealed class ProbeRuleOwnerOperation : IOperation
                  Search for it, read the files that look relevant, and report what each of them actually says
                  about it. Name the files by their repository-relative paths.
                  """,
-                role: null,
+                RequiredRole,
                 cancellationToken)
             .ConfigureAwait(false);
 
         // Pass two: the schema, last, with no tools. The framework supplies the schema block; this question
-        // cannot state it and cannot place it earlier.
+        // cannot state it and cannot place it earlier. Extraction is framework work, so it takes the role the
+        // seam defaults a probe to rather than the one this operation's own reasoning requires.
         return await session.ProbeAsync<RuleOwnerAnswer>(
                 "From what you just found, report which single file owns the rule. If more than one file states " +
                 "it, or no file does, say so and leave the owning file empty.",
@@ -212,16 +225,4 @@ public sealed class ProbeRuleOwnerOperation : IOperation
         }
     }
 
-    /// <remarks>
-    ///     Every role is served by the Copilot SDK because there is one provider; what varies per role is the
-    ///     model, and that comes from the repository's own configuration rather than from this operation.
-    /// </remarks>
-    private ModelRoles DefaultEndpoints()
-    {
-        var configuration = ModelConfiguration.Load(_repositoryRoot);
-        return new ModelRoles(
-            new CopilotEndpoint(configuration.ModelFor(ModelRole.Light)),
-            new CopilotEndpoint(configuration.ModelFor(ModelRole.Medium)),
-            new CopilotEndpoint(configuration.ModelFor(ModelRole.Heavy)));
-    }
 }

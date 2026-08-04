@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using DemaConsulting.Anneal.Toolkit.Model;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -63,6 +64,13 @@ public sealed class VerifyEvidenceOperation : IOperation
 
     /// <inheritdoc />
     public string Summary => "Check that each quotation cited in an agent report is at the file and line named";
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     None. This check reads the repository and compares text, so no capability tier could change what it
+    ///     finds — which is also what makes it safe to gate on.
+    /// </remarks>
+    public ModelRole? RequiredRole => null;
 
     /// <inheritdoc />
     public string Usage =>
