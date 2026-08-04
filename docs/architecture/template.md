@@ -86,11 +86,10 @@ The pipeline is owned here rather than being its own system because what it prom
 layout: put a `definition.yaml` in a folder and that folder becomes a publishable document. There is no
 consumer that wants the pipeline without the layout.
 
-The hazard specific to this system is over-synchronization. Anneal's own root files legitimately differ
-from their template counterparts — it has no `src/`, no solution, and no xUnit tests, so its `lint.ps1`
-and `build.ps1` cannot be the shipped ones. Reconciling them by making the template match Anneal would
-break every downstream repository, and it fails immediately while looking like the tidy choice. The rule
-is directional and recorded as `TEMPLATE-I1`.
+The hazard specific to this system is over-synchronization. Anneal's own root files may legitimately
+differ from their template counterparts when this repository needs behavior a downstream C# product
+should not inherit. Reconciling them by making the template mirror Anneal would break downstream
+repositories while looking like cleanup. The rule is directional and recorded as `TEMPLATE-I1`.
 
 ## Decisions
 

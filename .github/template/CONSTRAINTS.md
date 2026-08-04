@@ -1,5 +1,6 @@
 <!-- TEMPLATE-DIRECTIVE: Durable conditions the architecture must satisfy. One bullet per
-     constraint - keep it that cheap, or constraints stop being filed. Entries move between the
+     user-admitted constraint. Agents may propose entries, but only the user admits one. Entries
+     state the condition, not the mechanism that currently satisfies it. Entries move between the
      two sections; they are removed only when the condition stops being required. A new repository
      usually has nothing to record here yet: leave both sections empty rather than inventing an
      entry, and delete the example bullets. Remove this block. -->
@@ -29,7 +30,7 @@ Assumptions section of [README.md](README.md).
 Conditions the current design meets. Breaking one is a regression, not a trade-off to be made
 quietly.
 
-- **TODO: the condition, in one line** — TODO: what in the current shape upholds it.
+- **TODO: the condition, in one line** — TODO: the durable property this architecture must keep true.
 
 ## Not Yet Satisfied
 

@@ -75,7 +75,7 @@ likely to damage somebody's repository.
 
 The script is a payload table plus three phases: resolve what will be written, check every destination
 for collisions, then copy. The table is data rather than logic, which is why renaming an agent needs no
-code change — a property recorded as a constraint because it is easy to lose by adding a special case.
+code change — a property worth stating because it is easy to lose by adding a special case.
 
 `-Prune` is deliberately a separate phase with its own confirmation rather than part of the copy. Removal
 is the irreversible half of an upgrade, and the classification it performs — payload files we retired

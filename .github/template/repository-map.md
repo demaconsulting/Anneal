@@ -60,12 +60,13 @@ way to update it and Patch as a fallback.
 
 ## Constraints and Backlog
 
-Two root-level files. `dispatch` writes to both in Intake mode, at a cost of one bullet; the Intake
-admission test in `change-classification.md` decides which one an item goes in:
+Two root-level files. In Intake mode, `dispatch` writes to `BACKLOG.md` and README assumptions; for a
+constraint, it reports the proposed bullet for user admission. The Intake admission test in
+`change-classification.md` decides which path an item takes:
 
 | File | What belongs in it | Read by |
 | --- | --- | --- |
-| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry says the condition and either what upholds it or why the current shape blocks it. | `architecture-design` before re-cutting; `architecture-update` at Tier 2 |
+| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry states the condition; a Not Yet Satisfied entry may also state why the current shape blocks it. | `architecture-design` before re-cutting; `architecture-update` at Tier 2 |
 | `BACKLOG.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
 
 Neither is a plan, and neither is scheduled. There is deliberately no `ROADMAP.md`: scheduling is
