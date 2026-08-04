@@ -345,6 +345,18 @@ breaking `TOOLKIT-08`, and the very freedom that justifies leaving the trace out
 The record and the transcript are contracted for what they promise a later query; the trace is free
 precisely because it promises nothing, and that separation is what keeps both properties true.
 
+**The unreliability this system targets was measured, not assumed** — one pass over the agent-report
+corpus produced the figures the design rests on: `tier-check` returned FAILED in 8 of 16 runs, and at
+least two of the remaining SUCCEEDED verdicts were wrong, found only by hand; `apply` returned SUCCEEDED
+16 of 16 while its own verifier failed half of what it saw; across 65 reports the header fields were not
+uniform (`Result` 64, `Tier` 57, `Repairs Used` 16, `Residual` 14, one `Result` that did not parse), and
+four worker names appeared that match no agent in `.github/agents/`. The asymmetry is the point, and is
+why [MIGRATION.md](../../MIGRATION.md) stage S3 re-checks verdicts rather than counting them: a false
+FAILED is loud and gets fixed, a false SUCCEEDED ships. The non-uniformity is why `TOOLKIT-08` records
+invocations structurally — the figures above were themselves recovered by regex-scraping prose, which
+had already produced one plausible wrong answer. They are a baseline to re-measure against, not a
+target.
+
 **Transcripts are captured always, not on demand** — capture covers every model interaction, not only
 those that failed or refused, and is not placed behind an off-by-default flag. An opt-in guarantees the
 evidence is absent exactly when something surprising happened, and unlike a deterministic check the

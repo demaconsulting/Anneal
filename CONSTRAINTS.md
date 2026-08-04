@@ -34,8 +34,12 @@ quietly.
   every invocation, so it carries routing and defers detail to standards loaded on demand. The ceiling
   and the method it is counted by are owned by
   [prompt-authoring.md](docs/architecture/process/prompt-authoring.md).
-- **The process is enforceable by one mechanical check** — `check-contracts.ps1` is the only thing
-  that must pass; everything else is judgement recorded in a report.
+- **The process is enforceable by one mechanical check** — the clause-to-test link is the only rule
+  enforced across every change, and anything else that can fail a build does so only because an
+  operation declared itself as enforcement. The rule itself is owned by
+  `.github/standards/system-contracts.md` § Enforcement; why it is one rule plus declared gates
+  rather than universal gating is *One mechanical rule, everything else judgement* in
+  [overview.md](docs/architecture/overview.md) § Repository-Wide Decisions.
 - **A removed or renamed agent must stop being selectable in a target repository** — `install.ps1
   -Prune` lists payload-directory files the payload does not provide, separates the ones
   `retired-payload.txt` names as ours from ones the repository added itself, and deletes only what

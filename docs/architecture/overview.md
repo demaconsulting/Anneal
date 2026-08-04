@@ -16,8 +16,9 @@ Anneal ships a process rather than running one. Nothing here executes against a 
 prose an AI coding agent reads, a template describing the repository that prose expects, a script that
 enforces the single rule the process refuses to leave to judgement, and an installer that puts all three
 into somebody else's repository. That is the organizing idea the inventory below rests on — three of the
-four systems exist to deliver and defend the first, and the interesting design pressure is that the thing
-being delivered is instructions rather than behavior.
+five systems exist to deliver and defend the first, and the fifth, Toolkit, is invoked by that delivered
+content rather than delivering it; the interesting design pressure is that the thing being delivered is
+instructions rather than behavior.
 
 The consequence runs through every decision recorded here. Instructions cannot be executed to see whether
 they work, so verification splits in two: properties of the files themselves are checked by script, and
