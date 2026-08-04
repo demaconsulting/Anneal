@@ -94,6 +94,10 @@ publishes must name a test that exists, sits on that system's boundary, and pass
 if any promise cannot show one, and fails closed — a clause it cannot understand is an error, never
 a silent skip. Everything else is carried by prompt and review, deliberately.
 
+Those parts divide into systems, and
+[`docs/architecture/overview.md`](docs/architecture/overview.md) names them, says how they interact,
+and links to what each one promises. It is the next stop for any detail below this altitude.
+
 ## Installation
 
 ```pwsh

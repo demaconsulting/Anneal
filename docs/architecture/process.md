@@ -220,4 +220,5 @@ places a wrong reading changes what an agent does.
 
 ## Details
 
-- [Prompt Authoring](./process/prompt-authoring.md) — how a prompt earns the tokens it costs
+- [Prompt Authoring](./process/prompt-authoring.md) — how a prompt earns the tokens it costs, and
+  what every prompt and standard in the payload must do to participate

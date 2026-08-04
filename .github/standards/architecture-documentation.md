@@ -53,13 +53,18 @@ built from; an agent already working in the repository rarely needs more of it t
 
 # Decomposition and Ownership (MANDATORY)
 
-Every level is a **decomposition**. It names the parts at its own altitude, gives each a one-line
-role, and states the barest relationships between them — what depends on, contains, or talks to
-what. A reader must be able to locate the piece they came for and know which document
+Every level that has parts **is a decomposition**. It names the parts at its own altitude, gives each
+a one-line role, and states the barest relationships between them — what depends on, contains, or
+talks to what. A reader must be able to locate the piece they came for and know which document
 holds the next level of detail about it. A narrative — a story of a request moving through the
 system — fails this even when every sentence is true: it gives the reader nothing to locate
 themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
 descends, and that is not duplication — it is the handle a reader grabs in order to descend at all.
+
+**Level 3 is the exception**, because its subject has no parts: a section document covers one
+specific in depth — an invariant, a compatibility surface, a settled debate — and imposing the shape
+on it would invent structure that is not there. It is exempt from the shape, never from the
+ownership rule below.
 
 A decomposition is this shape, and rarely needs more:
 
@@ -251,8 +256,8 @@ that earns its place. A short document missing the *why* is the more expensive f
 
 # Quality Gates
 
-- [ ] Every level names its parts, their roles, and their barest relationships; no level restates a
-      child's detail
+- [ ] Every level with parts names them, their roles, and their barest relationships; no level
+      restates a child's detail
 - [ ] A reader stopping at a level can locate the part they came for and name the document
       holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
