@@ -16,5 +16,5 @@ guide covers how to work with it day to day.
   upgrade.
 - **[First Run](first-run.md)** — what `@architecture-design` is for and what its conversation is
   like. Read once, when `@helper` sends you there.
-- **[Using Helper](using-helper.md)** — how to ask `@helper` for what you want, example prompts, and
-  what to do when something comes back unfinished.
+- **[Using Helper](using-helper.md)** — how to ask `@helper` for what you want, example prompts, a
+  worked example of two changes end to end, and what to do when something comes back unfinished.
