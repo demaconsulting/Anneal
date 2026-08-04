@@ -7,7 +7,7 @@ globs: ["README.md", "docs/architecture/**/*.md"]
 # Purpose
 
 The architecture tree is a **progressive-disclosure** map of the repository. A reader — human or
-agent — starts at the top and descends only as far as the task requires. Each level answers a
+agent — starts at the top and descends only as far as the question requires. Each level answers a
 different question at a different altitude.
 
 The tree exists to make change **cheap**, not to make the design **immovable**. Every rule below
@@ -39,24 +39,23 @@ five is a signal that the system should be split, not documented harder.
 
 The tree is written to be **entered part-way and left early**. A reader descends by locating a part,
 not by reading levels through: enter at the altitude that matches the question, read until a named
-part matches the thing about to change, then open the document that part points to. **Stop at the
-level that answers the question.** Descending past it is how a small change acquires a large context,
-and the cost of that is paid on every change, not once.
+part matches the subject, then open the document that part points to.
 
-Level 0 confirms which product this is and what it is built from; an agent already working in the
-repository rarely needs more of it than the part names. A change confined to one system needs that
-system's document, and from its ancestors only the line that named it.
+**You have arrived when the document holds the detail you came for.** Two ways to get that wrong.
+Stopping early leaves you holding a one-line role that reads like knowledge and is not, because a
+parent is *forbidden* from restating a child's detail; where no document owns the detail, say the
+tree does not record it rather than inferring it from a role. Descending past the answer costs
+context on every read.
 
-**You have arrived** when the document names the thing you are about to change as one of its *own*
-parts. A level that names it only as somewhere to descend into is one level too high. A mechanism
-*inside* a part is documented at level 3 only when it independently meets a creation test below;
-otherwise it belongs to the system document and you have already arrived.
+A mechanism *inside* a part is documented at level 3 only when it independently meets a creation test
+below; otherwise the system document owns it. Level 0 confirms which product this is and what it is
+built from; an agent already working in the repository rarely needs more of it than the part names.
 
 # Decomposition and Ownership (MANDATORY)
 
 Every level is a **decomposition**. It names the parts at its own altitude, gives each a one-line
 role, and states the barest relationships between them — what depends on, contains, or talks to
-what. A reader must be able to locate the piece they are about to touch and know which document
+what. A reader must be able to locate the piece they came for and know which document
 holds the next level of detail about it. A narrative — a story of a request moving through the
 system — fails this even when every sentence is true: it gives the reader nothing to locate
 themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
@@ -220,7 +219,8 @@ after its parent system, so the compiled document reads top-down.
 
 # Length
 
-A document is the right length when a reader at that altitude can stop there and act; there is no
+A document is the right length when a reader at that altitude finds what they came for and can stop
+there; there is no
 page count. Length should scale with the number of things at the document's **own** altitude, never
 with the volume of code beneath it. The signal is never that a document is long — it is **what made
 it long**:
@@ -253,7 +253,7 @@ that earns its place. A short document missing the *why* is the more expensive f
 
 - [ ] Every level names its parts, their roles, and their barest relationships; no level restates a
       child's detail
-- [ ] A reader stopping at a level can locate the part they must change and name the document
+- [ ] A reader stopping at a level can locate the part they came for and name the document
       holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
