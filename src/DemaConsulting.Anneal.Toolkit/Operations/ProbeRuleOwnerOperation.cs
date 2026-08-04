@@ -93,6 +93,11 @@ public sealed class ProbeRuleOwnerOperation : IOperation
     public string Summary => "Name the single file that owns a rule, or refuse when it is stated in several or in none";
 
     /// <inheritdoc />
+    public string Usage =>
+        "usage: dotnet anneal probe-rule-owner <rule> - names the single file that owns <rule>, stated as " +
+        "plain text as you would state it to a colleague, or refuses when no one file owns it.";
+
+    /// <inheritdoc />
     /// <remarks>
     ///     Expects exactly one argument: the rule, stated as a caller would state it to a colleague, and given
     ///     positionally rather than behind an option. Reports <see cref="OperationOutcome.UsageError" /> when
@@ -106,11 +111,10 @@ public sealed class ProbeRuleOwnerOperation : IOperation
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
 
+        // No usage line is written here: the dispatcher renders Usage - the single declared source - on the
+        // usage-error path, so the text a caller sees after a misuse cannot drift from what help prints.
         if (arguments.Count != 1 || string.IsNullOrWhiteSpace(arguments[0]))
-        {
-            output.WriteLine("probe-rule-owner: expected one argument, the rule to locate, stated as plain text.");
             return OperationOutcome.UsageError;
-        }
 
         var rule = arguments[0];
 

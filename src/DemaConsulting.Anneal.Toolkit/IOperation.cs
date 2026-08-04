@@ -30,12 +30,32 @@ public interface IOperation
     string Summary { get; }
 
     /// <summary>
+    ///     The action's detailed usage: how it is invoked and every argument it takes, phrased as a caller
+    ///     needs to read it to invoke the action correctly. This is the single declared source of that text —
+    ///     <c>dotnet anneal help &lt;action&gt;</c> prints it, and the dispatcher renders it again when the
+    ///     action is given arguments it cannot use — so the two renderings cannot state the invocation
+    ///     differently or drift apart as the action changes.
+    /// </summary>
+    /// <remarks>
+    ///     It is required rather than given a default that falls back to <see cref="Summary" />, and the
+    ///     distinction is deliberate: a default would let an operation ship its one-line purpose in place of
+    ///     real usage with nothing to notice the substitution, which is the exact gap a single source exists
+    ///     to close. The compiler therefore forces every implementer to author usage. <see cref="Summary" />
+    ///     answers "what does this action do"; this answers "how do I invoke it"; the two are not
+    ///     interchangeable, and an operation whose usage merely repeats its summary has failed to describe how
+    ///     it is called.
+    /// </remarks>
+    string Usage { get; }
+
+    /// <summary>
     ///     Runs the operation and reports what it concluded.
     /// </summary>
     /// <param name="arguments">
     ///     The arguments following the action name, in the order given, never null and possibly empty. An
     ///     implementation validates them itself and reports <see cref="OperationOutcome.UsageError" /> rather
-    ///     than throwing when they are unusable, stating the form it expects as it does so.
+    ///     than throwing when they are unusable; it does not write its own usage text on that path, because the
+    ///     dispatcher renders <see cref="Usage" /> — the single declared source — so the usage a caller is
+    ///     shown after a misuse is the same text <c>help &lt;action&gt;</c> prints.
     /// </param>
     /// <param name="output">
     ///     Where the operation writes its findings. Must not be null. Everything a caller is meant to read

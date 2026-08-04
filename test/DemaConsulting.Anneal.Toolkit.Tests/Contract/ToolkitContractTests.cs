@@ -423,6 +423,97 @@ public class ToolkitContractTests
         }
     }
 
+    /// <summary>
+    ///     TOOLKIT-12 — <c>dotnet anneal help</c>, given no further argument, lists every shipped action with
+    ///     its one-line summary and exits with the success code, so the surface is discoverable without
+    ///     provoking an error.
+    /// </summary>
+    [Fact]
+    public void HelpListsEveryActionAndSucceeds()
+    {
+        // Arrange: a caller who wants to learn the surface deliberately, not by making a mistake
+        var output = new StringWriter();
+
+        // Act: "dotnet anneal help", with no action to describe
+        var exitCode = AnnealTool.Run(["help"], output);
+        var written = output.ToString();
+
+        // Assert: the success code, and every shipped action with its summary is present in the listing
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.NotEmpty(AnnealTool.DefaultOperations),
+            () => Assert.All(
+                AnnealTool.DefaultOperations,
+                operation => Assert.Multiple(
+                    () => Assert.Contains(operation.Name, written, StringComparison.Ordinal),
+                    () => Assert.Contains(operation.Summary, written, StringComparison.Ordinal))));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-13 — <c>dotnet anneal help &lt;action&gt;</c> prints the named action's detailed usage and
+    ///     exits with the success code, while an action that does not ship is the usage error TOOLKIT-10
+    ///     defines, reported with the same list of existing actions an unknown action already produces.
+    /// </summary>
+    [Fact]
+    public void HelpForActionPrintsItsUsageAndRejectsUnknown()
+    {
+        // Arrange: a shipped action to describe, and a name that ships nowhere
+        var known = AnnealTool.DefaultOperations[0];
+
+        // Act: "help <known>" describes it
+        var knownOutput = new StringWriter();
+        var knownExit = AnnealTool.Run(["help", known.Name], knownOutput);
+        var knownWritten = knownOutput.ToString();
+
+        // Act: "help <unknown>" is a usage error listing what does exist
+        var unknownOutput = new StringWriter();
+        var unknownExit = AnnealTool.Run(["help", "no-such-action"], unknownOutput);
+        var unknownWritten = unknownOutput.ToString();
+
+        // Assert: the known action's detailed usage is printed and succeeds; the unknown one is the
+        // caller-error code with every real action still discoverable, so help fabricates no guidance
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, knownExit),
+            () => Assert.Contains(known.Usage, knownWritten, StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitUsageError, unknownExit),
+            () => Assert.Contains("no-such-action", unknownWritten, StringComparison.Ordinal),
+            () => Assert.All(
+                AnnealTool.DefaultOperations,
+                operation => Assert.Contains(operation.Name, unknownWritten, StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-I4 — the detailed usage an action presents through <c>help &lt;action&gt;</c> and the usage
+    ///     it presents when invoked with arguments it cannot use are one and the same text, drawn from a single
+    ///     declared source, so the two renderings cannot state the invocation differently or drift apart.
+    /// </summary>
+    [Fact]
+    public void HelpAndUsageErrorShareOneUsageSource()
+    {
+        // Arrange: a stub whose usage is a distinctive literal declared exactly once. If the two renderings
+        // ever drew from separate strings, only one of them could contain this literal, and this test fails.
+        const string distinctiveUsage = "usage: dotnet anneal stub <sigil-7f3a9c> - one positional argument";
+        IReadOnlyList<IOperation> operations =
+            [new StubOperation(OperationCategory.Research, OperationOutcome.UsageError, distinctiveUsage)];
+
+        // Act: the discovery rendering, "help <action>"
+        var helpOutput = new StringWriter();
+        var helpExit = AnnealTool.Run(["help", "stub"], helpOutput, operations);
+        var helpWritten = helpOutput.ToString();
+
+        // Act: the usage-error rendering, the action given arguments it cannot use
+        var misuseOutput = new StringWriter();
+        var misuseExit = AnnealTool.Run(["stub", "--flag", "value"], misuseOutput, operations);
+        var misuseWritten = misuseOutput.ToString();
+
+        // Assert: both renderings carry the one declared literal verbatim, and each takes the exit its path owns
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, helpExit),
+            () => Assert.Contains(distinctiveUsage, helpWritten, StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitUsageError, misuseExit),
+            () => Assert.Contains(distinctiveUsage, misuseWritten, StringComparison.Ordinal));
+    }
+
     /// <returns>A scripted reply carrying a complete answer, as the model would emit it.</returns>
     private static string Answer(string ownership, string owningFile) =>
         $$"""
@@ -532,11 +623,14 @@ public class ToolkitContractTests
 
     /// <remarks>
     ///     Stands in for a real operation so that the gating rule can be exercised for every category,
-    ///     including the three no shipped operation currently declares. It states the argument form it wanted
-    ///     when it reports a usage error, as a real operation does, so the dispatcher's own message can be
-    ///     read alongside it.
+    ///     including the three no shipped operation currently declares. It declares a usage literal — its own
+    ///     by default, or a distinctive one a caller supplies — as its single source, so both the dispatcher's
+    ///     usage-error rendering and <c>help stub</c> can be read against the same text and proven not to drift.
     /// </remarks>
-    private sealed class StubOperation(OperationCategory category, OperationOutcome outcome) : IOperation
+    private sealed class StubOperation(
+        OperationCategory category,
+        OperationOutcome outcome,
+        string usage = "usage: dotnet anneal stub <arg> - expects one argument, given positionally") : IOperation
     {
         public string Name => "stub";
 
@@ -544,12 +638,8 @@ public class ToolkitContractTests
 
         public string Summary => "Reports a fixed outcome under a fixed category";
 
-        public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output)
-        {
-            if (outcome == OperationOutcome.UsageError)
-                output.WriteLine("stub: expected one argument, given positionally.");
+        public string Usage => usage;
 
-            return outcome;
-        }
+        public OperationOutcome Execute(IReadOnlyList<string> arguments, TextWriter output) => outcome;
     }
 }

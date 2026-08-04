@@ -84,6 +84,18 @@ presented requires owning the conversation, which requires code.
   by re-running, and it is captured at the time or lost.
   *Verified by:* `TODO.ModelInteractionsAreTranscribed`
 
+- **TOOLKIT-12** — `dotnet anneal help`, given no further argument, lists every shipped action with its
+  one-line summary and exits with the success code `0`. The action list a caller could until now reach
+  only by naming no action or an unknown one is reachable deliberately, so the surface is discoverable
+  without provoking an error and without reading the source.
+  *Verified by:* `ToolkitContractTests.HelpListsEveryActionAndSucceeds`
+
+- **TOOLKIT-13** — `dotnet anneal help <action>` prints the named action's detailed usage — how it is
+  invoked and what arguments it takes — and exits `0`. A `<action>` that is not a shipped action is a
+  usage error under `TOOLKIT-10`, reported with the same list of existing actions an unknown action
+  already produces, so `help` never fabricates guidance for a surface that does not exist.
+  *Verified by:* `ToolkitContractTests.HelpForActionPrintsItsUsageAndRejectsUnknown`
+
 ### Requires
 
 - **[Process](./process.md)** — the agents that invoke operations, and the standards whose rules the
@@ -110,6 +122,12 @@ presented requires owning the conversation, which requires code.
   verdict, so a gating check cannot change answer on unchanged input.
   *Verified by:* `TODO.EnforcementVerdictsAreStableOnUnchangedInput`
 
+- **TOOLKIT-I4** — The detailed usage an action presents through `help <action>` and the usage it
+  presents when invoked with arguments it cannot use (`TOOLKIT-10`) are one and the same text, drawn
+  from a single declared source, so the two renderings cannot state the invocation differently or drift
+  apart as the action changes.
+  *Verified by:* `ToolkitContractTests.HelpAndUsageErrorShareOneUsageSource`
+
 ## Composition
 
 Three parts, cut where the reasoning differs.
@@ -119,6 +137,17 @@ applicable, its capability role. Everything above is dispatch and argument parsi
 shared machinery. This is the only layer the contract describes, which is deliberate — an operation
 invoked by a downstream agent *is* a promise, so adding one is a contract change and is meant to feel
 like one.
+
+This tree therefore records only two things about actions, and both are bounded as the set grows: the
+**inventory** — each action named with its one-line role, one clause per action — and the
+**participation rules** every action obeys whatever it does, which are contract clauses rather than
+per-action prose: category decides gating (`TOOLKIT-02`), a misuse maps to the caller-error code
+(`TOOLKIT-10`), and each action declares its detailed usage exactly once (`TOOLKIT-I4`). An action's
+*usage* — how it is invoked and what arguments it takes — is per-action detail served by `help <action>`
+from the operation itself, never written into this tree. That routing is load-bearing, not a
+convenience: it is what holds this document's growth to one contract clause per new action rather than a
+clause plus a paragraph of usage each, and it makes the operation the single owner of its usage by
+construction.
 
 **Deterministic checks** read the repository and reach verdicts without a model. `verify-evidence` is
 one, and `check-contracts.ps1` is expected to become another. They are kept apart from model-backed
@@ -171,6 +200,40 @@ as a check that ran and found nothing. Fail-open on the caller's error is the sh
 treats as worse than no check, so the outcome model has to be able to say "no answer was attempted"
 separately from "the answer is no" — which is the same distinction `TOOLKIT-06` draws for refusal, at
 the other end of the invocation.
+
+**Discovery is a first-class path, not only an error path** — `help` and `help <action>` (`TOOLKIT-12`,
+`TOOLKIT-13`) let a caller learn the surface deliberately, where before the action list was reachable
+only by naming no action or an unknown one. Bare `anneal` stays the usage error exiting `2` that
+`TOOLKIT-10` fixes — not an alias for `help`, which would exit `0` and hide a script's omission of its
+action. Discovery is the deliberate path; the usage error is the guard rail; they are not merged.
+
+**Usage is declared once and rendered twice** — an action states how it is invoked in a single place,
+and both `help <action>` and that action's own usage-error message render from it (`TOOLKIT-I4`). The
+rejected alternative is what the code did: each operation hand-wrote its own usage line inside `Execute`,
+and `help` would have hand-written a second copy — two independently authored strings asserting the same
+fact, which drift silently, exactly as a rule stated in two files drifts. That is the process-level
+property `CONSTRAINTS.md` holds — every rule has one owning file — appearing here in code rather than
+prose; one source removes the drift rather than policing it. The single source is a new **required**
+member on the public `IOperation`. Requiring it rather than giving it a default that falls back to
+`Summary` is a **breaking change** to any external operation implementer — `system-contracts.md` defines
+the term, and here it is a compile-time break — admitted for two reasons: the tool has never been
+released, so the break costs nothing today, and a default silently falling back to the one-line purpose
+summary would let "detailed usage" be skipped without anyone noticing, reintroducing the very gap this
+change closes. The clause names no member, because how the single source is declared is interior; only
+that the two renderings share one source is the promise.
+
+**`help` is a dispatcher verb, not an operation** — `AnnealTool` handles it before dispatch rather than
+shipping it as an `IOperation`, because it must list the whole operation set the dispatcher holds and an
+operation is never given, and it must exit `0` and never gate — both guaranteed by construction when it
+stays outside the outcome-and-category machinery rather than by a category choice a later edit could get
+wrong. It follows that `help` is absent from its own action list, and that `help help` names an action
+that does not exist, so it is the usage error `TOOLKIT-13` describes rather than a self-description.
+`--help` and `-h` are deliberately absent for the same reason discovery is scoped tightly: the two verbs
+satisfy the goal completely, and option flags were declined because surface no caller asked for becomes
+contract the moment it ships and flag parsing sits awkwardly against a tool whose actions are positional
+and whose bare invocation is deliberately a usage error — `anneal --help` would have to decide whether
+`--help` is an action, and every answer complicates `TOOLKIT-10`. Should a caller ever need any of these,
+adding them is an additive Tier 1 change.
 
 **Offline is a failure, not a degraded mode** — a model-backed operation that cannot reach a model
 stops. Falling back to a weaker deterministic answer was rejected because the caller cannot see which

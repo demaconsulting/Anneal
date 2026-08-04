@@ -77,6 +77,10 @@ public static class AnnealTool
     /// <summary>
     ///     Runs the action named by the first argument against a caller-supplied set of operations.
     /// </summary>
+    /// <remarks>
+    ///     <c>help</c> and <c>help &lt;action&gt;</c> are handled here, before dispatch, and are the only
+    ///     invocations that reach the action list on a success exit; every other path to it is a usage error.
+    /// </remarks>
     /// <param name="arguments">
     ///     The command line, action first. Must not be null. An empty list is a usage error.
     /// </param>
@@ -100,13 +104,21 @@ public static class AnnealTool
         ArgumentNullException.ThrowIfNull(operations);
 
         // No action at all is the same failure as an unrecognized one: in both cases the caller does not yet
-        // know what this tool offers, and the repair is the same list.
+        // know what this tool offers, and the repair is the same list. Bare "anneal" is deliberately not an
+        // alias for "help" - it stays the usage error TOOLKIT-10 fixes, so a script that omits its action can
+        // still detect the omission by exit code rather than reading a zero and a help screen.
         if (arguments.Count == 0)
         {
             output.WriteLine("anneal: no action named.");
             WriteAvailableActions(output, operations);
             return ExitUsageError;
         }
+
+        // "help" is a dispatcher verb, handled before dispatch rather than shipped as an operation: it lists
+        // the whole operation set, which no operation is given, and it must exit 0 and never gate, which is
+        // guaranteed by keeping it outside the outcome-and-category machinery entirely.
+        if (string.Equals(arguments[0], "help", StringComparison.OrdinalIgnoreCase))
+            return RunHelp([.. arguments.Skip(1)], output, operations);
 
         var action = arguments[0];
         var operation = operations.FirstOrDefault(candidate =>
@@ -128,9 +140,11 @@ public static class AnnealTool
         // the category first is exactly the fail-open path this short-circuit removes.
         if (outcome == OperationOutcome.UsageError)
         {
-            output.WriteLine(
-                $"anneal: '{operation.Name}' was given arguments it cannot use, so no check ran. " +
-                $"Invoke it as 'dotnet anneal {operation.Name}' with the arguments it names above.");
+            output.WriteLine($"anneal: '{operation.Name}' was given arguments it cannot use, so no check ran.");
+
+            // Render the operation's single declared usage, the same text "help <action>" prints, so the two
+            // cannot state the invocation differently. The operation itself writes no usage line.
+            output.WriteLine(operation.Usage);
             return ExitUsageError;
         }
 
@@ -153,6 +167,53 @@ public static class AnnealTool
         }
 
         return ExitGatedFailure;
+    }
+
+    /// <summary>
+    ///     Serves the discovery path: <c>help</c> lists every shipped action, and <c>help &lt;action&gt;</c>
+    ///     prints one action's detailed usage. Both exit <see cref="ExitSuccess" />; the discovery path never
+    ///     gates and never fails.
+    /// </summary>
+    /// <remarks>
+    ///     <c>help</c> reuses the very listing an unknown action produces, now reached on a success path
+    ///     instead of only an error one, so the surface a caller learns deliberately and the surface a mistake
+    ///     reveals are one text. A topic the action list does not contain — including <c>help</c> itself,
+    ///     which is a dispatcher verb and not a shipped action, so <c>help help</c> names nothing — is the
+    ///     usage error TOOLKIT-10 defines, repaired with that same list, so <c>help</c> never fabricates
+    ///     guidance for a surface that does not exist.
+    /// </remarks>
+    private static int RunHelp(IReadOnlyList<string> topics, TextWriter output, IReadOnlyList<IOperation> operations)
+    {
+        // Bare "help": the whole surface, on a success exit rather than only when a caller errs.
+        if (topics.Count == 0)
+        {
+            WriteAvailableActions(output, operations);
+            return ExitSuccess;
+        }
+
+        // "help" describes one action at a time; more than one topic is a misuse, not a request to describe.
+        if (topics.Count > 1)
+        {
+            output.WriteLine("anneal: 'help' describes one action at a time; name a single action, or none.");
+            WriteAvailableActions(output, operations);
+            return ExitUsageError;
+        }
+
+        var requested = topics[0];
+        var operation = operations.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, requested, StringComparison.OrdinalIgnoreCase));
+
+        // An unknown topic - which "help" itself is, being no operation - is the usage error TOOLKIT-10 fixes,
+        // reported with the same action list an unknown action already produces.
+        if (operation is null)
+        {
+            output.WriteLine($"anneal: unknown action '{requested}'.");
+            WriteAvailableActions(output, operations);
+            return ExitUsageError;
+        }
+
+        output.WriteLine(operation.Usage);
+        return ExitSuccess;
     }
 
     private static void WriteAvailableActions(TextWriter output, IReadOnlyList<IOperation> operations)

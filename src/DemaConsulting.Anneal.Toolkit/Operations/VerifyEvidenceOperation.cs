@@ -65,6 +65,11 @@ public sealed class VerifyEvidenceOperation : IOperation
     public string Summary => "Check that each quotation cited in an agent report is at the file and line named";
 
     /// <inheritdoc />
+    public string Usage =>
+        "usage: dotnet anneal verify-evidence <report-path> - checks every evidence locator cited in the " +
+        "agent report at <report-path> against the file and line it names.";
+
+    /// <inheritdoc />
     /// <remarks>
     ///     Expects exactly one argument: the path of the report to check, given positionally. Reports
     ///     <see cref="OperationOutcome.UsageError" /> when that argument is missing or accompanied by anything
@@ -78,11 +83,10 @@ public sealed class VerifyEvidenceOperation : IOperation
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(output);
 
+        // No usage line is written here: the dispatcher renders Usage - the single declared source - on the
+        // usage-error path, so the text a caller sees after a misuse cannot drift from what help prints.
         if (arguments.Count != 1)
-        {
-            output.WriteLine("verify-evidence: expected one argument, the path of the report to check.");
             return OperationOutcome.UsageError;
-        }
 
         var reportPath = arguments[0];
         var resolvedReport = Resolve(reportPath);
