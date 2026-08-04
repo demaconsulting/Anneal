@@ -87,9 +87,9 @@ boundary, since a model-backed operation leaves the machine.
 
 Two trust boundaries matter. `install.ps1` writes into a **different repository** than the one it runs
 from, and it is the only component that does. Everything it writes is content the target repository will
-subsequently trust and act on, so the constraints protecting that write — copy-only installation of the
-payload, collision detection before any write, and confirmation before deleting anything — are recorded
-in [CONSTRAINTS.md](../../CONSTRAINTS.md) rather than left to the installer's own documentation.
+subsequently trust and act on, so the constraints protecting that write — that installation goes through
+a provided script, and that nothing is deleted without confirmation — are recorded in
+[CONSTRAINTS.md](../../CONSTRAINTS.md) rather than left to the installer's own documentation.
 
 The second is Toolkit's model boundary. Repository content is sent to a model under the ambient Copilot
 account of the calling session, which is the account the agents already run under, so the boundary moves

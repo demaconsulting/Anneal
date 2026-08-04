@@ -9,9 +9,9 @@ deleted for being met. Remove one only when the condition stops being **required
 decision, not bookkeeping.
 
 An entry belongs here only if it **holds** rather than **completes** — a standing property like
-"supports .NET Standard 2.0", not a unit of work like "add a `--version` flag". Both the Intake
-admission test and the rule on who may admit an entry here live in `change-classification.md`. Work
-that finishes goes in [BACKLOG.md](BACKLOG.md).
+"supports .NET Standard 2.0", not a unit of work like "add a `--version` flag". The Intake admission
+test, the rule on who may admit an entry here, and the rule on what an entry may say all live in
+`change-classification.md`. Work that finishes goes in [BACKLOG.md](BACKLOG.md).
 
 A belief the world could prove wrong is an **assumption** rather than a constraint; those live in the
 Assumptions section of [README.md](README.md).
@@ -21,36 +21,25 @@ Assumptions section of [README.md](README.md).
 Conditions the current design meets. Breaking one is a regression, not a trade-off to be made
 quietly.
 
-- **The payload installs by file copy alone** — no build step, no package manager, and no runtime
-  dependency added to the target repository in order to *read* the process. `install.ps1` copies
-  directories, which is why renaming an agent needs no script change. This was narrowed deliberately
-  when [Toolkit](docs/architecture/toolkit.md) was adopted: the executed operations are acquired as a
-  .NET tool rather than copied, because presenting a response schema late in a conversation cannot be
-  expressed in a copied file. The narrowing is bounded — a repository that never invokes an operation
-  still needs nothing but the copy, and no other system may acquire a runtime dependency without
-  revisiting this entry.
+- **Installation is by a provided script** — a target repository adopts the process by running
+  `install.ps1`, not by cloning files into place, hand-editing a project file, or following a
+  multi-step manual setup.
 - **Every rule has exactly one owning file** — other files point at it rather than restating it. A
   rule stated twice drifts, and the drift is silent.
 - **Agent prompts and standards stay within a per-invocation context budget** — `AGENTS.md` loads on
   every invocation, so it carries routing and defers detail to standards loaded on demand. The ceiling
   and the method it is counted by are owned by
   [prompt-authoring.md](docs/architecture/process/prompt-authoring.md).
-- **The process is enforceable by one mechanical check** — the clause-to-test link is the only rule
-  enforced across every change, and anything else that can fail a build does so only because an
-  operation declared itself as enforcement. The rule itself is owned by
-  `.github/standards/system-contracts.md` § Enforcement; why it is one rule plus declared gates
-  rather than universal gating is *One mechanical rule, everything else judgement* in
-  [overview.md](docs/architecture/overview.md) § Repository-Wide Decisions.
 - **A removed or renamed agent must stop being selectable in a target repository** — `install.ps1
   -Prune` lists payload-directory files the payload does not provide, separates the ones
   `retired-payload.txt` names as ours from ones the repository added itself, and deletes only what
   the user confirms.
 - **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
-  Anneal now has a solution, a `src/` and `test/` tree and xUnit tests, but it is still mostly prose
-  and scripts, so its root `lint.ps1`, `fix.ps1` and `build.ps1` carry project-specific steps the
-  template's counterparts must not. Syncing the template down to match Anneal would break every
-  downstream repository. Divergence in this direction is by design, not drift; this entry owns that
-  rule and `AGENTS.md` § Template Stewardship points at it.
+  files under `.github/template/` are the generic downstream product shape, not a mirror of this
+  repository. When Anneal needs root scripts, build steps, tests, tooling or documentation that a
+  normal installed C# product does not, the root copy may diverge and the template copy stays the
+  generic product version. Syncing Anneal-specific steps into the template is a regression, not
+  cleanup; this entry owns that rule and `AGENTS.md` § Template Stewardship points at it.
 
 ## Not Yet Satisfied
 

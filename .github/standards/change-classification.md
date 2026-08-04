@@ -84,6 +84,22 @@ decision rather than bookkeeping — *entries are never deleted for being met* �
 writes there is close to permanent. Requiring the user to admit it buys back the only exit the
 ratchet does not otherwise provide.
 
+### A Constraint Says What, Not How
+
+**A constraint states what the architecture is held to, never the mechanism that achieves it.** A
+body that explains a mechanism is describing rather than constraining, and it must be amended every
+time that mechanism changes — so it rots, while the condition it was meant to protect stays true.
+Write the shorter, blunter statement; if a sentence explains how something works, cut it.
+
+*"Installation is by a provided script"* is a **what**: it holds no matter whether the script copies
+directories, restores a .NET tool, or both. *"The payload installs by file copy alone"* and *"The
+process is enforceable by one mechanical check"* are **how** — both were removed because each named a
+mechanism (a file copy, a single check) that later work outgrew, forcing an amendment that a **what**
+would never have needed.
+
+Actionable form: a constraint whose body explains a mechanism is describing, not constraining. State
+the condition and stop.
+
 ## Change
 
 The default mode, and the one the tiers below describe. Something observable must become different

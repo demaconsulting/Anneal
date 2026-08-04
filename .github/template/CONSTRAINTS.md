@@ -15,8 +15,9 @@ deleted for being met. Remove one only when the condition stops being **required
 decision, not bookkeeping.
 
 An entry belongs here only if it **holds** rather than **completes** — a standing property like
-"supports .NET Standard 2.0", not a unit of work like "add a `--version` flag". Both the Intake
-admission test and the rule on who may admit an entry here live in `change-classification.md`. Work
+"supports .NET Standard 2.0", not a unit of work like "add a `--version` flag". The Intake admission
+test, the rule on who may admit an entry here, and the rule on what an entry may say all live in
+`change-classification.md`. Work
 that finishes goes in
 [BACKLOG.md](BACKLOG.md).
 
