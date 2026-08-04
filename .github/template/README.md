@@ -1,13 +1,10 @@
-<!-- TEMPLATE-DIRECTIVE: This is level 0 of the architecture tree - the 50,000 foot view. Read
-     architecture-documentation.md and technical-documentation.md before writing it. It answers
-     four questions: what is this, what does it give me, how does it work, and how do I start.
-     Features and approach belong here, pitched at an altitude that does NOT change when a system
-     changes - describe the value and the organizing idea, never the inventory. Do NOT list
-     systems, restate contracts, describe internals, or write a feature list that mirrors contract
-     clauses; those are owned by lower levels and restating them here creates the coupling this
-     process exists to avoid. Present tense, no roadmap language - unmet needs belong in
-     CONSTRAINTS.md or BACKLOG.md, not here. Use relative links for files inside this repository and
-     absolute URLs for external resources. Remove this block. -->
+<!-- TEMPLATE-DIRECTIVE: This is level 0 of the architecture tree - the 50,000 foot view. It answers
+     four questions: what is this, what does it give me, how does it work, and how do I start. The
+     sections below are its shape, and each carries its own directive. What may and may not appear
+     at this level is owned by `.github/standards/architecture-documentation.md`; read it and
+     `technical-documentation.md` before writing. Present tense, no roadmap language - unmet needs
+     belong in CONSTRAINTS.md or BACKLOG.md, not here. Use relative links for files inside this
+     repository and absolute URLs for external resources. Remove this block. -->
 
 # {ProjectName}
 
@@ -41,11 +38,14 @@ TODO: One or two paragraphs on who it is for and what makes it worth using. Conc
 
 ## How It Works
 
-<!-- TEMPLATE-DIRECTIVE: Two to four paragraphs on the organizing idea - the shape a reader needs
-     before anything below makes sense. Name the central mechanism and what follows from it. Do NOT
-     enumerate systems; overview.md owns that. Remove this block. -->
+<!-- TEMPLATE-DIRECTIVE: The organizing idea a reader needs before anything below makes sense, then
+     the product's gross structure: the kinds of part it is built from, each with its path and a
+     one-line role, and a short account of how they meet. One line per part - a part is placed here
+     and described by the document that owns it. Remove this block. -->
 
-TODO: Two to four paragraphs on the organizing idea behind the product.
+TODO: One or two paragraphs on the organizing idea behind the product.
+
+TODO: The parts it is built from - path and one-line role each - and how they meet.
 
 ## Assumptions
 

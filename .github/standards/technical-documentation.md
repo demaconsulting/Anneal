@@ -131,12 +131,9 @@ PDF reader cannot follow.
 
 # README.md
 
-The README is level 0 of the architecture tree. `architecture-documentation.md` owns what it may
-contain, and the template's `README.md` is its shape — section order included. Do not restate either
-here; a fourth description of one document is how the four drift apart.
-
-It does **not** list subsystems, restate contracts, or describe internals. Those are owned by lower
-levels of the tree and restating them here creates the coupling this process exists to avoid.
+The README is level 0 of the architecture tree. `architecture-documentation.md` owns what it may and
+may not contain, and the template's `README.md` is its shape — section order included. Neither is
+restated here; a second description of one document is how the two drift apart.
 
 # User Guides
 
@@ -150,6 +147,5 @@ documentation from churning every time internals move.
 - [ ] Markdown passes `pwsh ./lint.ps1`
 - [ ] All fenced blocks carry a language identifier
 - [ ] Relative links resolve; absolute URLs used for external resources
-- [ ] README stays within three paragraphs before installation and does not describe internals
 - [ ] No placeholder text or TODO markers remain
 - [ ] Content reflects current state with no changelog voice

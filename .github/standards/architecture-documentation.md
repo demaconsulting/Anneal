@@ -17,73 +17,79 @@ exists to keep documentation weight proportional to how slowly a thing changes.
 
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
-| 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and how does it work? |
+| 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and what parts is it built from? |
 | 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
-**Levels are created when they are earned, never upfront.** A level exists because the level above it
-has grown content it cannot hold at its own altitude — not because the table lists it. A small
-repository whose whole story fits in `README.md` is correctly documented, not under-documented;
-creating `overview.md` for it is the same speculative structure this process rejects everywhere else.
+**Levels are created when they are earned, never upfront.** A level exists because the level above
+has grown content it cannot hold at its own altitude — not because the table lists it. A repository
+whose whole story fits in `README.md` is correctly documented, not under-documented; creating
+`overview.md` for it is the speculative structure this process rejects everywhere else.
 
-Level 3 is **optional and exceptional**. Most systems have zero or one section documents. A system
-with more than five section documents is a signal that the system should be split, not documented
-harder.
+Level 3 is **optional and exceptional**. Most systems have zero or one section documents. More than
+five is a signal that the system should be split, not documented harder.
 
-# Exclusive Ownership (MANDATORY)
+# Decomposition and Ownership (MANDATORY)
 
-Each level owns content that **no other level restates**. A parent may *name* its children and give
-each a one-line role in the parent's composition. A parent MUST NOT summarize a child's content.
+Every level is a **decomposition**. It names the parts at its own altitude, gives each a one-line
+role, and states the barest relationships between them — what depends on, contains, or talks to
+what. A reader must be able to locate the piece they are about to touch and know which document
+holds the next level of detail about it. A narrative — a story of a request moving through the
+system — fails this even when every sentence is true: it gives the reader nothing to locate
+themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
+descends, and that is not duplication — it is the handle a reader grabs in order to descend at all.
 
-This is the single most important rule in this standard. Summaries create N-way coupling: every
-child edit dirties its ancestors, and the tree becomes the same inertial mass this process exists to
-avoid.
+**Detail** — how a part works, what it promises, what is inside it — lives at exactly one level, and
+a parent MUST NOT restate a child's detail. Restated detail creates N-way coupling: every child edit
+dirties its ancestors, and the tree becomes the same inertial mass this process exists to avoid.
 
-**The one-file test**: for any change, ask *"how many documentation files must I edit?"* If the
-answer is more than one, ownership has been violated somewhere. Fix the duplication rather than
-editing both files.
+**The one-file test**: for any change, ask *"how many documents must I edit to state this detail?"*
+More than one means ownership has been violated; fix the duplication rather than editing both files.
+Adding, removing or renaming a *part* is the single expected exception — the document that owns it,
+plus the one line naming it in its parent. Needing more than that line means the parent is carrying
+detail it does not own.
 
 ## What Each Level Owns
 
-**`README.md`** — what the product is, what it gives its user, how it works in broad strokes, how to
+**`README.md`** — what the product is, what it gives its user, the parts it is built from, how to
 install it, and a pointer to `docs/architecture/overview.md`.
 
-Features and approach belong here, stated at an **altitude that does not change when a system
-changes**: describe the value and the organizing idea, never the inventory. No lower level owns
-"what the user gets" — contracts describe what systems promise *each other*, not what the product
-gives a *person* — so there is nothing to duplicate and this is the only place it can live.
+Features and approach belong here at an **altitude that does not change when a system changes**: the
+value and the organizing idea, never the inventory of promises. No lower level owns "what the user
+gets" — contracts describe what systems promise *each other*, not what the product gives a *person*.
 
-Level 0 is the **product contract**: the same idea as a system contract, one altitude up, with a
-person as the consumer instead of other code. It has the same two parts. **Features** are its
-clauses — what a consumer may rely on getting. **Requirements** are its invariants — properties that
-must hold for those features to mean anything, written so a repository can be checked against them
-rather than argued about. Removing or narrowing either is a **breaking change to users**, and
-`system-contracts.md` defines what breaking means; say so in the change summary exactly as you would
-for a clause.
+Level 0 is the **product contract**: a system contract one altitude up, with a person as the
+consumer instead of other code, and it has the same two parts. **Features** are its clauses — what a
+consumer may rely on getting. **Requirements** are its invariants — properties that must hold for
+those features to mean anything, written so a repository can be checked against them rather than
+argued about. Removing or narrowing either is a **breaking change to users**; `system-contracts.md`
+defines what breaking means, and you say so in the change summary exactly as for a clause.
 
 The discipline carries up; the machinery does not. Product promises stay prose — no identifiers, no
-named verifying test, and no mechanical check. Numbered requirements traceable to acceptance tests
-are the regulated-development cost this process deliberately declines, and that cost would be paid on
-every subsequent change.
+named verifying test, no mechanical check. Numbered requirements traceable to acceptance tests are
+the regulated-development cost this process declines, and it would be paid on every later change.
 
-It does **not** list systems, restate contracts, describe internals, or enumerate capabilities that
-map one-to-one onto contract clauses. *"Rearrange the interior without paperwork"* is level 0;
-*"supports CSV, JSON, and XML export"* is a **system** contract stated at the wrong altitude, and it
-dirties this file every time a format is added. The test is whether a system changing would force an
-edit here: if it would, the promise belongs to that system, not to the product.
+Level 0 also carries the product's **gross structure**: the kinds of part it is built from, each
+with its path and a one-line role, and a short account of how they meet. This map is required — it
+is what lets a reader pick where to descend — and it is cheap, because a part is one line. What it
+must **not** do is restate contracts, describe internals, or enumerate capabilities that map
+one-to-one onto contract clauses. *"Rearrange the interior without paperwork"* is level 0;
+*"supports CSV, JSON, and XML export"* is a **system** contract at the wrong altitude, and it dirties
+this file whenever a format is added. The test: would a system changing its *promises or interior*
+force an edit here? If so it belongs to that system, not to the product.
 
 `README.md` also owns the product's **assumptions**: what the design takes to be true and cannot
 itself guarantee — about its environment, platform, users, or tooling. Record only load-bearing
 ones, where the shape of everything below would be wrong if the belief were false. Distinguish them
 from `CONSTRAINTS.md` by asking whether reality could prove the statement wrong without anyone
-changing their mind: if yes it is an assumption, and if it could only change by decision it is a
-constraint. Assumptions live at level 0 because they underpin the whole decomposition; a belief that
-constrains only one system belongs in that system's decomposition rationale instead.
+changing their mind: if yes it is an assumption; if it could only change by decision it is a
+constraint. They live at level 0 because they underpin the whole decomposition; a belief that
+constrains only one system belongs in that system's decomposition rationale.
 
-An assumption that is disproved is a **re-cut trigger**, not a defect to be patched. Say so plainly
-in your report rather than adjusting the surrounding prose to keep the assumption looking true —
-that is the level 0 form of editing a clause to match the code.
+An assumption that is disproved is a **re-cut trigger**, not a defect to patch. Say so in your
+report rather than adjusting prose to keep the assumption looking true — that is the level 0 form of
+editing a clause to match the code.
 
 **`overview.md`** — the system inventory and the interactions *between* systems: data flow, control
 flow, process and deployment boundaries, and repository-wide decisions that constrain every system
@@ -100,10 +106,9 @@ system's contract or decomposition.
 
 # Navigation
 
-This tree is read three ways — on disk, on the repository host, and as the compiled architecture PDF
-— so **relative markdown links are required** for downward navigation. They are how progressive
-disclosure actually works, and `collection-links.lua` turns them into cross-references when the tree
-is compiled.
+This tree is read on disk, on the repository host, and as the compiled architecture PDF, so
+**relative markdown links are required** for downward navigation; `collection-links.lua` turns them
+into cross-references when the tree is compiled.
 
 - Every level MUST link to each of its direct children.
 - A child SHOULD link back to its parent in a single line at the top.
@@ -131,9 +136,9 @@ covers:
 ```
 
 `covers` names the source a document describes, so **drift** — source under `covers` changed while
-the document did not — can be spotted. Nothing computes this today; the `tier-check` agent judges
-it by reading. Drift is advisory either way: it raises a review flag, never a hard failure. Blocking
-gates on every file change are precisely what makes evolution expensive.
+the document did not — can be spotted. Nothing computes it; the `tier-check` agent judges it by
+reading, and it is advisory either way: a review flag, never a hard failure. Blocking gates on every
+file change are precisely what makes evolution expensive.
 
 # When to Create a Section Document
 
@@ -177,7 +182,7 @@ anchor.
 The tree is a document collection: `docs/architecture/definition.yaml` lists its files in reading
 order, and `docs/architecture/build.bat` compiles them into one PDF. **Adding or deleting a document
 means editing that list in the same change.** An unlisted document is absent from the published
-architecture no matter how good it is, and a listed file that no longer exists fails the build.
+architecture, and a listed file that no longer exists fails the build.
 
 Place a new system document after the systems it depends on, and a section document immediately
 after its parent system, so the compiled document reads top-down.
@@ -188,14 +193,14 @@ A document is the right length when a reader at that altitude can stop there and
 page count: a hello-world repository and a product of eleven systems both have a correct `README.md`,
 and they are not the same size.
 
-Length should scale with the number of things at the document's **own** altitude — features for the
-README, systems for `overview.md`, promises and parts for a system document — and never with the
-volume of code beneath it. So the signal is never that a document is long. It is **what made it
-long**:
+Length should scale with the number of things at the document's **own** altitude — features and
+parts for the README, systems for `overview.md`, promises and parts for a system document — never
+with the volume of code beneath it. So the signal is never that a document is long. It is **what
+made it long**:
 
 | Document | Re-examine when it grew because |
 | --- | --- |
-| `README.md` | capabilities are enumerated rather than summarized, or a system's internals surfaced |
+| `README.md` | contract-level capabilities were enumerated, or a part described rather than placed |
 | `overview.md` | a system's contract or interior is restated instead of linked |
 | `{system}.md` | decomposition detail crept in that a section document should own, or the system is too large |
 | `{system}/{section}.md` | it covers more than one non-obvious thing, or its subject no longer meets a creation test |
@@ -207,7 +212,8 @@ failure, because the reader then has to descend.
 # Writing Guidelines
 
 - **State the why.** Facts recoverable by reading the code do not belong here; reasons do.
-- **Prefer prose to bullets** for rationale. Bullets fragment reasoning into assertions.
+- **Prefer prose to bullets** for *rationale*; bullets fragment reasoning into assertions. A
+  structural map is the exception — parts, roles and relationships read best as a list.
 - **Name concrete things.** Real system names, real paths, real formats — never placeholders.
 - **Write for a reader who will stop here.** Each level must be coherent alone.
 - **Present tense, current state.** No changelog voice, no "we will", no "recently changed".
@@ -221,7 +227,10 @@ failure, because the reader then has to descend.
 
 # Quality Gates
 
-- [ ] Every level owns distinct content; no level summarizes a level below it
+- [ ] Every level names its parts, their roles, and their barest relationships; no level restates a
+      child's detail
+- [ ] A reader stopping at a level can locate the part they must change and name the document
+      holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
 - [ ] Level 2 and 3 documents carry `level` and `covers` front matter
