@@ -247,5 +247,6 @@ it. Any change to the process belongs in the pristine copy, and is mirrored here
 Anneal has a `src/` and `test/` tree holding the Toolkit and its contract tests, so the Project
 Structure above describes this repository as well as a product repository — but only that one system.
 Everything else Anneal ships is prose and scripts, which is why root `build.ps1` was **adopted from
-the template** and then given one project-specific step: it runs the root-level PowerShell suites
-alongside `dotnet test`.
+the template** and then given project-specific steps: it runs the root-level PowerShell suites
+alongside `dotnet test`, and packs the Toolkit so it installs the way a downstream repository
+installs it.

@@ -192,6 +192,14 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
 
 ## Decisions
 
+**A locally built Toolkit is acquired the way a published one is** — the tool manifest and the restore
+that reads it are the same whether the package came from a feed or from this repository's own build, so
+the invocation `TOOLKIT-01` fixes is the one callers use here exactly as downstream callers use it. The
+rejected alternative was running the project in place as a documented local override: it makes every
+prompt and document that names the invocation false where it is written, it reaches the code without
+going through packaging, so a manifest or packaging fault would first appear at somebody else's install,
+and an override introduced as temporary outlives the condition that produced it.
+
 **Operations are listed individually in the contract** — the alternative was contracting the shape of an
 operation once and leaving the set open. That was rejected because the set is what consumers actually
 depend on: an agent that invokes an action by name is relying on that name. Listing them costs a Tier 1

@@ -15,6 +15,13 @@
         "weasyprint"
       ],
       "rollForward": false
+    },
+    "demaconsulting.anneal.toolkit": {
+      "version": "0.1.0-dev",
+      "commands": [
+        "anneal"
+      ],
+      "rollForward": false
     }
   }
 }
