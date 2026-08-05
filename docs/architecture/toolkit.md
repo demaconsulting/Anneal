@@ -288,7 +288,7 @@ mapping from the outcome, because a refusal is a fact about the invocation and n
 found. **This is not `TOOLKIT-08`.** That clause promises a persisted, aggregatable record of every
 invocation, queryable across releases; this is an in-process return value that outlives nothing and is
 written nowhere. They resemble each other only in both being structured, and a later reader must not read
-`TOOLKIT-14` as `TOOLKIT-08` partly delivered — it remains entirely unbuilt, as does `TOOLKIT-11`.
+`TOOLKIT-14` as `TOOLKIT-08` partly delivered.
 Streaming a finding as it is produced is a separate, later question; nothing here forecloses it, and it is
 deliberately unpromised. A middle option between the two rejected alternatives — a marker finding type,
 leaving the dispatcher heterogeneous while making the slot a domain type rather than an untyped one — was

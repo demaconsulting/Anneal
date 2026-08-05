@@ -30,10 +30,10 @@ current payload:
 | `AGENTS.md` | 2,966 |
 | `architecture-design.agent.md` — largest agent prompt | 2,708 |
 | `architecture-documentation.md` | 3,917 |
-| `change-classification.md` | 3,174 |
+| `change-classification.md` | 3,420 |
 | `system-contracts.md` | 2,370 |
 | `technical-documentation.md` | 2,036 |
-| **Worst case** | **17,171** |
+| **Worst case** | **17,417** |
 
 The measurement is recorded beside the ceiling on purpose. 20,000 leaves roughly a quarter of headroom: it
 does not fire today, and it fires well before the payload becomes a problem rather than after. Whoever
@@ -45,8 +45,8 @@ no tokenizer dependency and must not acquire one to run a budget gate — the ce
 this method and means nothing measured any other way. The normalization matters because the working tree
 is CRLF while git stores LF, so a raw byte count differs between a fresh clone and a Windows checkout of
 the same commit; a gate that passes in CI and fails locally is flaky, and a flaky gate gets disabled. The
-table above is the demonstration: `AGENTS.md` counts 2,819 normalized and 2,880 unnormalized on a Windows
-checkout, and the 61-token gap is exactly its 244 line endings.
+table above lists normalized counts; the same files measured raw on a Windows checkout run higher by
+the one `\r` byte CRLF adds per line ending — a token for every four.
 
 The budget is not currently under pressure, and stating so matters: the reason to write tersely here is
 **not** to save tokens. It is that a rule buried in a long passage is a rule an agent may not act on.

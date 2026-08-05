@@ -16,7 +16,7 @@ Anneal delivers a process, and increasingly executes on it. Most of the payload 
 agent reads, together with a template describing the repository that prose expects, a script that
 enforces the single rule the process refuses to leave to judgement, and an installer that puts all
 three into somebody else's repository. Alongside them Toolkit runs — a .NET tool hosting operations
-the agents call, executing deterministic checks and controlling the conversations behind model-backed
+the agents will call, executing deterministic checks and controlling the conversations behind model-backed
 judgement. That mix is the organizing idea the inventory below rests on. Three systems exist to
 deliver and defend the delivered content, the fifth executes rather than describes, and the
 interesting design pressure is that even the executing system composes context for judgement to
@@ -35,13 +35,13 @@ for a model rather than encoded judgement.
 - [ContractCheck](./contract-check.md) — the one mechanical enforcement, and its failure taxonomy
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
-- [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents call
+- [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents will call
 
 ## Interactions
 
 The systems couple weakly and in one direction: Process defines content, Template defines where content
-sits, Installer moves both, ContractCheck audits the result once it has arrived, and Toolkit is called
-by the content after it has landed.
+sits, Installer moves both, ContractCheck audits the result once it has arrived, and Toolkit is to be called
+by the content, though nothing calls it yet.
 
 ```mermaid
 flowchart LR
@@ -63,7 +63,7 @@ flowchart LR
     Installer -- "file copy" --> Payload
     Toolkit -- "published package" --> Tool
     Payload -- "agents write" --> Tree
-    Payload -- "agents invoke" --> Tool
+    Payload -. "agents will invoke" .-> Tool
     Tool -- "reads" --> Tree
     Tree -- "clauses read" --> Check
     Check -- "pass or fail" --> Payload
@@ -85,7 +85,7 @@ only because the check is mechanical and fails closed — an agent cannot talk i
 Every system but Toolkit is files on disk acted on by short-lived PowerShell invocations, with no
 process, deployment or concurrency boundary between them. Toolkit introduces the repository's only
 deployment boundary — it is versioned and published independently of the payload, so an installed
-repository may run a Toolkit older or newer than the agents that call it — and its only network
+repository may run a Toolkit older or newer than the agents that will call it — and its only network
 boundary, since a model-backed operation leaves the machine.
 
 Two trust boundaries matter. `install.ps1` writes into a **different repository** than the one it runs

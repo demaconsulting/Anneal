@@ -10,17 +10,17 @@ covers:
 
 # ContractCheck
 
-ContractCheck is the only part of Anneal that decides anything without a language model. It reads the
-architecture tree of a repository, extracts every contract clause, and confirms that each names a test
-which exists and most recently passed. Everything else in this process is judgement recorded in a report;
-this is the one rule a build can fail on.
+ContractCheck enforces the clause-to-test link: it reads the architecture tree of a repository,
+extracts every contract clause, and confirms that each names a test which exists and most recently
+passed. That is the one promise-bearing rule a build fails on; the other build checks guard form, not
+contracts.
 
 If it were rewritten, consumers would notice through its **exit code and its failure taxonomy**, not its
 implementation. CI depends on the exit code. The `check-contracts` skill documents each failure and how
 to resolve it, and `tier-check` invokes it with `-Strict`. That taxonomy is the real interface, which is
 why the clauses below are written in terms of *what is rejected* rather than how parsing works.
 
-Its contract is the only one in this repository whose verifiers exist today.
+Its own verifiers are fixture repositories rather than unit tests.
 `test-check-contracts.ps1` builds a fixture repository per failure mode and asserts the exit code — the
 same sandbox-on-throw-away-folders technique that behavioral verification uses elsewhere, applied to
 something deterministic enough to run in CI.

@@ -11,8 +11,8 @@ covers:
 
 # Process
 
-Process is the product: eight agent prompts, eight standards, and the skills they load on demand. It is
-the only system whose content is read by a language model rather than executed, and everything odd about
+Process is the largest part of the product: the agent prompts, the standards, and the skills they load
+on demand. Its content is read by a language model rather than executed, and everything odd about
 this repository follows from that. If Process were rewritten, a consumer would notice immediately — not
 because an interface changed, but because agents would classify work differently, touch different files,
 and stop at different boundaries. The observable surface of a prompt is the behavior it produces.

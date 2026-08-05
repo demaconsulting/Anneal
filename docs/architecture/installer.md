@@ -15,9 +15,9 @@ observable surface is small, heavily depended upon, and unusually unforgiving. A
 rewrite through its parameters, what appears on disk afterwards, and above all through what it refuses to
 do without asking.
 
-It carries more recorded pressure than any other system here. Four of the entries in
-[CONSTRAINTS.md](../../CONSTRAINTS.md) are about installation, including both entries that are not yet
-satisfied. That concentration is the reason Installer is a system rather than a script filed under
+It carries more recorded pressure than any other system here, because it writes into a target
+repository: the damage-guarding conditions in [CONSTRAINTS.md](../../CONSTRAINTS.md) attach here.
+That concentration is the reason Installer is a system rather than a script filed under
 supporting machinery: the promises are real, they are contested, and they are where the process is most
 likely to damage somebody's repository.
 

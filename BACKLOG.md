@@ -81,3 +81,7 @@ where `architecture-design` will read them. See the Intake admission test in
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
+- **Wire an agent to invoke a Toolkit operation** — no agent prompt calls a Toolkit operation, so
+  every operation the Toolkit ships is reachable only by hand. This is the wiring the Toolkit's
+  absorption of agent work depends on, so until it exists the Toolkit is built but unused by the
+  process it was built for.

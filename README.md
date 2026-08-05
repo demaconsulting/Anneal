@@ -2,11 +2,12 @@
 
 **A development process for AI coding agents working in long-lived .NET codebases.**
 
-Anneal installs into your repository as a set of agent prompts, coding standards, and a repository
-template. From then on you work by asking an agent for what you want, and the process decides how
-much rigor the request deserves — from none at all for a change nobody outside the code can observe,
-up to a staged, approved restructure when the architecture itself is the thing that is wrong. It is
-aimed at .NET and C# products that will be maintained for years by a mix of people and agents.
+Anneal installs into your repository as a set of agent prompts, coding standards, a repository
+template, and a command-line tool. From then on you work by asking an agent for what you want, and
+the process decides how much rigor the request deserves — from none at all for a change nobody
+outside the code can observe, up to a staged, approved restructure when the architecture itself is the
+thing that is wrong. It is aimed at .NET and C# products that will be maintained for years by a mix of
+people and agents.
 
 The mechanism is a single rule: **documentation work is triggered only when you change a promise
 other code depends on.** The interior of a system is therefore yours to rearrange as often as you
@@ -47,7 +48,8 @@ annealing relieves the stress that repeated working builds up in metal, so it ca
 
 **One of these is enforced by a machine; the rest are instructions.** The clause-to-test link fails
 the build, and a fixture suite holds that check to its own documented behavior. Everything else above
-is a rule agents are told to follow, carried by prompt and review rather than by tooling.
+is a rule agents are told to follow, carried by prompt and review rather than by tooling;
+[`overview.md`](docs/architecture/overview.md) carries the full enforcement account.
 
 ## How It Works
 
