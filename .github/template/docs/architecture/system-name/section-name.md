@@ -4,25 +4,21 @@ covers:
   - src/{SystemName}/{RelevantPath}/**
 ---
 
-<!-- TEMPLATE-DIRECTIVE: This is level 3 - the 2,000 foot view. IT IS EXCEPTIONAL.
-     Before writing this file, confirm the subject meets at least one creation test from
-     architecture-documentation.md:
-       - Hidden invariant a reader would plausibly violate
-       - Non-local correctness constraint not visible at the call site
-       - Compatibility surface (wire format, file format, schema, protocol)
-       - Settled debate with a seriously considered rejected alternative
-       - Cross-cutting mechanism many units must participate in correctly
-     If none apply, DO NOT CREATE THIS FILE. Documenting class structure, restating the
-     public API, describing test coverage, or recording history are all disqualifying.
-     This document is DELETED in the same change that obsoletes its subject. It covers exactly
-     one non-obvious thing; if it is covering two, split it. Remove this block. -->
+<!-- TEMPLATE-DIRECTIVE: This is a child node - the 2,000 foot view and deeper. Depth is open;
+     create this file only when subdividing earns its place. Before writing it, confirm subdivision
+     benefits the organization under the benefit test in architecture-documentation.md - through
+     clarity of structure, conformity, or size. If none apply, DO NOT CREATE THIS FILE. Documenting
+     class structure, restating the public API, describing test coverage, or recording history are
+     all disqualifying. This document is DELETED in the same change that obsoletes its subject. It
+     covers exactly one non-obvious thing; if it is covering two, split it. Remove this block. -->
 
 [← {System Name}](../{system-name}.md)
 
 # {Section Name}
 
-TODO: One paragraph stating what this document covers and, explicitly, which creation test it meets.
-If you cannot name the test, delete the file.
+TODO: One paragraph stating what this document covers and, explicitly, why a reader would descend to
+it — the scope and purpose that earn its place under the benefit test (clarity, conformity, or size).
+If subdividing here earns no such benefit, delete the file.
 
 ## TODO: The Substance
 

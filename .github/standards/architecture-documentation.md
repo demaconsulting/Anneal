@@ -18,22 +18,28 @@ this file elaborates; read it always. Then add only what the task needs: writing
 `README.md` — `What Each Level Owns` and `Writing Guidelines`; adding or deleting a document — the two
 section-document rules, `Drift Anchors` and `Publishing`.
 
-# The Four Levels
+# Levels of the Tree
+
+The tree is a **recursive decomposition**. The rows below are **illustrative depths, not a closed
+set**: every node may give birth to children, and the tree descends as far as subdivision keeps
+earning its place.
 
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
 | 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and what parts is it built from? |
 | 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+| 3+ | `docs/architecture/{system}/{section}.md` | 2,000 ft+ | How does one non-obvious specific work? |
 
 **Levels are created when they are earned, never upfront.** A level exists because the level above
 has grown content it cannot hold at its own altitude — not because the table lists it. A repository
 whose whole story fits in `README.md` is correctly documented, not under-documented; creating
 `overview.md` for it is the speculative structure this process rejects everywhere else.
 
-Level 3 is **optional and exceptional**. Most systems have zero or one section documents. More than
-five is a signal that the system should be split, not documented harder.
+A node gives birth to children only when the organization benefits, and the benefit test is exactly
+three triggers: **clarity of structure, conformity, or size.** There is no fixed depth cap and no
+child-count cap; a node descends further whenever subdivision keeps earning its place, and a node
+with no children is simply one that has not earned them yet.
 
 # Descending the Tree
 
@@ -42,14 +48,15 @@ not by reading levels through: enter at the altitude that matches the question, 
 part matches the subject, then open the document that part points to.
 
 **You have arrived when the document holds the detail you came for.** Two ways to get that wrong.
-Stopping early leaves you holding a one-line role that reads like knowledge and is not, because a
-parent is *forbidden* from restating a child's detail; where no document owns the detail, say the
-tree does not record it rather than inferring it from a role. Descending past the answer costs
-context on every read.
+Stopping early leaves you holding a signpost that reads like knowledge and is not, because a parent
+carries only a child's **scope and purpose** — what it covers and why you would descend — never the
+child's conclusions; where no document owns the detail, say the tree does not record it rather than
+inferring it from a signpost. Descending past the answer costs context on every read.
 
-A mechanism *inside* a part is documented at level 3 only when it independently meets a creation test
-below; otherwise the system document owns it. Level 0 confirms which product this is and what it is
-built from; an agent already working in the repository rarely needs more of it than the part names.
+A node owns its own detail and subdivides into a child only when that child benefits the
+organization; until then the node holds the detail itself. Level 0 confirms which product this is and
+what it is built from; an agent already working in the repository rarely needs more of it than the
+part names.
 
 # Decomposition and Ownership (MANDATORY)
 
@@ -61,10 +68,12 @@ system — fails this even when every sentence is true: it gives the reader noth
 themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
 descends, and that is not duplication — it is the handle a reader grabs in order to descend at all.
 
-**Level 3 is the exception**, because its subject has no parts: a section document covers one
-specific in depth — an invariant, a compatibility surface, a settled debate — and imposing the shape
-on it would invent structure that is not there. It is exempt from the shape, never from the
-ownership rule below.
+**A node with no children has no parts to name**, so it carries no decomposition list — not as an
+exception, but because a leaf is simply a node that has not earned children yet. A document covering
+one specific in depth — an invariant, a compatibility surface, a settled debate — is such a leaf, and
+imposing the shape on it would invent structure that is not there. When it later earns children it
+decomposes like any other node; it is exempt from the shape only while it stays a leaf, never from
+the ownership rule below.
 
 A decomposition is this shape, and rarely needs more:
 
@@ -140,8 +149,9 @@ internal decomposition and the *rationale* for that decomposition, and the decis
 system. It does **not** restate the interactions already described in `overview.md`, and it does not
 document individual classes.
 
-**`{system}/{section}.md`** — exactly one non-obvious specific, in depth. It does **not** repeat the
-system's contract or decomposition.
+**`{system}/{section}.md`** — a child node covering one non-obvious specific in depth. It may carry
+its own `## Contract` for promises specific to it (see `system-contracts.md`), and it does **not**
+restate its parent's contract or decomposition.
 
 # Navigation
 
@@ -154,13 +164,15 @@ into cross-references when the tree is compiled.
 - Never link sideways across systems in body prose; route through `overview.md` so that
   cross-system coupling stays visible in exactly one place.
 
-Downward links carry a one-line role, never a summary, in the shape shown under `Decomposition and
+Downward links carry a brief **scope-and-purpose signpost** — what the child covers and why you would
+descend, never the child's conclusions — in the shape shown under `Decomposition and
 Ownership`. Paths are relative to the linking document — `overview.md` sits alongside the system
 documents it links to.
 
 # Drift Anchors (MANDATORY)
 
-Every level 2 and level 3 document begins with front matter naming the source it describes:
+Every system document and every section document beneath it, at any depth, begins with front matter
+naming the source it describes:
 
 ```yaml
 ---
@@ -177,16 +189,10 @@ file change are precisely what makes evolution expensive.
 
 # When to Create a Section Document
 
-Create a level 3 document only when the subject meets at least one of these tests:
-
-- **Hidden invariant** — something a reader would plausibly violate, that the code cannot express.
-- **Non-local correctness** — an algorithm whose correctness depends on constraints not visible at
-  the call site.
-- **Compatibility surface** — a wire format, file format, schema, or protocol that must remain
-  compatible across versions.
-- **Settled debate** — a decision with a seriously considered rejected alternative, documented so it
-  is not re-litigated.
-- **Cross-cutting mechanism** — a pattern that many units must participate in correctly.
+A section document is a child node, so the test is the benefit test that governs every node: create
+one when subdividing benefits the organization through **clarity of structure, conformity, or size.**
+A child earns its place when it sharpens structure a reader must navigate, gathers a rule that many
+units must conform to, or lifts material the parent has grown too large to hold at its own altitude.
 
 Do **not** create a section document to:
 
@@ -209,8 +215,8 @@ it:
 
 The `architecture-update` agent MUST perform a prune check on every Tier 1 (Contract) and Tier 2
 (Structural) change: list the section documents under the affected system and confirm each still
-meets a creation test. Undeleted documentation is the mechanism by which a tree silently becomes an
-anchor.
+earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
+silently becomes an anchor.
 
 # Publishing (MANDATORY)
 
@@ -235,7 +241,7 @@ it long**:
 | `README.md` | contract-level capabilities were enumerated, or a part described rather than placed |
 | `overview.md` | a system's contract or interior is restated instead of linked |
 | `{system}.md` | decomposition detail crept in that a section document should own, or the system is too large |
-| `{system}/{section}.md` | it covers more than one non-obvious thing, or its subject no longer meets a creation test |
+| `{system}/{section}.md` | it covers more than one thing child nodes should hold, or no longer earns its place |
 
 Each is a reason to move material to the level that owns it, or to delete it — never to trim prose
 that earns its place. A short document missing the *why* is the more expensive failure.
@@ -262,8 +268,8 @@ that earns its place. A short document missing the *why* is the more expensive f
       holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
-- [ ] Level 2 and 3 documents carry `level` and `covers` front matter
-- [ ] Every section document still satisfies at least one creation test
+- [ ] Every system document and section document, at any depth, carries `level` and `covers` front matter
+- [ ] Every section document still earns its place under the benefit test
 - [ ] Section documents whose subject was removed were deleted in the same change
 - [ ] Every added or deleted document was listed or unlisted in `definition.yaml` in the same change
 - [ ] No document is long for a reason that belongs at another level

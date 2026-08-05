@@ -17,8 +17,9 @@ agent reads, together with a template describing the repository that prose expec
 enforces the single rule the process refuses to leave to judgement, and an installer that puts all
 three into somebody else's repository. Alongside them Toolkit runs — a .NET tool hosting operations
 the agents will call, executing deterministic checks and controlling the conversations behind model-backed
-judgement. That mix is the organizing idea the inventory below rests on. Three systems exist to
-deliver and defend the delivered content, the fifth executes rather than describes, and the
+judgement. That mix is the organizing idea the inventory below rests on. Three systems deliver the
+content, and the fourth executes on it rather than describing it — the one mechanical enforcement now
+runs as one of the executing system's operations rather than as a system of its own, and the
 interesting design pressure is that even the executing system composes context for judgement to
 happen against rather than encoding the judgement itself.
 
@@ -32,7 +33,6 @@ for a model rather than encoded judgement.
 ## Systems
 
 - [Process](./process.md) — the agents, standards and skills that instruct an AI coding agent
-- [ContractCheck](./contract-check.md) — the one mechanical enforcement, and its failure taxonomy
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
 - [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents will call
@@ -40,8 +40,8 @@ for a model rather than encoded judgement.
 ## Interactions
 
 The systems couple weakly and in one direction: Process defines content, Template defines where content
-sits, Installer moves both, ContractCheck audits the result once it has arrived, and Toolkit is to be called
-by the content, though nothing calls it yet.
+sits, Installer moves both, and Toolkit audits the arrived result through its enforcement operation while
+its other operations wait for the content to call them.
 
 ```mermaid
 flowchart LR
@@ -54,7 +54,6 @@ flowchart LR
     subgraph Target["Target repository"]
         Payload[Installed payload]
         Tree["docs/architecture/"]
-        Check[ContractCheck]
         Tool["Restored dotnet tool"]
     end
 
@@ -65,18 +64,17 @@ flowchart LR
     Payload -- "agents write" --> Tree
     Payload -. "agents will invoke" .-> Tool
     Tool -- "reads" --> Tree
-    Tree -- "clauses read" --> Check
-    Check -- "pass or fail" --> Payload
+    Tool -- "pass or fail" --> Payload
 ```
 
-Every edge is a **file**, never a call — with one exception. Installer copies; ContractCheck reads
-markdown and test results from disk; agents read their own prompts when invoked. No system imports
+Every edge is a **file**, never a call — with one exception. Installer copies; the deterministic checks
+read markdown and test results from disk; agents read their own prompts when invoked. No system imports
 another. The exception is Toolkit: it arrives as a restored package rather than a copied file, runs as
 a process, and its model-backed operations reach the network. That exception is the whole substance of
 the superseded *Files, not tooling* decision below, and it is confined to one system so that everything
 else keeps the property — a system can still be replaced wholesale without recompiling anything.
 
-The one cycle in the diagram is deliberate. ContractCheck audits a tree that agents from the payload
+The one cycle in the diagram is deliberate. The Toolkit audits a tree that agents from the payload
 wrote, so the payload is both the author of the evidence and the subject of the audit. That is tolerable
 only because the check is mechanical and fails closed — an agent cannot talk it into passing.
 

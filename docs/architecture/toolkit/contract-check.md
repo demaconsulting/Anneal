@@ -1,12 +1,15 @@
 ---
-level: system
+level: section
 covers:
-  - .github/template/check-contracts.ps1
+  - src/DemaConsulting.Anneal.Toolkit/Operations/CheckContractsOperation.cs
+  - src/DemaConsulting.Anneal.Toolkit/Enforcement/**
+  - src/DemaConsulting.Anneal.Toolkit/Architecture/**
   - .github/skills/check-contracts/**
+  - .github/template/check-contracts.ps1
   - test-check-contracts.ps1
 ---
 
-[← Architecture Overview](./overview.md)
+[← Toolkit](../toolkit.md)
 
 # ContractCheck
 
@@ -33,7 +36,8 @@ something deterministic enough to run in CI.
   success.
   *Verified by:* `test-check-contracts.ps1: "clean repository passes"`
 
-- **CONTRACT-CHECK-02** — Rejects a system document that has no `## Contract` section.
+- **CONTRACT-CHECK-02** — Rejects a level-2 system document that has no `## Contract` section; a deeper
+  section node without its own contract is legal and is not rejected.
   *Verified by:* `test-check-contracts.ps1: "system document with no Contract section"`
 
 - **CONTRACT-CHECK-03** — Rejects a clause identifier that is malformed or left as an unresolved

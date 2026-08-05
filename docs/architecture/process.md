@@ -73,7 +73,7 @@ is written.
 
 ### Requires
 
-- **[ContractCheck](./contract-check.md)** — mechanical verification of clause-to-test links, and a
+- **[ContractCheck](./toolkit/contract-check.md)** — mechanical verification of clause-to-test links, and a
   failure taxonomy stable enough for a skill to explain.
 - **[Template](./template.md)** — presence of an unmodified `AGENTS.pristine.md` in the shipped layout,
   and of the repository scripts the agent prompts instruct an agent to run together with the tooling

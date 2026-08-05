@@ -101,33 +101,34 @@ if (-not $skipNpm) {
 #   }
 
 # [PROJECT-SPECIFIC] System contracts.
-# Anneal runs the script it ships, in place from the template directory, because
-# it holds only one copy of it. It is now checked against two profiles at once,
-# because it holds two kinds of test and no single set of parameters describes
-# both: the Toolkit's clauses are verified by C# boundary tests under a Contract/
-# folder recorded in TRX, while the ContractCheck and Process clauses are
-# verified by named cases in flat root-level PowerShell suites, declared by a
-# quoted name rather than an attribute-marked method, recorded as the text tally
-# those suites write. -ContractTestFolder alone would have to be both 'Contract'
-# and empty. Every one of those differences is a profile field, so the shipped
-# script stays untouched.
+# Anneal runs the ported Toolkit operation - "dotnet anneal check-contracts" -
+# rather than the shipped script, because this repository is where the operation
+# is proven before any downstream repository depends on it. build.ps1 installs the
+# tool (and runs the tests it reads), so it is present when this runs.
 #
-# The results are produced by build.ps1 - dotnet test plus the two PowerShell
-# suites - which CI runs before this script for exactly that reason. Without them
-# the pass check reports a warning and verifies existence only.
+# It is checked against two profiles at once, because Anneal holds two kinds of
+# test and no single set of parameters describes both: the Toolkit's clauses are
+# verified by C# boundary tests under a Contract/ folder recorded in TRX, while
+# the ContractCheck and Process clauses are verified by named cases in flat
+# root-level PowerShell suites, declared by a quoted name rather than an
+# attribute-marked method, recorded as the text tally those suites write.
+# -ContractTestFolder alone would have to be both 'Contract' and empty. Every one
+# of those differences is a profile field.
 #
-# The profiles are newline-joined into one argument on purpose: under
-# `pwsh -File` every argument is a literal string and only the FIRST value of an
-# array parameter binds, so a second profile passed as its own argument would be
-# discarded and half the contract would go unchecked. Fields within a profile are
-# comma-joined for the same reason, and the script splits both itself.
+# The results are produced by build.ps1 - dotnet test plus the PowerShell suites -
+# which CI runs before this script for exactly that reason. Without them the pass
+# check reports a warning and verifies existence only.
+#
+# Each profile is passed as its own -TestProfiles argument: the operation collects
+# repeated -TestProfiles, so unlike the shipped script under `pwsh -File` there is
+# no need to newline-join them into one value to keep the second from being
+# discarded. Fields within a profile are semicolon-separated and lists within a
+# field comma-separated, which the operation splits itself.
 Write-Host "Linting: system contracts..."
-$contractProfiles = @(
-    "TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/tests/*.trx;TestResultFormat=trx",
-    'TestRoots=.;TestFilePatterns=test-check-contracts.ps1,test-process-contract.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=artifacts/tests/*.txt;TestResultFormat=text'
-) -join "`n"
+$csharpProfile = "TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/tests/*.trx;TestResultFormat=trx"
+$scriptProfile = 'TestRoots=.;TestFilePatterns=test-check-contracts.ps1,test-process-contract.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=artifacts/tests/*.txt;TestResultFormat=text'
 
-pwsh -NoProfile -File .github/template/check-contracts.ps1 -TestProfiles $contractProfiles
+dotnet anneal check-contracts -TestProfiles $csharpProfile -TestProfiles $scriptProfile
 if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
 # [PROJECT-SPECIFIC] AGENTS.md drift.

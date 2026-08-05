@@ -1,15 +1,17 @@
 ---
 name: System Contracts
 description: Follow these standards when defining or changing what a system promises to its consumers.
-globs: ["docs/architecture/*.md"]
+globs: ["docs/architecture/**/*.md"]
 ---
 
 # Principle
 
-A **contract** is what consumers outside a system may rely on. Below level 0 it is the only
-requirement-like artifact in this process, and it lives in exactly one place: the `## Contract`
-section of `docs/architecture/{system}.md`. Level 0 carries the product's own promises to a person,
-which `architecture-documentation.md` owns.
+A **contract** is what consumers outside a system boundary may rely on. Below level 0 it is the only
+requirement-like artifact in this process, and each clause lives at the **node that owns the
+promise** — the `## Contract` section of that node's architecture document. A parent node owns the
+cross-cutting promises every child obeys; a child node owns the promises specific to it. Every clause
+has a single owning node, at any depth. Level 0 carries the product's own promises to a person, which
+`architecture-documentation.md` owns.
 
 There are deliberately **no subsystem or unit requirements**. Interior structure must be free to
 churn without documentation cost — that freedom is the entire point of this process. Requirements
@@ -17,9 +19,10 @@ written against interior structure convert every refactor into a documentation p
 
 # Placement
 
-The contract is embedded in the system's architecture document, not in a parallel tree. Parallel
-artifact trees must be kept in sync, and that synchronization cost is paid on every change forever.
-One file, one edit.
+A contract is embedded in the architecture document of the node that owns it, not in a parallel tree.
+Parallel artifact trees must be kept in sync, and that synchronization cost is paid on every change
+forever. One clause, one owning node: a clause is edited where it lives, which may be a child node
+rather than the system root.
 
 # Structure
 
@@ -142,11 +145,14 @@ the contract change deliberately.
 
 # Sizing
 
-A healthy system contract has roughly **5 to 25 clauses**. Interpret the extremes:
+A healthy contract at a single node has roughly **5 to 25 clauses**. Count per node, not per system:
+a node whose promises have grown distributes them down to child nodes, each carrying the clauses
+specific to it while the parent keeps the cross-cutting ones. Interpret the extremes:
 
-- **Fewer than 3** — the system probably is not a system; it may be interior detail of another.
-- **More than 40** — either the decomposition is wrong, or the contract has drifted into restating
-  the public API. Method-level enumeration belongs in doc comments, not here.
+- **Fewer than 3** — the node probably is not a boundary; it may be interior detail of another.
+- **More than 40 at one node** — either the decomposition is wrong, or the contract has drifted into
+  restating the public API. Distributing clauses down to child nodes is the relief valve, not a
+  smell; method-level enumeration belongs in doc comments, not here.
 
 # Changing a Contract
 

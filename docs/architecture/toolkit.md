@@ -114,6 +114,11 @@ presented requires owning the conversation, which requires code.
   caller reading exit codes can therefore tell a run somebody stopped from any run that finished.
   *Verified by:* `ToolkitContractTests.InterruptedInvocationStopsAndExitsOutsideTheOutcomeCodes`
 
+- **TOOLKIT-17** — `check-contracts` verifies a repository's architecture tree against the clause-to-test
+  link, reporting whether every contract clause names a test that exists and most recently passed. It
+  reaches this verdict deterministically and consults no model.
+  *Verified by:* `ToolkitContractTests.CheckContractsVerifiesTheClauseToTestLink`
+
 ### Requires
 
 - **[Process](./process.md)** — the agents that invoke operations, and the standards whose rules the
@@ -138,7 +143,7 @@ presented requires owning the conversation, which requires code.
 
 - **TOOLKIT-I3** — An enforcement operation given identical repository inputs reaches an identical
   verdict, so a gating check cannot change answer on unchanged input.
-  *Verified by:* `TODO.EnforcementVerdictsAreStableOnUnchangedInput`
+  *Verified by:* `ToolkitContractTests.EnforcementVerdictsAreStableOnUnchangedInput`
 
 - **TOOLKIT-I4** — The detailed usage an action presents through `help <action>` and the usage it
   presents when invoked with arguments it cannot use (`TOOLKIT-10`) are one and the same text, drawn
@@ -175,9 +180,9 @@ convenience: it is what holds this document's growth to one contract clause per 
 clause plus a paragraph of usage each, and it makes the operation the single owner of its usage by
 construction.
 
-**Deterministic checks** read the repository and reach verdicts without a model. `verify-evidence` is
-one, and `check-contracts.ps1` is expected to become another. They are kept apart from model-backed
-work because they are the operations that may gate, and a gate must not depend on a network.
+**Deterministic checks** read the repository and reach verdicts without a model — `verify-evidence` and
+`check-contracts` among them — kept apart from model-backed work because they are the operations that may
+gate, and a gate must not depend on a network.
 
 **The model seam** is a provider that resolves a capability role to an endpoint, and one object over it
 offering two verbs: *run*, whose request and reply both join a conversation, and *probe*, a one-shot
@@ -273,10 +278,13 @@ resolution would then be guessing while the contract claimed it asks.
 **Availability-based resolution is a new exposure on `TOOLKIT-I3`, and is recorded rather than
 hidden** — which model answers now depends on the calling account's entitlements, which are not part
 of the repository input, so two runs over identical files could in principle resolve a role to
-different models and an enforcement operation built on model judgement could differ. The exposure is
-real, is admitted here, and is not a reason to prefer the single compiled-in model it replaces: that
-shape does not make the verdict reproducible, it only makes the failure total when the model is
-retired. `TOOLKIT-I3` is left stated as it is, with its obligation open.
+different models and an enforcement operation built on model judgement could differ. The operation that
+gates today, `check-contracts`, consults no model — its verdict is a pure function of repository
+inputs — so `TOOLKIT-I3` holds for it and is verified. The exposure is therefore a standing condition
+on any *future* model-backed enforcement operation, which would have to re-establish that stability
+independently; it is not a reason to prefer the single compiled-in model this resolution replaces, a
+shape that does not make a verdict reproducible and only makes the failure total when the model is
+retired.
 
 **The schema is a prompt-level hint, not a transport guarantee** — the Copilot session API offers no
 constrained-decode facility, so a typed response rests on a described schema, tolerant extraction of the
@@ -443,3 +451,8 @@ written by one version mean something else when read against another, quietly co
 the clause promises. The clause states the stability as observable behavior and names no encoding,
 because how the identity is made stable is an interior decision and only the survival of meaning is the
 promise.
+
+## Details
+
+- [ContractCheck](./toolkit/contract-check.md) — how the `check-contracts` action reads a repository's
+  architecture tree, and what each way it can reject one means

@@ -26,14 +26,15 @@ Documentation is a descent, not a pile. Read only as far down as your task requi
 | 0 | `README.md` |
 | 1 | `docs/architecture/overview.md` |
 | 2 | `docs/architecture/{system}.md` |
-| 3 | `docs/architecture/{system}/{section}.md` |
+| 3+ | `docs/architecture/{system}/{section}.md` |
 
 `architecture-documentation.md` defines what each level answers and owns; this table is navigation
-only. Level 3 is exceptional — most systems have none, and levels are created only when earned.
+only. The tree is recursive: a node earns children — a deeper level — only when subdivision earns
+its place, so levels appear only when needed.
 
 **Each level owns content no other level restates.** A parent names its children and gives each a
-one-line role; it never summarizes them. Any change should require editing exactly one documentation
-file.
+brief scope-and-purpose signpost — enough to decide whether to descend — never a summary of their
+contents. Any change should require editing exactly one documentation file.
 
 # Project Structure
 

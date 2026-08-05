@@ -91,7 +91,7 @@ final commit — so scaffolding one into a repository would assert a migration t
 | `docs/architecture/build.bat` | — | Yes — compiles the tree into a PDF |
 | `docs/architecture/overview.md` | 1 | Yes — exactly one |
 | `docs/architecture/{system-name}.md` | 2 | Yes — one per system |
-| `docs/architecture/{system-name}/{section-name}.md` | 3 | No — exceptional; most systems have none |
+| `docs/architecture/{system-name}/{section-name}.md` | 3+ | No — created when subdividing benefits clarity, conformity, or size |
 
 Everything under `docs/` is a **document collection** that compiles to a PDF, so only files belonging
 to that document go there. A loose markdown file dropped into `docs/` is part of no document and is
@@ -115,7 +115,7 @@ Shared build inputs live in `docs/template/`, and the published PDFs in `docs/ge
 | `docs/template/collection-links.lua` | Rewrites links between documents into cross-references |
 | `docs/template/README.md` | What these shared files are for |
 
-Level 3 documents are created only when the subject meets a creation test in
+Level 3+ documents are created only when subdividing benefits the organization (clarity, conformity, or size), per
 `architecture-documentation.md`, and are deleted in the same change that obsoletes them. Either way
 `docs/architecture/definition.yaml` is edited in that same change, or the document is not published.
 

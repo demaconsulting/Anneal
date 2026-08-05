@@ -93,7 +93,7 @@ yet until `apply` makes them.
 
 # Step 5 — Prune (MANDATORY for Tier 1 and Tier 2)
 
-List every section document under each affected system and test each against the creation criteria
+List every section document under each affected system and test each against the benefit test
 in `architecture-documentation.md`. Delete — do not defer — any that:
 
 - Describe a subject that no longer exists
@@ -109,7 +109,7 @@ new constraint you discovered rather than filing it yourself: only the user admi
 *Only the User Admits a Constraint* in `change-classification.md`.
 
 Report every deletion and every document examined and kept, with the reason for each. Keeping every
-document is a legitimate outcome when each one still meets a creation test; skipping the examination
+document is a legitimate outcome when each one still earns its place under the benefit test; skipping the examination
 is not.
 
 # Step 6 — Format and Report
@@ -122,7 +122,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 - **Never document interior structure below the decomposition rationale.** Class-level intent lives
   in doc comments.
 - **Never create a requirement below system level.** There is no such artifact in this process.
-- **Never add a section document that fails every creation test**, however tempting the symmetry.
+- **Never add a section document that does not earn its place under the benefit test**, however tempting the symmetry.
 - **Prefer deleting to rewriting** when a document's value is unclear. Git holds the history.
 
 # Report Template
@@ -152,7 +152,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 | Document | Verdict | Reason |
 |----------|---------|--------|
-| {path} | kept/deleted | {which creation test it still meets, or why it failed all of them} |
+| {path} | kept/deleted | {how it still earns its place under the benefit test, or why it did not} |
 
 ## Ownership Check
 

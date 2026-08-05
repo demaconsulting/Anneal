@@ -59,7 +59,7 @@ public static class AnnealTool
     ///     than left open.
     /// </summary>
     public static IReadOnlyList<IOperation> DefaultOperations { get; } =
-        [new VerifyEvidenceOperation(), new ProbeRuleOwnerOperation()];
+        [new VerifyEvidenceOperation(), new ProbeRuleOwnerOperation(), new CheckContractsOperation()];
 
     /// <summary>
     ///     The Anneal version this tool was built from.

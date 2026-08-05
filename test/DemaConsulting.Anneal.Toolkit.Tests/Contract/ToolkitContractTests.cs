@@ -5,6 +5,7 @@ using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Providers;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Recording;
+using DemaConsulting.Anneal.Toolkit.Tests.ContractChecking;
 using Microsoft.Extensions.AI;
 using Xunit;
 
@@ -65,7 +66,8 @@ public class ToolkitContractTests
 
     /// <summary>
     ///     TOOLKIT-01 — an unrecognized action exits with the caller-error code of TOOLKIT-10 and lists the
-    ///     actions that exist, so a caller discovers the surface without reading the source.
+    ///     actions that exist, so a caller discovers the surface without reading the source. The set it lists
+    ///     is the three the tool ships, and each is a reachable action rather than only a name in the list.
     /// </summary>
     [Fact]
     public async Task UnknownActionListsAvailableActions()
@@ -77,15 +79,113 @@ public class ToolkitContractTests
         var exitCode = await AnnealTool.RunAsync(["no-such-action"], output, TestContext.Current.CancellationToken);
         var written = output.ToString();
 
-        // Assert: the caller-error code, and every shipped action is discoverable from the output alone
+        // Act: check-contracts, one of the listed actions, dispatched against a repository whose contract holds
+        using var repository = BuildContractRepository("AcceptedRecordIsDurable", "Passed");
+        var reachableOutput = new StringWriter();
+        var reachableExit = await AnnealTool.RunAsync(
+            ["check-contracts"],
+            reachableOutput,
+            [new CheckContractsOperation(repository.Root)],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+
+        // Assert: the caller-error code, and the shipped set is exactly the three actions, each discoverable
+        // from the output and each actually reachable rather than merely advertised
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitUsageError, exitCode),
             () => Assert.Contains("unknown action 'no-such-action'", written, StringComparison.Ordinal),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
+            () => Assert.Equal(
+                new[] { "check-contracts", "probe-rule-owner", "verify-evidence" },
+                AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(
                 AnnealTool.DefaultOperations,
-                operation => Assert.Contains(operation.Name, written, StringComparison.Ordinal)));
+                operation => Assert.Contains(operation.Name, written, StringComparison.Ordinal)),
+            // check-contracts was reached and reported a verdict, not turned away as an unknown action
+            () => Assert.Equal(AnnealTool.ExitSuccess, reachableExit),
+            () => Assert.DoesNotContain("unknown action", reachableOutput.ToString(), StringComparison.Ordinal));
     }
+
+    /// <summary>
+    ///     TOOLKIT-17 — the registered check-contracts action verifies that every contract clause names a
+    ///     boundary test that exists and passed: it succeeds when the clause-to-test link holds, and gates the
+    ///     build when the link is broken.
+    /// </summary>
+    /// <remarks>
+    ///     Driven through the same command surface a caller has — the action named first, dispatched against a
+    ///     throw-away repository — so what is proven is the registered action rather than the check underneath
+    ///     it. The verdict is read from the exit code alone, because that is all the enforcement gate that runs
+    ///     it in <c>lint.ps1</c> has.
+    /// </remarks>
+    [Fact]
+    public async Task CheckContractsVerifiesTheClauseToTestLink()
+    {
+        // Arrange: one repository whose clause names an existing passing test, and one whose clause names a
+        // test nothing declares - the same clause, the link intact in the first and broken in the second
+        using var linked = BuildContractRepository("AcceptedRecordIsDurable", "Passed");
+        using var broken = BuildContractRepository("NoSuchBoundaryTest", "Passed");
+
+        // Act: dispatch check-contracts against each, as a real caller does
+        var linkedOutput = new StringWriter();
+        var linkedExit = await AnnealTool.RunAsync(
+            ["check-contracts"],
+            linkedOutput,
+            [new CheckContractsOperation(linked.Root)],
+            linked.Root,
+            TestContext.Current.CancellationToken);
+
+        var brokenOutput = new StringWriter();
+        var brokenExit = await AnnealTool.RunAsync(
+            ["check-contracts"],
+            brokenOutput,
+            [new CheckContractsOperation(broken.Root)],
+            broken.Root,
+            TestContext.Current.CancellationToken);
+
+        // Assert: the intact link reports success and says what it checked; the broken link gates the build
+        // and names the clause whose test it could not find
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, linkedExit),
+            () => Assert.Contains("clauses, 1 test links checked.", linkedOutput.ToString(), StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitGatedFailure, brokenExit),
+            () => Assert.Contains("INGEST-01", brokenOutput.ToString(), StringComparison.Ordinal),
+            () => Assert.Contains("NoSuchBoundaryTest", brokenOutput.ToString(), StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-I3 — an enforcement operation reaches the same verdict every time it is given the same
+    ///     repository, which is what makes it safe to gate a build on. Proven by running check-contracts twice
+    ///     over one unchanged repository and requiring an identical verdict and identical rendered output both
+    ///     times, on a passing repository and on a failing one, and requiring the two verdicts to differ so the
+    ///     stability is of a verdict that actually reads its input rather than a constant.
+    /// </summary>
+    [Fact]
+    public async Task EnforcementVerdictsAreStableOnUnchangedInput()
+    {
+        // Arrange: two repositories that must reach opposite verdicts - a clause whose test passed, and the
+        // same clause whose test failed
+        using var passing = BuildContractRepository("AcceptedRecordIsDurable", "Passed");
+        using var failing = BuildContractRepository("AcceptedRecordIsDurable", "Failed");
+
+        // Act: run the enforcement operation twice over each, without changing anything between the runs
+        var (firstPass, firstPassText) = await RunCheckContracts(passing.Root);
+        var (secondPass, secondPassText) = await RunCheckContracts(passing.Root);
+        var (firstFail, firstFailText) = await RunCheckContracts(failing.Root);
+        var (secondFail, secondFailText) = await RunCheckContracts(failing.Root);
+
+        // Assert: each verdict is identical to its own repeat, in both exit code and rendered text, and the
+        // pass and fail verdicts differ - so a verdict that stopped reading its input, or that varied between
+        // runs, would fail this test
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, firstPass),
+            () => Assert.Equal(firstPass, secondPass),
+            () => Assert.Equal(firstPassText, secondPassText),
+            () => Assert.Equal(AnnealTool.ExitGatedFailure, firstFail),
+            () => Assert.Equal(firstFail, secondFail),
+            () => Assert.Equal(firstFailText, secondFailText),
+            () => Assert.NotEqual(firstPass, firstFail));
+    }
+
 
     /// <summary>
     ///     TOOLKIT-02 — the declared category alone decides whether a non-zero exit gates a build, and only
@@ -1295,6 +1395,56 @@ public class ToolkitContractTests
             $$"""
               {"models": {"light": {{List(light)}}, "medium": {{List(medium)}}, "heavy": {{List(heavy)}} } }
               """);
+    }
+
+    /// <summary>
+    ///     Dispatches check-contracts against a repository through the command surface a caller uses, returning
+    ///     the exit code and everything the run rendered.
+    /// </summary>
+    private static async Task<(int ExitCode, string Output)> RunCheckContracts(string repositoryRoot)
+    {
+        var output = new StringWriter();
+        var exitCode = await AnnealTool.RunAsync(
+            ["check-contracts"],
+            output,
+            [new CheckContractsOperation(repositoryRoot)],
+            repositoryRoot,
+            TestContext.Current.CancellationToken);
+        return (exitCode, output.ToString());
+    }
+
+    /// <summary>
+    ///     Builds a throw-away repository carrying one clause, one boundary test declaration, and one recorded
+    ///     result, so a dispatched check-contracts run has a whole contract to check.
+    /// </summary>
+    /// <param name="clauseVerifier">The test name the clause names - the same as the declared test to link, anything else to break the link.</param>
+    /// <param name="resultOutcome">The recorded outcome of the declared test, e.g. "Passed" or "Failed".</param>
+    private static TemporaryRepository BuildContractRepository(string clauseVerifier, string resultOutcome)
+    {
+        var repository = new TemporaryRepository();
+        repository.WriteDocument(
+            "ingest.md",
+            $"""
+             ## Contract
+
+             ### Provides
+
+             - **INGEST-01** - Accepts records.
+               *Verified by:* `{clauseVerifier}`
+             """);
+        repository.Write(
+            "test/Ingest.Tests/Contract/IngestContractTests.cs",
+            """
+            public class IngestContractTests
+            {
+                [Fact]
+                public void AcceptedRecordIsDurable()
+                {
+                }
+            }
+            """);
+        repository.WriteTrx("artifacts/tests/results.trx", [("AcceptedRecordIsDurable", resultOutcome)]);
+        return repository;
     }
 
     /// <returns>A JSON array of the given names, as the configuration file states a role's candidates.</returns>

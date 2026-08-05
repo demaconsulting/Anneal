@@ -23,6 +23,12 @@ of which deletion undoes. Bundled, a defect in the port would arrive in the same
 the thing it was checked against. The exit conditions are unchanged in substance; they are divided
 between the two.
 
+**S4b's merge became a descent, not a flattening**, after the architecture tree was generalized to
+carry contracts at any depth: `contract-check.md` becomes a section document beneath Toolkit, keeping
+its own contract, rather than folding into `toolkit.md`. What the stage promised is unchanged —
+ContractCheck stops being a top-level system and the repository returns to four — only the mechanism
+differs.
+
 `check-contracts.ps1` runs **without** `-Strict` until the final stage lands, because planned clauses are
 closed stage by stage and unfulfilled obligations are expected in between.
 
@@ -137,8 +143,9 @@ own suite is the acceptance evidence and is driven against the port, not discard
 
 ## S4b — The cutover
 
-`lint.ps1` switches to the operation, and [contract-check.md](docs/architecture/contract-check.md) merges
-into [toolkit.md](docs/architecture/toolkit.md) and is deleted, returning the repository to four systems.
+`lint.ps1` switches to the operation, and [contract-check.md](docs/architecture/toolkit/contract-check.md)
+becomes a section document beneath [toolkit.md](docs/architecture/toolkit.md), so ContractCheck is no
+longer a top-level system and the repository returns to four.
 The action is registered here rather than in S4a, because registering it grows the contracted action
 inventory and the clause that admits it is exactly what `lint.ps1` would then be depending on.
 

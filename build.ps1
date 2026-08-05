@@ -42,10 +42,11 @@ if ($LASTEXITCODE -ne 0) { $buildError = $true }
 # promises, and because both write their results into artifacts/tests alongside
 # the TRX files - which is cleared above, so they must run after that point and
 # not before.
+#
+# test-check-contracts.ps1 is the exception: it now drives the check as the
+# "dotnet anneal check-contracts" operation, so it runs after the Toolkit tool is
+# refreshed below rather than here.
 Write-Host "Running the PowerShell suites..."
-pwsh -NoProfile -File ./test-check-contracts.ps1
-if ($LASTEXITCODE -ne 0) { $buildError = $true }
-
 pwsh -NoProfile -File ./test-process-contract.ps1
 if ($LASTEXITCODE -ne 0) { $buildError = $true }
 
@@ -164,5 +165,14 @@ else
         else { Set-Content -Path $toolkitStamp -Value $built }
     }
 }
+
+# [PROJECT-SPECIFIC] The contract-check suite, driven against the Toolkit.
+# test-check-contracts.ps1 exercises the CONTRACT-CHECK-* fixtures against the
+# "dotnet anneal check-contracts" operation, so it can only run once the tool is
+# installed - which the refresh above has just done. Like the other suites it
+# writes its tally into artifacts/tests, which was cleared earlier in this script.
+Write-Host "Running the contract-check suite..."
+pwsh -NoProfile -File ./test-check-contracts.ps1
+if ($LASTEXITCODE -ne 0) { $buildError = $true }
 
 exit ($buildError ? 1 : 0)

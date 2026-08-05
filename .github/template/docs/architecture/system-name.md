@@ -75,9 +75,10 @@ and what was deliberately kept apart, and what would break if the seams moved.
 
 ## Details
 
-<!-- TEMPLATE-DIRECTIVE: Links to level 3 section documents, if any exist. MOST SYSTEMS HAVE
-     NONE - delete this whole section rather than inventing entries for it. Create a section
-     document only when the subject meets a creation test in architecture-documentation.md.
+<!-- TEMPLATE-DIRECTIVE: Links to child section documents at any depth, if any exist. A node
+     earns children only when subdividing benefits the organization - delete this whole section
+     rather than inventing entries for it. Create a section document only when subdividing earns
+     its place through clarity of structure, conformity, or size, per architecture-documentation.md.
      Remove this block. -->
 
 - [{Section Name}](./{system-name}/{section-name}.md) — TODO: one-line subject

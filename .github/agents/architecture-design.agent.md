@@ -139,7 +139,7 @@ Write the tree directly into the repository:
 - `docs/architecture/overview.md` — system inventory, interactions, repository-wide decisions
 - `docs/architecture/{system}.md` — one per system, each with a `## Contract`
 - `docs/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
-  genuine non-obvious specific meeting a creation test
+  genuine non-obvious specific that earns its place under the benefit test
 
 Also update `README.md` to the shape the template gives it — product, features, requirements, how it
 works, assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer:
@@ -171,8 +171,9 @@ Before writing anything, list every file you will create, update, and delete, an
 confirmation on that list. "Shall I write the tree?" is not enough warning that existing files are
 about to change.
 
-**Resist creating section documents.** Most systems need none at the outset. Anything speculative
-will be pruned later at a cost; write it only if you can name which creation test it meets.
+**Resist creating section documents.** A node earns children only when subdividing benefits the
+organization. Anything speculative will be pruned later at a cost; write a child only when subdividing
+benefits clarity of structure, conformity, or size.
 
 Contract clauses at this stage will not yet have tests. Name the test each clause **will** be
 verified by, and list those tests as implementation obligations in the report.
