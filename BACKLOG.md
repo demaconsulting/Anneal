@@ -93,3 +93,11 @@ where `architecture-design` will read them. See the Intake admission test in
   list whose every entry has been retired. Those repositories keep the old list until then, which
   still sits awkwardly beside the *Model configuration is data, not code* decision in `toolkit.md`.
   Narrowed, not solved.
+- **Give the remaining single-name compiled-in defaults a rearguard** — two shipped defaults still
+  name one external identifier each, so each is a dead man's switch of the kind the *No compiled-in
+  default may name a single external identifier* constraint describes. The Copilot SDK's
+  `is_override` tool key has no repository override at all: if it is renamed, every granted tool
+  collides with a built-in and presents as a tool that is simply never called. The `trx` result
+  format and the xUnit `Fact` and `Theory` attribute names are overridable by a discovery profile,
+  but a repository that has not written one inherits the single names. Neither is held by anything but
+  this note.

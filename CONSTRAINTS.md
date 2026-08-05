@@ -69,3 +69,6 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   [prompt-authoring.md](docs/architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
   mechanical half at stage S1a of [MIGRATION.md](MIGRATION.md) — whether a cited quote really is at the
   line named — leaving the prompt obligation to state the basis still outstanding.
+- **No compiled-in default may name a single external identifier whose retirement breaks every
+  repository that has not overridden it** — a default naming one provider-side name works until that
+  name is retired, and then fails everywhere at once with only a release to fix it.
