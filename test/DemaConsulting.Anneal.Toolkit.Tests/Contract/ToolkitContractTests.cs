@@ -328,6 +328,13 @@ public class ToolkitContractTests
     ///     cause, never falling back to a deterministic approximation, while the deterministic operation keeps
     ///     working with no model reachable.
     /// </summary>
+    /// <remarks>
+    ///     Two ways of having no model are asserted, because they are different causes and a caller can only act
+    ///     on the one they are told. An account that cannot be reached at all is named as that. An account that
+    ///     answers, and offers none of the models the role's candidates name, is a retirement rather than an
+    ///     outage — so that message names the role, every candidate tried in order, and the configuration file
+    ///     to change them in, which is what makes a retired-everything role a one-line fix instead of a mystery.
+    /// </remarks>
     [Fact]
     public async Task UnreachableModelFailsLoudly()
     {
@@ -348,6 +355,15 @@ public class ToolkitContractTests
                 [new VerifyEvidenceOperation(root)],
                 TestContext.Current.CancellationToken);
 
+            // Act: and again against an account that answers but offers none of the role's candidates
+            WriteModelConfiguration(
+                root,
+                ["a-retired-light-model", "another-retired-light-model"],
+                ["a-retired-medium-model"],
+                ["a-retired-heavy-model"]);
+            var retired = await RunProbe(
+                root, "unused", "unused", ["a-model-this-repository-never-named"]);
+
             // Assert: the failure names the cause and claims nothing, and the deterministic check is unaffected
             Assert.Multiple(
                 () => Assert.Contains("no judgement was obtained", probe.Output, StringComparison.Ordinal),
@@ -355,7 +371,16 @@ public class ToolkitContractTests
                 () => Assert.DoesNotContain("  owner: ", probe.Output, StringComparison.Ordinal),
                 () => Assert.DoesNotContain("evidence: ", probe.Output, StringComparison.Ordinal),
                 () => Assert.Equal(AnnealTool.ExitSuccess, evidenceExit),
-                () => Assert.Contains("1 present, 0 absent.", evidenceOutput.ToString(), StringComparison.Ordinal));
+                () => Assert.Contains("1 present, 0 absent.", evidenceOutput.ToString(), StringComparison.Ordinal),
+
+                // A role whose every candidate has been retired fails, and says which role, what was tried,
+                // and where to change it.
+                () => Assert.Contains("no judgement was obtained", retired.Output, StringComparison.Ordinal),
+                () => Assert.Contains("Medium", retired.Output, StringComparison.Ordinal),
+                () => Assert.Contains("a-retired-medium-model", retired.Output, StringComparison.Ordinal),
+                () => Assert.Contains(".anneal/config.json", retired.Output, StringComparison.Ordinal),
+                () => Assert.Empty(retired.Reasoning.Requests),
+                () => Assert.DoesNotContain("  owner: ", retired.Output, StringComparison.Ordinal));
         }
         finally
         {
@@ -844,6 +869,13 @@ public class ToolkitContractTests
     ///         that edit, and an assertion that only read the configured value back would pass whether or not
     ///         anything used it.
     ///     </para>
+    ///     <para>
+    ///         A role names an ordered list, so "resolves through configuration" now also means resolving to the
+    ///         first candidate the account is offered. That is asserted the same way: the leading candidate is
+    ///         retired from the offered set and the next one has to answer. The negative half matters at least
+    ///         as much — every model that reached the seam on every run is checked to be one the file named, so
+    ///         availability cannot have introduced a model the repository never asked for.
+    ///     </para>
     /// </remarks>
     [Fact]
     public async Task OperationRolesResolveThroughConfiguration()
@@ -857,14 +889,35 @@ public class ToolkitContractTests
             var probing = new ProbeRuleOwnerOperation(root);
             var deterministic = new VerifyEvidenceOperation(root);
 
-            // Arrange: a repository that names its own models, none of which the Toolkit ships as a default
-            WriteModelConfiguration(root, "a-named-light-model", "a-named-medium-model", "a-named-heavy-model");
+            // Arrange: a repository that names its own candidates, none of which the Toolkit ships as a default
+            WriteModelConfiguration(
+                root,
+                ["a-named-light-model", "a-spare-light-model"],
+                ["a-named-medium-model", "a-spare-medium-model"],
+                ["a-named-heavy-model"]);
 
             // Act: the same operation, run once against that configuration and once against an edited one
             var configured = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
 
-            WriteModelConfiguration(root, "a-replacement-light-model", "a-replacement-medium-model", "unused");
+            WriteModelConfiguration(
+                root,
+                ["a-replacement-light-model"],
+                ["a-replacement-medium-model"],
+                ["unused"]);
             var reconfigured = await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
+
+            // Act: and once where the account no longer offers each role's leading candidate, so the rearguard
+            // behind it is what has to answer
+            WriteModelConfiguration(
+                root,
+                ["a-retired-light-model", "a-surviving-light-model"],
+                ["a-retired-medium-model", "a-surviving-medium-model"],
+                ["a-retired-heavy-model", "a-surviving-heavy-model"]);
+            var retired = await RunProbe(
+                root,
+                "owner.md states it.",
+                Answer("SingleOwner", "owner.md"),
+                ["a-surviving-light-model", "a-surviving-medium-model", "a-surviving-heavy-model", "a-bystander"]);
 
             // Act: and once against a repository that configures nothing at all
             File.Delete(Path.Combine(root, ModelConfiguration.RelativePath.Replace('/', Path.DirectorySeparatorChar)));
@@ -896,13 +949,33 @@ public class ToolkitContractTests
                     reconfigured.Probing.Requests,
                     request => Assert.Equal("a-replacement-light-model", request.Model)),
 
+                // A leading candidate the account is not offered is skipped, and the next one serves the role.
+                () => Assert.All(
+                    retired.Reasoning.Requests,
+                    request => Assert.Equal("a-surviving-medium-model", request.Model)),
+                () => Assert.All(
+                    retired.Probing.Requests,
+                    request => Assert.Equal("a-surviving-light-model", request.Model)),
+
+                // And nothing the account merely offers can be selected: only what the file named.
+                () => Assert.All(
+                    retired.Reasoning.Requests.Concat(retired.Probing.Requests),
+                    request => Assert.Contains(
+                        request.Model,
+                        new[]
+                        {
+                            "a-retired-light-model", "a-surviving-light-model",
+                            "a-retired-medium-model", "a-surviving-medium-model",
+                            "a-retired-heavy-model", "a-surviving-heavy-model"
+                        })),
+
                 // A repository that configures nothing still resolves, to the shipped defaults.
                 () => Assert.All(
                     defaulted.Reasoning.Requests,
-                    request => Assert.Equal(ModelConfiguration.Default.Medium, request.Model)),
+                    request => Assert.Equal(ModelConfiguration.Default.Medium[0], request.Model)),
                 () => Assert.All(
                     defaulted.Probing.Requests,
-                    request => Assert.Equal(ModelConfiguration.Default.Light, request.Model)),
+                    request => Assert.Equal(ModelConfiguration.Default.Light[0], request.Model)),
 
                 // And the roles were genuinely distinct, so "resolution" is not one model reached three ways.
                 () => Assert.NotEmpty(configured.Reasoning.Requests),
@@ -1101,6 +1174,12 @@ public class ToolkitContractTests
     ///         the public surface is checked to have no construction path that omits the destination, which is
     ///         what makes leaving capture off impossible to state rather than merely unusual.
     ///     </para>
+    ///     <para>
+    ///         The model recorded is the candidate that answered. Each role here leads with a candidate the
+    ///         account is not offered, so a transcript naming the configured first choice would be recording
+    ///         what was asked for rather than what served the judgement — which is the one thing this evidence
+    ///         exists to settle.
+    ///     </para>
     /// </remarks>
     [Fact]
     public async Task ModelInteractionsAreTranscribed()
@@ -1109,11 +1188,19 @@ public class ToolkitContractTests
         try
         {
             File.WriteAllText(Path.Combine(root, "owner.md"), "Each rule has exactly one owner.");
-            WriteModelConfiguration(root, "a-transcribed-light-model", "a-transcribed-medium-model", "unused");
+
+            // A retired candidate leads each role, so the model in the transcript can only be the one that
+            // actually answered - not the one the configuration happens to name first.
+            WriteModelConfiguration(
+                root,
+                ["a-retired-light-model", "a-transcribed-light-model"],
+                ["a-retired-medium-model", "a-transcribed-medium-model"],
+                ["unused"]);
+            string[] offered = ["a-transcribed-light-model", "a-transcribed-medium-model"];
 
             // Act: an interaction that answered, one that refused, and one that never reached a model
-            await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"));
-            await RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""));
+            await RunProbe(root, "owner.md states it.", Answer("SingleOwner", "owner.md"), offered);
+            await RunProbe(root, "Two files state it.", Answer("StatedInSeveralPlaces", ""), offered);
             await RunProbe(root, "unreachable", Answer("SingleOwner", "owner.md"), reachable: false);
 
             var transcripts = ReadRecords(RecordStore.TranscriptsPathFor(root));
@@ -1144,10 +1231,15 @@ public class ToolkitContractTests
                 () => Assert.All(replied, entry => Assert.False(string.IsNullOrEmpty(Text(entry, "reply")))),
                 () => Assert.Contains(replied, entry => Text(entry, "reply").Contains("SingleOwner", StringComparison.Ordinal)),
 
-                // The model consulted, named concretely rather than by the role that resolved to it.
+                // The model consulted, named concretely rather than by the role that resolved to it, and named
+                // as the candidate that actually answered rather than the one listed first.
                 () => Assert.All(transcripts, entry => Assert.False(string.IsNullOrEmpty(Text(entry, "model")))),
                 () => Assert.Contains(replied, entry => Text(entry, "model") == "a-transcribed-medium-model"),
                 () => Assert.Contains(replied, entry => Text(entry, "model") == "a-transcribed-light-model"),
+                () => Assert.All(
+                    replied,
+                    entry => Assert.DoesNotContain(
+                        "a-retired-", Text(entry, "model"), StringComparison.Ordinal)),
                 () => Assert.All(
                     transcripts,
                     entry => Assert.Contains(Text(entry, "role"), Enum.GetNames<ModelRole>())),
@@ -1186,18 +1278,28 @@ public class ToolkitContractTests
     }
 
     /// <summary>
-    ///     Writes the repository's role-to-model configuration, as a repository substituting a model does.
+    ///     Writes the repository's role-to-candidates configuration, as a repository substituting a model does.
     /// </summary>
-    private static void WriteModelConfiguration(string root, string light, string medium, string heavy)
+    /// <remarks>
+    ///     Each role names an ordered list, because that is the only form the file has: a role resolves to the
+    ///     first candidate the account is offered, so a test that wrote a bare name would be writing a format
+    ///     nothing reads.
+    /// </remarks>
+    private static void WriteModelConfiguration(
+        string root, string[] light, string[] medium, string[] heavy)
     {
         var path = Path.Combine(root, ModelConfiguration.RelativePath.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(
             path,
             $$"""
-              {"models": {"light": "{{light}}", "medium": "{{medium}}", "heavy": "{{heavy}}" } }
+              {"models": {"light": {{List(light)}}, "medium": {{List(medium)}}, "heavy": {{List(heavy)}} } }
               """);
     }
+
+    /// <returns>A JSON array of the given names, as the configuration file states a role's candidates.</returns>
+    private static string List(params string[] names) =>
+        "[" + string.Join(", ", names.Select(name => $"\"{name}\"")) + "]";
 
     /// <summary>
     ///     Reads an appended record stream back as structured data, which is the only way these clauses may be
@@ -1273,15 +1375,34 @@ public class ToolkitContractTests
     private static Task<ProbeRun> RunProbe(string root, string reasoningReply, params string[] probeReplies) =>
         RunProbe(root, reasoningReply, probeReplies, reachable: true);
 
+    /// <summary>
+    ///     Runs the probe against an account that is offered exactly the named models, so a test can retire a
+    ///     candidate and watch the role land on the next one.
+    /// </summary>
+    private static Task<ProbeRun> RunProbe(
+        string root, string reasoningReply, string probeReply, string[] offered) =>
+        RunProbe(root, reasoningReply, [probeReply], reachable: true, offered);
+
     private static Task<ProbeRun> RunProbe(string root, string reasoningReply, string probeReply, bool reachable) =>
         RunProbe(root, reasoningReply, [probeReply], reachable);
 
     private static async Task<ProbeRun> RunProbe(
-        string root, string reasoningReply, string[] probeReplies, bool reachable)
+        string root,
+        string reasoningReply,
+        string[] probeReplies,
+        bool reachable,
+        IReadOnlyCollection<string>? offered = null)
     {
-        var reasoning = new ScriptedEndpoint(reasoningReply);
-        var probing = new ScriptedEndpoint(probeReplies);
-        var openEnded = new ScriptedEndpoint("the open-ended tier is not consulted by this operation");
+        // Empty is "the provider stated nothing", which leaves every role on its first candidate - the shape
+        // every test that is not about availability wants.
+        var offers = offered ?? [];
+
+        var reasoning = new ScriptedEndpoint(reasoningReply) { Offers = offers };
+        var probing = new ScriptedEndpoint(probeReplies) { Offers = offers };
+        var openEnded = new ScriptedEndpoint("the open-ended tier is not consulted by this operation")
+        {
+            Offers = offers
+        };
 
         var unreachable = new UnreachableEndpoint();
         var endpointFor = reachable
@@ -1329,6 +1450,18 @@ public class ToolkitContractTests
 
         public List<ChatTurnRequest> Requests { get; } = [];
 
+        /// <summary>
+        ///     The models this endpoint's account is offered, or empty to state nothing — which is what a test
+        ///     about something other than availability says, and which leaves a role on its first candidate.
+        /// </summary>
+        public IReadOnlyCollection<string> Offers { get; init; } = [];
+
+        /// <summary>
+        ///     How many times this endpoint was asked what it offers, so a test can assert that a run which
+        ///     consulted no model asked nothing.
+        /// </summary>
+        public int Enumerations { get; private set; }
+
         public Task<ChatTurnResult> CompleteAsync(ChatTurnRequest request, CancellationToken cancellationToken)
         {
             // A real endpoint checks before it spends anything, and so does this one: a turn sent under an
@@ -1339,6 +1472,14 @@ public class ToolkitContractTests
             return Task.FromResult(new ChatTurnResult(
                 _replies.Count > 0 ? _replies.Dequeue() : "(script exhausted)",
                 new ModelUsage(ReportedInputTokens, ReportedOutputTokens)));
+        }
+
+        public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Enumerations++;
+            return Task.FromResult(Offers);
         }
     }
 
@@ -1379,6 +1520,13 @@ public class ToolkitContractTests
             Replied = true;
             return new ChatTurnResult("a reply this endpoint never produces");
         }
+
+        /// <remarks>
+        ///     States nothing, so the role under test resolves on its first candidate and the turn this endpoint
+        ///     exists to leave hanging is reached.
+        /// </remarks>
+        public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<string>>([]);
     }
 
     /// <remarks>
@@ -1424,9 +1572,17 @@ public class ToolkitContractTests
         }
     }
 
+    /// <remarks>
+    ///     An account that cannot be reached at all: the availability enquiry fails as the turn would, which is
+    ///     the case that must not become a gate — the run proceeds on its first candidate and fails on the turn,
+    ///     naming the real cause rather than an availability verdict.
+    /// </remarks>
     private sealed class UnreachableEndpoint : IChatEndpoint
     {
         public Task<ChatTurnResult> CompleteAsync(ChatTurnRequest request, CancellationToken cancellationToken) =>
+            throw new ModelUnavailableException("the Copilot account is not signed in on this machine");
+
+        public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken) =>
             throw new ModelUnavailableException("the Copilot account is not signed in on this machine");
     }
 

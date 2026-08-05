@@ -9,17 +9,20 @@ namespace DemaConsulting.Anneal.Toolkit.Model;
 /// </summary>
 /// <remarks>
 ///     This is the seam that keeps every operation model-agnostic: a call asks for a <see cref="ModelRole" />
-///     and never names a model. The model behind a role comes from the repository's own configuration file, so
-///     substituting one is an edit a repository makes rather than a Toolkit release — which is why this type is
-///     built from a repository root and not from a mapping a caller hands it. An operation that could supply its
-///     own mapping would be an operation that had resolved the role itself.
+///     and never names a model. The candidates behind a role come from the repository's own configuration file,
+///     so substituting one is an edit a repository makes rather than a Toolkit release — which is why this type
+///     is built from a repository root and not from a mapping a caller hands it. An operation that could supply
+///     its own mapping would be an operation that had resolved the role itself. Which candidate answers is
+///     settled by asking the provider what the account is offered, and only at the moment a turn is sent.
 ///     <para>
 ///         It is also where a repository's model transcripts are destined. There is exactly one way to construct
 ///         this type and it requires the repository whose transcripts are being kept, so there is no
 ///         construction path — and therefore no flag, argument or configuration key — that leaves capture off.
 ///     </para>
 ///     <para>
-///         Thread safety: immutable after construction and safe to share, provided the resolved endpoints are.
+///         Thread safety: <em>not</em> safe for concurrent use. A role's resolution is memoized on first use, so
+///         two threads resolving at once would race the cache. One instance per operation, which is how every
+///         operation already builds it.
 ///     </para>
 /// </remarks>
 public sealed class ModelRoles
@@ -33,6 +36,12 @@ public sealed class ModelRoles
 
     private readonly Func<ModelRole, IChatEndpoint> _endpointFor;
     private readonly ModelConfiguration _configuration;
+
+    /// <remarks>
+    ///     One resolution per role per instance. The offered set does not change under a running invocation, and
+    ///     a role resolved once per turn would pay a round trip for an answer it already had.
+    /// </remarks>
+    private readonly Dictionary<ModelRole, string> _resolved = [];
 
     /// <summary>
     ///     Binds the capability roles for a repository, reading the models behind them from that repository's
@@ -93,12 +102,104 @@ public sealed class ModelRoles
     };
 
     /// <summary>
-    ///     Returns the concrete model the repository's configuration puts behind a role.
+    ///     Returns the candidate models the repository's configuration puts behind a role, most preferred first.
     /// </summary>
+    /// <remarks>
+    ///     Exposed alongside <see cref="ResolveModelAsync" /> so a caller can see what a role was allowed to
+    ///     choose from without provoking the enquiry that chooses. Reading it makes no provider call.
+    /// </remarks>
     /// <param name="role">The requested capability tier.</param>
-    /// <returns>The configured model name for that tier.</returns>
+    /// <returns>The configured candidates for that tier. Never empty.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="role" /> is not a defined role.</exception>
-    public string ModelFor(ModelRole role) => _configuration.ModelFor(role);
+    public IReadOnlyList<string> CandidatesFor(ModelRole role) => _configuration.CandidatesFor(role);
+
+    /// <summary>
+    ///     Resolves a role to the first of its configured candidates the account is actually offered.
+    /// </summary>
+    /// <remarks>
+    ///     This is the only place the provider is asked what it offers, and it is called only when a turn is
+    ///     about to be sent. Nothing resolves in a constructor and nothing resolves eagerly, so a deterministic
+    ///     operation — one that consults no model — makes no provider call and acquires no network dependency.
+    ///     That separation is why the deterministic checks are the ones that may gate a build.
+    ///     <para>
+    ///         Availability is asked about and never inferred from a failed call: the seam flattens every
+    ///         provider-side error into one exception, so falling back on failure would silently downgrade a
+    ///         heavy-role judgement whenever the network hiccuped.
+    ///     </para>
+    ///     <para>
+    ///         The result is memoized per role, so a multi-turn conversation enquires once.
+    ///     </para>
+    /// </remarks>
+    /// <param name="role">The requested capability tier.</param>
+    /// <param name="cancellationToken">Token that cancels the availability enquiry.</param>
+    /// <returns>The concrete model that will answer for that role.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="role" /> is not a defined role.</exception>
+    /// <exception cref="ModelUnavailableException">
+    ///     Thrown when the provider states what it offers and none of the role's candidates is among them. The
+    ///     message names the role, the candidates tried in order, and the configuration file to change them in.
+    /// </exception>
+    public async Task<string> ResolveModelAsync(ModelRole role, CancellationToken cancellationToken)
+    {
+        if (!Enum.IsDefined(role))
+            throw new ArgumentOutOfRangeException(nameof(role), role, "Unknown model role.");
+
+        if (_resolved.TryGetValue(role, out var already))
+            return already;
+
+        var candidates = _configuration.CandidatesFor(role);
+        var offered = await OfferedByAsync(_endpointFor(role), cancellationToken).ConfigureAwait(false);
+
+        var selected = Select(role, candidates, offered);
+        _resolved[role] = selected;
+        return selected;
+    }
+
+    /// <remarks>
+    ///     A failed enquiry is not a gate. Enumeration exists to stop the Toolkit guessing at a retired model,
+    ///     so treating its failure as a failed resolution would turn an optimization into a new way for a
+    ///     working run to stop — and the fault that broke the enquiry will break the turn a moment later, where
+    ///     it is reported with the cause it actually had. An empty answer means "nothing was established" and
+    ///     leads to the same first-candidate guess the Toolkit made before this enquiry existed. Cancellation is
+    ///     not swallowed: a caller who withdrew is not a provider that could not answer.
+    /// </remarks>
+    private static async Task<IReadOnlyCollection<string>> OfferedByAsync(
+        IChatEndpoint endpoint, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await endpoint.AvailableModelsAsync(cancellationToken).ConfigureAwait(false) ?? [];
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    /// <remarks>
+    ///     Only a provider that named something can convict a candidate of absence, which is why an empty
+    ///     offered set takes the first candidate rather than throwing: silence is not a statement that the
+    ///     account has no models.
+    /// </remarks>
+    private static string Select(ModelRole role, IReadOnlyList<string> candidates, IReadOnlyCollection<string> offered)
+    {
+        if (offered.Count == 0)
+            return candidates[0];
+
+        var available = candidates.FirstOrDefault(offered.Contains);
+        if (available is not null)
+            return available;
+
+        // Loud, and one line away from fixed: a role whose every candidate has been retired is a real state,
+        // and the message says which role, what was tried, and where to change it.
+        throw new ModelUnavailableException(
+            $"the {role} role has no available model: none of its candidates " +
+            $"{string.Join(", ", candidates.Select(candidate => $"'{candidate}'"))} " +
+            $"is offered to this account. Name a model the account has in '{ModelConfiguration.RelativePath}'.");
+    }
 
     /// <summary>
     ///     Returns the endpoint that drives a role.

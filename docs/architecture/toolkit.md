@@ -221,6 +221,63 @@ not. Defaults are compiled in, and a repository changes the models behind its ro
 `.anneal/config.json` over them, without a Toolkit release. The rejected alternative, model names in
 the contract, would make every model substitution a contract change.
 
+**A role names an ordered list of candidates, and the first one the account offers answers** — both
+the compiled-in defaults and `.anneal/config.json` map a role to candidates in preference order, and
+the role resolves by asking the provider which models the account is offered and taking the first
+candidate present. The forcing case is rot rather than choice: a compiled-in default naming a single
+model breaks every repository that has not written its own config the day that model is retired, and
+only a Toolkit release fixes it — which is already live, since one compiled-in default names a model
+the account no longer offers at all. An ordered list lets a newer model lead with an older one held
+as a rearguard, so a retirement degrades instead of breaking. The rejected alternative was a
+failure-triggered fallback chain — try a candidate, and on error try the next. It was rejected
+because the model seam deliberately flattens every provider-side error into one unavailability
+failure and so cannot tell a retired model from a rate limit, an expired credential or a transport
+fault; falling back on failure would silently downgrade a heavy-role judgement to a lighter model
+whenever the network hiccuped, which is the same silently-weakened answer *Offline is a failure, not
+a degraded mode* refuses. Availability is asked about, never inferred from a failure, and that error
+flattening is not being changed to accommodate this. Configuration remains the only source of
+candidates, so `TOOLKIT-05` is unchanged: the operation still has no say in which model answers, and
+no model outside the repository's configured set can ever be selected.
+
+**The configuration format changed outright, and the old form fails loudly** — a repository still
+holding the single-name form (`"light": "gpt-5.4-mini"`) no longer loads: a role is a list now, so
+the old file stops working. It stops with the same unavailability failure a missing model raises,
+naming what could not be resolved, rather than substituting a model silently — the loudness is the
+point, and it is the same reasoning that already makes a file which exists but cannot be parsed an
+error instead of a fallback to defaults. This is a **breaking change** in the sense
+`system-contracts.md` defines, and it is admitted rather than softened, for the same reason a
+tolerant parser accepting both forms was declined rather than written: nothing is published, the
+tool is pinned `0.1.0-dev`, and there is no installed base to protect, so carrying two formats
+forever would buy nobody anything.
+
+**Availability is asked lazily, and a failed enquiry is not a gate** — the enquiry happens only when
+a role is actually being resolved for use, so a run that consults no model makes no such call and a
+deterministic check acquires no network dependency; that separation is the whole reason Composition
+keeps deterministic checks apart from model-backed work. When the enquiry itself fails, resolution
+falls back to the first configured candidate and the call succeeds or fails on its own terms.
+Treating a failed enquiry as a failed resolution was rejected because it would convert an
+optimization over guessing into a new way for a working run to stop. A role whose candidates are all
+absent from the offered set is a different case and does stop, under `TOOLKIT-07`, naming the role,
+the candidates tried and `.anneal/config.json` as the place to change them.
+
+**The model seam breaks at compile time, and the break is taken now** — `IChatEndpoint` gains a
+**required** member, the availability enquiry, and single-model lookup gives way to candidate lookup
+and asynchronous resolution. That is a **breaking change** to any external implementer of the seam,
+in the sense `system-contracts.md` defines, and a compile-time one exactly as requiring `Usage` and
+the asynchronous operation boundary were. It is admitted for the reason those were: nothing is
+published, the tool is pinned `0.1.0-dev`, and there is no installed base to protect. A defaulted
+enquiry answering "everything is offered" was rejected on the same grounds a defaulted `Usage` was —
+it would leave a seam implementable that cannot answer the question resolution rests on, and
+resolution would then be guessing while the contract claimed it asks.
+
+**Availability-based resolution is a new exposure on `TOOLKIT-I3`, and is recorded rather than
+hidden** — which model answers now depends on the calling account's entitlements, which are not part
+of the repository input, so two runs over identical files could in principle resolve a role to
+different models and an enforcement operation built on model judgement could differ. The exposure is
+real, is admitted here, and is not a reason to prefer the single compiled-in model it replaces: that
+shape does not make the verdict reproducible, it only makes the failure total when the model is
+retired. `TOOLKIT-I3` is left stated as it is, with its obligation open.
+
 **The schema is a prompt-level hint, not a transport guarantee** — the Copilot session API offers no
 constrained-decode facility, so a typed response rests on a described schema, tolerant extraction of the
 object body, and a retry that shows the model its own parse error. This is weaker than a provider that

@@ -4,18 +4,39 @@ using System.Text.Json.Serialization;
 namespace DemaConsulting.Anneal.Toolkit.Model;
 
 /// <summary>
-///     The model behind each capability role, read from a repository's own configuration file.
+///     The candidate models behind each capability role, in preference order, read from a repository's own
+///     configuration file.
 /// </summary>
 /// <remarks>
 ///     Roles appear in the Toolkit's contract; the models behind them do not. Keeping the mapping in a file a
 ///     repository owns means substituting a model is an edit, not a Toolkit release — and it means this type
 ///     holds names only, never credentials: the provider authenticates as the ambient Copilot account of the
 ///     calling session, so there is no token to configure and deliberately nowhere to put one.
+///     <para>
+///         A role names a list rather than a single model because the forcing case is rot rather than choice. A
+///         single name breaks every repository that has not written its own configuration the day the provider
+///         retires that model, and only a Toolkit release fixes it. An ordered list lets a newer model lead with
+///         an older one held as a rearguard, so a retirement degrades instead of breaking. Which candidate
+///         actually answers is settled elsewhere, by asking the provider what the account is offered — never by
+///         calling a model and reading a failure, which cannot tell a retired model from a rate limit.
+///     </para>
+///     <para>
+///         Thread safety: immutable and safe to share.
+///     </para>
 /// </remarks>
-/// <param name="Light">The model serving <see cref="ModelRole.Light" />. Never null or blank.</param>
-/// <param name="Medium">The model serving <see cref="ModelRole.Medium" />. Never null or blank.</param>
-/// <param name="Heavy">The model serving <see cref="ModelRole.Heavy" />. Never null or blank.</param>
-public sealed record ModelConfiguration(string Light, string Medium, string Heavy)
+/// <param name="Light">
+///     The candidates serving <see cref="ModelRole.Light" />, most preferred first. Never null and never empty.
+/// </param>
+/// <param name="Medium">
+///     The candidates serving <see cref="ModelRole.Medium" />, most preferred first. Never null and never empty.
+/// </param>
+/// <param name="Heavy">
+///     The candidates serving <see cref="ModelRole.Heavy" />, most preferred first. Never null and never empty.
+/// </param>
+public sealed record ModelConfiguration(
+    IReadOnlyList<string> Light,
+    IReadOnlyList<string> Medium,
+    IReadOnlyList<string> Heavy)
 {
     /// <summary>
     ///     The path, relative to a repository root, of the file this configuration is read from.
@@ -25,14 +46,16 @@ public sealed record ModelConfiguration(string Light, string Medium, string Heav
     private static readonly JsonSerializerOptions ReadOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>
-    ///     Reads the role-to-model mapping for a repository, falling back to the built-in defaults for anything
-    ///     the repository does not state.
+    ///     Reads the role-to-candidates mapping for a repository, falling back to the built-in defaults for
+    ///     anything the repository does not state.
     /// </summary>
     /// <remarks>
     ///     A missing file is not an error: a repository that is content with the defaults should not have to
     ///     carry a file saying so. A file that exists but cannot be read or parsed is an error, because the
     ///     alternative — silently running against different models than the file names — is the kind of
-    ///     invisible substitution this system treats as worse than stopping.
+    ///     invisible substitution this system treats as worse than stopping. A role naming an empty list is
+    ///     treated as a role the file omits, for the same reason an absent one is: an empty list states no
+    ///     preference, and the defaults are the stated preference of last resort.
     /// </remarks>
     /// <param name="repositoryRoot">
     ///     The repository root the relative configuration path is resolved against. Must not be null or blank.
@@ -64,28 +87,32 @@ public sealed record ModelConfiguration(string Light, string Medium, string Heav
 
         var models = document?.Models;
         return new ModelConfiguration(
-            Blank(models?.Light) ? Default.Light : models!.Light!,
-            Blank(models?.Medium) ? Default.Medium : models!.Medium!,
-            Blank(models?.Heavy) ? Default.Heavy : models!.Heavy!);
+            Candidates(models?.Light, Default.Light),
+            Candidates(models?.Medium, Default.Medium),
+            Candidates(models?.Heavy, Default.Heavy));
     }
 
     /// <summary>
     ///     The mapping used by a repository that ships no configuration file.
     /// </summary>
     /// <remarks>
-    ///     The defaults name a small, a mid and a large model rather than pointing every role at one, so that a
+    ///     The defaults name a small, a mid and a large tier rather than pointing every role at one, so that a
     ///     repository which never writes a configuration file still gets the cost shape the roles exist to
-    ///     express.
+    ///     express. Each tier leads with the newest model of its size and keeps an older one behind it as a
+    ///     rearguard, so a retirement costs a repository the newer model rather than the whole role.
     /// </remarks>
-    public static ModelConfiguration Default { get; } = new("gpt-5.4-mini", "gpt-5.4", "claude-sonnet-4.5");
+    public static ModelConfiguration Default { get; } = new(
+        ["gpt-5.4-mini", "gpt-5.4"],
+        ["gpt-5.5", "gpt-5.4"],
+        ["claude-sonnet-4.6", "claude-sonnet-5", "gpt-5.5"]);
 
     /// <summary>
-    ///     Returns the model serving a role.
+    ///     Returns the candidate models serving a role, most preferred first.
     /// </summary>
     /// <param name="role">The capability tier.</param>
-    /// <returns>The configured model name for that tier.</returns>
+    /// <returns>The configured candidates for that tier. Never empty.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="role" /> is not a defined role.</exception>
-    public string ModelFor(ModelRole role) => role switch
+    public IReadOnlyList<string> CandidatesFor(ModelRole role) => role switch
     {
         ModelRole.Light => Light,
         ModelRole.Medium => Medium,
@@ -93,7 +120,19 @@ public sealed record ModelConfiguration(string Light, string Medium, string Heav
         _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Unknown model role.")
     };
 
-    private static bool Blank(string? value) => string.IsNullOrWhiteSpace(value);
+    /// <remarks>
+    ///     Blank entries are dropped rather than carried, so a placeholder left in the file cannot become a
+    ///     candidate no provider will ever offer — which the loud failure would then name back to the reader as
+    ///     though the repository had meant it.
+    /// </remarks>
+    private static IReadOnlyList<string> Candidates(IReadOnlyList<string>? stated, IReadOnlyList<string> fallback)
+    {
+        if (stated is null)
+            return fallback;
+
+        var named = stated.Where(entry => !string.IsNullOrWhiteSpace(entry)).ToArray();
+        return named.Length == 0 ? fallback : named;
+    }
 
     /// <remarks>
     ///     Modeled as a nested document rather than a flat one so the file has room to grow a sibling section
@@ -107,10 +146,10 @@ public sealed record ModelConfiguration(string Light, string Medium, string Heav
 
     private sealed record RoleModels
     {
-        public string? Light { get; init; }
+        public string[]? Light { get; init; }
 
-        public string? Medium { get; init; }
+        public string[]? Medium { get; init; }
 
-        public string? Heavy { get; init; }
+        public string[]? Heavy { get; init; }
     }
 }

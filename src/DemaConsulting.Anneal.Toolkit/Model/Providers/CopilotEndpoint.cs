@@ -30,8 +30,9 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Providers;
 ///     </para>
 ///     <para>
 ///         Thread safety: safe to reuse across sequential calls; the underlying client is started once under a
-///         gate. Only <see cref="CompleteAsync" /> touches the network — construction does not, which is what
-///         keeps <see cref="BuildSessionConfig" /> a thing a test can assert offline.
+///         gate. Only <see cref="CompleteAsync" /> and <see cref="AvailableModelsAsync" /> touch the network —
+///         construction does not, which is what keeps <see cref="BuildSessionConfig" /> a thing a test can
+///         assert offline.
 ///     </para>
 /// </remarks>
 public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
@@ -78,6 +79,40 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
                 $"no model could be reached through the GitHub Copilot SDK using model '{request.Model}': " +
                 exception.Message,
                 exception);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     Answered from the SDK's own model list, which is what the account is entitled to drive rather than
+    ///     what the provider has ever published. The SDK caches the list internally, so asking on each role
+    ///     resolution costs one round trip per process rather than one per turn.
+    ///     <para>
+    ///         A failed enquiry answers empty rather than throwing. Enumeration is an optimization over
+    ///         guessing: turning its failure into a failed resolution would convert a working run into a stopped
+    ///         one for a question the run did not need answered — and whatever stopped the enquiry will stop
+    ///         <see cref="CompleteAsync" /> a moment later, where it is reported with the cause it actually had
+    ///         rather than as an availability verdict.
+    ///     </para>
+    /// </remarks>
+    public async Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await EnsureStartedAsync(cancellationToken).ConfigureAwait(false);
+
+            var models = await _client.ListModelsAsync(cancellationToken).ConfigureAwait(false);
+            return [.. models.Select(model => model.Id).Where(id => !string.IsNullOrWhiteSpace(id))];
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Deliberately broad, and deliberately not translated into ModelUnavailableException: this method
+            // reports what is offered, and "nothing could be established" is an answer it is allowed to give.
+            return [];
         }
     }
 

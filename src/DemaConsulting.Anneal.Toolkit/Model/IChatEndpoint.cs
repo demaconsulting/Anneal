@@ -24,10 +24,10 @@ namespace DemaConsulting.Anneal.Toolkit.Model;
 ///     rather than trusting the model to stop. Must be greater than zero.
 /// </param>
 /// <param name="Model">
-///     The concrete model to drive, which the caller's capability role resolved to through the repository's own
-///     configuration. Must not be null or blank. It travels with the turn rather than being fixed when an
-///     endpoint is built, because the role-to-model mapping is data a repository owns and one provider serves
-///     every role.
+///     The concrete model to drive: the candidate the caller's capability role resolved to, having been found
+///     among those the account is offered. Must not be null or blank. It travels with the turn rather than being
+///     fixed when an endpoint is built, because the role-to-candidates mapping is data a repository owns and one
+///     provider serves every role.
 /// </param>
 public sealed record ChatTurnRequest(
     IReadOnlyList<ChatMessage> Messages,
@@ -62,8 +62,9 @@ public sealed record ChatTurnResult(string Text, ModelUsage? Usage = null);
 ///     Toolkit's own machinery against a substituted endpoint, with no network call.
 ///     <para>
 ///         An implementation is expected to be safe to reuse across calls, and to touch the network only from
-///         <see cref="CompleteAsync" /> — construction must stay network-free so that a test, and a caller
-///         validating its arguments, can build one without reaching a model.
+///         <see cref="CompleteAsync" /> and <see cref="AvailableModelsAsync" /> — construction must stay
+///         network-free so that a test, and a caller validating its arguments, can build one without reaching a
+///         model.
 ///     </para>
 /// </remarks>
 public interface IChatEndpoint
@@ -81,4 +82,34 @@ public interface IChatEndpoint
     ///     knowing the provider.
     /// </exception>
     Task<ChatTurnResult> CompleteAsync(ChatTurnRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     States which models this endpoint's account is actually offered, so a capability role can resolve to
+    ///     the first of its candidates that exists rather than to one that has been retired.
+    /// </summary>
+    /// <remarks>
+    ///     Availability is asked about here and never inferred from a failed call.
+    ///     <see cref="ModelUnavailableException" /> deliberately flattens every provider-side error into one
+    ///     shape, so a caller that fell back on failure could not tell a retired model from a rate limit, an
+    ///     expired credential or a transport fault — and would silently downgrade a heavy-role judgement
+    ///     whenever the network hiccuped. This is the seam that makes the question answerable instead.
+    ///     <para>
+    ///         It is called only when a role is being resolved for a turn that is about to be sent, so an
+    ///         invocation that consults no model makes no call here and acquires no network dependency. A
+    ///         substituted endpoint answers it offline, which is what keeps role resolution exercisable without
+    ///         a provider.
+    ///     </para>
+    ///     <para>
+    ///         An implementation that cannot say — because it has no list, or because the enquiry failed —
+    ///         answers with an empty collection rather than an exception. Either way the caller treats the
+    ///         enquiry as having stated nothing and proceeds on its first configured candidate: this is an
+    ///         optimization over guessing, not a gate.
+    ///     </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Token that cancels the enquiry.</param>
+    /// <returns>
+    ///     The model identifiers the account may drive, in no particular order, matched against a candidate by
+    ///     exact name. Never null; empty means "nothing stated" and never "no model exists".
+    /// </returns>
+    Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken);
 }

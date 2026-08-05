@@ -24,7 +24,10 @@ public sealed record TranscriptMessage(string Role, string Text);
 /// <param name="At">When the interaction was completed or failed.</param>
 /// <param name="Activity">The kind of call: the name of a <see cref="ModelActivity" />.</param>
 /// <param name="Role">The capability role asked for: the name of a <see cref="ModelRole" />.</param>
-/// <param name="Model">The concrete model the role resolved to. Never null.</param>
+/// <param name="Model">
+///     The concrete model the role resolved to — the candidate that actually answered, not the one the
+///     configuration lists first — so which model served a judgement stays auditable. Never null.
+/// </param>
 /// <param name="Prompt">Every message sent, in order. Never null and never empty.</param>
 /// <param name="Reply">What the model replied, or null when the interaction produced no reply.</param>
 /// <param name="Usage">What the interaction consumed, or null when the provider reported nothing.</param>

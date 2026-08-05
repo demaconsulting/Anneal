@@ -1,1 +1,1 @@
-{"models":{"light":"gpt-5.4-mini","medium":"gpt-5.4","heavy":"claude-sonnet-4.5"}}
+{"models":{"light":["gpt-5.4-mini","gpt-5.4"],"medium":["gpt-5.5","gpt-5.4"],"heavy":["claude-sonnet-4.6","claude-sonnet-5","gpt-5.5"]}}

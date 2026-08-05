@@ -245,10 +245,16 @@ public sealed class ModelSession
     ///     Completes one turn through the seam and transcribes it, whatever it produced.
     /// </summary>
     /// <remarks>
-    ///     Every path out of this method has already written a transcript: the reply path, the failure path, and
-    ///     the path where the caller withdrew mid-flight. That is the whole of the capture guarantee — it is a
-    ///     property of there being no other way to reach an endpoint from here, rather than of every call site
-    ///     remembering to record.
+    ///     Every path out of this method that reached an endpoint has already written a transcript: the reply
+    ///     path, the failure path, and the path where the caller withdrew mid-flight. That is the whole of the
+    ///     capture guarantee — it is a property of there being no other way to reach an endpoint from here,
+    ///     rather than of every call site remembering to record.
+    ///     <para>
+    ///         Resolving the role comes before the try, and therefore before the guarantee begins: a role whose
+    ///         every candidate has been retired throws out of here having written nothing. That is correct — no
+    ///         model was consulted, so there is no interaction to transcribe, and inventing a record of one
+    ///         would put an exchange that never happened into the evidence.
+    ///     </para>
     /// </remarks>
     private async Task<ChatTurnResult> CompleteAsync(
         ModelActivity activity,
@@ -257,7 +263,9 @@ public sealed class ModelSession
         IReadOnlyList<AITool> tools,
         CancellationToken cancellationToken)
     {
-        var model = _roles.ModelFor(role);
+        // Resolved here, at turn assembly, and nowhere earlier: this is the moment a model is genuinely about
+        // to be consulted, so it is the only moment the provider may be asked what it offers.
+        var model = await _roles.ResolveModelAsync(role, cancellationToken).ConfigureAwait(false);
         var at = DateTimeOffset.UtcNow;
 
         try
