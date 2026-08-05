@@ -16,13 +16,16 @@ language: en
 words:
   - aggregatable
   - cref
+  - cutover
   - DEMA
   - Dema
   - demaconsulting
   - GHCP
   - greppable
+  - Inlines
   - libc
   - lifecycles
+  - Markdig
   - nameof
   - Pandoc
   - pandoctool

@@ -42,4 +42,17 @@
     <PackageReference Include="GitHub.Copilot.SDK" Version="1.0.8" />
   </ItemGroup>
 
+  <!--
+    Reading contracts and reading test results. Markdig parses the architecture
+    documents as CommonMark rather than by line, which is what lets a clause body
+    wrap and keeps a clause-shaped string inside a fenced example out of the live
+    contract. DemaConsulting.TestResults reads the result files, detecting TRX or
+    JUnit from the file itself; both replace hand-rolled parsers whose failure
+    mode was to mis-report a contract while reporting success.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.3.2" />
+    <PackageReference Include="DemaConsulting.TestResults" Version="1.10.0" />
+  </ItemGroup>
+
 </Project>

@@ -14,6 +14,15 @@ fail in an unfamiliar way. S1b is the model seam, where every unknown lives. Bun
 SDK integration would block the build scaffolding that every later stage needs. The exit conditions are
 unchanged in substance; they are divided between the two.
 
+**S4 was split into S4a and S4b by amendment**, on the same footing as the S1a/S1b split above, after
+implementation found that the port and the cutover carry unrelated risk. S4a is pure addition: the
+operation exists and is proven at parity against the script's own suite, while nothing is cut over and
+nothing is deleted, so the stage can be abandoned by deleting the files it adds. S4b is the cutover,
+where the gate changes hands, a system document is merged away and the script leaves the payload — none
+of which deletion undoes. Bundled, a defect in the port would arrive in the same change as the removal of
+the thing it was checked against. The exit conditions are unchanged in substance; they are divided
+between the two.
+
 `check-contracts.ps1` runs **without** `-Strict` until the final stage lands, because planned clauses are
 closed stage by stage and unfulfilled obligations are expected in between.
 
@@ -112,18 +121,32 @@ about itself.
 result recorded — including how often the audit itself is wrong, since an unreliable auditor of verdicts
 is worse than none.
 
-## S4 — Folding in ContractCheck
+## S4a — Porting ContractCheck
 
-`check-contracts.ps1` becomes a Toolkit operation in the enforcement category.
-[contract-check.md](docs/architecture/contract-check.md) merges into
-[toolkit.md](docs/architecture/toolkit.md) and is deleted, returning the repository to four systems.
+`check-contracts.ps1` is reimplemented as a Toolkit operation in the enforcement category, standing beside
+the script rather than in place of it. The parts of the check that are not specific to it — reading
+clauses out of an architecture tree, and reading test declarations and results — become capabilities in
+their own right, because a verdict auditor, tier checking and coverage reporting all want them and none of
+them should have to reach through an operation to get them.
 
-**Leaves working:** the enforcement gate, which must behave identically before and after. The check's
-own suite is the acceptance evidence and is ported, not discarded.
+**Leaves working:** everything. The gate is still the script: `lint.ps1` invokes it unchanged, it stays in
+the payload, and deleting every file this stage adds returns the repository to its present behavior.
 
-**Exit conditions:** the ported operation reproduces every failure in the documented taxonomy; the
-script is removed from the payload only once the tool has replaced it in CI for a full release; and
-`TOOLKIT-I3` is verified, since this is the first enforcement operation that gates a downstream build.
+**Exit conditions:** the ported operation reproduces every failure in the documented taxonomy. The check's
+own suite is the acceptance evidence and is driven against the port, not discarded.
+
+## S4b — The cutover
+
+`lint.ps1` switches to the operation, and [contract-check.md](docs/architecture/contract-check.md) merges
+into [toolkit.md](docs/architecture/toolkit.md) and is deleted, returning the repository to four systems.
+The action is registered here rather than in S4a, because registering it grows the contracted action
+inventory and the clause that admits it is exactly what `lint.ps1` would then be depending on.
+
+**Leaves working:** the enforcement gate, which must behave identically before and after.
+
+**Exit conditions:** the script is removed from the payload only once the tool has replaced it in CI for a
+full release; and `TOOLKIT-I3` is verified, since this is the first enforcement operation that gates a
+downstream build.
 
 ## S5 — Mechanizing stable rules (final)
 
