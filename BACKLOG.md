@@ -85,3 +85,9 @@ where `architecture-design` will read them. See the Intake admission test in
   every operation the Toolkit ships is reachable only by hand. This is the wiring the Toolkit's
   absorption of agent work depends on, so until it exists the Toolkit is built but unused by the
   process it was built for.
+- **Changing a default model needs a Toolkit release** — the defaults live in
+  `ModelConfiguration.Default`, so moving a role onto a newer model means a Toolkit build, publish
+  and restore, and every repository that has not written its own `.anneal/config.json` stays on the
+  old one until then. That sits awkwardly beside the *Model configuration is data, not code*
+  decision in `toolkit.md`, which reads the compiled-in defaults as an implementation detail, and
+  `claude-sonnet-4.5` is already behind. Recorded, not solved.

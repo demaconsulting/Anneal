@@ -29,11 +29,6 @@ likely to damage somebody's repository.
   step, package manager, or runtime dependency to that repository.
   *Verified by:* `TODO.InstallCopiesPayloadOnly`
 
-- **INSTALLER-07** — Installs the tool manifest and role configuration as ordinary payload files,
-  invoking no package manager and no build. Restoring the [Toolkit](./toolkit.md) is the target
-  repository's own step, so installation still succeeds with no .NET SDK present.
-  *Verified by:* `TODO.ToolManifestInstallsWithoutRestoring`
-
 - **INSTALLER-02** — Vendors the template to `.github/template/` in the target repository, so the
   template resolves locally and is pinned to the agents installed beside it.
   *Verified by:* `TODO.TemplateIsVendoredLocally`

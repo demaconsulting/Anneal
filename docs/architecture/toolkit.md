@@ -118,8 +118,8 @@ presented requires owning the conversation, which requires code.
 
 - **[Process](./process.md)** — the agents that invoke operations, and the standards whose rules the
   deterministic checks and probes are written against.
-- **[Template](./template.md)** — the tool manifest and the role configuration file that make the tool
-  restorable and configurable in a target repository.
+- **[Template](./template.md)** — the tool manifest that makes the tool restorable in a target
+  repository.
 - **GitHub Copilot SDK** — model access under the ambient Copilot account of the calling session, with
   no token supplied by the Toolkit.
 - **.NET SDK** — the runtime the tool is restored into and executed by.
@@ -217,9 +217,9 @@ subsequent change, which is the cost *What must not be reintroduced* in [overvie
 refuses.
 
 **Model configuration is data, not code** — roles appear in this contract; the models behind them do
-not. A repository changes the models behind its roles by editing a configuration file the Template
-ships, without a Toolkit release. The rejected alternative, model names in the contract, would make
-every model substitution a contract change.
+not. Defaults are compiled in, and a repository changes the models behind its roles by writing its own
+`.anneal/config.json` over them, without a Toolkit release. The rejected alternative, model names in
+the contract, would make every model substitution a contract change.
 
 **The schema is a prompt-level hint, not a transport guarantee** — the Copilot session API offers no
 constrained-decode facility, so a typed response rests on a described schema, tolerant extraction of the

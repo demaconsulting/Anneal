@@ -89,9 +89,9 @@ it, and a bad number is a reason to revisit the design rather than to patch arou
 
 ## S2 — Shipping it
 
-Template gains `.config/dotnet-tools.json` and the role configuration file, Installer delivers both, and
-CI restores the tool. Roles become configurable per repository, invocations begin appending structured
-records, and every model interaction begins capturing a transcript of itself.
+Template gains `.config/dotnet-tools.json` and CI restores the tool. Roles become configurable per
+repository, invocations begin appending structured records, and every model interaction begins
+capturing a transcript of itself.
 
 **Leaves working:** a repository that never invokes an operation, which still needs only the copied
 payload. Restore failure must not break a repository that calls nothing.
