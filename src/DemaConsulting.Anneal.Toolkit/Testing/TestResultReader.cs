@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml.Linq;
 using DemaConsulting.TestResults.IO;
 
 namespace DemaConsulting.Anneal.Toolkit.Testing;
@@ -40,15 +39,9 @@ public static partial class TestResultReader
 
     /// <remarks>
     ///     The format is detected from the file rather than asserted, so a repository whose runner emits
-    ///     JUnit is read without being configured differently from one emitting TRX.
-    ///     <para>
-    ///         A file the schema-aware reader refuses is re-read for the one thing this check needs, rather
-    ///         than discarded. TRX cross-references each result to a test definition, and the reader requires
-    ///         that cross-reference; a runner that writes results without definitions produces a file which
-    ///         still says plainly which test recorded which outcome. Discarding it would report every test in
-    ///         it as never having run — a false alarm rather than a false pass, but a false alarm that stops
-    ///         a build the previous checker passed.
-    ///     </para>
+    ///     JUnit is read without being configured differently from one emitting TRX. A file that cannot be
+    ///     deserialized yields a warning and no results — the tests it would have vouched for are then
+    ///     reported as never having run, which is the fail-closed direction.
     /// </remarks>
     private static IReadOnlyList<(string Name, string Outcome)> ReadStructured(
         string contents, string fileName, IList<string> warnings)
@@ -62,7 +55,8 @@ public static partial class TestResultReader
         catch (Exception exception) when (
             exception is InvalidOperationException or ArgumentException or XmlException)
         {
-            return ReadUnitTestResults(contents, fileName, warnings);
+            warnings.Add($"Could not parse test results: {fileName}");
+            return [];
         }
 
         var results = new List<(string Name, string Outcome)>();
@@ -72,49 +66,6 @@ public static partial class TestResultReader
             var qualified = result.ClassName.Length > 0 ? $"{result.ClassName}.{result.Name}" : result.Name;
             AddResult(results, qualified, result.Outcome.ToString());
         }
-
-        return results;
-    }
-
-    /// <remarks>
-    ///     Reads only the name and outcome each result element carries, matched by local name so that a file
-    ///     written with or without the TRX namespace reads the same. A file holding no result elements at all
-    ///     is reported as unreadable rather than as an empty run: an empty run would vouch for nothing while
-    ///     still counting as a run that happened.
-    /// </remarks>
-    private static IReadOnlyList<(string Name, string Outcome)> ReadUnitTestResults(
-        string contents, string fileName, IList<string> warnings)
-    {
-        XDocument document;
-
-        try
-        {
-            document = XDocument.Parse(contents);
-        }
-        catch (XmlException)
-        {
-            warnings.Add($"Could not parse test results: {fileName}");
-            return [];
-        }
-
-        var elements = document
-            .Descendants()
-            .Where(element => string.Equals(element.Name.LocalName, "UnitTestResult", StringComparison.Ordinal))
-            .ToList();
-
-        if (elements.Count == 0)
-        {
-            warnings.Add($"Could not parse test results: {fileName}");
-            return [];
-        }
-
-        var results = new List<(string Name, string Outcome)>();
-
-        foreach (var element in elements)
-            AddResult(
-                results,
-                element.Attribute("testName")?.Value ?? string.Empty,
-                element.Attribute("outcome")?.Value ?? string.Empty);
 
         return results;
     }

@@ -8,9 +8,9 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.ContractChecking;
 /// </summary>
 /// <remarks>
 ///     Disposable. Two behaviors matter beyond the happy path: a file that cannot be read yields a warning
-///     and no results, so the tests it would have vouched for are reported as never having run; and a result
-///     file which records outcomes without the definitions a schema-aware reader wants is still read, because
-///     discarding it would stop a build over a file that plainly says what happened.
+///     and no results, so the tests it would have vouched for are reported as never having run; and a TRX
+///     without the cross-references the schema-aware reader requires is treated as malformed rather than
+///     silently recovered.
 /// </remarks>
 public class TestResultReaderTests
 {
@@ -50,10 +50,11 @@ public class TestResultReaderTests
     }
 
     /// <summary>
-    ///     Validates that a result file recording outcomes without test definitions is still read.
+    ///     Validates that a TRX without test definitions warns and yields nothing, because the schema-aware
+    ///     reader requires cross-references and their absence means the file is malformed.
     /// </summary>
     [Fact]
-    public void TestResultReader_Read_TrxWithoutTestDefinitions_IsStillRead()
+    public void TestResultReader_Read_TrxWithoutTestDefinitions_WarnsAndReadsNothing()
     {
         // Arrange: outcomes recorded against names, with no cross-reference to a definition
         const string trx = """
@@ -72,9 +73,8 @@ public class TestResultReaderTests
 
         // Assert
         Assert.Multiple(
-            () => Assert.Empty(warnings),
-            () => Assert.Equal(
-                [("AcceptedRecordIsDurable", "Passed"), ("PreservesPerConnectionOrder", "Failed")], results));
+            () => Assert.Empty(results),
+            () => Assert.Equal(["Could not parse test results: results.trx"], warnings));
     }
 
     /// <summary>
@@ -88,9 +88,19 @@ public class TestResultReaderTests
         const string trx = """
                            <TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
                              <Results>
-                               <UnitTestResult testName="PreservesPerConnectionOrder(size: 1)" outcome="Passed" />
-                               <UnitTestResult testName="PreservesPerConnectionOrder(size: 2)" outcome="Failed" />
+                               <UnitTestResult testId="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+                                 testName="PreservesPerConnectionOrder(size: 1)" outcome="Passed" />
+                               <UnitTestResult testId="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+                                 testName="PreservesPerConnectionOrder(size: 2)" outcome="Failed" />
                              </Results>
+                             <TestDefinitions>
+                               <UnitTest name="PreservesPerConnectionOrder(size: 1)" id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa">
+                                 <TestMethod className="Tests" name="PreservesPerConnectionOrder" />
+                               </UnitTest>
+                               <UnitTest name="PreservesPerConnectionOrder(size: 2)" id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb">
+                                 <TestMethod className="Tests" name="PreservesPerConnectionOrder" />
+                               </UnitTest>
+                             </TestDefinitions>
                            </TestRun>
                            """;
         var warnings = new List<string>();
@@ -100,7 +110,7 @@ public class TestResultReaderTests
 
         // Assert
         Assert.Equal(
-            [("PreservesPerConnectionOrder", "Passed"), ("PreservesPerConnectionOrder", "Failed")], results);
+            [("Tests.PreservesPerConnectionOrder", "Passed"), ("Tests.PreservesPerConnectionOrder", "Failed")], results);
     }
 
     /// <summary>

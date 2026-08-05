@@ -138,17 +138,50 @@ function Set-Trx {
         [datetime] $Written = [datetime]::MinValue
     )
 
-    $rows = ($Outcomes | ForEach-Object {
-            $parts = $_ -split '=', 2
-            "    <UnitTestResult testName=`"$($parts[0])`" outcome=`"$($parts[1])`" />"
-        }) -join "`n"
+    # Build realistic TRX with testId GUIDs and TestDefinitions, matching the
+    # shape dotnet test actually produces.
+    $results = @()
+    $definitions = @()
+    foreach ($entry in $Outcomes) {
+        $parts = $entry -split '=', 2
+        $testName = $parts[0]
+        $outcome = $parts[1]
+
+        # Deterministic GUID derived from the test name
+        $md5 = [System.Security.Cryptography.MD5]::Create()
+        $hash = $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($testName))
+        $testId = (New-Object Guid (,$hash)).ToString()
+
+        # Derive className from the qualified name (everything before the last dot)
+        $lastDot = $testName.LastIndexOf('.')
+        if ($lastDot -gt 0) {
+            $className = $testName.Substring(0, $lastDot)
+            $methodName = $testName.Substring($lastDot + 1)
+        } else {
+            $className = ""
+            $methodName = $testName
+        }
+
+        $results += "    <UnitTestResult testId=`"$testId`" testName=`"$testName`" outcome=`"$outcome`" />"
+        $definitions += @"
+    <UnitTest name="$testName" id="$testId">
+      <TestMethod className="$className" name="$methodName" />
+    </UnitTest>
+"@
+    }
+
+    $rowsBlock = $results -join "`n"
+    $defsBlock = $definitions -join "`n"
 
     $xml = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
   <Results>
-$rows
+$rowsBlock
   </Results>
+  <TestDefinitions>
+$defsBlock
+  </TestDefinitions>
 </TestRun>
 "@
 
