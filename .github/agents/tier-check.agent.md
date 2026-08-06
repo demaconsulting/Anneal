@@ -98,7 +98,8 @@ Do not check for, and do not fail on:
 - Missing documentation for interior changes
 - Deleted interior tests
 - Interior test coverage percentages
-- Formatting, spelling, and lint issues — `lint-fix` owns these before pull request
+- Formatting, spelling, and lint issues — the `dotnet anneal lint-fix` operation owns these before
+  pull request
 - Pre-existing issues in files that were read but not modified — note them, do not fail on them
 
 # Result Rule

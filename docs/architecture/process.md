@@ -111,7 +111,6 @@ flowchart TD
         ArchUpdate[architecture-update]
         Apply[apply]
         TierCheck[tier-check]
-        LintFix[lint-fix]
         TemplateSync[template-sync]
     end
 
@@ -120,7 +119,6 @@ flowchart TD
     User --> Helper
     User --> ArchDesign
     Helper --> Dispatch
-    Helper --> LintFix
     Helper --> TemplateSync
     Dispatch --> ArchUpdate
     Dispatch --> Apply
@@ -131,7 +129,7 @@ flowchart TD
     Tree ==> ArchUpdate
     Tree ==> Apply
 
-    linkStyle 8 stroke-dasharray: 3 3
+    linkStyle 7 stroke-dasharray: 3 3
 ```
 
 Three kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
@@ -235,6 +233,19 @@ justified by a defect that never happened is a rule the next reader cannot weigh
 decision sites for the same reason the budget in [Prompt Authoring](./process/prompt-authoring.md)
 exists — naming all seventy-odd sites would spend attention everywhere to buy certainty in the few
 places a wrong reading changes what an agent does.
+
+**`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
+`dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this
+repository at Migration stage S6, the condition [MIGRATION.md](../../MIGRATION.md) had named for
+retiring the prose agent that preceded it, so `.github/agents/lint-fix.agent.md` is retired rather
+than kept as a fallback with nothing left to fall back from. The node is removed rather than
+redrawn as something else in the Mechanical zone, because it was never a sub-agent another agent
+calls and consumes a report from — a developer or `helper` invokes `dotnet anneal lint-fix` directly,
+the same relationship `ContractCheck` already has to this diagram without ever appearing in it as an
+agent. Redrawing it as a direct-invocation node was rejected: this diagram's solid edges are
+reserved for sub-agent invocation with a consumed report, and a fourth edge kind for "developer runs
+a compiled command" would document machinery this system does not decide, since Toolkit already owns
+that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 
 ## Details
 

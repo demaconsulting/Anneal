@@ -60,10 +60,10 @@ and the documents describing it in agreement.
 
 - **Agents** (`.github/agents/`) — the workers. Two are conversational and you invoke them yourself:
   `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
-  establishes system boundaries by interview. The other six are invoked by the process rather than by
+  establishes system boundaries by interview. The other five are invoked by the process rather than by
   you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
-  architecture documents with it, `tier-check` verifies the finished change, `lint-fix` clears lint
-  before a pull request, and `template-sync` keeps the repository aligned with the template.
+  architecture documents with it, `tier-check` verifies the finished change, and `template-sync` keeps
+  the repository aligned with the template.
 - **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
   sole owner of its subject: coding principles and C# language, testing principles and C# testing,
   system contracts, architecture and technical documentation, and change classification. An agent

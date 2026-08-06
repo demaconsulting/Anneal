@@ -53,10 +53,10 @@ contract and a suite, and a worker told to fix lint would resolve it by renaming
 **The fix guidance is duplicated, deliberately and temporarily** — the guidance in this operation is
 lifted from `.github/agents/lint-fix.agent.md`, which stays in the payload untouched while the
 compiled process is proven against this repository. Two copies of a rule can drift, and that is a real
-cost; it is accepted for one migration stage because the alternative — retiring the prose agent before
-the compiled one has driven this repository clean — removes the fallback exactly when it is most
-likely to be needed. The prose agent is retired, and this duplication with it, when the compiled
-process has met its exit condition.
+cost; it was accepted for migration stage S6 because the alternative — retiring the prose agent before
+the compiled one had driven this repository clean — would have removed the fallback exactly when it
+was most likely to be needed. S6's exit condition was met, and a follow-up Change retired the prose
+agent (deleted `.github/agents/lint-fix.agent.md`) and this duplication along with it.
 
 **The budget is five iterations, matching the prose agent** — this stage is a compilation of that
 agent rather than a redesign of it, so its bound is carried over rather than re-derived. That there is

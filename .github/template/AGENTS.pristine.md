@@ -136,7 +136,6 @@ Delegate only for:
 - **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its tier** → `tier-check`
-- **Pre-PR lint cleanup** → `lint-fix`
 - **Repository layout versus template** → `template-sync`
 
 # Agent Reporting (Specialized Agents Must Follow)
@@ -218,5 +217,5 @@ pwsh ./fix.ps1
 ```
 
 This applies all available fixers silently and **always exits 0** — agents do not respond to its
-output. Full lint compliance is a **pre-PR responsibility**: invoke `lint-fix` once before opening a
-pull request.
+output. Full lint compliance is a **pre-PR responsibility**: run `dotnet anneal lint-fix` once before
+opening a pull request.

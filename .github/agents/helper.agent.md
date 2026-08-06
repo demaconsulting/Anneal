@@ -93,7 +93,7 @@ the words the confirmation used, plus the bound if there is one:
 | A bounded tidy-up, with the bound agreed | `dispatch`, passing the bound |
 | A specific fix the user has already had reported to them | `apply`, quoting the finding |
 | Verifying a change someone has finished | `tier-check` |
-| Lint noise before a pull request | `lint-fix` |
+| Lint noise before a pull request | tell the developer to run `dotnet anneal lint-fix` themselves |
 | Checking the repository against the template | `template-sync` |
 
 **`architecture-design` is the exception: hand off, never call.** See below.
@@ -131,7 +131,8 @@ useful thing you can say is which conversation to have and what to bring to it.
 A user arriving with a failed build, a red check, or a report full of findings is the most common
 reason to end up here, and the least likely to want a conversation. Read the report or the output
 first. If it already names the fix, say what you are about to do and route — usually `apply` with the
-finding quoted, or `lint-fix` for lint. Ask a question only when the fix genuinely is not determined
+finding quoted, or `dotnet anneal lint-fix` for lint. Ask a question only when the fix genuinely is not
+determined
 by what you just read.
 
 # Stop Conditions
