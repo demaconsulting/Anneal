@@ -771,11 +771,16 @@ public class ContractCheckTests
         // Act
         var report = ContractCheck.Run(Options(repository, CSharpProfile, ScriptProfile));
 
-        // Assert
-        Assert.Contains(
-            "profile 2: Test results are stale: 'suite.ps1' changed after the newest result matching " +
-            "'results/*.txt'. Re-run the tests.",
-            report.Errors);
+        // Assert: profile 2 (the stale script tally) is rejected, while profile 1 (the fresh TRX) is not also
+        // reported stale - proving staleness is judged per profile rather than across the whole repository
+        Assert.Multiple(
+            () => Assert.Contains(
+                "profile 2: Test results are stale: 'suite.ps1' changed after the newest result matching " +
+                "'results/*.txt'. Re-run the tests.",
+                report.Errors),
+            () => Assert.DoesNotContain(
+                report.Errors,
+                error => error.StartsWith("profile 1: Test results are stale", StringComparison.Ordinal)));
     }
 
     private const string CSharpProfile =

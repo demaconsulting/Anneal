@@ -613,8 +613,7 @@ public class ToolkitContractTests
         var exitCode = await AnnealTool.RunAsync(["help"], output, TestContext.Current.CancellationToken);
         var written = output.ToString();
 
-        // Assert: the success code, every shipped action with its summary is present in the listing, and the
-        // listing points a caller toward "help <action>" for more detail on a specific one
+        // Assert: the success code, and every shipped action with its summary is present in the listing
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
@@ -622,8 +621,7 @@ public class ToolkitContractTests
                 AnnealTool.DefaultOperations,
                 operation => Assert.Multiple(
                     () => Assert.Contains(operation.Name, written, StringComparison.Ordinal),
-                    () => Assert.Contains(operation.Summary, written, StringComparison.Ordinal))),
-            () => Assert.Contains("help <action>", written, StringComparison.Ordinal));
+                    () => Assert.Contains(operation.Summary, written, StringComparison.Ordinal))));
     }
 
     /// <summary>

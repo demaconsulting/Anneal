@@ -66,6 +66,25 @@ public class OperationInvocationTests
     }
 
     /// <summary>
+    ///     Validates that bare "help" points a caller toward "help &lt;action&gt;" for detail on one action, on
+    ///     top of the listing TOOLKIT-12 requires. This is interior, not contract: TOOLKIT-12 only promises the
+    ///     listing and the success exit; the hint is a discoverability nicety layered over that, so widening or
+    ///     rewording it is not a contract change and must not be pinned down by a contract test.
+    /// </summary>
+    [Fact]
+    public async Task AnnealTool_RunAsync_Help_HintsAtHelpAction()
+    {
+        // Arrange
+        var output = new StringWriter();
+
+        // Act: "dotnet anneal help", with no action to describe
+        await AnnealTool.RunAsync(["help"], output, TestContext.Current.CancellationToken);
+
+        // Assert: the listing points a caller toward "help <action>" for more detail on one action
+        Assert.Contains("help <action>", output.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     Validates that the deterministic check, too, refuses to start under an already-cancelled signal.
     /// </summary>
     [Fact]
