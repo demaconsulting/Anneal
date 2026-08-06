@@ -7,6 +7,7 @@
 # - Support consistent technical terminology usage
 # - Misspelled words should be fixed in the source
 # - NEVER add a misspelled word to the 'words' list
+# - NEVER add a British-English spelling - correct to US-English in the source
 # - PROPOSE only genuine technical terms/names as needed
 
 version: "0.2"
@@ -43,6 +44,7 @@ words:
   - WeasyPrint
   - weasyprinttool
   - xunit
+  - Xunit
   - yamlfix
   - yamllint
 
@@ -55,7 +57,6 @@ ignorePaths:
   - "**/third-party/**"
   - "**/3rd-party/**"
   - "**/generated/**"
-  - "**/AGENT_REPORT_*.md"
   - "**/.agent-logs/**"
   - "**/bin/**"
   - "**/obj/**"
