@@ -44,6 +44,11 @@ quietly.
 - **An installed payload must be identifiable by version** — a payload states which Anneal version it
   was built from, so what an upgrade is upgrading from is read rather than inferred from the payload's
   contents, and a record a run leaves behind can be attributed to the version that produced it.
+- **Every commit leaves Anneal able to develop Anneal** — Anneal is built by the generation of
+  itself that is currently installed, so a change that breaks the agents, scripts or tool doing the
+  work halts development rather than advancing it. This holds after every commit, not merely at a
+  stage boundary, and it is what bounds the content of a migration step;
+  [MIGRATION.md](MIGRATION.md) names it as a step invariant rather than restating the condition.
 - **The basis of a model-backed judgement is captured at the time or lost** — a verdict on unchanged
   input is expected to be stable, but the reasoning behind it, the data the model was shown and the
   exact question it was asked are not recoverable by re-running. Without them a wrong verdict cannot

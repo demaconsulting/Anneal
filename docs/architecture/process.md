@@ -11,9 +11,12 @@ covers:
 
 # Process
 
-Process is the largest part of the product: the agent prompts, the standards, and the skills they load
+Process is the bootstrap harness: the agent prompts, the standards, and the skills they load
 on demand. Its content is read by a language model rather than executed, and everything odd about
-this repository follows from that. If Process were rewritten, a consumer would notice immediately — not
+this repository follows from that. It is **terminal** — [MIGRATION.md](../../MIGRATION.md)
+dismantles it into compiled processes, with `helper` and `architecture-design` absorbed last — so
+the contract below is deliberately not extended, and a clause is retired with the agent it describes
+rather than carried forward. If Process were rewritten, a consumer would notice immediately — not
 because an interface changed, but because agents would classify work differently, touch different files,
 and stop at different boundaries. The observable surface of a prompt is the behavior it produces.
 

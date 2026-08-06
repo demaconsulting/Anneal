@@ -1,184 +1,214 @@
-# Migration: adopting the Toolkit
+# Migration: from prose agents to compiled processes
 
-This file is the approved proposal every Migration commit references. It exists only while stages are
-outstanding; the commit landing the final stage deletes it.
+This file is the approved proposal every Migration commit references. It exists only while the
+migration is in flight; the commit landing the final stage deletes it.
 
-The move is staged so that Anneal proves the Toolkit on itself before any downstream repository depends
-on it. Before S2 the only change an installed repository receives is to how `check-contracts.ps1`
-discovers tests — a facility that alters no repository's behavior until that repository adopts a second
-test framework — so the early stages can still be abandoned without a downstream consequence.
+## Destination
 
-**S1 was split into S1a and S1b by amendment**, after implementation found that the two halves carry
-unrelated risk. S1a is scaffolding and a deterministic operation: no model, no network, nothing that can
-fail in an unfamiliar way. S1b is the model seam, where every unknown lives. Bundled, a failure in the
-SDK integration would block the build scaffolding that every later stage needs. The exit conditions are
-unchanged in substance; they are divided between the two.
+Anneal becomes its own agent CLI. Work arrives at any point on the complexity spectrum, a router
+classifies it and selects one of a catalog of processes, and each process runs as C# state-flow
+logic — models do the work, and oracles, meaning narrow typed questions with no side effects, decide
+its branches. The prose agents under `.github/agents/` are the bootstrap harness that made this
+reachable, and they are dismantled into that catalog. `helper` and `architecture-design` are
+absorbed last, because a conversation is the hardest control flow to encode — not because they are
+exempt.
 
-**S4 was split into S4a and S4b by amendment**, on the same footing as the S1a/S1b split above, after
-implementation found that the port and the cutover carry unrelated risk. S4a is pure addition: the
-operation exists and is proven at parity against the script's own suite, while nothing is cut over and
-nothing is deleted, so the stage can be abandoned by deleting the files it adds. S4b is the cutover,
-where the gate changes hands, a system document is merged away and the script leaves the payload — none
-of which deletion undoes. Bundled, a defect in the port would arrive in the same change as the removal of
-the thing it was checked against. The exit conditions are unchanged in substance; they are divided
-between the two.
+The dividing line in [README.md](README.md) § Direction holds for the whole journey: control flow
+and context assembly become code, judgement stays data. Absorbing an agent means compiling its loop,
+never its opinions; its prose becomes content a model is shown.
 
-**S4b's merge became a descent, not a flattening**, after the architecture tree was generalized to
-carry contracts at any depth: `contract-check.md` becomes a section document beneath Toolkit, keeping
-its own contract, rather than folding into `toolkit.md`. What the stage promised is unchanged —
-ContractCheck stops being a top-level system and the repository returns to four — only the mechanism
-differs.
+**Nothing below this altitude is scheduled, and no system documents are written for the
+destination.** Contracts for systems that do not exist yet are the speculative documentation this
+process refuses, and a tree grows a node only when the node is earned.
 
-`check-contracts.ps1` runs **without** `-Strict` until the final stage lands, because planned clauses are
-closed stage by stage and unfulfilled obligations are expected in between.
+## How this migration is planned
 
-## S1a — Foundation and the deterministic operation
+**One stage at a time, written the morning it starts.** A stage is one day's work, chosen from the
+state of the repository at that moment rather than from a plan made before the work began. When it
+lands, its entry moves to the log below and the next stage is written against what the day actually
+produced.
 
-Anneal acquires `src/`, `test/`, a solution and a working `build.ps1` — the last of which
-[AGENTS.md](AGENTS.md) and the check-contracts skill have both instructed agents to run for some time
-despite it not existing. The tool is built and tested here but published nowhere and shipped to nobody.
+A forward schedule was rejected outright rather than written and amended. The restructuring is
+exploratory: prose agents are split, merged and renamed on the way into the catalog, and the shape
+of the catalog is decided from work done and success rates observed, not predicted. A sequence
+written now would be fiction that later stages would be measured against, and the deeper hazard is
+that a plan carries authority once it exists — a discovered better route reads as a deviation from
+it rather than as the finding it is.
 
-The operation is `verify-evidence`: deterministic, consulting no model, reporting whether each evidence
-locator cited in an agent report is really present at the file and line named. It is the half of the
-*judging agent must show its basis* constraint that a machine can settle.
+What replaces the schedule is the invariants below. They constrain every step whatever the step
+turns out to be, which a stage list cannot do, because a surprise invalidates a list and cannot
+invalidate an invariant.
 
-This stage also carries a payload change that implementation revealed to be unavoidable.
-`check-contracts.ps1` models one repository as having one test framework: `-TestResultFormat` takes a
-single value, and `-ContractTestFolder` must be empty for Anneal's flat root-level suites but `Contract`
-for C# boundary tests. Once Anneal has both, no combination of the parameters expresses its layout —
-which is the case the script's own modification policy reserves for editing it. The alternative,
-contorting Anneal's layout to fit one profile, was rejected because it requires emitting TRX from
-PowerShell purely to impersonate a C# result, and hand-written result parsing in PowerShell is
-specifically the cost this whole system exists to stop paying.
+Stages remain, and the vocabulary is unchanged, because `apply` reads a stage and its exit condition
+from this file and `change-classification.md` requires one per stage. Only the forward schedule is
+gone.
 
-The extension must stay narrow: repeatable discovery profiles, not a general configuration language.
-`check-contracts.ps1` is the one mechanically enforced check in the process and must fail closed, so its
-34-case suite is extended in the same change rather than afterwards.
+## Step invariants
 
-Three documentation claims become false at the moment this stage lands, and are corrected in the **same
-commit** rather than before or after it: [AGENTS.md](AGENTS.md)'s Template Stewardship section states
-Anneal has no `src/` or `test/` tree and that `build.ps1` legitimately differs from the template's; the
-same claim is duplicated in [CONSTRAINTS.md](CONSTRAINTS.md), which by AGENTS.md's own one-owner rule is
-a defect to fix while both sentences are being rewritten anyway; and the stewardship label for
-`build.ps1` is *adopted from the template*, not *deliberately divergent*, because the file does not
-exist here at all.
+These hold after **every** commit, not merely at a stage boundary.
 
-**Leaves working:** everything. The existing PowerShell suites keep passing unchanged, and a downstream
-repository receives only a discovery facility it does not yet use.
+- **Self-hosting** — every commit leaves Anneal able to develop Anneal. Each generation of the
+  process builds the next one, so a change that breaks the agents currently doing the work stops the
+  migration rather than advancing it. This is the constraint that decides what a stage may contain,
+  and it is registered in [CONSTRAINTS.md](CONSTRAINTS.md) rather than owned here.
+- **One-way** — a responsibility that has moved from prose into code does not move back. The ratchet
+  is what makes an unscheduled migration safe: with no plan to measure against, monotonic direction
+  is the only guarantee that a day's work is progress.
+- **No silent loss** — behavior a prose agent had that its replacement does not carry is written to
+  the log below in the same commit that drops it. Deliberately narrowing scope is legitimate;
+  discovering months later that something was quietly lost is not.
+- **Suspensions are named** — a promise the migration is not keeping appears in the register below,
+  with the condition that restores or retires it. There is no unrecorded relaxation, because a
+  silently weakened check is worse than no check.
 
-**Exit conditions:** `TOOLKIT-01`, `TOOLKIT-02` and `TOOLKIT-03` are verified by tests that exist and
-pass. `TOOLKIT-06` closes here only if a deterministic operation can express refusal honestly; if it
-cannot, it moves to S1b rather than acquiring an invented refusal path to satisfy the check. Anneal's
-own build runs the .NET tests alongside the PowerShell suites, `check-contracts.ps1` resolves clauses
-in both languages in one invocation, and the three documentation claims above are true again.
+## Suspension register
 
-## S1b — The model seam
+Contract clauses this migration cannot keep as written, and what holds in their place. Each is keyed
+to a **condition**, never to a stage number, so that replanning cannot strand one.
 
-The provider, the capability roles, and the schema-last probe: a conversation whose response schema is
-presented after the reasoning rather than before it. The operation is `probe-rule-owner`, which names
-the single file owning a given rule or refuses.
+The register is deliberately short. Most of the structural contract is unaffected by this migration
+and is doing useful work throughout it: `PROCESS-01` through `PROCESS-04`, `PROCESS-07` and
+`PROCESS-09` keep passing across a rename and are precisely what catches a botched one, and
+`PROCESS-I1` is untouched because the mechanical agents were never entry points. They are not
+suspended, and suspending them would remove the migration's safety net at the moment it is most
+needed.
 
-This is where every unknown in the design lives, which is why it follows a stage that already produced
-a working build with tests running.
+**`TOOLKIT-I1`** — model tool grants are read-only.
 
-**Leaves working:** everything S1a left working. The deterministic operation does not depend on this
-stage and must keep passing without a model reachable.
+- *Cannot hold because* a process that writes code cannot be granted read-only tools.
+- *What holds instead*: grants stay an explicit allowlist, never absent, and read-only holds for
+  every operation that does not write.
+- *Retired* the day the first writing process lands, replaced by a clause that keeps the allowlist
+  requirement without the read-only one.
 
-**Exit conditions:** `TOOLKIT-04`, `TOOLKIT-07`, `TOOLKIT-I1`, `TOOLKIT-I2` verified, plus `TOOLKIT-06`
-if S1a left it open.
+**`TOOLKIT-I3`** — a verdict is reproducible from repository inputs.
 
-Because `TOOLKIT-04` is the first probe, this stage produces the first measurement of parse-failure rate
-under a described schema with no constrained decode — the number the *schema is a prompt-level hint*
-decision in [toolkit.md](docs/architecture/toolkit.md) says must be measured rather than assumed, and
-the falsifier for the matching assumption in [README.md](README.md). Record it; S3 and S5 both lean on
-it, and a bad number is a reason to revisit the design rather than to patch around it.
+- *Cannot hold because* model-backed judgement is not a pure function of the repository.
+- *What holds instead*: it holds unchanged for every deterministic operation, which is all that
+  gates today.
+- *Restored, scoped* to deterministic operations when the first model-backed operation gates.
 
-## S2 — Shipping it
+**[overview.md](docs/architecture/overview.md)** — every edge is a file, never a call.
 
-Template gains `.config/dotnet-tools.json` and CI restores the tool. Roles become configurable per
-repository, invocations begin appending structured records, and every model interaction begins
-capturing a transcript of itself.
+- *Cannot hold because* prose agents invoke `dotnet anneal`, and the catalog is reached by calling
+  it.
+- *What holds instead*: the edge is recorded as a call and confined to the Toolkit boundary.
+- *Rewritten, not restored*, when Process is dissolved and the rule has nothing left to describe.
 
-**Leaves working:** a repository that never invokes an operation, which still needs only the copied
-payload. Restore failure must not break a repository that calls nothing.
+One clause is not suspended but is a live trip-wire worth naming: `PROCESS-03` requires every
+standard to be reachable by an agent, so deleting a prose agent that was the only file naming a
+standard fails the build. That is the check working. The repair is to relocate the standard or
+retire it with the agent — never to silence the clause.
 
-**Exit conditions:** `TOOLKIT-05`, `TOOLKIT-08`, `TOOLKIT-09`, `TOOLKIT-11` verified. The *installed
-payload must be identifiable by version* entry in [CONSTRAINTS.md](CONSTRAINTS.md) moves up to Satisfied.
+## Current stage
 
-**The absorption of the *agent-report corpus* entry was dropped from this stage by amendment**, on the
-same footing as the S1a/S1b split above. It named a [CONSTRAINTS.md](CONSTRAINTS.md) entry title that no
-longer exists, and no correct implementation could have satisfied it: `TOOLKIT-08` records the Toolkit's
-own invocations — what an operation was asked, what it decided, what it cost — and says nothing about
-agent behavior, which is what that entry was about. Widening `TOOLKIT-08` to cover agent behavior would
-have admitted a promise the user has not admitted, so the clause stands as contracted and the exit
-condition goes. `agent-metrics.ps1` survives this stage for the same reason: it reads a corpus the
-structured records do not replace, so deleting it would remove a source with nothing standing in for it.
+### S5 — Re-planning the migration
 
-## S3 — Auditing verdicts
+The destination changed, so the plan describing it is rewritten. The previous S5 — *mechanizing
+stable rules* — is superseded: it treated encoding rules in C# as the migration's endpoint, whereas
+the destination above makes the whole process catalog compiled, which is a larger claim that its
+cautions no longer bound.
 
-Adds an operation that samples reported SUCCEEDED verdicts and re-checks them against their evidence.
-This targets the failure the report corpus shows to be both real and silent: a false FAILED is loud and
-gets fixed, while a false SUCCEEDED ships unnoticed and is invisible to any metric the agent produces
-about itself.
+No code moves. This stage removes claims that are now known to be false and installs the frame every
+later stage runs inside. It carries no risk that a later stage can inherit, which is why it is
+first: every subsequent day is planned against this file, so a wrong frame would be copied forward
+into all of them.
 
-**Leaves working:** everything; the operation is advisory and cannot gate.
+**Leaves working:** everything. No source file, script or payload behavior changes.
 
-**Exit condition:** the new clause is verified, and a sample of historical reports is audited with the
-result recorded — including how often the audit itself is wrong, since an unreliable auditor of verdicts
-is worse than none.
+**Exit conditions:** the destination, invariants and suspension register above exist; the
+self-hosting entry is admitted to [CONSTRAINTS.md](CONSTRAINTS.md); `README.md` § Direction no longer
+claims two agents are never absorbed; [process.md](docs/architecture/process.md) records Process as
+terminal; the stale stage references in [toolkit.md](docs/architecture/toolkit.md) and
+[runtime.md](docs/architecture/toolkit/runtime.md) are corrected. `pwsh ./lint.ps1` passes.
 
-## S4a — Porting ContractCheck
+## Discovery log
 
-`check-contracts.ps1` is reimplemented as a Toolkit operation in the enforcement category, standing beside
-the script rather than in place of it. The parts of the check that are not specific to it — reading
-clauses out of an architecture tree, and reading test declarations and results — become capabilities in
-their own right, because a verdict auditor, tier checking and coverage reporting all want them and none of
-them should have to reach through an operation to get them.
+Append-only, newest last. Each daily stage begins cold, so this is the only memory between them —
+what was tried, what it cost, and which judgement calls were made in flight. An entry graduates into
+a Decisions section once it has stopped moving; until then it lives here, where being provisional is
+expected rather than a defect.
 
-**Leaves working:** everything. The gate is still the script: `lint.ps1` invokes it unchanged, it stays in
-the payload, and deleting every file this stage adds returns the repository to its present behavior.
+`check-contracts.ps1` runs **without** `-Strict` until the final stage lands, because planned clauses
+close stage by stage and unfulfilled obligations are expected in between.
 
-**Exit conditions:** the ported operation reproduces every failure in the documented taxonomy. The check's
-own suite is the acceptance evidence and is driven against the port, not discarded.
+### S1a — Foundation and the deterministic operation — landed
 
-## S4b — The cutover
+Anneal acquired `src/`, `test/`, a solution and a working `build.ps1`, which `AGENTS.md` and the
+check-contracts skill had both been instructing agents to run despite it not existing. The operation
+was `verify-evidence`: deterministic, consulting no model, reporting whether each evidence locator
+cited in an agent report is really present at the file and line named.
 
-`lint.ps1` switches to the operation, and [contract-check.md](docs/architecture/toolkit/contract-check.md)
-becomes a section document beneath [toolkit.md](docs/architecture/toolkit.md), so ContractCheck is no
-longer a top-level system and the repository returns to four.
-The action is registered here rather than in S4a, because registering it grows the contracted action
-inventory and the clause that admits it is exactly what `lint.ps1` would then be depending on.
+**S1 was split into S1a and S1b by amendment**, after implementation found the two halves carry
+unrelated risk — scaffolding that cannot fail in an unfamiliar way, versus the model seam where every
+unknown lives. Bundled, an SDK failure would have blocked the build scaffolding every later stage
+needed.
 
-**Leaves working:** the enforcement gate, which must behave identically before and after.
+The stage also forced a payload change. `check-contracts.ps1` modeled one repository as having one
+test framework, and once Anneal had two no combination of its parameters expressed the layout. The
+alternative — emitting TRX from PowerShell purely to impersonate a C# result — was rejected because
+hand-written result parsing in PowerShell is the cost this system exists to stop paying.
 
-**Exit conditions:** the script is removed from the payload only once the tool has replaced it in CI for a
-full release; and `TOOLKIT-I3` is verified, since this is the first enforcement operation that gates a
-downstream build.
+**Four documentation claims became false as it landed, and only three were predicted.** That ratio is
+the reason the log exists.
 
-## S5 — Mechanizing stable rules (final)
+### S1b — The model seam — landed
 
-Rules currently held in prose move into code **individually, and only on evidence**. A rule qualifies
-when it is deterministic — decidable without judgement — and when it has been measured stable, meaning
-its wording has not needed correction across a meaningful run of changes. Judgement does not move at
-all: no agent's verdict becomes a C# decision, because a unit test can prove a step ran and cannot prove
-a verdict was right.
+The provider, the capability roles, and the schema-last probe: a conversation whose response schema
+is presented after the reasoning rather than before it. The operation was `probe-rule-owner`.
 
-The gate is deliberate. A wrong prompt is corrected in one edit; a wrong encoded rule is corrected
-through build, test, publish and restore, and an agent editing the tool does not change the tool it is
-running under. Encoding an unstable rule therefore buys determinism at the price of the cheap design
-change this repository exists to protect. `PROCESS-05` is the natural first candidate and also the
-caution: it cannot be mechanized today because the invocation graph is stated as prose in one file, a table
-in another and a non-invocation in a third — that is a rule which is not yet one rule, and the repair is
-to make it one, not to encode three.
+**The schema-last bet survived its first falsifier.** Parse-failure rate measured 0/16 on SDK 1.0.8,
+all decoded on the first reply, none rescued by retry. Re-measure when the response record grows past
+three properties — all three are required, and a missing member is what would most likely trip it.
 
-Nothing here may reintroduce per-unit artifact fan-out, per-unit requirements, hard-fail companion gates
-or multi-retry orchestration. Those four are named in *What must not be reintroduced* in
-[overview.md](docs/architecture/overview.md), and a process engine that owns both control flow and
-judgement is their shape.
+**Pinning a dependency from a reference implementation inherits its rot.** The SDK version was copied
+from an earlier project and was two stable releases behind. Correcting it revealed a real output-token
+ceiling that had already been reported as "the SDK has no such knob", reversing that finding.
 
-**This is the final stage. The commit that lands it deletes this file.**
+### S2 — Shipping it — landed
 
-**Exit conditions:** every planned clause in [toolkit.md](docs/architecture/toolkit.md) is verified,
-`pwsh ./check-contracts.ps1 -Strict` passes, and each rule moved is recorded with the evidence that
-qualified it. A rule that cannot show that evidence stays in prose, and stopping here with rules still
-in prose is a legitimate end state rather than an incomplete migration.
+Template gained `.config/dotnet-tools.json`, roles became configurable per repository, invocations
+began appending structured records, and every model interaction began capturing a transcript.
+
+**The absorption of the agent-report corpus was dropped from this stage by amendment.** No correct
+implementation could have satisfied it: `TOOLKIT-08` records the Toolkit's own invocations and says
+nothing about agent behavior. Widening it would have admitted a promise the user had not admitted.
+`agent-metrics.ps1` therefore **survives**, because it reads a corpus the structured records do not
+replace.
+
+### S4a and S4b — ContractCheck ported, then cut over — landed
+
+`check-contracts.ps1` was reimplemented as a Toolkit operation, proven at parity against the script's
+own 43-case suite, and only then made the gate. **S4 was split by amendment** so that a defect in the
+port could not arrive in the same change as the removal of the thing it was checked against.
+
+**S4b's merge became a descent, not a flattening**, after the tree was generalized to carry contracts
+at any depth: `contract-check.md` became a section document beneath Toolkit, keeping its own contract.
+
+### S3 — Auditing verdicts — planned, never scheduled
+
+An operation sampling reported SUCCEEDED verdicts and re-checking them against their evidence,
+targeting the failure the report corpus shows to be both real and silent: a false FAILED is loud and
+gets fixed, while a false SUCCEEDED ships unnoticed and is invisible to any metric an agent produces
+about itself. It remains a **candidate**, not a stage, and the reasoning is retained here because the
+failure it targets has not gone away.
+
+Its own exit condition remains the right one whenever it is picked up: a sample of historical reports
+audited with the result recorded, **including how often the audit itself is wrong**, since an
+unreliable auditor of verdicts is worse than none.
+
+### S5 — Re-planning the migration — in flight
+
+Recorded here as it lands.
+
+**A green report is not a verified one.** An independent review by a *different* model caught a
+contract test that had been widened beyond the clause it verifies — a defect a same-model second pass
+had already passed. Different-model review is worth repeating periodically, not once.
+
+**Sub-agent claims of "already covered" need spot-checking.** A porting agent's self-report conflated
+two similarly-named fixtures and claimed one existing test covered both; it covered one.
+
+**The self-hosting invariant immediately rejected its own author's first design.** A stage-less
+`MIGRATION.md` was drafted before `apply.agent.md` and `change-classification.md` were found to read
+a stage and an exit condition from this file. Removing stages would have broken Migration mode for
+every prose agent still doing the work.

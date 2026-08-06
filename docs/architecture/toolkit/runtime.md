@@ -76,9 +76,10 @@ every operation obeys, so they live once here rather than being restated at each
 carried beside its outcome — typed but not type-parameterized: the value is a domain type while the slot
 holding it is not, so which type a given operation puts there is the caller's knowledge rather than the
 compiler's — and separately writes the human text it writes today (`TOOLKIT-14`).
-The forcing case is composition: the verdict auditor `MIGRATION.md` schedules re-checks verdicts another
+The forcing case is composition: the verdict auditor [MIGRATION.md](../../../MIGRATION.md) carries as
+a candidate re-checks verdicts another
 operation reported, and if the only channel out of an operation is a `TextWriter`, composing means
-re-parsing prose — the exact mistake stage S2 deletes when it retires `agent-metrics.ps1` for scraping
+re-parsing prose — the exact mistake `agent-metrics.ps1` makes today, scraping
 reports with regular expressions. The evidence that the channel is wrong rather than merely narrow is
 that `probe-rule-owner` already computes a typed answer and flattens it to lines at the boundary: the
 structure exists and is being thrown away one layer before the caller. Two alternatives were rejected. A

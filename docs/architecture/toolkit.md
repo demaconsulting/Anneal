@@ -190,7 +190,8 @@ least two of the remaining SUCCEEDED verdicts were wrong, found only by hand; `a
 16 of 16 while its own verifier failed half of what it saw; across 65 reports the header fields were not
 uniform (`Result` 64, `Tier` 57, `Repairs Used` 16, `Residual` 14, one `Result` that did not parse), and
 four worker names appeared that match no agent in `.github/agents/`. The asymmetry is the point, and is
-why [MIGRATION.md](../../MIGRATION.md) stage S3 re-checks verdicts rather than counting them: a false
+why the verdict auditor [MIGRATION.md](../../MIGRATION.md) carries as a candidate re-checks verdicts
+rather than counting them: a false
 FAILED is loud and gets fixed, a false SUCCEEDED ships. The non-uniformity is why `TOOLKIT-08` records
 invocations structurally — the figures above were themselves recovered by regex-scraping prose, which
 had already produced one plausible wrong answer. They are a baseline to re-measure against, not a

@@ -32,7 +32,8 @@ for a model rather than encoded judgement.
 
 ## Systems
 
-- [Process](./process.md) — the agents, standards and skills that instruct an AI coding agent
+- [Process](./process.md) — the agents, standards and skills that instruct an AI coding agent; a
+  bootstrap harness with a scheduled end, being dismantled into Toolkit operations
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
 - [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents will call
@@ -73,6 +74,11 @@ another. The exception is Toolkit: it arrives as a restored package rather than 
 a process, and its model-backed operations reach the network. That exception is the whole substance of
 the superseded *Files, not tooling* decision below, and it is confined to one system so that everything
 else keeps the property — a system can still be replaced wholesale without recompiling anything.
+
+That exception is widening for the duration of the migration. Prose agents invoke `dotnet anneal`
+directly, so a call becomes the normal edge from Process to Toolkit rather than an anomaly, and
+[MIGRATION.md](../../MIGRATION.md) carries it in the suspension register. It is not restored at the
+end: Process is dissolved, and the rule will have nothing left to describe.
 
 The one cycle in the diagram is deliberate. The Toolkit audits a tree that agents from the payload
 wrote, so the payload is both the author of the evidence and the subject of the audit. That is tolerable

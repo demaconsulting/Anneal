@@ -102,13 +102,21 @@ and links to what each one promises. It is the next stop for any detail below th
 
 ## Direction
 
-Anneal has a settled trajectory. The [Toolkit](docs/architecture/toolkit.md) grows into a
-substantially complete autonomous coding system: the actions `dotnet anneal` provides progressively
-absorb work that is done today by prose agents reading prompts and by PowerShell scripts running
-checks. Two agents remain conversational and are never absorbed — `helper` and `architecture-design`
-both work by talking to a person, and their end-state job is to drive the Toolkit. Along the way,
-Anneal takes on the capabilities of a separate, earlier autonomous-coding project built under a
-rigid regulated process that could not evolve, and replaces it.
+Anneal has a settled destination: it becomes its own agent CLI. Work arrives at any point on the
+complexity spectrum, a router classifies it and selects one of a catalog of processes, and each
+process runs as compiled state-flow logic — models do the work, and oracles, meaning narrow typed
+questions with no side effects, decide its branches. The prose agents under `.github/agents/` are
+the bootstrap harness that made this reachable, not the product; they are dismantled into that
+catalog. `helper` and `architecture-design` are absorbed **last**, because a conversation is the
+hardest control flow to encode — not because they are exempt. Along the way, Anneal takes on the
+capabilities of a separate, earlier autonomous-coding project built under a rigid regulated process
+that could not evolve, and replaces it.
+
+Routing is what makes that catalog affordable. A planning-and-review process that runs on every
+change multiplies the cost of every change, which is exactly the mechanism this repository refuses;
+the same process run only on work that earns it is proportionality, not overhead. That is the same
+principle progressive disclosure and tiering already apply — read only as deep as the task needs,
+document only as much as the contract moved, run only as heavy a process as the work warrants.
 
 **The dividing line.** The Toolkit may absorb **control flow and context assembly** — sequencing
 steps, gating on their outcomes, and composing what a model is shown. It must never absorb
@@ -122,10 +130,12 @@ The admission test underneath is the one *What must not be reintroduced* in
 subsequent change? Anneal exists to refuse mechanisms that do. Automation that mechanizes work in
 order to *remove* per-change cost is the point of this direction, not a case against it.
 
-Two further items are held at lower confidence than the rest, and named here because they shape
-thinking below this line without being committed: an optional in-process REPL hosting the two
-conversational agents, and an on-premises model provider. Both would be re-decided when a stage
-that depends on them is approached.
+One further item is held at lower confidence than the rest, and named here because it shapes
+thinking below this line without being committed: an on-premises model provider. It would be
+re-decided when a stage that depends on it is approached.
+
+How the journey is run is not part of this direction and is deliberately not scheduled here.
+[MIGRATION.md](MIGRATION.md) owns it, and plans one stage at a time.
 
 ## Installation
 
