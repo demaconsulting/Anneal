@@ -390,6 +390,30 @@ public class ContractCheckTests
     }
 
     /// <summary>
+    ///     Validates that discovery pointed at an unknown test root is reported as its own failure, naming
+    ///     the root rather than every clause, because the root itself is the thing that is wrong.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_DiscoveryFailsOnAnUnknownTestRoot_IsItsOwnFailure()
+    {
+        // Arrange: a test root that does not exist
+        using var repository = Standard();
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, "TestRoots=no-such-directory"));
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.Contains(
+                "No test declarations found in 'no-such-directory' matching '*.cs' - 2 verifiers need one, " +
+                "so fix the discovery patterns rather than the tests. Declaration shape: attribute-marked " +
+                "methods (Fact, Theory)",
+                report.Errors),
+            () => Assert.DoesNotContain(
+                report.Errors, error => error.Contains("is not declared", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
     ///     Validates that a tree of planned clauses with no test sources at all is not a discovery failure,
     ///     since a tree being bootstrapped is not expected to resolve anything.
     /// </summary>
@@ -551,6 +575,207 @@ public class ContractCheckTests
                 "-TestProfiles cannot be combined with -TestRoots - move those values into a profile record",
                 report.Errors),
             () => Assert.Equal(0, report.ClauseCount));
+    }
+
+    /// <summary>
+    ///     Validates that a clause naming a prefix of a real test's name is not satisfied, since matching was
+    ///     once substring-based and let a clause point at a name that merely appeared inside a longer one.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_ClauseNamingAPrefixOfARealTest_IsReported()
+    {
+        // Arrange: the clause names a prefix of the declared test
+        using var repository = Standard();
+        repository.WriteDocument(
+            "ingest.md",
+            StandardContract.Replace("`AcceptedRecordIsDurable`", "`AcceptedRecord`", StringComparison.Ordinal));
+
+        // Act
+        var report = ContractCheck.Run(Options(repository));
+
+        // Assert
+        Assert.Contains(
+            "ingest.md: clause INGEST-01 names test 'AcceptedRecord' which is not declared as a test method in " +
+            "test, tests",
+            report.Errors);
+    }
+
+    /// <summary>
+    ///     Validates that a repository which is neither C# nor xUnit is checked through discovery patterns
+    ///     alone: named cases in a script suite, discovered by a caller-supplied pattern, with results in the
+    ///     text format.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_FixtureCaseRepository_IsCheckedThroughDiscoveryPatterns()
+    {
+        // Arrange: a suite whose cases are named by a quoted argument, not by an attribute-marked method
+        using var repository = new TemporaryRepository();
+        repository.WriteDocument(
+            "ingest.md",
+            """
+            ## Contract
+
+            ### Provides
+
+            - **INGEST-01** - Accepts records and returns 202 once durably queued.
+              *Verified by:* `suite.ps1: "accepted record is durable"`
+
+            ### Invariants
+
+            - **INGEST-I1** - Records are queued in arrival order.
+              *Verified by:* `suite.ps1: "records keep arrival order"`
+            """);
+        repository.Write(
+            "suite.ps1",
+            "Test-Case -Name \"accepted record is durable\" -ExpectExit 0\n" +
+            "Test-Case -Name \"records keep arrival order\" -ExpectExit 0\n");
+        repository.WriteTextResults(
+            "results/tests.txt",
+            [("accepted record is durable", "Passed"), ("records keep arrival order", "Passed")]);
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, ScriptProfile));
+
+        // Assert
+        Assert.Multiple(
+            () => Assert.True(report.Passed),
+            () => Assert.Empty(report.Warnings),
+            () => Assert.Equal(2, report.ClauseCount),
+            () => Assert.Equal(2, report.TestLinkCount));
+    }
+
+    /// <summary>
+    ///     Validates that a stale result is rejected in the text format too, since staleness is a property of
+    ///     the run rather than of the result file's shape.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_StaleResultInTextFormat_IsRejected()
+    {
+        // Arrange: a result stamped a year before the suite it describes
+        using var repository = new TemporaryRepository();
+        repository.WriteDocument(
+            "ingest.md",
+            """
+            ## Contract
+
+            ### Provides
+
+            - **INGEST-01** - Accepts records.
+              *Verified by:* `suite.ps1: "accepted record is durable"`
+            """);
+        repository.Write("suite.ps1", "Test-Case -Name \"accepted record is durable\" -ExpectExit 0\n");
+        repository.WriteTextResults(
+            "results/tests.txt",
+            [("accepted record is durable", "Passed")],
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, ScriptProfile));
+
+        // Assert
+        Assert.Contains(
+            "Test results are stale: 'suite.ps1' changed after the newest result matching 'results/*.txt'. " +
+            "Re-run the tests.",
+            report.Errors);
+    }
+
+    /// <summary>
+    ///     Validates that a failing result in the text format fails its clause, just as a failing TRX result
+    ///     does.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_FailingResultInTextFormat_FailsItsClause()
+    {
+        // Arrange
+        using var repository = new TemporaryRepository();
+        repository.WriteDocument(
+            "ingest.md",
+            """
+            ## Contract
+
+            ### Provides
+
+            - **INGEST-01** - Accepts records.
+              *Verified by:* `suite.ps1: "accepted record is durable"`
+            """);
+        repository.Write("suite.ps1", "Test-Case -Name \"accepted record is durable\" -ExpectExit 0\n");
+        repository.WriteTextResults("results/tests.txt", [("accepted record is durable", "Failed")]);
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, ScriptProfile));
+
+        // Assert
+        Assert.Contains(
+            "ingest.md: clause INGEST-01 names test 'suite.ps1: \"accepted record is durable\"' whose most " +
+            "recent result is 'Failed'",
+            report.Errors);
+    }
+
+    /// <summary>
+    ///     Validates that a failing test in the second profile still fails its clause, proving that pooling
+    ///     results across profiles did not lose the outcome of the framework that is not the first one.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_FailingTestInTheSecondProfile_FailsItsClause()
+    {
+        // Arrange: the invariant proved by a named case in a script suite, which failed
+        using var repository = Standard();
+        repository.WriteDocument(
+            "ingest.md",
+            StandardContract.Replace(
+                "`PreservesPerConnectionOrder`",
+                """`suite.ps1: "preserves per connection order"`""",
+                StringComparison.Ordinal));
+        repository.Write(
+            "test/Ingest.Tests/Contract/IngestContractTests.cs",
+            StandardTests.Replace("PreservesPerConnectionOrder", "AcceptsRecords", StringComparison.Ordinal));
+        repository.Write("suite.ps1", "Test-Case -Name \"preserves per connection order\"\n");
+        repository.WriteTrx("artifacts/tests/results.trx", [StandardOutcomes[0]]);
+        repository.WriteTextResults("results/tests.txt", [("preserves per connection order", "Failed")]);
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, CSharpProfile, ScriptProfile));
+
+        // Assert
+        Assert.Contains(
+            "ingest.md: clause INGEST-I1 names test 'suite.ps1: \"preserves per connection order\"' whose most " +
+            "recent result is 'Failed'",
+            report.Errors);
+    }
+
+    /// <summary>
+    ///     Validates that staleness is judged within a profile rather than across them, so a stale script tally
+    ///     is rejected even while the C# profile's TRX is fresh.
+    /// </summary>
+    [Fact]
+    public void ContractCheck_Run_StaleResultInOneProfile_IsRejectedWhileTheOtherIsFresh()
+    {
+        // Arrange: the script profile's result predates the suite it describes; the C# profile's does not
+        using var repository = Standard();
+        repository.WriteDocument(
+            "ingest.md",
+            StandardContract.Replace(
+                "`PreservesPerConnectionOrder`",
+                """`suite.ps1: "preserves per connection order"`""",
+                StringComparison.Ordinal));
+        repository.Write(
+            "test/Ingest.Tests/Contract/IngestContractTests.cs",
+            StandardTests.Replace("PreservesPerConnectionOrder", "AcceptsRecords", StringComparison.Ordinal));
+        repository.Write("suite.ps1", "Test-Case -Name \"preserves per connection order\"\n");
+        repository.WriteTrx("artifacts/tests/results.trx", [StandardOutcomes[0]]);
+        repository.WriteTextResults(
+            "results/tests.txt",
+            [("preserves per connection order", "Passed")],
+            new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        // Act
+        var report = ContractCheck.Run(Options(repository, CSharpProfile, ScriptProfile));
+
+        // Assert
+        Assert.Contains(
+            "profile 2: Test results are stale: 'suite.ps1' changed after the newest result matching " +
+            "'results/*.txt'. Re-run the tests.",
+            report.Errors);
     }
 
     private const string CSharpProfile =
