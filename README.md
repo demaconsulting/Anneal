@@ -202,6 +202,21 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
   Copilot account of the calling session — the same account the agents already run under — so content
   reaches no party that was not already receiving it. This stops holding the moment an operation
   authenticates as anything else, which is why the Toolkit supplies no token of its own.
+- **The build now requires network access.** The Copilot SDK (`GitHub.Copilot.SDK`) downloads the
+  Copilot CLI npm tarball into `obj/` at build time — tarballs land under
+  `src/DemaConsulting.Anneal.Toolkit/obj/{Debug,Release}/net10.0/copilot-cli/<version>/` — which is
+  why `.markdownlint-cli2.yaml` and `.yamllint.yaml` had to widen their ignore lists to exclude
+  `**/bin/**` and `**/obj/**`. This is a **build-time** dependency only: the *runtime* determinism of
+  enforcement operations is unaffected, since `verify-evidence` and the other deterministic operations
+  still consult no model.
+- **Two experimental-SDK suppressions back real guarantees.** The Copilot SDK flags both
+  `ModelCapabilitiesOverride` (used to enforce `MaxOutputTokens`, the output-token ceiling) and
+  `PermissionHandler`/`OnPermissionRequest` (used to auto-approve the Toolkit's own read-only tool
+  grants) as GHCP001 — "for evaluation purposes only and is subject to change or removal". A contract
+  guarantee and an operational simplification both rest on an API the vendor reserves the right to
+  withdraw; the `#pragma warning disable GHCP001` blocks around each are narrow so a withdrawal breaks
+  the build loudly, as a compile error, rather than the bound silently evaporating. The falsifier: the
+  SDK withdraws the `ModelCapabilitiesOverride` or `PermissionHandler` types.
 
 ## The Architecture Tree
 
