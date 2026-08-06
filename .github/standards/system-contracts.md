@@ -8,10 +8,13 @@ globs: ["docs/architecture/**/*.md"]
 
 A **contract** is what consumers outside a system boundary may rely on. Below level 0 it is the only
 requirement-like artifact in this process, and each clause lives at the **node that owns the
-promise** — the `## Contract` section of that node's architecture document. A parent node owns the
-cross-cutting promises every child obeys; a child node owns the promises specific to it. Every clause
-has a single owning node, at any depth. Level 0 carries the product's own promises to a person, which
-`architecture-documentation.md` owns.
+promise** — the `## Contract` section of that node's architecture document. A child node owns the
+promises specific to it; a cross-cutting promise every sibling obeys is owned by the node those
+siblings share. That shared node is the system root when the promise belongs to no narrower layer, or
+an intermediate machinery node the siblings depend on through `Requires` when holding it there lets a
+reader working on one consumer load only the machinery that consumer is built from. The system root
+always keeps its own system-identity contract. Every clause has a single owning node, at any depth.
+Level 0 carries the product's own promises to a person, which `architecture-documentation.md` owns.
 
 There are deliberately **no subsystem or unit requirements**. Interior structure must be free to
 churn without documentation cost — that freedom is the entire point of this process. Requirements
@@ -147,7 +150,8 @@ the contract change deliberately.
 
 A healthy contract at a single node has roughly **5 to 25 clauses**. Count per node, not per system:
 a node whose promises have grown distributes them down to child nodes, each carrying the clauses
-specific to it while the parent keeps the cross-cutting ones. Interpret the extremes:
+specific to it, and a cross-cutting clause moving to whichever node its consumers share — the parent,
+or an intermediate machinery node they reach through `Requires`. Interpret the extremes:
 
 - **Fewer than 3** — the node probably is not a boundary; it may be interior detail of another.
 - **More than 40 at one node** — either the decomposition is wrong, or the contract has drifted into

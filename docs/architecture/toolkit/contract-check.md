@@ -32,6 +32,11 @@ something deterministic enough to run in CI.
 
 ### Provides
 
+- **TOOLKIT-17** — `check-contracts` verifies a repository's architecture tree against the clause-to-test
+  link, reporting whether every contract clause names a test that exists and most recently passed. It
+  reaches this verdict deterministically and consults no model.
+  *Verified by:* `ToolkitContractTests.CheckContractsVerifiesTheClauseToTestLink`
+
 - **CONTRACT-CHECK-01** — Accepts a repository whose clauses all name existing, passing tests and reports
   success.
   *Verified by:* `test-check-contracts.ps1: "clean repository passes"`
@@ -103,6 +108,8 @@ something deterministic enough to run in CI.
 
 ### Requires
 
+- **[Runtime](./runtime.md)** — the category, outcome and finding machinery every Toolkit operation is
+  built from; `check-contracts` is deterministic and reaches for nothing in the model seam.
 - **PowerShell 7** — file globbing, XML parsing, and exit-code propagation.
 
 ### Invariants

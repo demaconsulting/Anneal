@@ -24,47 +24,18 @@ presented requires owning the conversation, which requires code.
 
 ## Contract
 
+The clauses here are the tool's own identity — how it is invoked, how it reports its version, and how
+it handles misuse and discovery — owned by no single operation and no single machinery layer. The
+promises every operation obeys live in the [Runtime](./toolkit/runtime.md); the promises only a
+model-backed operation touches live in the [Model Seam](./toolkit/model-seam.md); each operation's own
+promise lives at its own node.
+
 ### Provides
 
 - **TOOLKIT-01** — The tool is invoked as `dotnet anneal <action>` with the action named first, and an
   unrecognized action lists the actions that exist, so a caller discovers the surface without reading
   the source. The exit code it leaves is the caller-error code of `TOOLKIT-10`.
   *Verified by:* `ToolkitContractTests.UnknownActionListsAvailableActions`
-
-- **TOOLKIT-02** — Every operation declares exactly one category — enforcement, research, advisory or
-  authoring — and for an operation that ran, the category alone determines whether the non-zero exit
-  of its outcome gates a build. Only enforcement operations gate.
-  *Verified by:* `ToolkitContractTests.OnlyEnforcementOperationsGate`
-
-- **TOOLKIT-03** — `verify-evidence` reports, for each evidence locator cited in an agent report,
-  whether the quoted text is present at the file and line named. It reaches no verdict about the
-  report's conclusion and consults no model.
-  *Verified by:* `ToolkitContractTests.EvidenceLocatorsAreCheckedAgainstSource`
-
-- **TOOLKIT-04** — `probe-rule-owner` names the single file that owns a given rule, or refuses when
-  the rule is stated in more than one place or in none.
-  *Verified by:* `ToolkitContractTests.RuleOwnerProbeNamesOneFileOrRefuses`
-
-- **TOOLKIT-05** — Every operation that consults a model declares the capability role it requires, and
-  roles resolve to concrete models through repository configuration rather than through the operation.
-  *Verified by:* `ToolkitContractTests.OperationRolesResolveThroughConfiguration`
-
-- **TOOLKIT-06** — Refusal is reported as an outcome distinct from both success and failure, so a
-  caller can tell "the question could not be answered on the available evidence" from "the answer is
-  no".
-  *Verified by:* `ToolkitContractTests.RefusalIsDistinctFromFailure`
-
-- **TOOLKIT-07** — A model-backed operation that cannot reach a model fails with a message naming the
-  cause. It never falls back to a deterministic approximation, and never reports success on a
-  judgement it did not obtain.
-  *Verified by:* `ToolkitContractTests.UnreachableModelFailsLoudly`
-
-- **TOOLKIT-08** — Every invocation appends a structured record of the operation, its inputs, its
-  outcome and any model usage, in a form a later query can aggregate without parsing prose. The record
-  identifies the outcome so that its meaning is fixed as new outcomes are added, so records aggregated
-  across versions — which is what aggregation means, since runs span releases — cannot silently change
-  meaning when the set of possible outcomes grows.
-  *Verified by:* `ToolkitContractTests.InvocationsAppendStructuredRecords`
 
 - **TOOLKIT-09** — The tool reports the Anneal version it was built from, so an installed payload can
   be identified by version rather than inferred from its contents.
@@ -76,13 +47,6 @@ presented requires owning the conversation, which requires code.
   distinct from the codes carried by a gated failure and by a refusal, so a caller that scripts the
   wrong argument form cannot read its own mistake as a check that ran and passed.
   *Verified by:* `ToolkitContractTests.UsageErrorExitsAsCallerErrorWhateverTheCategory`
-
-- **TOOLKIT-11** — Every model interaction records a transcript of it — the prompt sent, the reply
-  received, the model consulted and the token usage — for every interaction rather than only for those
-  that failed or refused, and with no opt-in that could leave it off. A model asked the same question
-  later may answer differently, so this is the only evidence in the system that cannot be reconstructed
-  by re-running, and it is captured at the time or lost.
-  *Verified by:* `ToolkitContractTests.ModelInteractionsAreTranscribed`
 
 - **TOOLKIT-12** — `dotnet anneal help`, given no further argument, lists every shipped action with its
   one-line summary and exits with the success code `0`. The action list a caller could until now reach
@@ -96,29 +60,6 @@ presented requires owning the conversation, which requires code.
   already produces, so `help` never fabricates guidance for a surface that does not exist.
   *Verified by:* `ToolkitContractTests.HelpForActionPrintsItsUsageAndRejectsUnknown`
 
-- **TOOLKIT-14** — An operation reports what it found as data, carried alongside its outcome and never
-  in place of it, so a caller — including another operation — consumes the finding without parsing the
-  text the operation renders for a person. An operation with nothing structured to report carries no
-  data, and that absence is an answer rather than an invented payload or a failure.
-  *Verified by:* `ToolkitContractTests.OperationFindingsReachCallersAsData`
-
-- **TOOLKIT-15** — A caller supplies a cancellation signal with an invocation, and cancelling it stops
-  the invocation rather than letting it run to completion, so a host that must stay responsive — an
-  interactive loop, or an agent abandoning a question — can withdraw a request that consults a model for
-  tens of seconds.
-  *Verified by:* `ToolkitContractTests.CancellingAnInvocationStopsIt`
-
-- **TOOLKIT-16** — An invocation interrupted at the terminal stops where it is rather than being killed,
-  and exits with the interrupt code `130`, which is distinct from every code an outcome maps to and from
-  the caller-error code of `TOOLKIT-10`, because an interrupted invocation reached no outcome to map. A
-  caller reading exit codes can therefore tell a run somebody stopped from any run that finished.
-  *Verified by:* `ToolkitContractTests.InterruptedInvocationStopsAndExitsOutsideTheOutcomeCodes`
-
-- **TOOLKIT-17** — `check-contracts` verifies a repository's architecture tree against the clause-to-test
-  link, reporting whether every contract clause names a test that exists and most recently passed. It
-  reaches this verdict deterministically and consults no model.
-  *Verified by:* `ToolkitContractTests.CheckContractsVerifiesTheClauseToTestLink`
-
 ### Requires
 
 - **[Process](./process.md)** — the agents that invoke operations, and the standards whose rules the
@@ -131,69 +72,42 @@ presented requires owning the conversation, which requires code.
 
 ### Invariants
 
-- **TOOLKIT-I1** — A model consulted by any operation is granted read-only repository tools. No
-  operation grants a tool that executes a command or writes a file, and the granted tool set is always
-  an explicit allowlist rather than an absent one.
-  *Verified by:* `ToolkitContractTests.ModelToolGrantsAreReadOnlyAndExplicit`
-
-- **TOOLKIT-I2** — A probe result reaches a caller only as a fully decoded typed value. A response
-  that cannot be decoded within the retry budget fails the operation; no partially populated result is
-  returned.
-  *Verified by:* `ToolkitContractTests.UndecodableProbeResultFailsTheOperation`
-
-- **TOOLKIT-I3** — An enforcement operation given identical repository inputs reaches an identical
-  verdict, so a gating check cannot change answer on unchanged input.
-  *Verified by:* `ToolkitContractTests.EnforcementVerdictsAreStableOnUnchangedInput`
-
 - **TOOLKIT-I4** — The detailed usage an action presents through `help <action>` and the usage it
   presents when invoked with arguments it cannot use (`TOOLKIT-10`) are one and the same text, drawn
   from a single declared source, so the two renderings cannot state the invocation differently or drift
   apart as the action changes.
   *Verified by:* `ToolkitContractTests.HelpAndUsageErrorShareOneUsageSource`
 
-- **TOOLKIT-I5** — The caller's cancellation signal is the only one in effect for the whole of an
-  invocation: no operation substitutes a signal of its own at any point between the invocation and the
-  model it consults. A cancellation therefore takes effect while a model call is still waiting for its
-  reply, rather than only after the reply arrives.
-  *Verified by:* `ToolkitContractTests.CancellationTakesEffectWhileAModelCallIsInFlight`
-
 ## Composition
 
-Three parts, cut where the reasoning differs.
+The system decomposes into the operations callers invoke and the two machinery layers they are built
+from.
 
-**Operations** are the contract surface: one per action, each declaring its category and, where
-applicable, its capability role. Everything above is dispatch and argument parsing; everything below is
-shared machinery. This is the only layer the contract describes, which is deliberate — an operation
-invoked by a downstream agent *is* a promise, so adding one is a contract change and is meant to feel
-like one.
+- **Operations** are the contract surface: one per action, each declaring its category and, where
+  applicable, its capability role. This is the only layer the contract describes at the operation
+  level, which is deliberate — an operation invoked by a downstream agent *is* a promise, so adding one
+  is a contract change and is meant to feel like one. [VerifyEvidence](./toolkit/verify-evidence.md) and
+  [ContractCheck](./toolkit/contract-check.md) are deterministic and built on the Runtime alone;
+  [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds the Model Seam.
+- **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
+  and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
+  operation returns beside its outcome, and the asynchronous boundary carrying the caller's
+  cancellation. Everything above it is dispatch and argument parsing; a gate must not depend on a
+  network, which is why a deterministic operation reaches for nothing below this layer.
+- **[Model Seam](./toolkit/model-seam.md)** is the machinery only a model-backed operation touches: a
+  provider resolving a capability role to an endpoint, the *run* and *probe* verbs over it, and the
+  prompt assembly that owns the schema so a caller cannot place it early. If operations built their own
+  prompts, the schema-last ordering that justifies the system would be re-implemented per operation and
+  decay unevenly.
 
-This tree therefore records only two things about actions, and both are bounded as the set grows: the
-**inventory** — each action named with its one-line role, one clause per action — and the
-**participation rules** every action obeys whatever it does, which are contract clauses rather than
-per-action prose: category decides gating (`TOOLKIT-02`), a misuse maps to the caller-error code
-(`TOOLKIT-10`), each action declares its detailed usage exactly once (`TOOLKIT-I4`), each runs under the
-caller's cancellation signal and no other (`TOOLKIT-15`, `TOOLKIT-I5`), and each reports what it found as
-data beside its outcome (`TOOLKIT-14`). An action's
-*usage* — how it is invoked and what arguments it takes — is per-action detail served by `help <action>`
-from the operation itself, never written into this tree. That routing is load-bearing, not a
-convenience: it is what holds this document's growth to one contract clause per new action rather than a
-clause plus a paragraph of usage each, and it makes the operation the single owner of its usage by
-construction.
-
-**Deterministic checks** read the repository and reach verdicts without a model — `verify-evidence` and
-`check-contracts` among them — kept apart from model-backed work because they are the operations that may
-gate, and a gate must not depend on a network.
-
-**The model seam** is a provider that resolves a capability role to an endpoint, and one object over it
-offering two verbs: *run*, whose request and reply both join a conversation, and *probe*, a one-shot
-question whose typed answer joins nothing. The seam exists so that no operation knows which provider
-answered, and so the two interaction shapes cannot drift apart in how they decode or retry. If the seam
-moved — if operations built their own prompts — the schema-last ordering that justifies the system
-would be re-implemented per operation and would decay unevenly.
-
-The prompt assembly deliberately owns more than the caller supplies: an operation provides its question
-and its authoritative context, while the framework contributes the response schema, derived by
-reflection over the typed result. A caller cannot forget the schema, and cannot place it early.
+This tree records only two things about an action, and both stay bounded as the set grows: the
+**inventory** — each action named once with its one-line role — and the **participation rules** every
+action obeys whatever it does, which are contract clauses held in the [Runtime](./toolkit/runtime.md)
+and at this root rather than per-action prose. An action's *usage* — how it is invoked and what
+arguments it takes — is per-action detail served by `help <action>` from the operation itself, never
+written into this tree. That routing is load-bearing, not a convenience: it is what holds this
+document's growth to one contract clause per new action rather than a clause plus a paragraph of usage
+each, and it makes the operation the single owner of its usage by construction.
 
 ## Decisions
 
@@ -220,78 +134,6 @@ contracts stay data the Toolkit composes. The rejected alternative was a process
 control flow and judgement — rejected because encoding judgement makes correcting it expensive on every
 subsequent change, which is the cost *What must not be reintroduced* in [overview.md](./overview.md)
 refuses.
-
-**Model configuration is data, not code** — roles appear in this contract; the models behind them do
-not. Defaults are compiled in, and a repository changes the models behind its roles by writing its own
-`.anneal/config.json` over them, without a Toolkit release. The rejected alternative, model names in
-the contract, would make every model substitution a contract change.
-
-**A role names an ordered list of candidates, and the first one the account offers answers** — both
-the compiled-in defaults and `.anneal/config.json` map a role to candidates in preference order, and
-the role resolves by asking the provider which models the account is offered and taking the first
-candidate present. The forcing case is rot rather than choice: a compiled-in default naming a single
-model breaks every repository that has not written its own config the day that model is retired, and
-only a Toolkit release fixes it — which is already live, since one compiled-in default names a model
-the account no longer offers at all. An ordered list lets a newer model lead with an older one held
-as a rearguard, so a retirement degrades instead of breaking. The rejected alternative was a
-failure-triggered fallback chain — try a candidate, and on error try the next. It was rejected
-because the model seam deliberately flattens every provider-side error into one unavailability
-failure and so cannot tell a retired model from a rate limit, an expired credential or a transport
-fault; falling back on failure would silently downgrade a heavy-role judgement to a lighter model
-whenever the network hiccuped, which is the same silently-weakened answer *Offline is a failure, not
-a degraded mode* refuses. Availability is asked about, never inferred from a failure, and that error
-flattening is not being changed to accommodate this. Configuration remains the only source of
-candidates, so `TOOLKIT-05` is unchanged: the operation still has no say in which model answers, and
-no model outside the repository's configured set can ever be selected.
-
-**The configuration format changed outright, and the old form fails loudly** — a repository still
-holding the single-name form (`"light": "gpt-5.4-mini"`) no longer loads: a role is a list now, so
-the old file stops working. It stops with the same unavailability failure a missing model raises,
-naming what could not be resolved, rather than substituting a model silently — the loudness is the
-point, and it is the same reasoning that already makes a file which exists but cannot be parsed an
-error instead of a fallback to defaults. This is a **breaking change** in the sense
-`system-contracts.md` defines, and it is admitted rather than softened, for the same reason a
-tolerant parser accepting both forms was declined rather than written: nothing is published, the
-tool is pinned `0.1.0-dev`, and there is no installed base to protect, so carrying two formats
-forever would buy nobody anything.
-
-**Availability is asked lazily, and a failed enquiry is not a gate** — the enquiry happens only when
-a role is actually being resolved for use, so a run that consults no model makes no such call and a
-deterministic check acquires no network dependency; that separation is the whole reason Composition
-keeps deterministic checks apart from model-backed work. When the enquiry itself fails, resolution
-falls back to the first configured candidate and the call succeeds or fails on its own terms.
-Treating a failed enquiry as a failed resolution was rejected because it would convert an
-optimization over guessing into a new way for a working run to stop. A role whose candidates are all
-absent from the offered set is a different case and does stop, under `TOOLKIT-07`, naming the role,
-the candidates tried and `.anneal/config.json` as the place to change them.
-
-**The model seam breaks at compile time, and the break is taken now** — `IChatEndpoint` gains a
-**required** member, the availability enquiry, and single-model lookup gives way to candidate lookup
-and asynchronous resolution. That is a **breaking change** to any external implementer of the seam,
-in the sense `system-contracts.md` defines, and a compile-time one exactly as requiring `Usage` and
-the asynchronous operation boundary were. It is admitted for the reason those were: nothing is
-published, the tool is pinned `0.1.0-dev`, and there is no installed base to protect. A defaulted
-enquiry answering "everything is offered" was rejected on the same grounds a defaulted `Usage` was —
-it would leave a seam implementable that cannot answer the question resolution rests on, and
-resolution would then be guessing while the contract claimed it asks.
-
-**Availability-based resolution is a new exposure on `TOOLKIT-I3`, and is recorded rather than
-hidden** — which model answers now depends on the calling account's entitlements, which are not part
-of the repository input, so two runs over identical files could in principle resolve a role to
-different models and an enforcement operation built on model judgement could differ. The operation that
-gates today, `check-contracts`, consults no model — its verdict is a pure function of repository
-inputs — so `TOOLKIT-I3` holds for it and is verified. The exposure is therefore a standing condition
-on any *future* model-backed enforcement operation, which would have to re-establish that stability
-independently; it is not a reason to prefer the single compiled-in model this resolution replaces, a
-shape that does not make a verdict reproducible and only makes the failure total when the model is
-retired.
-
-**The schema is a prompt-level hint, not a transport guarantee** — the Copilot session API offers no
-constrained-decode facility, so a typed response rests on a described schema, tolerant extraction of the
-object body, and a retry that shows the model its own parse error. This is weaker than a provider that
-enforces a response format, and the difference is recorded because it is invisible in the type
-signature: `Probe<T>` looks equally reliable either way. Parse-failure rate is therefore something to
-measure rather than assume.
 
 **A misuse is not an outcome** — an operation that cannot use its arguments never ran, so it has nothing
 to report and the gating rule has nothing to weigh; `TOOLKIT-10` therefore routes it to the same
@@ -337,89 +179,10 @@ and whose bare invocation is deliberately a usage error — `anneal --help` woul
 `--help` is an action, and every answer complicates `TOOLKIT-10`. Should a caller ever need any of these,
 adding them is an additive Tier 1 change.
 
-**A finding is data; the text is a rendering of it** — an operation returns what it concluded as a value
-carried beside its outcome — typed but not type-parameterized: the value is a domain type while the slot
-holding it is not, so which type a given operation puts there is the caller's knowledge rather than the
-compiler's — and separately writes the human text it writes today (`TOOLKIT-14`).
-The forcing case is composition: the verdict auditor `MIGRATION.md` schedules re-checks verdicts another
-operation reported, and if the only channel out of an operation is a `TextWriter`, composing means
-re-parsing prose — the exact mistake stage S2 deletes when it retires `agent-metrics.ps1` for scraping
-reports with regular expressions. The evidence that the channel is wrong rather than merely narrow is
-that `probe-rule-owner` already computes a typed answer and flattens it to lines at the boundary: the
-structure exists and is being thrown away one layer before the caller. Two alternatives were rejected. A
-generic operation interface parameterized by its result type was rejected because the dispatcher — which
-is the surface consumers actually hold — must keep a heterogeneous set of actions, so it can only hold
-the non-generic form, and the type parameter buys nothing at the one boundary that matters while
-splitting the public surface into two shapes that must be kept aligned and forcing every operation with
-nothing structured to say to either pick the other shape or invent a payload. Keeping the writer as the
-only channel and treating separation alone as the answer was rejected because it supplies no data at all;
-what survives from it is adopted as a rule rather than as the mechanism — the writer is a rendering
-channel and never the data channel, which is why the seven observable invocations print exactly what they
-printed before and `help` is untouched. The outcome vocabulary is deliberately *not* folded into the
-payload: refusal stays an outcome distinct from success and failure (`TOOLKIT-06`) and exit codes keep
-mapping from the outcome, because a refusal is a fact about the invocation and not a value the operation
-found. **This is not `TOOLKIT-08`.** That clause promises a persisted, aggregatable record of every
-invocation, queryable across releases; this is an in-process return value that outlives nothing and is
-written nowhere. They resemble each other only in both being structured, and a later reader must not read
-`TOOLKIT-14` as `TOOLKIT-08` partly delivered.
-Streaming a finding as it is produced is a separate, later question; nothing here forecloses it, and it is
-deliberately unpromised. A middle option between the two rejected alternatives — a marker finding type,
-leaving the dispatcher heterogeneous while making the slot a domain type rather than an untyped one — was
-not evaluated, and is left as an open question for the user to rule on before the large batch of new
-operations lands, because at fifteen operations an untyped slot answers the same empty answer both to
-"nothing was found" and to "you asked for the wrong type".
-
-**The operation boundary is asynchronous, and the caller owns cancellation** — an invocation is
-asynchronous and takes the caller's cancellation signal, which reaches the model seam intact
-(`TOOLKIT-15`, `TOOLKIT-I5`). This reverses a rationale recorded in the code itself: that a process
-existing to run exactly one operation makes a synchronous boundary free, and keeps `IOperation` clear of a
-concern only one implementation has. That reasoning was true of the *process* and false of the
-*interface*. `IOperation` is public precisely so the tool can be hosted by something that is not this
-process, and the stated goal of an interactive loop is such a host: a synchronous boundary blocks it for
-the tens of seconds a reasoning model takes and offers no way to interrupt. The concern is also no longer
-one implementation's — the seam below is already asynchronous and every model-backed operation crosses
-it, so a synchronous surface above it means sync-over-async at the boundary, and blocking with a
-hardcoded absent cancellation signal is what the code does twice today. Relocating that block rather than
-removing it would satisfy the letter of the change and none of its purpose, which is why `TOOLKIT-I5`
-states the property as an observable one — a cancellation lands while a model call is still waiting —
-rather than as a prohibition on a construct. This is a **breaking change** to any external implementer of
-`IOperation`, in the sense `system-contracts.md` defines, and a compile-time one, exactly as requiring
-`Usage` was; it is admitted rather than softened. It is taken now because it is cheapest now: there are
-two implementations, no tag, nothing published, and a large batch of new operations is about to be
-commissioned against whichever shape exists. An overload preserving the synchronous form was rejected for
-the same reason a defaulted `Usage` was — it would leave the blocking path implementable, and therefore
-implemented, while the contract claimed otherwise. The clauses name no member, because how the signal is
-carried and how the finding is typed are interior; only that cancellation is the caller's and the finding
-is data are promises. For `TOOLKIT-15` to be observable in the tool anyone runs rather than only in the
-library, the signal has to originate at the process itself, which is why an interrupt there is contracted
-separately as `TOOLKIT-16`.
-
-**Offline is a failure, not a degraded mode** — a model-backed operation that cannot reach a model
-stops. Falling back to a weaker deterministic answer was rejected because the caller cannot see which
-answer it received, and a silently weakened check is the failure this repository treats as worse than
-no check.
-
 **The reference implementation is studied, not copied or depended on** — an existing internal codebase
 solves the same problem at much larger scale, including retrieval, memory and a process engine. Its
 seams informed this design and none of its code is taken wholesale, because importing the parts that are
 not needed is how a small tool acquires a large one's maintenance cost.
-
-**The diagnostic trace is deliberately left out of the contract** — the tool emits a low-level, high-volume trace of
-its own execution for the purpose of debugging the tool itself, and that stream carries no `Provides`
-clause on purpose. Its entire value is being free to change: contracting its shape, volume or
-destination would turn a debugging aid into a promise and every restructuring of the tool's internals
-into a breaking change. It is named here so its absence from the contract reads as a decision rather than
-an omission. Whether such a trace exists at all, what it contains, and what produces it are interior
-matters for a later stage to settle.
-
-**The diagnostic trace, the invocation record and the transcript are three streams, not one** — the
-trace above, the queryable invocation record (`TOOLKIT-08`) and the model-interaction transcript
-(`TOOLKIT-11`) serve three different purposes, and serving them from a single structured sink is the
-obvious-looking simplification that must be refused. If the interior trace *were* also the contracted
-record, the interior would become contracted by accident: the trace could never be restructured without
-breaking `TOOLKIT-08`, and the very freedom that justifies leaving the trace out of the contract would be gone.
-The record and the transcript are contracted for what they promise a later query; the trace is free
-precisely because it promises nothing, and that separation is what keeps both properties true.
 
 **The unreliability this system targets was measured, not assumed** — one pass over the agent-report
 corpus produced the figures the design rests on: `tier-check` returned FAILED in 8 of 16 runs, and at
@@ -433,26 +196,15 @@ invocations structurally — the figures above were themselves recovered by rege
 had already produced one plausible wrong answer. They are a baseline to re-measure against, not a
 target.
 
-**Transcripts are captured always, not on demand** — capture covers every model interaction, not only
-those that failed or refused, and is not placed behind an off-by-default flag. An opt-in guarantees the
-evidence is absent exactly when something surprising happened, and unlike a deterministic check the
-interaction cannot be recovered by re-running it. Failure-and-refusal-only capture misses the case a
-later audit stage exists to catch — the confidently wrong SUCCEEDED, which is silent by construction.
-The volume is real but small; a measurement run made sixteen probes. Because a transcript contains
-repository source, the files are gitignored and never committed. That capture happens is therefore what
-`TOOLKIT-11` contracts; where the transcripts live, their format, and any pruning of them are interior
-concerns.
-
-**An outcome is identified so its meaning survives the outcome set growing** — `TOOLKIT-08` requires the
-recorded outcome to keep its meaning as new outcomes are added, because aggregation is across runs and
-runs span releases. Identifying an outcome by a position that shifts when a member is inserted — as
-happened when a new outcome was added mid-set and moved an existing one's ordinal — would make a record
-written by one version mean something else when read against another, quietly corrupting the aggregation
-the clause promises. The clause states the stability as observable behavior and names no encoding,
-because how the identity is made stable is an interior decision and only the survival of meaning is the
-promise.
-
 ## Details
 
+- [Runtime](./toolkit/runtime.md) — the shared execution every operation is built from: category and
+  gating, outcomes and exit codes, the invocation record, findings-as-data, and cancellation
+- [Model Seam](./toolkit/model-seam.md) — the machinery only a model-backed operation touches: role
+  resolution, the run and probe verbs, refusal, offline failure, and transcription
+- [VerifyEvidence](./toolkit/verify-evidence.md) — how `verify-evidence` checks each cited locator's
+  quoted text against the file and line it names, reaching no verdict on the report's conclusion
+- [ProbeRuleOwner](./toolkit/probe-rule-owner.md) — how `probe-rule-owner` names the single file that
+  owns a rule, and why it refuses when ownership is split or absent
 - [ContractCheck](./toolkit/contract-check.md) — how the `check-contracts` action reads a repository's
   architecture tree, and what each way it can reject one means

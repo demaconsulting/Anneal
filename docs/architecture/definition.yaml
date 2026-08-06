@@ -10,6 +10,10 @@ input-files:
   - docs/architecture/installer.md
   - docs/architecture/template.md
   - docs/architecture/toolkit.md
+  - docs/architecture/toolkit/runtime.md
+  - docs/architecture/toolkit/model-seam.md
+  - docs/architecture/toolkit/verify-evidence.md
+  - docs/architecture/toolkit/probe-rule-owner.md
   - docs/architecture/toolkit/contract-check.md
 template: template.html
 table-of-contents: true
