@@ -102,94 +102,8 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S6 — The tool surface and the first compiled process
-
-The first prose agent becomes a compiled process. `lint-fix` is the pathfinder, chosen because its
-success is decided by an exit code rather than by judgement: `pwsh ./lint.ps1` returns 0 or it does
-not. Every other agent's success is a verdict, and a pathfinder whose success cannot be checked
-mechanically proves nothing — a failure could be the machinery or the judgement, with no way to tell
-which.
-
-The state flow is deterministic apart from the work itself:
-
-```text
-fix.ps1                                    the process runs it; not a tool the model may call
-loop, bounded:
-    lint.ps1  →  exit 0                 →  SUCCEEDED
-              →  repairable in scope    →  worker edits files, loop
-              →  repair needs the user  →  INCOMPLETE, stop and ask
-              →  budget exhausted       →  FAILED
-```
-
-**The four outcomes are the point, not the loop.** A prose `lint-fix` today does something a naive
-compilation would destroy: seeing lint pick up build artifacts, it recognizes that the correct repair
-is an ignore pattern in a protected configuration file, and asks rather than editing sources to dodge
-a misconfigured linter. Compiled as success-or-failure, the process would instead grind its budget and
-report FAILED, or "fix" symptoms. Escalation is therefore contracted as an outcome distinct from
-failure, exactly as `TOOLKIT-06` already makes refusal distinct from both success and failure — the
-same principle one level up, at the operation rather than the model call.
-
-**Escalation is produced by refusal, not by an opinion.** The write tools confine to the repository
-root and refuse the protected configuration files and scripts. A worker that attempts one is denied,
-and the denial is a recorded fact — *this write was attempted and refused* — rather than a
-self-report that it complied. That is the *judging agent must show the basis for its verdict*
-constraint met structurally instead of by asking a prompt nicely, and it is the reason the deny-list
-is in this stage rather than a later hardening pass.
-
-Compiling a process also converts advisory rules into enforced ones. `lint-fix.agent.md` asks an
-agent never to modify auto-generated files and to respect protected configuration; a model that
-ignores those produces a plausible report of having complied. A tool that refuses the path makes the
-rule a wall. That gain is independent of which model is used, and it generalizes to every later
-process.
-
-**What is taken from the reference implementation, and what is not.** `WorkspaceSandbox` in Jeeves is
-a single lexical containment primitive that fails closed and documents both the defect it replaced
-and the limit it does not cover — symbolic links and junctions resolve outside it. It is taken. The
-tool-group concept is taken with it, because scoping by *selection* — a tool not granted is simply
-absent from the set the model is offered — has no gate to talk past, and because grouping is what
-keeps later tool additions from each needing their own wiring decision. Jeeves reuses
-`Microsoft.Extensions.AI` message and tool types as the vocabulary across its own seam even on the
-Copilot path, translating them onto the SDK protocol, so that where the tool loop runs stays a
-per-provider concern; that decision is taken too, because it is what lets a second provider return
-later without a second tool abstraction.
-
-Three things are deliberately left. The `util-read` group is the rigid regulated process Anneal
-replaces. The shell tool is not granted at all: this process runs `fix.ps1` and `lint.ps1` as control
-flow, and a worker that can run commands can do anything and report plausibly that it did not.
-Jeeves' own `IChatEndpoint` is not adopted — Anneal's already distinguishes *run* from *probe* and
-requires an availability enquiry, which is the better factoring; it gains tools rather than being
-replaced.
-
-**A contract gap this stage must close.** `TOOLKIT-11` transcribes the prompt sent, the reply
-received, the model consulted and the token usage. When the provider runs the tool loop natively, a
-worker's tool calls happen inside the SDK, so that transcript would record a prompt and a final reply
-while being blind to every file the model touched — omitting the only part of a writing worker's
-behavior worth auditing. Tool invocations earn their own clause rather than widening `TOOLKIT-11`,
-because the two are checked by different readings of the record and either could lose its mechanism
-without taking the other with it.
-
-**Clauses.** `TOOLKIT-18` — every tool invocation a model makes is transcribed with its arguments and
-its outcome, including a refused one. `TOOLKIT-19` — `lint-fix` drives the repository to a clean lint
-or reports why it could not. `TOOLKIT-20` — an operation reports escalation as an outcome distinct
-from both success and failure. `TOOLKIT-I6` — a model is granted tools only by group selection, every
-filesystem path resolves inside the repository root, and a write to a protected configuration file or
-repository script is refused. **`TOOLKIT-I1` is retired**, not deleted silently: its read-only
-guarantee cannot survive a writing process, and `TOOLKIT-I6` keeps the explicit-allowlist half that
-was doing the real work. The retired number is never reused.
-
-`lint-fix` gets its own section document under Toolkit, as every CLI-invocable operation does.
-
-**Leaves working:** everything. `lint.ps1`, `build.ps1` and the existing operations are untouched;
-the prose `lint-fix` agent stays in the payload and keeps working until the compiled one is proven
-against this repository.
-
-**Exit conditions:** `dotnet anneal lint-fix` drives Anneal's own repository from a dirty lint state
-to a clean one without human help; a write to each protected configuration file and repository script
-is provably refused; a path escaping the repository root is provably refused; a refused write appears
-in the transcript; escalation is returned and rendered distinctly from failure; `TOOLKIT-18`,
-`TOOLKIT-19`, `TOOLKIT-20` and `TOOLKIT-I6` are verified by tests that exist and pass; `TOOLKIT-I1` is
-retired from the contract with its replacement in place; `pwsh ./build.ps1` and `pwsh ./lint.ps1` both
-pass.
+No stage is in progress. S7 landed and is recorded in the discovery log below; the next stage is
+chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
 
 ## Discovery log
 
@@ -330,3 +244,46 @@ build, and only `dotnet pack` itself, without `--no-build`, knows how to produce
 `RuntimeIdentifiers` line was reverted along with the rest of that approach, so `build.ps1` was left
 unchanged — but the fragility is recorded here because the next RID-carrying package this repository
 ships will rediscover it if this entry is not read first.
+
+### S7 — Measurement: reading the evidence already written — landed
+
+**The corpus already existed; nothing had ever read it.** `TOOLKIT-08` has appended a structured
+`InvocationRecord` for every `dotnet anneal` invocation since S2 — action, outcome, category, model
+usage, duration — to `.anneal/records/invocations.jsonl`. Both the S5 and S6 completion reports named
+the same 🔴 HIGH gap: the daily cadence's premise of steering by success rates had no rates to steer
+by, only expectation. This stage added no new recording, only a reader: `stats`, a new deterministic
+`Advisory` action that groups the existing corpus by action and reports a pass rate — `Succeeded ÷
+(Succeeded + Failed + Refused + Escalated)`, `UsageError` excluded from both sides — across five
+cumulative windows (today, last 3 days, last 7 days, last 30 days, all-time), with raw counts always
+shown beside the percentage.
+
+**Run against this repository's own working tree, it was immediately informative rather than
+theoretical.** `check-contracts` sat at 91% (43/47) and `lint-fix` at 33% (2/6) across this session's
+own use of the tool on itself — real, previously invisible numbers, not placeholders inserted to
+prove the mechanism works. That is the exit condition met in substance as well as in form: a future "what's next"
+conversation can now open with `dotnet anneal stats` instead of recalling the story from memory.
+
+**A different-model review caught one real defect, a third instance of the same finding at S5 and
+S6.** `RecordStore.Write` is not crash-atomic, so a process killed mid-append can leave a truncated
+final line in `invocations.jsonl`. The first implementation deserialized each line with no exception
+handling, so that one corrupt line would throw out of `ExecuteAsync` and crash the whole report
+instead of answering from the records still readable. The fix catches the deserialization failure per
+line, skips it, and continues — proven by a test that plants one well-formed record beside one
+deliberately corrupt line and asserts the well-formed one is still reported correctly, not merely that
+the operation avoids throwing.
+
+**Clause.** `TOOLKIT-21` — `stats` reads a repository's invocation records and reports, for each
+action found, its pass rate across the five cumulative windows above, with raw counts behind every
+percentage. It is deterministic and consults no model.
+
+`stats` gets its own section document under Toolkit, as every CLI-invocable operation does.
+
+**Leaves working:** everything. No existing operation, record shape or file changes; `stats` only
+reads what `TOOLKIT-08` already writes.
+
+**Exit conditions met:** `dotnet anneal stats`, run against this repository's real recorded
+invocations, printed correct per-action, per-window pass rates with counts, including windows with no
+data reporting that rather than a misleading rate; `TOOLKIT-21` is verified by
+`ToolkitContractTests.StatsReportsPerActionPassRatesAcrossWindows`, which exists and passes;
+`pwsh ./build.ps1` (167 C# tests, 9 process-contract, 43 check-contracts self-tests, all passing) and
+`pwsh ./lint.ps1` (70 clauses, 70 test links, exit 0) both pass.
