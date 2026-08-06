@@ -146,6 +146,15 @@ instead of asking; a mechanical one fails by widening its scope or misreporting 
 mechanical zone is therefore where the structural contract above earns its place, and the interactive
 zone is where behavioral verification is spent.
 
+For the span of the migration [MIGRATION.md](../../MIGRATION.md) carries, a third shape coexists with
+these two rather than replacing either: a compiled Router selects one of a small worker catalog
+(`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
+[Toolkit](./toolkit.md) owns. No node in the diagram above changes meaning while that is true — the
+mechanical zone's prose agents keep running exactly as drawn until their compiled replacement is built
+and proven, per the migration's one-way and no-silent-loss invariants — so the compiled catalog is
+recorded in Decisions below rather than added to the diagram itself, which describes the prose payload
+this document's own contract governs.
+
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
 a payload whose references do not resolve is not a smaller payload, it is a broken one. The **skills** sit
@@ -246,6 +255,24 @@ agent. Redrawing it as a direct-invocation node was rejected: this diagram's sol
 reserved for sub-agent invocation with a consumed report, and a fourth edge kind for "developer runs
 a compiled command" would document machinery this system does not decide, since Toolkit already owns
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
+
+**The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
+— the router asks one narrow typed question per pass (select a worker, ask for bounded research, or
+report no route) against two independent counters, a research budget and a worker-reroute budget,
+because the two are different failures: research means the router lacked facts, reroute means the
+selected worker learned mid-execution that the classification was wrong, and sharing one counter
+would let a cheap research pass starve a legitimate reroute. Cap exhaustion with no crisp human-only
+next step reports `Failed`; it reports `Escalated` only when the router can name a specific step only
+a person can take. The rejected alternative, considered directly against a comparable
+planner-developer-quality implementation agent elsewhere, was a universal three-phase loop with fixed
+retries on every change — rejected for the same reason **Bounded repairs, no planning phase** above
+already rejected it once: the multiplier is paid on every subsequent change regardless of whether the
+change needed it. What differs this time is that Planner and Verifier are **route-selected per
+worker**, not universal — a Small Fix worker (`Developer` → `DeterministicCheck`, one local repair
+pass) pays for neither, while a Structural Change worker uses a single-shot Planner outside any repair
+loop. Only Small Fix and Contract Change ship in the migration's first stage against this design;
+Structural Change and Template Sync are designed but deferred, and no prose agent retires until all
+four compiled workers exist and are proven, per the migration's one-way invariant.
 
 ## Details
 

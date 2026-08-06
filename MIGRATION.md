@@ -102,8 +102,60 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is in progress. S7 landed and is recorded in the discovery log below; the next stage is
-chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
+### S8 — The primitive library and the first compiled workers — designed, not yet built
+
+An `architecture-design` session produced a concrete plan for the router-and-primitives shape
+`README.md` § Direction and this file's Destination section already committed to, prompted by the
+tier/level terminology collision surfacing in conversation and a direct question about how the
+compiled catalog should actually be built rather than only described. Two background agents were
+consulted first — one surveying external composable-agent-orchestration patterns (Anthropic's
+Routing/Orchestrator-Workers/Evaluator-Optimizer patterns, LangGraph's `Command`-plus-state-counter
+loop bound, Microsoft's Semantic Kernel Process Framework as the closest native C# match,
+FrugalGPT/RouteLLM for model-tier selection), one drafting an Anneal-specific primitive library
+against this repository's own docs. Both converged independently on the same shape, which is the
+plan below.
+
+**Scope for this stage**: the primitive library, the Router, and exactly two workers — Small Fix
+and Contract Change. Structural Change (with its single-shot Planner) and Template Sync are
+designed but deliberately deferred to later stages; no prose agent retires until all four workers
+exist and are proven, so `dispatch`, `apply`, `tier-check`, `architecture-update` and
+`template-sync` all keep running unchanged through this stage.
+
+**Ownership split**: `DemaConsulting.Anneal.Toolkit.Primitives` (`Oracle<T>`, `Research`, `Planner`,
+`DocumentAuthor`, `Developer`, `DeterministicCheck`, `Verifier`, `RepairLoop<T>`, `StepResult<T>`)
+is owned by [Toolkit](docs/architecture/toolkit.md), alongside the Model Seam it is built from.
+`DemaConsulting.Anneal.Toolkit.Process` (`RoutingLedger`, `Router`, `WorkerDescriptor`, the worker
+compositions) is owned by [Process](docs/architecture/process.md) — the same document that already
+owns the agent catalog, now describing a compiled one instead of a prose one. Both namespaces live
+in the one Toolkit assembly; the namespace boundary mirrors the contract-document boundary so which
+document to update is mechanical rather than a judgement call.
+
+**The Router's bound**: two independent counters, not one shared budget — up to 3 research
+iterations and up to 2 worker reroutes, because a research pass (the router lacked facts) and a
+reroute (a worker learned mid-execution that the classification was wrong) are different failures,
+and sharing one counter lets a cheap research step starve a legitimate reroute. Cap exhaustion with
+no crisp human-only next step is `Failed`; it is `Escalated` only when the router can name a
+specific step only a person can take (for example, "this is a Migration proposal"). A worker may
+`Reroute` with evidence toward that conclusion; it may never silently self-promote its own scope.
+
+**Why this does not reintroduce the rejected planning/development/quality multiplier**: Planner and
+Verifier are route-selected, not universal — Small Fix pays for neither. Repair loops are
+ownership-directed (a documentation finding repairs through `DocumentAuthor`, a code finding through
+`Developer`, each budget spent once) rather than a generic restart from the top. Verification is
+staged deterministic-first, model-second, so most failures never reach a model-backed `Verifier` at
+all. The residual risk is real and not assumed away: if routing misclassifies often or workers
+reroute frequently, the same multiplier reappears under a different name. The guard against that is
+measurement, which is why this stage adds `ProcessStepRecord` — a second, additive evidence stream
+beside the existing `InvocationRecord`, carrying per-primitive outcome, worker key, and budget state
+— so route-to-completion rate, research-iteration rate, reroute rate by worker, and planner-use rate
+are all answerable from real data rather than recalled from memory, the same discipline `stats` (S7)
+already established for top-level invocations.
+
+**Not yet decided by this entry**: the exact test names each planned clause will be verified by, and
+whether the routed front door ships as one new Toolkit operation or is proven first as an internal
+composition with no CLI surface. Those are `apply`'s decisions to make and record when this stage is
+actually implemented; this entry is the design the day's implementation is checked against, not the
+implementation itself.
 
 ## Discovery log
 

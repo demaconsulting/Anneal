@@ -101,6 +101,15 @@ from.
   prompt assembly that owns the schema so a caller cannot place it early. If operations built their own
   prompts, the schema-last ordering that justifies the system would be re-implemented per operation and
   decay unevenly.
+- **Primitives** (`DemaConsulting.Anneal.Toolkit.Primitives`) are reusable composed steps built on the
+  Model Seam and Runtime: `Oracle<T>` asks a narrow typed question, `Research` performs bounded
+  look-around and returns structured findings, `Planner` produces an implementation plan only when a
+  worker asks for one, `DocumentAuthor` and `Developer` author documentation and code against a
+  declared scope, `DeterministicCheck` runs a deterministic build/test/check step, `Verifier` judges
+  produced work against staged deterministic evidence first, and `RepairLoop<T>` bounds a repair to
+  the primitive that owns the finding. None of these is a contract-level operation in its own right —
+  they are the vocabulary a compiled process in [Process](./process.md) composes into a worker, the
+  same way an operation composes the Model Seam today.
 
 This tree records only two things about an action, and both stay bounded as the set grows: the
 **inventory** — each action named once with its one-line role — and the **participation rules** every
@@ -180,6 +189,27 @@ contract the moment it ships and flag parsing sits awkwardly against a tool whos
 and whose bare invocation is deliberately a usage error — `anneal --help` would have to decide whether
 `--help` is an action, and every answer complicates `TOOLKIT-10`. Should a caller ever need any of these,
 adding them is an additive Tier 1 change.
+
+**The primitive library composes the Model Seam; it does not extend the outcome vocabulary** — a
+typed finding such as `RouteDecision.NeedResearch` or `DevelopmentResult.Reroute` is a primitive
+successfully answering its own question, not a new invocation outcome, so `OperationOutcome` and
+`OperationCategory` are reused unchanged rather than grown a route-specific case each time a new
+worker is designed. The rejected alternative was adding outcome values such as `NeedsResearch` or
+`Reroute` directly to `OperationOutcome`: that would conflate "the operation could not complete" with
+"the operation completed and found a typed answer that happens to point at more work," which is
+exactly the distinction `Succeeded` and `Refused` already draw and would blur. An operation-level
+router or worker, if one ever ships as a `dotnet anneal` action, still reports through the same four
+values every operation does today.
+
+**A second, additive evidence stream measures composition, because the top-level one cannot** —
+`InvocationRecord` (`TOOLKIT-08`) answers "did this action succeed," but cannot answer how often a
+router needed research, how often a worker rerouted, or how often a planner was actually used, and
+those are exactly the rates that keep a compiled catalog honest rather than optimistic. `ProcessStepRecord`
+carries per-primitive outcome, the worker or router step it belongs to, and the budget state at that
+step, correlated to its parent `InvocationRecord` rather than replacing it. The rejected alternative
+was overloading `InvocationRecord` itself with composition detail: that would have forced every
+non-composing operation's record to carry fields it never populates, the same shape of drift
+`TOOLKIT-08`'s own design already avoided once.
 
 **The reference implementation is studied, not copied or depended on** — an existing internal codebase
 solves the same problem at much larger scale, including retrieval, memory and a process engine. Its
