@@ -27,17 +27,18 @@ current payload:
 
 | File | Tokens |
 | --- | --- |
-| `AGENTS.md` | 2,966 |
-| `architecture-design.agent.md` — largest agent prompt | 2,708 |
-| `architecture-documentation.md` | 3,917 |
-| `change-classification.md` | 3,420 |
-| `system-contracts.md` | 2,370 |
+| `AGENTS.md` | 3,016 |
+| `architecture-design.agent.md` — largest agent prompt | 2,728 |
+| `architecture-documentation.md` | 4,207 |
+| `change-classification.md` | 3,528 |
+| `system-contracts.md` | 2,639 |
 | `technical-documentation.md` | 2,036 |
-| **Worst case** | **17,417** |
+| **Worst case** | **18,154** |
 
-The measurement is recorded beside the ceiling on purpose. 20,000 leaves roughly a quarter of headroom: it
-does not fire today, and it fires well before the payload becomes a problem rather than after. Whoever
-next wants to raise it then has to argue against a datum rather than against a preference.
+The measurement is recorded beside the ceiling on purpose. 20,000 leaves under a tenth headroom: it
+does not fire today, but the margin is thin enough that the next standard or agent prompt added to this
+worst-case set is a reason to re-measure, not to assume the gate stays quiet. Whoever next wants to raise
+the ceiling has to argue against a datum rather than against a preference.
 
 **A token is counted as one byte divided by four, after line endings are normalized to LF.** Both halves
 of that are load-bearing. The division is crude, but it is crude *consistently*, and this repository has
@@ -172,9 +173,11 @@ The applicable test: ask whether removing the prohibition would cause the failur
 number of invocations. If yes, it pays for itself. If it warns against something an agent would not do
 unprompted, it is consuming attention that could go toward a rule the agent might break.
 
-A worked example clarifies the boundary. Stating that a parent document must not summarize its children
-earns its place, because summarizing is the default behavior of a model given a hierarchy — remove the
-prohibition and it recurs immediately. By contrast, listing diagnostic "symptoms" of a degrading process
+A worked example clarifies the boundary. Stating that a parent document must not restate a child's
+detail earns its place, because restating what a child already owns is the default behavior of a model
+given a hierarchy — remove the prohibition and it recurs immediately. Naming each child with a one-line
+role is not what the prohibition targets; only restating the detail underneath is. By contrast, listing
+diagnostic "symptoms" of a degrading process
 does not earn its place, because it names no specific act an agent could commit or avoid; it teaches
 recognition to a reader who cannot act on it inside a prompt.
 

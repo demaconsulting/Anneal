@@ -155,9 +155,9 @@ action. Discovery is the deliberate path; the usage error is the guard rail; the
 and both `help <action>` and that action's own usage-error message render from it (`TOOLKIT-I4`). The
 rejected alternative is what the code did: each operation hand-wrote its own usage line inside `Execute`,
 and `help` would have hand-written a second copy — two independently authored strings asserting the same
-fact, which drift silently, exactly as a rule stated in two files drifts. That is the process-level
-property `CONSTRAINTS.md` holds — every rule has one owning file — appearing here in code rather than
-prose; one source removes the drift rather than policing it. The single source is a new **required**
+fact, which drift silently, exactly as a rule stated in two files drifts. That is `PROCESS-I2` — no
+normative rule stated in more than one payload file — appearing here in code rather than prose; one
+source removes the drift rather than policing it. The single source is a new **required**
 member on the public `IOperation`. Requiring it rather than giving it a default that falls back to
 `Summary` is a **breaking change** to any external operation implementer — `system-contracts.md` defines
 the term, and here it is a compile-time break — admitted for two reasons: the tool has never been

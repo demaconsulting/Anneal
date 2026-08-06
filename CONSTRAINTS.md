@@ -24,8 +24,9 @@ quietly.
 - **Installation is by a provided script** — a target repository adopts the process by running
   `install.ps1`, not by cloning files into place, hand-editing a project file, or following a
   multi-step manual setup.
-- **Every rule has exactly one owning file** — other files point at it rather than restating it. A
-  rule stated twice drifts, and the drift is silent.
+- **Every rule has exactly one owning file** — this is `PROCESS-I2` in
+  [process.md](docs/architecture/process.md); that clause is the full statement, and other files
+  reference it rather than restating it here.
 - **Agent prompts and standards stay within a per-invocation context budget** — the worst-case prompt
   load stays under the ceiling declared and counted in
   [prompt-authoring.md](docs/architecture/process/prompt-authoring.md).

@@ -32,9 +32,12 @@ earning its place.
 | 3+ | `docs/architecture/{system}/{section}.md` | 2,000 ft+ | How does one non-obvious specific work? |
 
 **Levels are created when they are earned, never upfront.** A level exists because the level above
-has grown content it cannot hold at its own altitude — not because the table lists it. A repository
-whose whole story fits in `README.md` is correctly documented, not under-documented; creating
-`overview.md` for it is the speculative structure this process rejects everywhere else.
+has grown content it cannot hold at its own altitude, or because that growth is already committed in
+the repository — a written migration stage that names content moving into the node, or an admitted
+backlog or constraint entry that commits to it — not because the table lists it, and not because "we
+might need this later" alone. A repository whose whole story fits in `README.md` is correctly
+documented, not under-documented; creating `overview.md` for it is the speculative structure this
+process rejects everywhere else.
 
 A node gives birth to children only when the organization benefits, and the benefit test is exactly
 three triggers: **clarity of structure, conformity, or size.** There is no fixed depth cap and no
@@ -192,7 +195,9 @@ file change are precisely what makes evolution expensive.
 A section document is a child node, so the test is the benefit test that governs every node: create
 one when subdividing benefits the organization through **clarity of structure, conformity, or size.**
 A child earns its place when it sharpens structure a reader must navigate, gathers a rule that many
-units must conform to, or lifts material the parent has grown too large to hold at its own altitude.
+units must conform to, or lifts material the parent has grown too large to hold at its own altitude —
+or material a migration stage or an admitted backlog/constraint entry has already committed to moving
+there, distinct from speculative "we might need this later" structure.
 
 Do **not** create a section document to:
 

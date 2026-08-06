@@ -183,9 +183,9 @@ correct. The same argument is under review one level down for `dispatch`, and is
 The rejected alternative was exposing each agent to the developer, which pushes classification onto the
 person least equipped to do it consistently.
 
-**Standards are loaded on demand, never bundled** — an agent reads the two to four standards its task
-needs. Bundling them into `AGENTS.md` was rejected because that file is paid for on every invocation,
-which is the budget PROCESS-06 protects.
+**Standards are loaded on demand, never bundled** — recorded here because it is the design choice the
+budget PROCESS-06 protects depends on. [Prompt Authoring](./process/prompt-authoring.md) owns the
+mechanism and why bundling into `AGENTS.md` was rejected.
 
 **Bounded repairs, no planning phase** — `dispatch` allows one documentation repair and one code repair
 per change, because a documentation finding has to be fixed before implementation can use it, but
@@ -207,23 +207,12 @@ each is checked by a different reading of the payload and either could lose its 
 taking the other with it. The rejected alternative was one clause naming two tests, which would report
 a single verdict over two independent promises and hide which one had lapsed.
 
-**A constraint is proposed by an agent and admitted only by the user** — every other register in this
-process is written by whichever agent notices the need, and `CONSTRAINTS.md` is not. The asymmetry is in
-the **cost of being wrong**, not the cost of filing: a wrong `BACKLOG.md` line is one stale item somebody
-skips, while a wrong constraint is a barrier every later change has to route around, and the register
-deliberately makes removal a decision rather than bookkeeping — so anything an agent writes there is close
-to permanent. Requiring the user to admit it buys back the only exit the ratchet does not otherwise
-provide. The rule binds **every mode**, not just Intake, because no entry in the register has ever arrived
-through Intake: the seven entries the file was created with in `0f0fd12`, and every one added since, were
-written during Change-mode work that no mode authorized. Closing only the Intake path would have left the
-whole hole open. What an agent does instead is report the proposed entry in its completion report, in the
-wording and the section it would take, and stop — that is actionable by a sub-agent with no way to prompt
-anybody, which "ask the user" is not. Promoting an already-admitted entry to **Satisfied** remains an agent
-action, because the user already said yes to the condition and promotion only records that the current
-shape now meets it. The rejected alternative was extending admission to `BACKLOG.md` and the README
-assumptions as well, which would spend the cheapness that keeps those registers populated in order to
-guard entries whose worst case is one stale line. This entry records why the rule exists;
-`change-classification.md` § Intake owns the rule itself.
+**Every mode here is bound by the constraint-admission rule, not only Intake** — no entry in
+`CONSTRAINTS.md` has ever arrived through Intake in this repository's history, so closing only the
+Intake path would have left every other mode's route into the file open. This entry records that
+Process's Decisions section holds Change, Maintenance and Migration to the rule exactly as Intake is
+held; `change-classification.md` § *Only the User Admits a Constraint* owns the rule itself, the
+reasoning behind it, and the proposal mechanism.
 
 No clause is added for it. Whether an agent proposes rather than files is a property of what agents do,
 not of whether the payload loads and routes, so it falls on the behavioral side of the verification split

@@ -161,7 +161,11 @@ The contract is unchanged. Refactors, performance work, internal restructuring, 
 restore already-promised behavior, dependency bumps, and test additions.
 
 - **Documentation**: none — unless the change invalidates an existing section document, in which
-  case update or delete that one file.
+  case update or delete that one file. A narrow exception: correcting a sentence in
+  `docs/architecture/overview.md` that is factually stale but states or implies no contract-relevant
+  fact — one whose correction does not add, remove, or rename a system, or change a system's stated
+  relationship to another system — is Tier 0, not Tier 2. It must not touch the systems list, the
+  mermaid diagram, or any sentence a Tier 2 change would otherwise need to update.
 - **Agents**: `apply` alone.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
   untouched — that is the proof the tier is correct.
