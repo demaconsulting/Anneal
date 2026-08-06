@@ -13,11 +13,6 @@ where `architecture-design` will read them. See the Intake admission test in
 - **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
   standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
   per-repository values, so replacing it outright is the intended upgrade path.
-- **Scan `docs/architecture/` recursively in `check-contracts.ps1`** — the scan is currently
-  non-recursive, so a clause in a document below the system level is not checked at all. This
-  **blocks the level-3 split of `toolkit.md`**: splitting it into part documents under
-  `docs/architecture/toolkit/` would put clauses exactly where the scan does not look. Do this
-  first, or the split silently drops those clauses from the gate.
 - **Rename the level-3 "section document" concept** — "section" also means a markdown heading block,
   and the two meanings collide throughout the standards and the template.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
