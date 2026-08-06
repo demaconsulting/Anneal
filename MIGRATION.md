@@ -102,25 +102,94 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S5 — Re-planning the migration
+### S6 — The tool surface and the first compiled process
 
-The destination changed, so the plan describing it is rewritten. The previous S5 — *mechanizing
-stable rules* — is superseded: it treated encoding rules in C# as the migration's endpoint, whereas
-the destination above makes the whole process catalog compiled, which is a larger claim that its
-cautions no longer bound.
+The first prose agent becomes a compiled process. `lint-fix` is the pathfinder, chosen because its
+success is decided by an exit code rather than by judgement: `pwsh ./lint.ps1` returns 0 or it does
+not. Every other agent's success is a verdict, and a pathfinder whose success cannot be checked
+mechanically proves nothing — a failure could be the machinery or the judgement, with no way to tell
+which.
 
-No code moves. This stage removes claims that are now known to be false and installs the frame every
-later stage runs inside. It carries no risk that a later stage can inherit, which is why it is
-first: every subsequent day is planned against this file, so a wrong frame would be copied forward
-into all of them.
+The state flow is deterministic apart from the work itself:
 
-**Leaves working:** everything. No source file, script or payload behavior changes.
+```text
+fix.ps1                                    the process runs it; not a tool the model may call
+loop, bounded:
+    lint.ps1  →  exit 0                 →  SUCCEEDED
+              →  repairable in scope    →  worker edits files, loop
+              →  repair needs the user  →  INCOMPLETE, stop and ask
+              →  budget exhausted       →  FAILED
+```
 
-**Exit conditions:** the destination, invariants and suspension register above exist; the
-self-hosting entry is admitted to [CONSTRAINTS.md](CONSTRAINTS.md); `README.md` § Direction no longer
-claims two agents are never absorbed; [process.md](docs/architecture/process.md) records Process as
-terminal; the stale stage references in [toolkit.md](docs/architecture/toolkit.md) and
-[runtime.md](docs/architecture/toolkit/runtime.md) are corrected. `pwsh ./lint.ps1` passes.
+**The four outcomes are the point, not the loop.** A prose `lint-fix` today does something a naive
+compilation would destroy: seeing lint pick up build artifacts, it recognizes that the correct repair
+is an ignore pattern in a protected configuration file, and asks rather than editing sources to dodge
+a misconfigured linter. Compiled as success-or-failure, the process would instead grind its budget and
+report FAILED, or "fix" symptoms. Escalation is therefore contracted as an outcome distinct from
+failure, exactly as `TOOLKIT-06` already makes refusal distinct from both success and failure — the
+same principle one level up, at the operation rather than the model call.
+
+**Escalation is produced by refusal, not by an opinion.** The write tools confine to the repository
+root and refuse the protected configuration files and scripts. A worker that attempts one is denied,
+and the denial is a recorded fact — *this write was attempted and refused* — rather than a
+self-report that it complied. That is the *judging agent must show the basis for its verdict*
+constraint met structurally instead of by asking a prompt nicely, and it is the reason the deny-list
+is in this stage rather than a later hardening pass.
+
+Compiling a process also converts advisory rules into enforced ones. `lint-fix.agent.md` asks an
+agent never to modify auto-generated files and to respect protected configuration; a model that
+ignores those produces a plausible report of having complied. A tool that refuses the path makes the
+rule a wall. That gain is independent of which model is used, and it generalizes to every later
+process.
+
+**What is taken from the reference implementation, and what is not.** `WorkspaceSandbox` in Jeeves is
+a single lexical containment primitive that fails closed and documents both the defect it replaced
+and the limit it does not cover — symbolic links and junctions resolve outside it. It is taken. The
+tool-group concept is taken with it, because scoping by *selection* — a tool not granted is simply
+absent from the set the model is offered — has no gate to talk past, and because grouping is what
+keeps later tool additions from each needing their own wiring decision. Jeeves reuses
+`Microsoft.Extensions.AI` message and tool types as the vocabulary across its own seam even on the
+Copilot path, translating them onto the SDK protocol, so that where the tool loop runs stays a
+per-provider concern; that decision is taken too, because it is what lets a second provider return
+later without a second tool abstraction.
+
+Three things are deliberately left. The `util-read` group is the rigid regulated process Anneal
+replaces. The shell tool is not granted at all: this process runs `fix.ps1` and `lint.ps1` as control
+flow, and a worker that can run commands can do anything and report plausibly that it did not.
+Jeeves' own `IChatEndpoint` is not adopted — Anneal's already distinguishes *run* from *probe* and
+requires an availability enquiry, which is the better factoring; it gains tools rather than being
+replaced.
+
+**A contract gap this stage must close.** `TOOLKIT-11` transcribes the prompt sent, the reply
+received, the model consulted and the token usage. When the provider runs the tool loop natively, a
+worker's tool calls happen inside the SDK, so that transcript would record a prompt and a final reply
+while being blind to every file the model touched — omitting the only part of a writing worker's
+behavior worth auditing. Tool invocations earn their own clause rather than widening `TOOLKIT-11`,
+because the two are checked by different readings of the record and either could lose its mechanism
+without taking the other with it.
+
+**Clauses.** `TOOLKIT-18` — every tool invocation a model makes is transcribed with its arguments and
+its outcome, including a refused one. `TOOLKIT-19` — `lint-fix` drives the repository to a clean lint
+or reports why it could not. `TOOLKIT-20` — an operation reports escalation as an outcome distinct
+from both success and failure. `TOOLKIT-I6` — a model is granted tools only by group selection, every
+filesystem path resolves inside the repository root, and a write to a protected configuration file or
+repository script is refused. **`TOOLKIT-I1` is retired**, not deleted silently: its read-only
+guarantee cannot survive a writing process, and `TOOLKIT-I6` keeps the explicit-allowlist half that
+was doing the real work. The retired number is never reused.
+
+`lint-fix` gets its own section document under Toolkit, as every CLI-invocable operation does.
+
+**Leaves working:** everything. `lint.ps1`, `build.ps1` and the existing operations are untouched;
+the prose `lint-fix` agent stays in the payload and keeps working until the compiled one is proven
+against this repository.
+
+**Exit conditions:** `dotnet anneal lint-fix` drives Anneal's own repository from a dirty lint state
+to a clean one without human help; a write to each protected configuration file and repository script
+is provably refused; a path escaping the repository root is provably refused; a refused write appears
+in the transcript; escalation is returned and rendered distinctly from failure; `TOOLKIT-18`,
+`TOOLKIT-19`, `TOOLKIT-20` and `TOOLKIT-I6` are verified by tests that exist and pass; `TOOLKIT-I1` is
+retired from the contract with its replacement in place; `pwsh ./build.ps1` and `pwsh ./lint.ps1` both
+pass.
 
 ## Discovery log
 
@@ -197,9 +266,7 @@ Its own exit condition remains the right one whenever it is picked up: a sample 
 audited with the result recorded, **including how often the audit itself is wrong**, since an
 unreliable auditor of verdicts is worse than none.
 
-### S5 — Re-planning the migration — in flight
-
-Recorded here as it lands.
+### S5 — Re-planning the migration — landed
 
 **A green report is not a verified one.** An independent review by a *different* model caught a
 contract test that had been widened beyond the clause it verifies — a defect a same-model second pass
@@ -212,3 +279,16 @@ two similarly-named fixtures and claimed one existing test covered both; it cove
 `MIGRATION.md` was drafted before `apply.agent.md` and `change-classification.md` were found to read
 a stage and an exit condition from this file. Removing stages would have broken Migration mode for
 every prose agent still doing the work.
+
+**The no-silent-loss invariant fired within the hour.** `lint-fix` was first scoped as having no
+oracle, on the grounds that every branch is an exit code. That was wrong: the prose agent escalates
+when the correct repair is a protected-file change, and a two-outcome compilation would have dropped
+that behavior while appearing to succeed. The invariant is what surfaced it; the four-outcome shape
+in S6 is the repair.
+
+**S6 was deliberately not split, against the precedent of S1 and S4.** Both of those were split by
+amendment after implementation found bundled risk, which argued for splitting the tool surface from
+the process that uses it. The counter-argument won: a tool surface with no consumer cannot be known
+to be right, and the deny-list in particular is only validated by a process actually hitting it.
+Recorded here because it is a judgement call against precedent, and if S6 turns out to be too large
+this entry is where the reason lives.
