@@ -36,11 +36,8 @@ quietly.
 - **Installer deletion requires explicit confirmation** — Anneal must not delete a target repository
   file during installation or upgrade unless the user first confirms that file's deletion.
 - **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
-  files under `.github/template/` are the generic downstream product shape, not a mirror of this
-  repository. When Anneal needs root scripts, build steps, tests, tooling or documentation that a
-  normal installed C# product does not, the root copy may diverge and the template copy stays the
-  generic product version. Syncing Anneal-specific steps into the template is a regression, not
-  cleanup; this entry owns that rule and `AGENTS.md` § Template Stewardship points at it.
+  this is `TEMPLATE-I1` in [template.md](docs/architecture/template.md); that clause is the full
+  statement, and `AGENTS.md` § Template Stewardship references it rather than restating it here.
 - **An installed payload must be identifiable by version** — a payload states which Anneal version it
   was built from, so what an upgrade is upgrading from is read rather than inferred from the payload's
   contents, and a record a run leaves behind can be attributed to the version that produced it.
@@ -78,3 +75,9 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
 - **No compiled-in default may name a single external identifier whose retirement breaks every
   repository that has not overridden it** — a default naming one provider-side name works until that
   name is retired, and then fails everywhere at once with only a release to fix it.
+- **A repository's own pinned model names are not guaranteed to stay valid** — `.anneal/config.json`
+  names specific models by string, discovered at stage S1b of [MIGRATION.md](MIGRATION.md) when the
+  shipped defaults had already rotted before their first use. This recurs per repository and cannot
+  be fixed once: a vendor retiring a name breaks that repository's Toolkit invocations with nothing in
+  the process noticing or repairing it, independently of whether Anneal's own compiled defaults (the
+  entry above) have been addressed.
