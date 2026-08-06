@@ -53,6 +53,12 @@ every operation obeys, so they live once here rather than being restated at each
   caller reading exit codes can therefore tell a run somebody stopped from any run that finished.
   *Verified by:* `ToolkitContractTests.InterruptedInvocationStopsAndExitsOutsideTheOutcomeCodes`
 
+- **TOOLKIT-20** — An operation reports escalation as an outcome distinct from both success and
+  failure, carrying its own exit code and rendering distinctly at the terminal, so a caller can tell
+  "it ran, could not finish, and finishing needs a decision only you can make" from "it failed". This
+  is what `TOOLKIT-06` does for refusal one level down, at the model call, applied at the operation.
+  *Verified by:* `ToolkitContractTests.EscalationIsDistinctFromSuccessAndFailure`
+
 ### Requires
 
 - **.NET SDK** — the runtime the operations execute on, and the filesystem the invocation record is

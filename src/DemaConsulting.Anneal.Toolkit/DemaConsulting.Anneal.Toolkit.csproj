@@ -22,6 +22,15 @@
     <Description>Operations an AI coding agent cannot perform reliably by reading a prompt.</Description>
 
     <!--
+      The Copilot SDK's bundled native runtime (a full Node.js-based CLI, well over 100MB
+      per platform compressed) is never packed into this tool: NuGet's package size limit
+      makes embedding it a dead end, so the packed tool instead resolves a copilot binary
+      already installed on the machine at runtime. See CopilotSkipCliDownload below and
+      CopilotEndpoint's runtime-resolution comment.
+    -->
+    <CopilotSkipCliDownload>true</CopilotSkipCliDownload>
+
+    <!--
       The version the payload reports about itself. It is a development version
       deliberately: publishing is a separate act requiring the user, and until
       that act happens every build is honestly pre-release. What matters for

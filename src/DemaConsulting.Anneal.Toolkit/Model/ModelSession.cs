@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DemaConsulting.Anneal.Toolkit.Model.Tools;
 using DemaConsulting.Anneal.Toolkit.Recording;
 using Microsoft.Extensions.AI;
 
@@ -68,6 +69,7 @@ public sealed class ModelSession
     };
 
     private readonly ModelRoles _roles;
+    private readonly ToolCallRecorder _toolCalls;
     private readonly IReadOnlyList<AITool> _tools;
     private readonly int _maxOutputTokens;
     private readonly int _maxParseRetries;
@@ -84,6 +86,30 @@ public sealed class ModelSession
     public int LastProbeAttempts { get; private set; }
 
     /// <summary>
+    ///     The tool calls this conversation made that were refused — a path outside the repository, or a
+    ///     protected configuration file or repository script.
+    /// </summary>
+    /// <remarks>
+    ///     Exposed because a refusal is control flow and not only evidence: an operation whose worker was denied
+    ///     a write it genuinely needed has to be able to escalate, and it can only do that if it can see the
+    ///     denial happened. Reading it back out of the transcript file instead would make the operation depend on
+    ///     bookkeeping the record store deliberately declines to guarantee.
+    /// </remarks>
+    public IReadOnlyList<ToolCallTranscript> RefusedToolCalls => _toolCalls.Refusals;
+
+    /// <summary>
+    ///     The tool calls this conversation made that were refused because they would have written a protected
+    ///     configuration file or repository script.
+    /// </summary>
+    /// <remarks>
+    ///     Separate from <see cref="RefusedToolCalls" /> because only this kind is grounds for escalation. A
+    ///     worker denied a path outside the repository made a mistake it can correct; a worker denied a
+    ///     protected file has run into a decision that is the user's to make, and an operation that could not
+    ///     tell the two apart would report the first as the second.
+    /// </remarks>
+    public IReadOnlyList<ToolCallTranscript> RefusedProtectedWrites => _toolCalls.ProtectedRefusals;
+
+    /// <summary>
     ///     Opens a conversation over a role resolver.
     /// </summary>
     /// <param name="roles">Resolver from role to serving endpoint. Must not be null.</param>
@@ -92,8 +118,10 @@ public sealed class ModelSession
     ///     what it may rely on. Must not be null; may be empty, in which case no system message is sent.
     /// </param>
     /// <param name="tools">
-    ///     The tools a <see cref="RunAsync" /> turn may use. Null or empty grants none. Every tool granted here
-    ///     must be read-only: a probe is a question about a repository, never an edit to one.
+    ///     The tools a <see cref="RunAsync" /> turn may use, already scoped by group selection. Null or empty
+    ///     grants none — an empty grant, never an absent one. Whatever is passed is wrapped so that every
+    ///     invocation of it is transcribed; there is no path through this type that grants a tool whose calls
+    ///     go unrecorded.
     /// </param>
     /// <param name="maxOutputTokens">
     ///     The ceiling on generated output for every turn of this conversation. Must be greater than zero;
@@ -121,7 +149,8 @@ public sealed class ModelSession
         ArgumentOutOfRangeException.ThrowIfNegative(maxParseRetries);
 
         _roles = roles;
-        _tools = tools ?? [];
+        _toolCalls = new ToolCallRecorder(roles.Transcripts);
+        _tools = _toolCalls.Wrap(tools ?? []);
         _maxOutputTokens = maxOutputTokens;
         _maxParseRetries = maxParseRetries;
         _conversation = charter.Length == 0 ? [] : [new ChatMessage(ChatRole.System, charter)];

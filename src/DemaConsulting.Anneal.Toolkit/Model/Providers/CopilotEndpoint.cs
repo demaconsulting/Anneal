@@ -45,11 +45,56 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
     ///     Creates an endpoint over the Copilot SDK. Which model it drives is decided per turn, by the
     ///     repository configuration behind the capability role the caller asked for.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when no system-installed <c>copilot</c> runtime can be found on <c>PATH</c>. Thrown here,
+    ///     from construction, rather than surfacing later as an opaque failure inside a turn.
+    /// </exception>
     public CopilotEndpoint()
     {
         // No token is passed and none is read from the environment: the SDK authenticates as whoever is logged
         // in to Copilot on this machine, which is the account the invoking agent is already running under.
-        _client = new CopilotClient(new CopilotClientOptions { UseLoggedInUser = true });
+        _client = new CopilotClient(new CopilotClientOptions
+        {
+            UseLoggedInUser = true,
+            Connection = RuntimeConnection.ForStdio(path: ResolveSystemCopilotPath())
+        });
+    }
+
+    /// <summary>
+    ///     Locates a system-installed <c>copilot</c> executable on <c>PATH</c>.
+    /// </summary>
+    /// <remarks>
+    ///     The SDK's own bundled runtime is a full Node.js-based CLI download — well over 100MB per platform
+    ///     compressed — which puts embedding it in this tool past NuGet's package size ceiling on the first
+    ///     platform, let alone every one this tool would need to run on. The build skips that download
+    ///     entirely (<c>CopilotSkipCliDownload</c> in the Toolkit's own .csproj) and this resolves the same
+    ///     binary a developer already has from installing copilot-cli, exactly as <c>git</c> or any other CLI
+    ///     dependency is expected to already be present rather than shipped inside a NuGet package.
+    ///     <para>
+    ///         This does no network work and touches no session, so it stays inside what the constructor is
+    ///         already documented to do: a deterministic operation that never resolves a role never forces
+    ///         <c>ModelRoles</c>' lazily-constructed shared endpoint, and so never runs this search either.
+    ///     </para>
+    /// </remarks>
+    /// <returns>The full path to the resolved <c>copilot</c> executable.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when no matching executable is found in any directory named on <c>PATH</c>.
+    /// </exception>
+    private static string ResolveSystemCopilotPath()
+    {
+        var binaryName = OperatingSystem.IsWindows() ? "copilot.exe" : "copilot";
+        var searchPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+
+        foreach (var directory in searchPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = Path.Combine(directory.Trim('"'), binaryName);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        throw new InvalidOperationException(
+            $"no '{binaryName}' was found on PATH. Install the Copilot CLI - the same runtime copilot-cli " +
+            "development already requires - so this tool can drive it as the model runtime.");
     }
 
     /// <inheritdoc />

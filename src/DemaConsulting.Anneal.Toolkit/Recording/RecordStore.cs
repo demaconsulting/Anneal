@@ -39,6 +39,17 @@ public sealed class RecordStore
     /// </summary>
     public const string TranscriptsRelativePath = ".anneal/transcripts/model-interactions.jsonl";
 
+    /// <summary>
+    ///     Where the transcript of every tool invocation a model made is appended, relative to a repository
+    ///     root.
+    /// </summary>
+    /// <remarks>
+    ///     Its own stream rather than rows inside the model transcript. The two are read by different questions
+    ///     — "what was this judgement based on" against "what did this worker touch" — and either could lose its
+    ///     mechanism without taking the other with it, which is exactly why they are contracted separately.
+    /// </remarks>
+    public const string ToolCallsRelativePath = ".anneal/transcripts/tool-calls.jsonl";
+
     /// <remarks>
     ///     One line per record, so an appender never rewrites what is already there and a reader can consume
     ///     the file while it grows. Indented JSON would be friendlier to read and would make every record a
@@ -87,6 +98,15 @@ public sealed class RecordStore
         Resolve(repositoryRoot, TranscriptsRelativePath);
 
     /// <summary>
+    ///     Resolves where the transcript of tool invocations is appended for a repository.
+    /// </summary>
+    /// <param name="repositoryRoot">The repository root. Must not be null or blank.</param>
+    /// <returns>The absolute path of the tool-call transcript file.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
+    public static string ToolCallsPathFor(string repositoryRoot) =>
+        Resolve(repositoryRoot, ToolCallsRelativePath);
+
+    /// <summary>
     ///     Appends one invocation record.
     /// </summary>
     /// <param name="record">The record to append. Must not be null.</param>
@@ -106,6 +126,17 @@ public sealed class RecordStore
     {
         ArgumentNullException.ThrowIfNull(transcript);
         Write(TranscriptsPathFor(_root), transcript);
+    }
+
+    /// <summary>
+    ///     Appends one tool-invocation transcript.
+    /// </summary>
+    /// <param name="transcript">The transcript to append. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="transcript" /> is null.</exception>
+    public void Append(ToolCallTranscript transcript)
+    {
+        ArgumentNullException.ThrowIfNull(transcript);
+        Write(ToolCallsPathFor(_root), transcript);
     }
 
     private static string Resolve(string repositoryRoot, string relativePath)

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Providers;
+using DemaConsulting.Anneal.Toolkit.Model.Tools;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Recording;
 using DemaConsulting.Anneal.Toolkit.Tests.ContractChecking;
@@ -89,14 +90,14 @@ public class ToolkitContractTests
             repository.Root,
             TestContext.Current.CancellationToken);
 
-        // Assert: the caller-error code, and the shipped set is exactly the three actions, each discoverable
+        // Assert: the caller-error code, and the shipped set is exactly the four actions, each discoverable
         // from the output and each actually reachable rather than merely advertised
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitUsageError, exitCode),
             () => Assert.Contains("unknown action 'no-such-action'", written, StringComparison.Ordinal),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
             () => Assert.Equal(
-                new[] { "check-contracts", "probe-rule-owner", "verify-evidence" },
+                new[] { "check-contracts", "lint-fix", "probe-rule-owner", "verify-evidence" },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(
                 AnnealTool.DefaultOperations,
@@ -481,65 +482,6 @@ public class ToolkitContractTests
                 () => Assert.Contains(".anneal/config.json", retired.Output, StringComparison.Ordinal),
                 () => Assert.Empty(retired.Reasoning.Requests),
                 () => Assert.DoesNotContain("  owner: ", retired.Output, StringComparison.Ordinal));
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-        }
-    }
-
-    /// <summary>
-    ///     TOOLKIT-I1 — a model is granted read-only repository tools, and the granted set is always an explicit
-    ///     allowlist rather than an absent one.
-    /// </summary>
-    [Fact]
-    public void ModelToolGrantsAreReadOnlyAndExplicit()
-    {
-        // Arrange: the granted tools, and the two turn shapes an operation produces - one with tools, one without
-        var root = CreateTemporaryDirectory();
-        try
-        {
-            File.WriteAllText(Path.Combine(root, "present.md"), "a line to read");
-            var before = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray();
-
-            var tools = RepositoryReadTools.CreateAll(root);
-            var messages = new[] { new ChatMessage(ChatRole.User, "anything") };
-
-            // Act: build the session configuration for each shape, and exercise every granted tool
-            var granting = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, tools, 100, "a-model"));
-            var withheld = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, [], 100, "a-model"));
-
-            var results = tools.OfType<AIFunction>().ToDictionary(
-                tool => tool.Name,
-                tool => Invoke(tool));
-
-            var after = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray();
-
-            // Assert: the allowlist is never absent, holds exactly the read-only tools, and nothing was mutated
-            Assert.Multiple(
-                () => Assert.NotNull(granting.AvailableTools),
-                () => Assert.Equal(RepositoryReadTools.Names, granting.AvailableTools),
-
-                // The dangerous default: a turn granting no tools must still carry an EMPTY allowlist, because a
-                // null one imposes no restriction and exposes the provider's built-in mutating tools.
-                () => Assert.NotNull(withheld.AvailableTools),
-                () => Assert.Empty(withheld.AvailableTools!),
-
-                // A granted tool must be marked as an intentional override or the session rejects the collision.
-                () => Assert.All(
-                    granting.Tools!,
-                    tool => Assert.True(tool.AdditionalProperties["is_override"] is true)),
-
-                // Nothing granted can execute a command or write a file: the surface is these three readers.
-                () => Assert.Equal(["list_files", "read_file", "search_files"], results.Keys.Order()),
-                () => Assert.Equal(before, after),
-                () => Assert.Contains("a line to read", results["read_file"], StringComparison.Ordinal),
-
-                // And a read is confined to the working tree, whatever the model asks for.
-                () => Assert.Contains(
-                    "refused",
-                    Invoke(tools.OfType<AIFunction>().First(tool => tool.Name == "read_file"), "../escape.txt"),
-                    StringComparison.Ordinal));
         }
         finally
         {
@@ -1378,6 +1320,376 @@ public class ToolkitContractTests
     }
 
     /// <summary>
+    ///     TOOLKIT-18 — every tool invocation a model makes is transcribed with its arguments and its outcome,
+    ///     including one that was refused.
+    /// </summary>
+    /// <remarks>
+    ///     The endpoint invokes the tools it was handed, which is what a provider that runs the tool loop
+    ///     natively does inside its own SDK. That is the case the clause exists for: nothing above the seam sees
+    ///     those calls, so a transcript written at a call site would be empty exactly where a writing worker's
+    ///     behavior is.
+    /// </remarks>
+    [Fact]
+    public async Task ToolInvocationsAreTranscribed()
+    {
+        // Arrange: a repository, and a worker that reads one file, is refused a protected write, and is refused
+        // a path outside the repository
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "present.md"), "a line to read");
+
+            var endpoint = new ToolCallingEndpoint(
+                ("read_file", new Dictionary<string, object?>
+                {
+                    ["path"] = "present.md",
+                    ["start"] = 1,
+                    ["max"] = 10
+                }),
+                ("create_file", new Dictionary<string, object?>
+                {
+                    ["path"] = "lint.ps1",
+                    ["content"] = "exit 0"
+                }),
+                ("read_file", new Dictionary<string, object?>
+                {
+                    ["path"] = "../escape.txt",
+                    ["start"] = 1,
+                    ["max"] = 10
+                }));
+
+            var session = new ModelSession(
+                new ModelRoles(root, _ => endpoint),
+                "a charter",
+                new ToolGroups(root).SelectTools([ToolGroups.Read, ToolGroups.Edit]));
+
+            // Act: one turn, during which the provider makes all three calls
+            await session.RunAsync("repair what lint reported", ModelRole.Heavy, TestContext.Current.CancellationToken);
+
+            var calls = ReadRecords(RecordStore.ToolCallsPathFor(root));
+            var refused = calls.Where(call => ToolReply.IsRefusal(Text(call, "result"))).ToArray();
+
+            // Assert: every invocation is there, each with the arguments it was given and the outcome it reached
+            Assert.Multiple(
+                () => Assert.Equal(3, calls.Length),
+                () => Assert.All(calls, call => Assert.False(string.IsNullOrEmpty(Text(call, "tool")))),
+                () => Assert.All(calls, call => Assert.False(string.IsNullOrEmpty(Text(call, "arguments")))),
+                () => Assert.All(calls, call => Assert.False(string.IsNullOrEmpty(Text(call, "outcome")))),
+
+                // The arguments as the model supplied them, so a reader can tell which file was touched.
+                () => Assert.Contains(
+                    calls,
+                    call => Text(call, "arguments").Contains("present.md", StringComparison.Ordinal)),
+
+                // A refused call is transcribed exactly as a returning one is - the case a self-report would miss.
+                () => Assert.Equal(2, refused.Length),
+                () => Assert.Contains(
+                    refused,
+                    call => Text(call, "arguments").Contains("lint.ps1", StringComparison.Ordinal)),
+                () => Assert.Contains(
+                    refused,
+                    call => Text(call, "arguments").Contains("escape.txt", StringComparison.Ordinal)),
+                () => Assert.All(
+                    refused,
+                    call => Assert.Contains("refused", Text(call, "outcome"), StringComparison.Ordinal)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-I6 — a model is granted tools only by group selection, every filesystem path resolves inside
+    ///     the repository root, and a write to a protected configuration file or repository script is refused.
+    /// </summary>
+    [Fact]
+    public void ToolGrantsAreScopedContainedAndProtected()
+    {
+        // Arrange: the groups over a repository holding one readable file
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "present.md"), "a line to read");
+            var groups = new ToolGroups(root);
+
+            var readOnly = groups.SelectTools([ToolGroups.Read]);
+            var both = groups.SelectTools([ToolGroups.Read, ToolGroups.Edit]);
+
+            var messages = new[] { new ChatMessage(ChatRole.User, "anything") };
+
+            // Act: build the session configuration for a granting and a withholding turn, and attempt every
+            // write the deny-list names, plus a set of paths that each try to leave the repository a different way
+            var granting = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, both, 100, "a-model"));
+            var withheld = CopilotEndpoint.BuildSessionConfig(new ChatTurnRequest(messages, [], 100, "a-model"));
+
+            var createFile = both.OfType<AIFunction>().First(tool => tool.Name == "create_file");
+            var protectedRefusals = ProtectedPaths.Names.ToDictionary(
+                name => name, name => Invoke(createFile, name));
+            var noneCreated = ProtectedPaths.Names.All(name => !File.Exists(Path.Combine(root, name)));
+
+            // The same protected files named through the default-data-stream alias Windows resolves back to the
+            // file's own contents, which would otherwise walk straight past a deny-list matching text. Each one
+            // is given known content first, so a write that got through would be visible.
+            const string sentinel = "the content the user approved";
+            var replaceFile = both.OfType<AIFunction>().First(tool => tool.Name == "replace_file");
+            foreach (var name in ProtectedPaths.Names)
+                File.WriteAllText(Path.Combine(root, name), sentinel);
+
+            var aliasRefusals = ProtectedPaths.Names.ToDictionary(
+                name => name, name => Invoke(replaceFile, name + "::$DATA"));
+            var aliasSurvivors = ProtectedPaths.Names.ToDictionary(
+                name => name, name => File.ReadAllText(Path.Combine(root, name)));
+
+            string[] escapes =
+            [
+                "../escape.txt",
+                "sub/../../escape.txt",
+                "/etc/passwd",
+                @"C:\Windows\System32\drivers\etc\hosts",
+                @"\\server\share\escape.txt",
+                @"\\?\C:\escape.txt",
+                "../" + Path.GetFileName(root) + "-sibling/escape.txt",
+                "bad\0name.txt"
+            ];
+
+            var escapeRefusals = escapes.ToDictionary(
+                path => path,
+                path => both.OfType<AIFunction>().Select(tool => Invoke(tool, path)).ToArray());
+
+            Assert.Multiple(
+                // Granted by group selection: a group not granted contributes nothing to the set the model sees.
+                () => Assert.Equal(
+                    RepositoryReadTools.Names,
+                    readOnly.Select(tool => tool.Name).ToArray()),
+                () => Assert.Equal(
+                    RepositoryReadTools.Names.Concat(RepositoryEditTools.Names).ToArray(),
+                    both.Select(tool => tool.Name).ToArray()),
+                () => Assert.Empty(groups.SelectTools([])),
+                () => Assert.Empty(groups.SelectTools(["a-group-that-does-not-exist"])),
+
+                // And the allowlist crossing to the provider is always explicit: a null one imposes no
+                // restriction at all, which would grant by absence rather than by selection.
+                () => Assert.NotNull(granting.AvailableTools),
+                () => Assert.Equal(both.Select(tool => tool.Name).ToArray(), granting.AvailableTools),
+                () => Assert.NotNull(withheld.AvailableTools),
+                () => Assert.Empty(withheld.AvailableTools!),
+
+                // Every protected configuration file and repository script is refused, and none was created.
+                () => Assert.All(
+                    protectedRefusals,
+                    refusal => Assert.Contains("refused", refusal.Value, StringComparison.Ordinal)),
+                () => Assert.All(
+                    protectedRefusals,
+                    refusal => Assert.Contains(refusal.Key, refusal.Value, StringComparison.Ordinal)),
+                () => Assert.All(
+                    protectedRefusals,
+                    refusal => Assert.Contains("approval", refusal.Value, StringComparison.Ordinal)),
+                () => Assert.True(noneCreated),
+
+                // And naming one of them through a stream alias is refused as well, leaving the content the user
+                // approved in place - the deny-list cannot be walked past by a spelling that resolves back to the
+                // same file.
+                () => Assert.All(
+                    aliasRefusals,
+                    refusal => Assert.Contains("refused", refusal.Value, StringComparison.Ordinal)),
+                () => Assert.All(
+                    aliasSurvivors,
+                    survivor => Assert.Equal(sentinel, survivor.Value)),
+
+                // Every way out of the repository is refused, by every granted tool, and nothing landed outside.
+                () => Assert.All(
+                    escapeRefusals,
+                    refusal => Assert.All(
+                        refusal.Value,
+                        reply => Assert.Contains("refused", reply, StringComparison.Ordinal))),
+                () => Assert.False(File.Exists(Path.Combine(Path.GetDirectoryName(root)!, "escape.txt"))),
+                () => Assert.False(Directory.Exists(root + "-sibling")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-20 — an operation reports escalation as an outcome distinct from both success and failure,
+    ///     carrying its own exit code and rendering distinctly at the terminal.
+    /// </summary>
+    [Fact]
+    public async Task EscalationIsDistinctFromSuccessAndFailure()
+    {
+        // Arrange: the same escalating operation under a gating category and a non-gating one, because the
+        // promise is that no category may turn an escalation into a verdict
+        var gating = new StringWriter();
+        var advisory = new StringWriter();
+
+        // Act
+        var gatingExit = await AnnealTool.RunAsync(
+            ["stub"],
+            gating,
+            [new StubOperation(OperationCategory.Enforcement, OperationOutcome.Escalated)],
+            TestContext.Current.CancellationToken);
+
+        var advisoryExit = await AnnealTool.RunAsync(
+            ["stub"],
+            advisory,
+            [new StubOperation(OperationCategory.Advisory, OperationOutcome.Escalated)],
+            TestContext.Current.CancellationToken);
+
+        // Assert: its own code, the same one whatever the category, and distinct from every other outcome's
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitEscalated, gatingExit),
+            () => Assert.Equal(AnnealTool.ExitEscalated, advisoryExit),
+            () => Assert.NotEqual(AnnealTool.ExitSuccess, AnnealTool.ExitEscalated),
+            () => Assert.NotEqual(AnnealTool.ExitGatedFailure, AnnealTool.ExitEscalated),
+            () => Assert.NotEqual(AnnealTool.ExitUsageError, AnnealTool.ExitEscalated),
+            () => Assert.NotEqual(AnnealTool.ExitRefused, AnnealTool.ExitEscalated),
+
+            // And it reads as an escalation rather than as a failure.
+            () => Assert.Contains("escalated", gating.ToString(), StringComparison.OrdinalIgnoreCase),
+            () => Assert.Contains("escalated", advisory.ToString(), StringComparison.OrdinalIgnoreCase),
+            () => Assert.DoesNotContain("failed", gating.ToString(), StringComparison.OrdinalIgnoreCase),
+            () => Assert.DoesNotContain("failed", advisory.ToString(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-19 — `lint-fix` drives the repository to a clean lint or reports why it could not: succeeding
+    ///     when lint exits zero, escalating when a repair needs a protected file, and failing when its budget is
+    ///     exhausted.
+    /// </summary>
+    /// <remarks>
+    ///     The repository's scripts are substituted so all three state flows are reachable in a test, because the
+    ///     alternative — rebuilding and re-linting a real repository per case — would exercise PowerShell rather
+    ///     than the operation.
+    /// </remarks>
+    [Fact]
+    public async Task LintFixDrivesTheRepositoryCleanOrReportsWhyNot()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "present.md"), "a line to read");
+
+            // Arrange: lint fails once and then passes, and a worker that edits ordinary files
+            var attempts = 0;
+            var repaired = await RunLintFix(
+                root,
+                (script, _) => Task.FromResult(
+                    script == "lint.ps1" && attempts++ > 0
+                        ? new ScriptRun(0, string.Empty)
+                        : new ScriptRun(script == "lint.ps1" ? 1 : 0, "present.md:1 MD013 line too long")),
+                new ScriptedEndpoint("I wrapped the line."));
+
+            // Arrange: lint keeps reporting the same thing, and the only repair the worker attempts is refused
+            var escalated = await RunLintFix(
+                root,
+                (script, _) => Task.FromResult(
+                    new ScriptRun(script == "lint.ps1" ? 1 : 0, "build artifacts are being linted")),
+                new ToolCallingEndpoint(
+                    ("create_file", new Dictionary<string, object?>
+                    {
+                        ["path"] = ".cspell.yaml",
+                        ["content"] = "words: []"
+                    })));
+
+            // Arrange: lint keeps failing and nothing is ever refused, so the budget runs out
+            var exhausted = await RunLintFix(
+                root,
+                (script, _) => Task.FromResult(
+                    new ScriptRun(script == "lint.ps1" ? 1 : 0, "present.md:1 MD013 line too long")),
+                new ScriptedEndpoint("I could not fix that."));
+
+            // Arrange: the same, except the worker's one refusal is a path outside the repository - its own
+            // mistake to correct, and nothing the user has to decide
+            var outOfBounds = await RunLintFix(
+                root,
+                (script, _) => Task.FromResult(
+                    new ScriptRun(script == "lint.ps1" ? 1 : 0, "build artifacts are being linted")),
+                new ToolCallingEndpoint(
+                    ("read_file", new Dictionary<string, object?>
+                    {
+                        ["path"] = "../something",
+                        ["start"] = 1,
+                        ["max"] = 10
+                    })));
+
+            Assert.Multiple(
+                // Clean lint is success.
+                () => Assert.Equal(OperationOutcome.Succeeded, repaired.Result.Outcome),
+
+                // A repair that needs a protected file is escalation, naming what was refused - not failure.
+                () => Assert.Equal(OperationOutcome.Escalated, escalated.Result.Outcome),
+                () => Assert.Contains(
+                    ".cspell.yaml", escalated.Output, StringComparison.Ordinal),
+                () => Assert.NotEmpty(escalated.Result.FindingAs<LintFixReport>()!.RefusedWrites),
+
+                // An exhausted budget is failure, and it is bounded rather than open-ended.
+                () => Assert.Equal(OperationOutcome.Failed, exhausted.Result.Outcome),
+                () => Assert.Equal(
+                    LintFixOperation.MaxIterations,
+                    exhausted.Result.FindingAs<LintFixReport>()!.Iterations),
+                () => Assert.Contains(
+                    "MD013", exhausted.Result.FindingAs<LintFixReport>()!.RemainingOutput, StringComparison.Ordinal),
+
+                // A refusal that was never about a protected file is not escalation: it exhausts the budget like
+                // any other repair that did not work, because telling the user a protected file needs their
+                // approval when none does would be false.
+                () => Assert.Equal(OperationOutcome.Failed, outOfBounds.Result.Outcome),
+                () => Assert.Equal(
+                    LintFixOperation.MaxIterations,
+                    outOfBounds.Result.FindingAs<LintFixReport>()!.Iterations),
+                () => Assert.Empty(outOfBounds.Result.FindingAs<LintFixReport>()!.RefusedWrites));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     Runs lint-fix through the dispatcher with the repository's scripts and its worker substituted.
+    /// </summary>
+    private static async Task<LintFixRun> RunLintFix(
+        string repositoryRoot, RunRepositoryScript runScript, IChatEndpoint worker)
+    {
+        var operation = new LintFixOperation(repositoryRoot, _ => worker, runScript);
+        var output = new StringWriter();
+
+        var result = await operation.ExecuteAsync([], output, TestContext.Current.CancellationToken);
+        return new LintFixRun(result, output.ToString());
+    }
+
+    /// <param name="Result">What the operation concluded, outcome and finding together.</param>
+    /// <param name="Output">Everything the operation rendered.</param>
+    private sealed record LintFixRun(OperationResult Result, string Output);
+
+    /// <remarks>
+    ///     Invokes the tools it was handed rather than describing calls it would like made, which is what a
+    ///     provider running the tool loop natively does. It is the only stand-in that can exercise a guarantee
+    ///     about tool calls the code above the seam never sees.
+    /// </remarks>
+    private sealed class ToolCallingEndpoint(
+        params (string Tool, Dictionary<string, object?> Arguments)[] calls) : IChatEndpoint
+    {
+        public async Task<ChatTurnResult> CompleteAsync(
+            ChatTurnRequest request, CancellationToken cancellationToken)
+        {
+            foreach (var (tool, arguments) in calls)
+            {
+                var function = request.Tools.OfType<AIFunction>().FirstOrDefault(candidate => candidate.Name == tool);
+                if (function is not null)
+                    await function.InvokeAsync(new AIFunctionArguments(arguments), cancellationToken);
+            }
+
+            return new ChatTurnResult("I did what I could.", new ModelUsage(1, 1));
+        }
+
+        public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<string>>([]);
+    }
+
+    /// <summary>
     ///     Writes the repository's role-to-candidates configuration, as a repository substituting a model does.
     /// </summary>
     /// <remarks>
@@ -1511,7 +1823,13 @@ public class ToolkitContractTests
             ["max"] = 10,
             ["depth"] = 1,
             ["pattern"] = "line",
-            ["extension"] = string.Empty
+            ["extension"] = string.Empty,
+
+            // The write tools' parameters, so one helper can invoke every granted tool. A tool that does not
+            // declare one of these ignores it.
+            ["content"] = "written by a model",
+            ["oldStr"] = "a line",
+            ["newStr"] = "another line"
         };
 
         return tool.InvokeAsync(arguments, TestContext.Current.CancellationToken).AsTask().GetAwaiter().GetResult()

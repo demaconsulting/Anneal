@@ -3,6 +3,7 @@ level: section
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Model/**
   - src/DemaConsulting.Anneal.Toolkit/Recording/ModelTranscript.cs
+  - src/DemaConsulting.Anneal.Toolkit/Recording/ToolCallTranscript.cs
 ---
 
 [← Toolkit](../toolkit.md)
@@ -53,6 +54,12 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
   by re-running, and it is captured at the time or lost.
   *Verified by:* `ToolkitContractTests.ModelInteractionsAreTranscribed`
 
+- **TOOLKIT-18** — Every tool invocation a model makes is transcribed with its arguments and its
+  outcome, including one that was refused. A provider that runs the tool loop natively leaves
+  `TOOLKIT-11` recording a prompt and a final reply while blind to every file the model touched, which
+  for a worker that writes is the only part of its behavior worth auditing.
+  *Verified by:* `ToolkitContractTests.ToolInvocationsAreTranscribed`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the invocation record the transcript is captured alongside, and the
@@ -62,17 +69,64 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
 
 ### Invariants
 
-- **TOOLKIT-I1** — A model consulted by any operation is granted read-only repository tools. No
-  operation grants a tool that executes a command or writes a file, and the granted tool set is always
-  an explicit allowlist rather than an absent one.
-  *Verified by:* `ToolkitContractTests.ModelToolGrantsAreReadOnlyAndExplicit`
-
 - **TOOLKIT-I2** — A probe result reaches a caller only as a fully decoded typed value. A response
   that cannot be decoded within the retry budget fails the operation; no partially populated result is
   returned.
   *Verified by:* `ToolkitContractTests.UndecodableProbeResultFailsTheOperation`
 
+- **TOOLKIT-I6** — A model is granted tools only by group selection: the set handed to it is the tools
+  of the groups its operation was granted, always as an explicit allowlist rather than an absent one.
+  Every filesystem path a tool is given resolves inside the repository root, and a write to a protected
+  configuration file or repository script is refused.
+  *Verified by:* `ToolkitContractTests.ToolGrantsAreScopedContainedAndProtected`
+
 ## Decisions
+
+**`TOOLKIT-I1` is retired and replaced by `TOOLKIT-I6`** — the old invariant guaranteed that a model
+is granted *read-only* repository tools, and that guarantee cannot survive a process whose whole job
+is to edit files. It is retired rather than weakened, because a clause that says "read-only except
+when not" states nothing. What was doing the real work in it — the granted set is always an explicit
+allowlist and never an absent one, since an absent allowlist imposes no restriction and exposes the
+provider's own built-in mutating tools — is kept verbatim inside `TOOLKIT-I6`, which adds the two
+guarantees that replace read-only: every path resolves inside the repository root, and the protected
+configuration files and repository scripts are refused. The number `TOOLKIT-I1` is never reused.
+
+**Scoping is by selection, not by a runtime gate** — an operation names the groups it was granted and
+receives exactly those groups' tools; a tool from a group that was not granted is absent from the set the model
+is offered. The rejected alternative was a permission check inside each tool, which leaves the tool
+present and therefore callable, arguable with, and forgettable to check. An absent tool cannot be
+called, so there is nothing to talk past. Groups rather than individual grants because grouping is
+what stops every later tool addition from needing its own wiring decision at every call site.
+
+**There is no shell group, and none is granted** — the processes that need `fix.ps1` and `lint.ps1`
+run them as their own control flow. A worker granted a command tool can do anything and then report
+plausibly that it did not, which is the precise failure this system exists to eliminate; a script the
+operation runs itself has an exit code the operation read.
+
+**Containment is lexical, and the limit is stated rather than implied** — a model-supplied path is
+resolved against the repository root and compared textually, which rejects rooted, drive-qualified,
+cross-drive, UNC and device paths, anything climbing above the root, and a sibling directory that
+merely shares a textual prefix with the root. It does **not** resolve symbolic links or junctions, so
+a link inside the repository pointing outside it is followed. That is recorded because it is
+invisible at the call site — the check looks total and is not — and closing it requires resolving
+every path through the filesystem, which fails differently on each platform and cannot be tested
+without creating links the test runner may not be privileged to create.
+
+It also rejects any path carrying a colon beyond a drive-letter position, because Windows lets a
+file's own contents be named through an alternate stream alias — `fix.ps1::$DATA` reads and writes
+exactly what `fix.ps1` does, while matching no deny-list entry spelled `fix.ps1`. The rejection lives
+in the containment primitive rather than in the deny-list so that it closes for every tool at once
+rather than for the one check someone remembered; a repository-relative path has no legitimate use
+for that spelling.
+
+**A refused write to a protected path is a different refusal from a path outside the repository** —
+both are refused, both are transcribed, and they carry distinct prefixes and distinct transcript
+classifications. They mean different things to the process driving the conversation: a worker denied
+a path outside the repository made a mistake it can correct, while a worker denied a protected file
+has run into a decision only the user can make. Reading them as one refusal was a real defect —
+`lint-fix` escalated on an out-of-bounds read, telling the user a protected file needed their
+approval when none did. A false escalation is exactly as damaging as a false success, since both
+report something that did not happen.
 
 **Model configuration is data, not code** — roles appear in this contract; the models behind them do
 not. Defaults are compiled in, and a repository changes the models behind its roles by writing its own

@@ -54,12 +54,29 @@ public static class AnnealTool
     public const int ExitRefused = 3;
 
     /// <summary>
+    ///     Exit code when the operation escalated: it ran, could not finish, and finishing needs a decision only
+    ///     the user can make.
+    /// </summary>
+    /// <remarks>
+    ///     Its own code for the same reason refusal has one, one level up. A caller that read an escalation as a
+    ///     failure would look for a defect in the repository, and one that read it as success would ship without
+    ///     the decision ever being made. It is never <see cref="ExitGatedFailure" />, whatever the operation's
+    ///     category: needing the user is not a verdict a build may be failed on.
+    /// </remarks>
+    public const int ExitEscalated = 4;
+
+    /// <summary>
     ///     The operations this tool ships. Each name in this list is a promise: an agent that invokes an
     ///     action by name depends on it, which is why the set is enumerated in the Toolkit contract rather
     ///     than left open.
     /// </summary>
     public static IReadOnlyList<IOperation> DefaultOperations { get; } =
-        [new VerifyEvidenceOperation(), new ProbeRuleOwnerOperation(), new CheckContractsOperation()];
+    [
+        new VerifyEvidenceOperation(),
+        new ProbeRuleOwnerOperation(),
+        new CheckContractsOperation(),
+        new LintFixOperation()
+    ];
 
     /// <summary>
     ///     The Anneal version this tool was built from.
@@ -87,8 +104,9 @@ public static class AnnealTool
     /// <param name="output">Where the action list, and everything the operation reports, is written. Must not be null.</param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged into the action it dispatches to.</param>
     /// <returns>
-    ///     <see cref="ExitSuccess" />, <see cref="ExitGatedFailure" />, <see cref="ExitUsageError" /> or
-    ///     <see cref="ExitRefused" />, mapped as the four-argument overload documents.
+    ///     <see cref="ExitSuccess" />, <see cref="ExitGatedFailure" />, <see cref="ExitUsageError" />,
+    ///     <see cref="ExitRefused" /> or <see cref="ExitEscalated" />, mapped as the four-argument overload
+    ///     documents.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="arguments" /> or <paramref name="output" /> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
@@ -120,7 +138,8 @@ public static class AnnealTool
     /// <param name="cancellationToken">The caller's signal, carried unchanged into the action it dispatches to.</param>
     /// <returns>
     ///     <see cref="ExitSuccess" /> when the operation succeeded, or when it ran, failed, and its category does
-    ///     not gate; <see cref="ExitRefused" /> when the operation refused; <see cref="ExitGatedFailure" /> when
+    ///     not gate; <see cref="ExitRefused" /> when the operation refused; <see cref="ExitEscalated" /> when it
+    ///     escalated; <see cref="ExitGatedFailure" /> when
     ///     a failing operation declares <see cref="OperationCategory.Enforcement" />; <see cref="ExitUsageError" />
     ///     when no action was named, the named action does not exist, or the action could not use the arguments
     ///     given — the last of those whatever category the action declares.
@@ -270,6 +289,16 @@ public static class AnnealTool
         {
             output.WriteLine($"anneal: '{operation.Name}' refused - the question was not answerable.");
             return new Dispatched(ExitRefused, outcome, operation.Category);
+        }
+
+        // Escalation short-circuits the gating rule for the same reason refusal does, and renders distinctly
+        // from both: a caller shown "failed" would go looking for a defect, when what is actually needed is a
+        // decision only they can make.
+        if (outcome == OperationOutcome.Escalated)
+        {
+            output.WriteLine(
+                $"anneal: '{operation.Name}' escalated - it cannot finish without a decision you must make.");
+            return new Dispatched(ExitEscalated, outcome, operation.Category);
         }
 
         // The category decides, not the operation and not the exit code it would have liked. A non-gating

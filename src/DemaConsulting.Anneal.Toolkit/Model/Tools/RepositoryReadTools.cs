@@ -2,18 +2,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
 
-namespace DemaConsulting.Anneal.Toolkit.Model;
+namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 
 /// <summary>
-///     The read-only tool grant a model-backed operation gives a model: read a file, list a directory, search
-///     the working tree — and nothing else.
+///     The read group's tools: read a file, list a directory, search the working tree — and nothing else.
 /// </summary>
 /// <remarks>
-///     There is deliberately no tool here that runs a command or writes a file, and no way to add one through
-///     configuration. A probe is a question about a repository; a repository that can be edited by the thing
-///     answering questions about it is a repository whose answers cannot be trusted. Every tool resolves its
-///     path against the repository root and refuses anything that escapes it, so a model that asks for a system
-///     path is told no rather than obeyed.
+///     There is deliberately no tool here that runs a command or writes a file. An operation that needs to write
+///     is granted the edit group as well, so this group stays the one a caller can hand out knowing it cannot
+///     change anything — which is what lets an operation asking questions about a repository be told apart from
+///     one changing it. Every tool resolves its path through <see cref="RepositoryPath" /> and refuses anything
+///     that escapes the root, so a model that asks for a system path is told no rather than obeyed.
 ///     <para>
 ///         Thread safety: the returned functions hold no mutable state and are safe to invoke concurrently; they
 ///         read whatever is on disk at the moment they run.
@@ -90,7 +89,7 @@ public static class RepositoryReadTools
     {
         var resolved = Resolve(root, path);
         if (resolved is null)
-            return "refused: that path is outside the repository.";
+            return ToolReply.OutsideRepository("read_file", path);
 
         if (!File.Exists(resolved))
             return "not found.";
@@ -110,7 +109,7 @@ public static class RepositoryReadTools
     {
         var resolved = Resolve(root, path);
         if (resolved is null)
-            return "refused: that path is outside the repository.";
+            return ToolReply.OutsideRepository("list_files", path);
 
         if (!Directory.Exists(resolved))
             return "not found.";
@@ -137,7 +136,7 @@ public static class RepositoryReadTools
     {
         var resolved = Resolve(root, path);
         if (resolved is null)
-            return "refused: that path is outside the repository.";
+            return ToolReply.OutsideRepository("search_files", path);
 
         if (!Directory.Exists(resolved))
             return "not found.";
@@ -149,7 +148,7 @@ public static class RepositoryReadTools
         }
         catch (ArgumentException exception)
         {
-            return $"refused: that is not a valid regular expression ({exception.Message}).";
+            return ToolReply.RefusedPrefix + $"that is not a valid regular expression ({exception.Message}).";
         }
 
         var filter = string.IsNullOrWhiteSpace(extension)
@@ -222,23 +221,9 @@ public static class RepositoryReadTools
     /// <returns>
     ///     The absolute path, or null when the request escapes the repository root. Null rather than an
     ///     exception because a model asking for a path outside the tree is a refusal to report back to it, not a
-    ///     fault in the operation.
+    ///     fault in the operation. Containment itself is not decided here: it is the one lexical primitive every
+    ///     tool shares.
     /// </returns>
-    private static string? Resolve(string root, string path)
-    {
-        var relative = (path ?? string.Empty).Trim();
-        if (relative.Length == 0)
-            return root;
-
-        var normalized = relative.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
-        var full = Path.GetFullPath(Path.Combine(root, normalized));
-
-        // The root itself is inside the repository - a model that asks for "." is asking a reasonable question -
-        // so it is admitted explicitly rather than falling foul of the prefix test.
-        var trimmed = root.TrimEnd(Path.DirectorySeparatorChar);
-        return full.Equals(trimmed, StringComparison.Ordinal) ||
-            full.StartsWith(trimmed + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                ? full
-                : null;
-    }
+    private static string? Resolve(string root, string path) =>
+        RepositoryPath.TryResolve(root, (path ?? string.Empty).Trim(), out var full) ? full : null;
 }

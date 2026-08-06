@@ -43,5 +43,24 @@ public enum OperationOutcome
     ///     this — its inputs settle its question — which is why it arrived with the first model-backed
     ///     operation rather than with the tool itself.
     /// </remarks>
-    Refused
+    Refused,
+
+    /// <summary>
+    ///     The operation ran, could not finish, and the reason is that finishing needs a decision only the user
+    ///     can make.
+    /// </summary>
+    /// <remarks>
+    ///     Escalation is <see cref="Refused" /> one level up. Refusal says a <em>model call</em> could not be
+    ///     answered on the evidence; escalation says an <em>operation</em> cannot proceed without the user, and
+    ///     both are distinct from failure for the same reason: a caller who cannot tell them apart acts on the
+    ///     wrong one. The forcing case is a repair that requires changing a protected configuration file. An
+    ///     operation compiled as success-or-failure would either grind its budget and report failure, which
+    ///     blames the code for a configuration decision, or edit around the obstacle, which is worse because it
+    ///     looks like success. Neither says the one useful thing: *this needs you*.
+    ///     <para>
+    ///         It never gates. Like refusal, it is not a verdict on the repository, so no category may turn it
+    ///         into one.
+    ///     </para>
+    /// </remarks>
+    Escalated
 }

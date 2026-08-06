@@ -1,4 +1,5 @@
 using DemaConsulting.Anneal.Toolkit.Model;
+using DemaConsulting.Anneal.Toolkit.Model.Tools;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -158,7 +159,12 @@ public sealed class ProbeRuleOwnerOperation : IOperation
         // Roles are bound to models here and nowhere else in this operation: the mapping is read from the
         // repository's configuration, so this file names a tier and never a model.
         var roles = new ModelRoles(_repositoryRoot, _endpointFor);
-        var session = new ModelSession(roles, Charter, RepositoryReadTools.CreateAll(_repositoryRoot));
+        // Granted the read group and nothing else: probing for where a rule is stated needs to look at the
+        // repository and has no business changing it, and the tools of a group that was not granted are absent
+        // rather than
+        // gated.
+        var session = new ModelSession(
+            roles, Charter, new ToolGroups(_repositoryRoot).SelectTools([ToolGroups.Read]));
 
         // Pass one: free-form, tools in scope, no schema. Nothing is decoded here, so there is nothing to
         // re-prompt against - the reply is reasoning, not transport. It runs at the tier this operation

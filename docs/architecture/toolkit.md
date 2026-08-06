@@ -88,7 +88,8 @@ from.
   level, which is deliberate — an operation invoked by a downstream agent *is* a promise, so adding one
   is a contract change and is meant to feel like one. [VerifyEvidence](./toolkit/verify-evidence.md) and
   [ContractCheck](./toolkit/contract-check.md) are deterministic and built on the Runtime alone;
-  [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds the Model Seam.
+  [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds the Model Seam, and
+  [LintFix](./toolkit/lint-fix.md) is model-backed and also writes to the repository.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
@@ -207,5 +208,7 @@ target.
   quoted text against the file and line it names, reaching no verdict on the report's conclusion
 - [ProbeRuleOwner](./toolkit/probe-rule-owner.md) — how `probe-rule-owner` names the single file that
   owns a rule, and why it refuses when ownership is split or absent
+- [LintFix](./toolkit/lint-fix.md) — how `lint-fix` drives the repository to a clean lint, and why a
+  repair that needs a protected file escalates rather than failing
 - [ContractCheck](./toolkit/contract-check.md) — how the `check-contracts` action reads a repository's
   architecture tree, and what each way it can reject one means

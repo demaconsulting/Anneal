@@ -102,7 +102,9 @@ public interface IOperation
     ///     The outcome, and the finding beside it. The outcome is
     ///     <see cref="OperationOutcome.Succeeded" /> when the operation answered its question and the answer
     ///     is positive; <see cref="OperationOutcome.Refused" /> when the question could not be answered on the
-    ///     available evidence; <see cref="OperationOutcome.UsageError" /> when the arguments could not be used
+    ///     available evidence; <see cref="OperationOutcome.Escalated" /> when it ran and cannot finish without a
+    ///     decision only the user can make; <see cref="OperationOutcome.UsageError" /> when the arguments could
+    ///     not be used
     ///     and nothing was attempted; <see cref="OperationOutcome.Failed" /> when the operation ran and the
     ///     answer is no. The caller maps that to an exit code using <see cref="Category" />, except for a usage
     ///     error, which is the caller's own mistake and is category-independent; the operation never decides

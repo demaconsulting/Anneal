@@ -292,3 +292,41 @@ the process that uses it. The counter-argument won: a tool surface with no consu
 to be right, and the deny-list in particular is only validated by a process actually hitting it.
 Recorded here because it is a judgement call against precedent, and if S6 turns out to be too large
 this entry is where the reason lives.
+
+### S6 — The tool surface and the first compiled process — landed
+
+**A different-model review caught three real defects a same-model pass had already waved through**, a
+second instance of the S5 finding. All three were confirmed independently before being sent back:
+an alternate-data-stream suffix on Windows (`fix.ps1::$DATA`) let a write reach a protected file's real
+content because the deny-list matched text rather than refusing the syntax itself; `lint-fix` treated
+any tool refusal as grounds to escalate, including a harmless outside-root read, rather than only a
+refused protected write; and cancelling a run left `pwsh` still executing `fix.ps1`, free to keep
+editing the repository after the caller had stopped waiting. The repair for the first closes the
+alias in the containment primitive itself, `RepositoryPath.TryResolve`, rather than only in the
+protected-path check, so every tool is covered at once rather than one call site remembering to check.
+
+**Packaging the Copilot SDK's native runtime into the tool was tried and rejected within the same
+session it was raised.** Declaring `RuntimeIdentifiers` on the Toolkit's project does make a packed
+tool carry `copilot.exe` — proven by producing the RID-specific packages and installing one — but the
+runtime itself is a full Node-based CLI download, well over 100MB compressed per platform, which
+makes embedding it in a NuGet package a dead end before a second platform is even considered. The
+`RuntimeIdentifiers` change was reverted.
+
+**What replaced it works, and was proven working rather than assumed.** `CopilotEndpoint` now resolves
+a system-installed `copilot` executable off `PATH` at construction and hands its path to
+`RuntimeConnection.ForStdio`, and the Toolkit's build sets `CopilotSkipCliDownload=true` so it never
+downloads or ships the runtime at all — the same dependency posture as requiring `git` on `PATH`
+rather than vendoring it. `pwsh ./build.ps1` was re-run clean after the change, and `dotnet anneal
+lint-fix`, invoked as the actually-packed and actually-installed tool (not `dotnet run`), was proven
+end to end against a real MD013 violation in a throwaway file, which it repaired and reported clean
+in one iteration. This closes the packaging gap the first S6 report had left open, and now literally
+satisfies the stage's exit condition rather than only its `dotnet run`-equivalent form.
+
+**A packed-tool ordering assumption that was never true came close to being hidden by rebuilding
+around it.** `build.ps1` in stage S2 assumed `dotnet pack --no-build` was always safe because one
+build output always fed one package. Chasing the runtime-identifier idea above (before it was
+rejected) showed this is false the moment a tool declares more than one RID: each RID is its own
+build, and only `dotnet pack` itself, without `--no-build`, knows how to produce them. The
+`RuntimeIdentifiers` line was reverted along with the rest of that approach, so `build.ps1` was left
+unchanged — but the fragility is recorded here because the next RID-carrying package this repository
+ships will rediscover it if this entry is not read first.
