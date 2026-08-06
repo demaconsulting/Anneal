@@ -366,6 +366,7 @@ public static class AnnealTool
         output.WriteLine("Available actions:");
         foreach (var operation in operations.OrderBy(candidate => candidate.Name, StringComparer.Ordinal))
             output.WriteLine($"  {operation.Name} - {operation.Summary} [{Describe(operation.Category)}]");
+        output.WriteLine("Run 'help <action>' for detail on one.");
     }
 
     private static string Describe(OperationCategory category) =>
