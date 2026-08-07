@@ -344,8 +344,49 @@ truth, which is exactly why every trial in this migration re-verifies by hand in
 Both the fixture and its harness were deleted afterward; `git status --short` in this repository was
 confirmed clean before landing.
 
-Step 2 (updating `dispatch.agent.md`) remains outstanding and is intentionally out of scope for this
-step — a human decides separately whether to proceed to it.
+**Step 2 (updating `dispatch.agent.md`) is done** — see the stage description above for what changed.
+A dedicated live trial then validated the rewritten agent end to end, not merely by reading the prompt
+file: the real `dispatch` agent was invoked (via this environment's own custom-agent mechanism, not a
+nested Copilot CLI process) against a throwaway fixture repository outside this one — a minimal
+two-project .NET solution (`Fixture.Lib` + `Fixture.Lib.Tests`) with a genuine, deliberate bug
+(`TextUtils.Capitalize` throwing on an empty string) and its own local `dotnet-tools.json` installing
+the current build of this repository's Toolkit package. Given a plain-English bug report, `dispatch`
+correctly determined Mode (Change) without pre-resolving scope, then ran a real
+`dotnet anneal route "<work item>"` shell command from the fixture root.
+
+*First attempt* — the fixture was missing a `build.ps1`, which `SmallFixWorker`'s deterministic check
+hardcodes running. The check failed for a reason unrelated to the fix's correctness (no such script),
+the one local repair pass composed an instruction back to `Developer` citing that failure, and
+`Developer` — recognizing that satisfying it meant writing `build.ps1`, which is on `ProtectedPaths`'
+list — correctly refused and escalated (`Developer.RefusedProtectedWrites.Count > 0` →
+`OperationOutcome.Escalated`), exactly as designed. This was a fixture-setup gap, not a defect: every
+target repository this worker runs against is assumed to have its own `build.ps1`.
+
+**A separate, real finding surfaced while investigating that escalation.** `Developer`'s first
+authoring pass, before the repair loop ran at all, had already written a correct fix to disk (verified
+by hand: `git diff` after the escalated run showed `TextUtils.cs` correctly guarded against an empty
+string, and a matching test addition). But `RouteReport.FilesChanged` — and therefore everything
+`dispatch` had to report to the caller — is documented as "empty unless a worker completed the work,"
+so the escalated report said nothing about it: a caller reading only the outcome would have no way to
+know the working tree already held a real, correct candidate fix. This is a genuine gap in what the
+toolkit's outcome contract communicates, not a control-flow defect: authoring writes to disk
+immediately, independent of whatever verification or escalation decision follows it, and the current
+`RouteReport` shape conflates "did the run succeed" with "is the working tree clean." Left as a named
+open item for a future stage (see Open Concerns-style note below) rather than fixed here, since fixing
+it well likely means `RouteReport` gaining a field for uncommitted changes left by an incomplete run —
+a real design question, not a small patch, and this session's job was validating S11, not opening new
+Toolkit surface that had not itself been reviewed.
+
+*Second attempt, after adding a `build.ps1` to the fixture* — clean run, first try: oracle selected
+`small-fix`, `Developer` authored the identical guard-clause fix, the deterministic check passed with
+no repair needed, `dispatch` reported `SUCCEEDED`. Independent verification: `git status --short` and
+`git diff --stat` in the fixture, read directly rather than trusted from the report, showed exactly one
+file changed (`Fixture.Lib/TextUtils.cs`), matching `route`'s own summary exactly; a fresh `build.ps1`
+run passed 2/2 tests. The fixture and its harness were deleted afterward.
+
+**Exit conditions confirmed met in full**, including the one this entry adds: `dispatch` was proven,
+live, to actually reach `route`, interpret a real exit code, and report accurately — not merely
+inspected as a rewritten prompt file.
 
 ### S10 — Retiring "Tier", and wiring the Router into a real CLI action — landed
 
