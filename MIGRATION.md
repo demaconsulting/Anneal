@@ -102,6 +102,15 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
+No stage is currently in flight. S12 and S11 (below) both landed and validated this session. The
+Migration's own state is otherwise unchanged from S10: `apply`, `architecture-update`, and
+`scope-check` remain in place for the jobs `route` does not cover (Maintenance mode, Migration-mode
+work, and any Change-mode invocation run through the prose path directly rather than through
+`dispatch`). Retiring any of those files, folding `architecture-design` into `helper`, the fuller
+Router-seeded dynamic standards-selection design, and Template Sync are all still explicitly deferred,
+named stages — see the Suspension register above and each entry's own text for what would need to be
+true first.
+
 ### S12 — Compiled workers gain baseline standards-loading (S11 step 2's new prerequisite) — landed
 
 **Why this jumped the queue:** while designing S11 step 2 (flip `dispatch`'s Change-mode default to
@@ -221,7 +230,7 @@ beyond the fixed per-primitive split above, and the embedded-assembly-resources/
 question remain open, real, and valuable — a separate stage once this baseline is proven, not folded
 in here.
 
-### S11 — Dispatch hands Change-mode work to the Router (step 1 done; step 2 now unblocked, not yet taken)
+### S11 — Dispatch hands Change-mode work to the Router — landed
 
 S10 landed in full: Part A (commit `ed50468`) retired "Tier" everywhere in favor of Mode/Scope and
 the toolkit's own worker names; Part B (commit `0b28c93`) wired `Router` into a real `route` CLI
@@ -248,14 +257,19 @@ whether the oracle *recognizes* work that needs it and routes there correctly.
    (`StructuralChangeWorker`'s `Planner` step budget defect, found live and fixed) and `81259ed`
    (discovery-log entry).
 
-2. **Was blocked on S12 landing and being validated; S12 has now landed (see its own entry above), so
-   this step is unblocked.** It has not been done in this session — updating
-   `.github/agents/dispatch.agent.md` is a separate follow-on left for a human to decide when to
-   pursue, per this stage's own instructions. Once done: for Change-mode work specifically, `dispatch`
-   hands off to the `route` action instead of sequencing `architecture-update` → `apply` → `scope-check`.
-   `dispatch` keeps its other jobs unchanged — Intake (appending to `BACKLOG.md`/`CONSTRAINTS.md`/README
-   assumptions) and handing off Maintenance and Migration work — because `route`'s catalog covers none
-   of those, and `Router`'s worker catalog is Change-mode only, not a general dispatcher replacement.
+2. **Was blocked on S12 landing and being validated; S12 landed and was validated (see its own entry
+   above), unblocking this step.** `.github/agents/dispatch.agent.md` is rewritten: Step 1 (Classify)
+   still determines Mode itself, but for Change mode no longer resolves Small Fix vs. Contract Change
+   vs. Structural Change — that question is handed whole to `route`'s own routing oracle. A new Step 2
+   runs `dotnet anneal route "<work item>" [<changed-file-hint> ...]` as a real shell command and
+   interprets its exit code (0 Succeeded, 4 Escalated, 1/3 Failed/Refused, 2 UsageError) to decide the
+   report. Step 3 (Implement via `apply`) is now reached only for Maintenance mode; the old Step 2
+   (Architecture Update) and Step 4 (Verify via `scope-check`, with its two-repair budget) are removed
+   entirely from `dispatch`'s own flow, since `route`'s selected worker already owns authoring and
+   verification internally. The Report Template is updated to match: `Scope` reads as whatever `route`
+   reported rather than something `dispatch` decided, `Repairs Used` is dropped (there is no repair
+   budget left for `dispatch` to spend), and `Residual` now distinguishes `escalated` from `gate`.
+   **Landed**, `pwsh ./build.ps1`/`pwsh ./lint.ps1` both clean (273 C# tests, 72/72 clauses).
 
 **What this stage does not do:** it does not delete `apply.agent.md`, `architecture-update.agent.md`,
 or `scope-check.agent.md`. Each keeps a live job `route` does not cover: `apply` still does
@@ -267,8 +281,8 @@ into `helper` — that remains a separate, later, named stage.
 
 **Exit conditions:** the Structural Change live trial is run and independently verified (or its
 defect fixed and re-verified) — **done**; `dispatch.agent.md` is updated and its Change-mode routing
-table entry reads `route` rather than `architecture-update` → `apply` → `scope-check` — **unblocked
-now that S12 has landed, but not yet taken**; `pwsh ./lint.ps1` passes.
+table entry reads `route` rather than `architecture-update` → `apply` → `scope-check` — **done**;
+`pwsh ./lint.ps1` passes — **done**.
 
 **Step 1 is done: the Structural Change live trial ran, found and fixed a real defect, then confirmed
 correct routing end to end.** A throwaway fixture (`OrderPipeline`, outside this repository, same

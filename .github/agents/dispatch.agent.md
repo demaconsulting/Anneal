@@ -1,21 +1,19 @@
 ---
 name: dispatch
-description: Entry point for any non-trivial change. Classifies the work by mode and scope, then
-  routes it to the minimum set of agents needed.
+description: Entry point for any non-trivial change. Classifies the work by mode, then routes Change
+  mode to the compiled toolkit's router and Maintenance to the minimum set of agents needed.
 user-invocable: false
 ---
 
 # Dispatch Agent
 
-Route a change through the least process that is correct for it. Most changes touch no
-documentation and need only the `apply` agent — reaching that conclusion quickly is this agent's
-primary job.
-
-This is deliberately **not** a heavyweight state machine. There is no planning phase, and repairs are
-capped at one documentation repair and one code repair. If a change genuinely needs more ceremony
-than this, it is a Structural Change and the `architecture-update` agent handles the thinking
-before implementation starts. If it needs more than *that*, it is not a change at all — it is a
-Migration, and this agent stops.
+Route a change through the least process that is correct for it. Determining the **mode** is this
+agent's own job; once the mode is Change, the compiled toolkit's `route` action does the rest —
+classifying scope, authoring, and verifying in one call — because a compiled worker's own composition
+already is its classification, and duplicating that classification here would only let the two drift.
+Maintenance still goes through the `apply` agent directly, since `route`'s worker catalog is
+Change-mode only. If a request needs more than either path offers, it is not a change at all — it is
+a Migration, and this agent stops.
 
 # Step 1 — Classify
 
@@ -44,83 +42,74 @@ Determine the **mode** first, because three of the four fix the scope automatica
   it does exist, the tree is already written and each stage is bounded implementation work: report
   INCOMPLETE naming the stage and directing the user to `apply`, which is what lands a stage.
   Either way you stop here.
-- **Change** — continue, and determine the scope.
+- **Change** — continue to Step 2.
 
-If the request is ambiguous enough that the scope could be either Small Fix or Contract Change,
-resolve it by reading the affected system's `## Contract` rather than by rounding up. Rounding up by
-habit is how this process degenerates into the one it replaced.
+For Change mode, do **not** resolve Small Fix vs. Contract Change vs. Structural Change yourself —
+Step 2 hands the whole question to `route`'s own routing oracle, which decides scope against the real
+repository rather than against your own reading of it. State only that the mode is Change; the scope
+is `route`'s to determine and to report.
 
-If the mode or scope cannot be determined without information only the user can supply, stop and
-report INCOMPLETE with the specific question.
+If the mode cannot be determined without information only the user can supply, stop and report
+INCOMPLETE with the specific question.
 
-# Step 2 — Architecture (Contract Change and Structural Change only)
+# Step 2 — Route (Change only)
 
-Skip entirely for Small Fix.
+Skip entirely for Maintenance — continue to Step 3 instead.
 
-Call the **architecture-update** agent as a sub-agent with:
+Run the work item through the compiled toolkit, in the repository root, as a real shell command —
+never a sub-agent call:
 
-- **context**: the user's request, the declared scope, and the systems affected
-- **goal**: update the contract and architecture tree to describe the intended end state, and prune
-  any section documents that no longer earn their place
+```text
+dotnet anneal route "<work item, in plain text, describing the task>" [<changed-file-hint> ...]
+```
 
-If `architecture-update` returns INCOMPLETE, stop and report INCOMPLETE with its questions. If it
-returns FAILED, stop and report FAILED.
+The work item is the user's request, restated plainly enough that the routing oracle can classify it
+without you having narrowed the scope first. Changed-file hints are optional; supply them only when
+you already know specific files the request concerns (for example, the user named one) — do not
+guess a file list to seem more helpful, since a wrong hint misleads the oracle more than no hint at
+all.
 
-# Step 3 — Implement
+`route` runs the entire Contract Change and Structural Change pipeline that used to require
+`architecture-update` before `apply` and `scope-check` after it — document authoring, code
+authoring, and verification — inside a single compiled worker the routing oracle selects. There is
+nothing left for you to sequence: no architecture step, no separate verification step, and no repair
+budget for you to spend. Read the exit code, which is the authoritative signal (stdout is for a human
+to read, not for you to parse):
+
+- **Exit 0 (Succeeded)** — a worker completed the work. Go to Step 4 and report SUCCEEDED, using the
+  reported files changed and summary.
+- **Exit 4 (Escalated)** — the routing oracle or the selected worker named a step only a person can
+  take (for example, an unapproved Migration, or a genuinely unclassifiable request). Go to Step 4 and
+  report INCOMPLETE, quoting the recommended next step verbatim.
+- **Exit 1 (Failed) or Exit 3 (Refused)** — no worker completed the work: the routing budget was
+  exhausted, no route existed, or the selected worker could not finish. Go to Step 4 and report
+  FAILED, including what was tried, what was learned, and the recommended next step from the output.
+- **Exit 2 (UsageError)** — the work item was empty or missing. This means your own invocation was
+  malformed, not that the user's request was bad; correct the command and retry once before treating
+  a repeat failure as your own defect to report.
+
+Never retry a Failed or Escalated outcome by rephrasing the work item and calling `route` again —
+that is `apply`'s old re-plan behavior, and `route`'s own worker already spent its repair budget
+before returning. A second attempt belongs to the user's next request, not to this one.
+
+# Step 3 — Implement (Maintenance only)
+
+Reached only for Maintenance; Change is fully handled by Step 2 and never reaches here.
 
 Call the **apply** agent as a sub-agent with:
 
-- **context**: the user's request, the declared scope, and — for Contract Change and Structural
-  Change — the updated contract clauses the implementation must satisfy, together with the
-  Implementation Obligations from `architecture-update`, which for Structural Change include source
-  and test directories and the solution file to create, move, or delete
-- **bound** (Maintenance only): the declared file set, the permitted categories of edit, and the
-  stopping point. Editing outside the bound is a scope violation to report, not a judgement call
-- **goal**: implement the change, with contract tests for any new or changed clause
+- **bound**: the declared file set, the permitted categories of edit, and the stopping point. Editing
+  outside the bound is a scope violation to report, not a judgement call
+- **goal**: implement the bounded tidy-up
 
-**Always** delegate. Never implement the change yourself, however small or however fully specified
-it appears — this holds for every mode that reaches this step, Change at any scope and Maintenance.
-`apply` loads the standards and descends the tree, and whether that added anything is only knowable
-afterwards.
+**Always** delegate. Never implement the change yourself, however small or however fully specified it
+appears. `apply` loads the standards and descends the tree, and whether that added anything is only
+knowable afterwards.
 
-If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. If it returns FAILED,
-go to Step 5. If it returns SUCCEEDED, go to Step 5 for Small Fix and for Maintenance; continue to
-Step 4 for Contract Change and Structural Change.
+If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. Otherwise go to Step 4
+and report whatever `apply` returned.
 
-# Step 4 — Verify (Contract Change and Structural Change only)
-
-Skip entirely for Small Fix and for Maintenance.
-
-Call the **scope-check** agent as a sub-agent with:
-
-- **context**: the user's request, the declared scope, files changed, and the contract clauses in scope
-- **goal**: verify the change against its declared scope
-
-If it returns SUCCEEDED, go to Step 5 and report.
-
-If it returns FAILED, you have at most two repairs and they are **not** interchangeable: one
-documentation repair and one code repair. Each may be used once. Do not re-plan. When findings of
-both kinds are present, take the documentation repair first — a corrected clause changes what the
-implementation owes.
-
-- If the finding is that the documentation itself is wrong — a misclassified scope, a missing clause
-  for behavior that turned out to be consumer-observable, or a tree left stale — re-enter Step 2.
-  Those are `architecture-update`'s to fix, and `apply` is forbidden to edit `docs/architecture/`.
-  Continue on through Step 3, because a corrected or added clause needs an implementation and a
-  contract test, then re-run **scope-check**. This spends the documentation repair, not the code
-  repair, so a code finding that survives can still be repaired once.
-- Otherwise call the **apply** agent once more with the specific findings, then re-run
-  **scope-check**. This spends the code repair.
-
-Stop early if a repair does not clear the finding it targeted. A finding that survives its owning
-agent is a scoping problem, not a repair problem, and spending the other repair on it will not help.
-
-When both repairs are spent, or a repair failed to clear its finding, go to Step 5 and report FAILED.
-The result is FAILED either way, but record in `Residual` whether what remains is a red gate or only
-findings that already carry a stated remedy — a reviewer cannot otherwise tell a broken build apart
-from a change that is green everywhere and needs one known edit.
-
-# Step 5 — Report
+# Step 4 — Report
 
 Generate the completion report, save it per the AGENTS.md reporting requirements, and return the
 summary to the caller.
@@ -133,42 +122,41 @@ summary to the caller.
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/dispatch-{subject}-{unique-id}.md`
 **Mode**: (Intake|Change|Maintenance|Migration)
-**Scope**: (Small Fix|Contract Change|Structural Change) for Change; `Small Fix (fixed by mode)` for
-Maintenance; `n/a` for Intake and Migration
-**Rationale**: {one sentence giving the mode and, for a Change, the scope}
-**Breaking**: (yes|no) — yes only if a clause was narrowed or removed; always no for Intake,
-Maintenance and Small Fix
-**Repairs Used**: (none | documentation | code | both)
-**Residual**: (none | findings-only | gate)
+**Scope**: (Small Fix|Contract Change|Structural Change) for Change — the scope route reported;
+`Small Fix (fixed by mode)` for Maintenance; `n/a` for Intake and Migration
+**Rationale**: {one sentence giving the mode and, for Change, the scope `route` reported}
+**Breaking**: (yes|no) — yes only if `route`'s selected worker reported a clause narrowed or removed;
+always no for Intake, Maintenance and Small Fix
+**Residual**: (none | escalated | gate) — `escalated` when `route` exited 4 and named a step only the
+user can take; `gate` when it exited 1 or 3 and nothing further can be spent on this request
 
 ## Contract Impact
 
-{Clauses added, changed, or removed - or "none", with the reason: the contract is unchanged (Small
-Fix), nothing was implemented (Intake), the bound forbids it (Maintenance), or the tree is already
-written and this run stopped at Step 1 (Migration)}
+{Clauses added, changed, or removed, from `route`'s own summary - or "none", with the reason: the
+contract is unchanged (Small Fix), nothing was implemented (Intake), the bound forbids it
+(Maintenance), or the tree is already written and this run stopped at Step 1 (Migration)}
 
 ## Work Performed
 
-One line per sub-agent. Each is either a report path with a summary, or `not run — {reason}`.
-
-- **Architecture Update**: {report path and summary, or "not run — Small Fix / Maintenance", or
+- **Route** (Change only): {the exit code, the work item text sent, files changed and summary on
+  success, or what was tried/learned/recommended on escalation or failure; "not run — Maintenance" or
   "not run — nothing ran (Intake / Migration)"}
-- **Apply**: {report path, files changed, or "not run — nothing ran (Intake / Migration)"}
-- **Scope Check**: {report path, findings, or "not run — Small Fix / Maintenance", or "not run —
-  nothing ran (Intake / Migration)", or "not run — `apply` returned FAILED"}
+- **Apply** (Maintenance only): {report path, files changed, or "not run — Change / Intake /
+  Migration"}
 - **Bound** (Maintenance only): {the declared file set, the permitted categories of edit, the
   stopping point, and whether `apply` stayed inside it}
 
 ## Documentation and Register Changes
 
-{For Contract Change and Structural Change: architecture files updated or deleted. For Intake: the
-register appended to and why the admission test chose it, or — when the test selected a constraint —
-the proposed bullet in its intended wording and section, awaiting the user's admission. Otherwise
-"none", with the reason: interior change only (Small Fix), the bound forbids it (Maintenance), or
-nothing was written (Migration)}
+{For Change: architecture files `route`'s selected worker reported updating or deleting, or "none"
+if it was Small Fix. For Intake: the register appended to and why the admission test chose it, or —
+when the test selected a constraint — the proposed bullet in its intended wording and section,
+awaiting the user's admission. Otherwise "none", with the reason: the bound forbids it (Maintenance),
+or nothing was written (Migration)}
 
 ## Unknowns (only when Result is INCOMPLETE)
 
 {Each question the user must answer, and what can proceed without it — including "does the user
-admit this constraint into `CONSTRAINTS.md`?", quoting the proposed bullet}
+admit this constraint into `CONSTRAINTS.md`?", quoting the proposed bullet, or `route`'s own
+recommended next step verbatim when it escalated}
 ```
