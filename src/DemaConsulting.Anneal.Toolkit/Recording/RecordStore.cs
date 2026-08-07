@@ -50,6 +50,16 @@ public sealed class RecordStore
     /// </remarks>
     public const string ToolCallsRelativePath = ".anneal/transcripts/tool-calls.jsonl";
 
+    /// <summary>
+    ///     Where <see cref="ProcessStepRecord" />s are appended, relative to a repository root.
+    /// </summary>
+    /// <remarks>
+    ///     Its own file rather than rows inside <see cref="InvocationsRelativePath" />, mirroring why the tool-call
+    ///     transcript is its own stream: composition rate and top-level pass rate are different questions, read at
+    ///     different times, and either could lose its mechanism without taking the other with it.
+    /// </remarks>
+    public const string ProcessStepsRelativePath = ".anneal/records/process-steps.jsonl";
+
     /// <remarks>
     ///     One line per record, so an appender never rewrites what is already there and a reader can consume
     ///     the file while it grows. Indented JSON would be friendlier to read and would make every record a
@@ -107,6 +117,15 @@ public sealed class RecordStore
         Resolve(repositoryRoot, ToolCallsRelativePath);
 
     /// <summary>
+    ///     Resolves where process-step records are appended for a repository.
+    /// </summary>
+    /// <param name="repositoryRoot">The repository root. Must not be null or blank.</param>
+    /// <returns>The absolute path of the process-step record file.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
+    public static string ProcessStepsPathFor(string repositoryRoot) =>
+        Resolve(repositoryRoot, ProcessStepsRelativePath);
+
+    /// <summary>
     ///     Appends one invocation record.
     /// </summary>
     /// <param name="record">The record to append. Must not be null.</param>
@@ -137,6 +156,17 @@ public sealed class RecordStore
     {
         ArgumentNullException.ThrowIfNull(transcript);
         Write(ToolCallsPathFor(_root), transcript);
+    }
+
+    /// <summary>
+    ///     Appends one process-step record.
+    /// </summary>
+    /// <param name="record">The record to append. Must not be null.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="record" /> is null.</exception>
+    public void Append(ProcessStepRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        Write(ProcessStepsPathFor(_root), record);
     }
 
     private static string Resolve(string repositoryRoot, string relativePath)

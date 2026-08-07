@@ -41,6 +41,16 @@
   </PropertyGroup>
 
   <!--
+    The primitive library (DemaConsulting.Anneal.Toolkit.Primitives) is internal by design - see
+    docs/architecture/toolkit.md - because nothing outside the assembly calls it yet. Its interior
+    tests still need to construct and exercise it directly, which is what this grant is for; it opens
+    no other boundary.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="DemaConsulting.Anneal.Toolkit.Tests" />
+  </ItemGroup>
+
+  <!--
     Model access. Microsoft.Extensions.AI supplies only the message and tool
     transport types the seam carries; GitHub.Copilot.SDK is the single provider
     behind it, driven under the ambient Copilot account of the calling session
