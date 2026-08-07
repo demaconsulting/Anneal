@@ -22,7 +22,7 @@ public class VerifierTests
 
             // Act
             var result = await verifier.VerifyAsync(
-                VerificationIntent.TierCheck, evidence, "is this correct?", TestContext.Current.CancellationToken);
+                VerificationIntent.TemplateAudit, evidence, "is this correct?", TestContext.Current.CancellationToken);
 
             // Assert: Failed, deterministic-first, no model asked at all
             Assert.Multiple(
@@ -50,7 +50,7 @@ public class VerifierTests
 
             // Act
             var result = await verifier.VerifyAsync(
-                VerificationIntent.TierCheck, evidence, "is this correct?", TestContext.Current.CancellationToken);
+                VerificationIntent.TemplateAudit, evidence, "is this correct?", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
@@ -136,7 +136,7 @@ public class VerifierTests
 
             // Act
             var result = await verifier.VerifyAsync(
-                VerificationIntent.TierCheck, [], "is this correct?", TestContext.Current.CancellationToken);
+                VerificationIntent.TemplateAudit, [], "is this correct?", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(OperationOutcome.Failed, result.Outcome);
@@ -159,7 +159,7 @@ public class VerifierTests
 
             // Act
             var result = await verifier.VerifyAsync(
-                VerificationIntent.TierCheck, [], "is this correct?", TestContext.Current.CancellationToken);
+                VerificationIntent.TemplateAudit, [], "is this correct?", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Multiple(

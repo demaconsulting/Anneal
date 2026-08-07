@@ -13,10 +13,6 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 /// </remarks>
 internal enum VerificationIntent
 {
-    /// <summary>Verifying a change against the tier it was classified under.</summary>
-    [Description("verifying a change against its declared tier")]
-    TierCheck,
-
     /// <summary>Verifying a repository's layout against the shipped template.</summary>
     [Description("verifying repository layout against the template")]
     TemplateAudit,
