@@ -185,7 +185,7 @@ public class SmallFixWorkerTests
 
     private static string CreateTemporaryDirectory()
     {
-        var root = Path.Combine(Path.GetTempPath(), "anneal-smallfix-" + Guid.NewGuid().ToString("N")[..12]);
+        var root = Path.Combine(Path.GetTempPath(), "anneal-small-fix-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
     }

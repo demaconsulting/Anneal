@@ -102,60 +102,8 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S8 — The primitive library and the first compiled workers — designed, not yet built
-
-An `architecture-design` session produced a concrete plan for the router-and-primitives shape
-`README.md` § Direction and this file's Destination section already committed to, prompted by the
-tier/level terminology collision surfacing in conversation and a direct question about how the
-compiled catalog should actually be built rather than only described. Two background agents were
-consulted first — one surveying external composable-agent-orchestration patterns (Anthropic's
-Routing/Orchestrator-Workers/Evaluator-Optimizer patterns, LangGraph's `Command`-plus-state-counter
-loop bound, Microsoft's Semantic Kernel Process Framework as the closest native C# match,
-FrugalGPT/RouteLLM for model-tier selection), one drafting an Anneal-specific primitive library
-against this repository's own docs. Both converged independently on the same shape, which is the
-plan below.
-
-**Scope for this stage**: the primitive library, the Router, and exactly two workers — Small Fix
-and Contract Change. Structural Change (with its single-shot Planner) and Template Sync are
-designed but deliberately deferred to later stages; no prose agent retires until all four workers
-exist and are proven, so `dispatch`, `apply`, `tier-check`, `architecture-update` and
-`template-sync` all keep running unchanged through this stage.
-
-**Ownership split**: `DemaConsulting.Anneal.Toolkit.Primitives` (`Oracle<T>`, `Research`, `Planner`,
-`DocumentAuthor`, `Developer`, `DeterministicCheck`, `Verifier`, `RepairLoop<T>`, `StepResult<T>`)
-is owned by [Toolkit](docs/architecture/toolkit.md), alongside the Model Seam it is built from.
-`DemaConsulting.Anneal.Toolkit.Process` (`RoutingLedger`, `Router`, `WorkerDescriptor`, the worker
-compositions) is owned by [Process](docs/architecture/process.md) — the same document that already
-owns the agent catalog, now describing a compiled one instead of a prose one. Both namespaces live
-in the one Toolkit assembly; the namespace boundary mirrors the contract-document boundary so which
-document to update is mechanical rather than a judgement call.
-
-**The Router's bound**: two independent counters, not one shared budget — up to 3 research
-iterations and up to 2 worker reroutes, because a research pass (the router lacked facts) and a
-reroute (a worker learned mid-execution that the classification was wrong) are different failures,
-and sharing one counter lets a cheap research step starve a legitimate reroute. Cap exhaustion with
-no crisp human-only next step is `Failed`; it is `Escalated` only when the router can name a
-specific step only a person can take (for example, "this is a Migration proposal"). A worker may
-`Reroute` with evidence toward that conclusion; it may never silently self-promote its own scope.
-
-**Why this does not reintroduce the rejected planning/development/quality multiplier**: Planner and
-Verifier are route-selected, not universal — Small Fix pays for neither. Repair loops are
-ownership-directed (a documentation finding repairs through `DocumentAuthor`, a code finding through
-`Developer`, each budget spent once) rather than a generic restart from the top. Verification is
-staged deterministic-first, model-second, so most failures never reach a model-backed `Verifier` at
-all. The residual risk is real and not assumed away: if routing misclassifies often or workers
-reroute frequently, the same multiplier reappears under a different name. The guard against that is
-measurement, which is why this stage adds `ProcessStepRecord` — a second, additive evidence stream
-beside the existing `InvocationRecord`, carrying per-primitive outcome, worker key, and budget state
-— so route-to-completion rate, research-iteration rate, reroute rate by worker, and planner-use rate
-are all answerable from real data rather than recalled from memory, the same discipline `stats` (S7)
-already established for top-level invocations.
-
-**Not yet decided by this entry**: the exact test names each planned clause will be verified by, and
-whether the routed front door ships as one new Toolkit operation or is proven first as an internal
-composition with no CLI surface. Those are `apply`'s decisions to make and record when this stage is
-actually implemented; this entry is the design the day's implementation is checked against, not the
-implementation itself.
+No stage is in progress. S8 landed and is recorded in the discovery log below; the next stage is
+chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
 
 ## Discovery log
 
@@ -339,3 +287,62 @@ data reporting that rather than a misleading rate; `TOOLKIT-21` is verified by
 `ToolkitContractTests.StatsReportsPerActionPassRatesAcrossWindows`, which exists and passes;
 `pwsh ./build.ps1` (167 C# tests, 9 process-contract, 43 check-contracts self-tests, all passing) and
 `pwsh ./lint.ps1` (70 clauses, 70 test links, exit 0) both pass.
+
+### S8 — The primitive library and the first two compiled workers — landed
+
+Three passes, one design. Pass 1 landed `DemaConsulting.Anneal.Toolkit.Primitives` — `Oracle<T>`,
+`Research`, `DocumentAuthor`, `Developer`, `DeterministicCheck`, `Verifier`, `RepairLoop<T>`,
+`StepResult<T>` — against no compiled caller yet, proven only by primitive-level interior tests. Pass 2
+landed `DemaConsulting.Anneal.Toolkit.Process` — `Router`, `RoutingLedger`, `RouteDecision`,
+`WorkerDescriptor`, `WorkerBrief`, `WorkerRunResult`, `RouteFailureReport` — and the first worker, Small
+Fix, proving the Router's two independent budgets (research iterations, worker reroutes) actually fail
+closed. Pass 3 landed the second worker, Contract Change: `DocumentAuthor` updates the affected system
+contract document(s), `Developer` implements against the updated clauses, two `DeterministicCheck` steps
+run `build.ps1` and a strict contract check, and a model-backed `Verifier` judges conformance against
+that evidence before either completing or spending one of two independent one-shot repair budgets —
+documentation first when a verdict names both.
+
+**`RepairLoop<TState>`'s shape does not extend to an ownership-directed, two-owner repair.** The
+primitive closes over one `execute` step and one counter, chosen once at construction; Contract Change
+needs its repair step chosen dynamically, per verification pass, between `DocumentAuthor` and
+`Developer` depending on which of four verdicts (`DocumentationRepairRequired`, `CodeRepairRequired`,
+`BothRepairsRequired`, or neither) `Verifier` just reached. Composing two separate `RepairLoop`
+instances was considered and rejected — it would have required stacking a second instance of
+`SmallFixWorker`'s already-flagged `OperationOutcome.Refused`-as-sentinel trick to bridge them, compounding
+a wrinkle rather than resolving it. Pass 3 instead reproduces `RepairLoop`'s exact contract by hand: a
+repair spends only the budget its finding names, an escalation or insufficient-evidence verdict stops
+immediately without spending either, and a budget spent with the same finding still open reports
+`Failed` rather than looping or rerouting. `RepairLoop<TState>` remains correct and in place for Small
+Fix's single-owner case; it was not widened, retrofitted, or deprecated to accommodate the case it does
+not fit.
+
+**A documentation-only fix and the code it implies are the same repair, not two.** No primitive reports
+whether a documentation repair changed an obligation the code must now satisfy, so pass 3 chose to
+always re-run `Developer` once after a documentation repair, charged against neither the documentation
+nor the code budget — it is necessitated by the doc repair, not an independent finding. The cost is one
+extra `Developer` pass on every documentation repair, including ones that turn out to be purely
+editorial; that was judged the safer default over silently leaving code out of sync with a contract
+clause that just changed.
+
+**A metadata-only parameter from pass 1 surfaced only when a second script needed an argument.**
+`DeterministicCheck`'s `selector` parameter reads, in its own XML doc, as passed through to the script it
+runs; it is not — it is recorded only as evidence metadata. Pass 3 needed to run
+`check-contracts.ps1 -Strict` (an actual switch argument), found no existing seam for it, and added a
+strictly additive `PowerShellScripts.RunAsync(script, arguments, cancellationToken)` overload rather than
+changing `DeterministicCheck`'s established behavior. The `selector` inconsistency itself is left as a
+flagged defect for a later pass, not fixed in passing.
+
+**Clauses.** No contract clause changed across any of the three passes — the router-and-primitives shape
+was designed and implemented entirely as internal composition with no CLI/`IOperation` surface, per the
+stage's own "Not yet decided by this entry" note about whether the routed front door needs one. That
+remains an open question for whichever stage wires a `dotnet anneal` action to the Router, not this one.
+
+**Leaves working:** every existing prose agent (`dispatch`, `apply`, `tier-check`, `architecture-update`,
+`template-sync`) keeps running unchanged; Structural Change and Template Sync — the two remaining
+compiled workers — and wiring the Router to a CLI surface are explicitly deferred to later stages, as
+the stage's own scope line always said.
+
+**Exit conditions met:** all three of S8's planned parts — the primitive library, the Router with Small
+Fix, and Contract Change — are landed and covered by interior tests; `pwsh ./build.ps1` passes clean
+across all three passes' cumulative test count (241 C# tests, 9 process-contract, 43 check-contracts
+self-tests, all passing) with no contract clause touched and none broken.

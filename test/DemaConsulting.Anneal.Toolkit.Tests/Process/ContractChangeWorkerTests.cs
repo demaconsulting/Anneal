@@ -212,8 +212,8 @@ public class ContractChangeWorkerTests
                 """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
-                "I resynced the code.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"resynced"}""",
+                "I re-synced the code.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var recordStore = new RecordStore(root);
@@ -304,8 +304,8 @@ public class ContractChangeWorkerTests
                 """{"verdict":"BothRepairsRequired","requiredFixes":["clause wording is ambiguous","null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
-                "I resynced the code.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"resynced"}""",
+                "I re-synced the code.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"CodeRepairRequired","requiredFixes":["null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the null check.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
@@ -351,8 +351,8 @@ public class ContractChangeWorkerTests
                 """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"tried again"}""",
-                "I resynced the code.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"resynced"}""",
+                "I re-synced the code.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"DocumentationRepairRequired","requiredFixes":["still ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
@@ -610,7 +610,7 @@ public class ContractChangeWorkerTests
 
     private static string CreateTemporaryDirectory()
     {
-        var root = Path.Combine(Path.GetTempPath(), "anneal-contractchange-" + Guid.NewGuid().ToString("N")[..12]);
+        var root = Path.Combine(Path.GetTempPath(), "anneal-contract-change-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
     }

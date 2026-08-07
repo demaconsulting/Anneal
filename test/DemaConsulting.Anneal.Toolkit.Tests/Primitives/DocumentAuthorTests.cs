@@ -128,7 +128,7 @@ public class DocumentAuthorTests
 
     private static string CreateTemporaryDirectory()
     {
-        var root = Path.Combine(Path.GetTempPath(), "anneal-docauthor-" + Guid.NewGuid().ToString("N")[..12]);
+        var root = Path.Combine(Path.GetTempPath(), "anneal-doc-author-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
     }

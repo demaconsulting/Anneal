@@ -283,7 +283,7 @@ internal sealed class ContractChangeWorker
                 // satisfy, so the code pass is re-run unconditionally to stay in sync rather than guessed at.
                 // This re-run is not spent from the code-repair budget: it is necessitated by the documentation
                 // repair, not a separate finding the verifier raised - see the Apply Report's judgment call.
-                var (resyncTerminal, resyncedCode) = await RunDeveloperAsync(
+                var (resyncTerminal, resyncCode) = await RunDeveloperAsync(
                         ComposeCodeInstruction(brief, documentation),
                         parentInvocationId,
                         "Developer:resync",
@@ -291,7 +291,7 @@ internal sealed class ContractChangeWorker
                     .ConfigureAwait(false);
                 if (resyncTerminal is not null)
                     return resyncTerminal;
-                code = resyncedCode!;
+                code = resyncCode!;
 
                 continue;
             }
