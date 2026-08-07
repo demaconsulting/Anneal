@@ -132,8 +132,8 @@ and an override introduced as temporary outlives the condition that produced it.
 
 **Operations are listed individually in the contract** — the alternative was contracting the shape of an
 operation once and leaving the set open. That was rejected because the set is what consumers actually
-depend on: an agent that invokes an action by name is relying on that name. Listing them costs a Tier 1
-change per operation and buys one clause and one boundary test per operation, which the existing
+depend on: an agent that invokes an action by name is relying on that name. Listing them costs a
+Contract Change per operation and buys one clause and one boundary test per operation, which the existing
 contract check already enforces. The cost is accepted for the visibility.
 
 **Judgement stays in the model; code owns control flow** — sequencing, gating and evidence handling move
@@ -188,7 +188,7 @@ satisfy the goal completely, and option flags were declined because surface no c
 contract the moment it ships and flag parsing sits awkwardly against a tool whose actions are positional
 and whose bare invocation is deliberately a usage error — `anneal --help` would have to decide whether
 `--help` is an action, and every answer complicates `TOOLKIT-10`. Should a caller ever need any of these,
-adding them is an additive Tier 1 change.
+adding them is an additive Contract Change.
 
 **The primitive library composes the Model Seam; it does not extend the outcome vocabulary** — a
 typed finding such as `RouteDecision.NeedResearch` or `DevelopmentResult.Reroute` is a primitive
@@ -217,7 +217,8 @@ seams informed this design and none of its code is taken wholesale, because impo
 not needed is how a small tool acquires a large one's maintenance cost.
 
 **The unreliability this system targets was measured, not assumed** — one pass over the agent-report
-corpus produced the figures the design rests on: `tier-check` returned FAILED in 8 of 16 runs, and at
+corpus produced the figures the design rests on: `scope-check` (named `tier-check` at the time)
+returned FAILED in 8 of 16 runs, and at
 least two of the remaining SUCCEEDED verdicts were wrong, found only by hand; `apply` returned SUCCEEDED
 16 of 16 while its own verifier failed half of what it saw; across 65 reports the header fields were not
 uniform (`Result` 64, `Tier` 57, `Repairs Used` 16, `Residual` 14, one `Result` that did not parse), and

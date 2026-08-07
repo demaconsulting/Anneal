@@ -420,9 +420,9 @@ public class ContractChangeWorkerTests
     }
 
     [Fact]
-    public async Task RunAsync_VerifierConcludesTierMisclassification_Reroutes()
+    public async Task RunAsync_VerifierConcludesScopeMisclassification_Reroutes()
     {
-        // Arrange: reroute trigger 1 - the verifier concludes this should have been Tier 2 (Structural)
+        // Arrange: reroute trigger 1 - the verifier concludes this should have been Structural Change
         var root = CreateTemporaryDirectory();
         try
         {
@@ -431,7 +431,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"RerouteRequired","requiredFixes":["this actually moves a system boundary; it needed Tier 2 (Structural)"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RerouteRequired","requiredFixes":["this actually moves a system boundary; it needed Structural Change"],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -450,7 +450,7 @@ public class ContractChangeWorkerTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<WorkerRunResult.Reroute>(result.Finding),
                 () => Assert.Contains(
-                    "Tier 2 (Structural)", ((WorkerRunResult.Reroute)result.Finding!).Why));
+                    "Structural Change", ((WorkerRunResult.Reroute)result.Finding!).Why));
         }
         finally
         {

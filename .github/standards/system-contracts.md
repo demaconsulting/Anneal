@@ -123,7 +123,7 @@ suite file named `TODO-suite.ps1` are all checked normally. Any verifier that is
 form and names no existing test is an **error**, so a bare `TODO` dropped into the middle of a name
 breaks the build rather than deferring the obligation.
 
-The `tier-check` agent runs with `-Strict` on Tier 1 (Contract) and Tier 2 (Structural) changes, which
+The `scope-check` agent runs with `-Strict` on Contract Change and Structural Change changes, which
 promotes obligations to errors once implementation is complete; that agent owns closing them. During
 a Migration the planned clauses are closed stage by stage, and `MIGRATION.md` holds the exit
 condition for each.
@@ -160,7 +160,7 @@ or an intermediate machinery node they reach through `Requires`. Interpret the e
 
 # Changing a Contract
 
-Changing a clause is the definition of a **Tier 1** change (see `change-classification.md`) and is
+Changing a clause is the definition of a **Contract Change** (see `change-classification.md`) and is
 the project's breaking-change signal:
 
 - **Adding** a clause is additive; consumers are unaffected.

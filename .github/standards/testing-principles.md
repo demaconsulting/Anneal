@@ -18,8 +18,8 @@ Contract tests prove a clause in a system's `## Contract` (see `system-contracts
 - Named in the clause they verify, so the link is greppable in both directions.
 - Live in a dedicated location — `test/{System}.Tests/Contract/` — so their special status is
   visible.
-- **Survive refactoring untouched.** A Tier 0 (Interior) change that breaks a contract test was misclassified:
-  either the change is actually Tier 1, or it is a defect.
+- **Survive refactoring untouched.** A Small Fix change that breaks a contract test was misclassified:
+  either the change is actually a Contract Change, or it is a defect.
 - Changing one requires a corresponding contract change. Never edit a contract test to make a build
   pass.
 
@@ -70,7 +70,7 @@ Load `{language}-testing.md` from `.github/standards/` for framework, layout, an
 - [ ] Every contract clause and invariant has at least one passing contract test
 - [ ] Contract tests use only the public boundary of their system
 - [ ] Contract tests live in the designated contract test location
-- [ ] Contract tests passed unchanged across every Tier 0 change
+- [ ] Contract tests passed unchanged across every Small Fix change
 - [ ] No contract test was weakened to make a build pass
 - [ ] Interior tests are not preserved after their subject is removed
 - [ ] All tests follow AAA with phase comments

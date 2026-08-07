@@ -19,10 +19,10 @@ Read from `.github/standards/`:
 
 - `architecture-documentation.md` — level ownership, creation and deletion tests, drift anchors
 - `system-contracts.md` — contract structure, clause rules, identifier discipline
-- `change-classification.md` — what the declared tier obliges you to update
+- `change-classification.md` — what the declared scope obliges you to update
 
-If the caller supplied no tier — you were invoked directly rather than by `dispatch` — classify the
-change yourself with `change-classification.md` before going further, and state the tier you chose.
+If the caller supplied no scope — you were invoked directly rather than by `dispatch` — classify the
+change yourself with `change-classification.md` before going further, and state the scope you chose.
 Step 2 branches on it.
 
 # Step 2 — Locate the Change
@@ -30,7 +30,7 @@ Step 2 branches on it.
 Descend the tree rather than reading it all. Start at `docs/architecture/overview.md`, identify the
 affected systems, and read only those system documents and their section documents.
 
-For **Tier 2 (Structural)**, read `CONSTRAINTS.md` as well. Its **Satisfied** entries are conditions your change
+For **Structural Change**, read `CONSTRAINTS.md` as well. Its **Satisfied** entries are conditions your change
 must not regress — they are why the current shape is the shape it is. Its **Not Yet Satisfied**
 entries are pressure a re-shaping change may happen to relieve at no extra cost. Do not widen the
 change to chase one; just check whether the shape you are already producing resolves it.
@@ -48,7 +48,7 @@ duplicated content and remove it from the level that should not own it.
 
 # Step 3 — Update the Contract First
 
-For Tier 1 and Tier 2, write the contract before any implementation exists:
+For Contract Change and Structural Change, write the contract before any implementation exists:
 
 - Add, narrow, or remove clauses per `system-contracts.md`, which owns identifier discipline —
   including what happens to a clause when a system is renamed, split, or merged.
@@ -91,7 +91,7 @@ perform that move; you are documentation-only. State it in your report as an imp
 obligation, naming the directories involved, because `covers` will point at paths that do not exist
 yet until `apply` makes them.
 
-# Step 5 — Prune (MANDATORY for Tier 1 and Tier 2)
+# Step 5 — Prune (MANDATORY for Contract Change and Structural Change)
 
 List every section document under each affected system and test each against the benefit test
 in `architecture-documentation.md`. Delete — do not defer — any that:
@@ -132,7 +132,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 **Result**: (SUCCEEDED|FAILED|INCOMPLETE)
 **Report**: `.agent-logs/architecture-update-{subject}-{unique-id}.md`
-**Tier**: (1|2) for Change, named: `1 (Contract)` or `2 (Structural)`
+**Scope**: (Contract Change|Structural Change) for Change
 
 ## Contract Changes
 
@@ -156,14 +156,14 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 ## Ownership Check
 
-- **Levels touched**: {count - should be 1 for Tier 1, 2 for Tier 2}
+- **Levels touched**: {count - should be 1 for Contract Change, 2 for Structural Change}
 - **Duplication removed**: {any content moved out of a level that should not own it, or "none"}
 
 ## Implementation Obligations
 
 {Contract tests the `apply` agent must create, by name, and the behavior each must prove}
 
-{For Tier 2: source and test directories and the solution file to create, move, or delete. Clauses
+{For Structural Change: source and test directories and the solution file to create, move, or delete. Clauses
 whose identifier changed owner are in the Contract Changes table above; their tests are renamed to
 match}
 

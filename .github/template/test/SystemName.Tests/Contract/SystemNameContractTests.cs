@@ -7,8 +7,8 @@
 //
 // Rules:
 //   - Exercise the system ONLY through its public boundary. No internal types.
-//   - These tests must survive Tier 0 (interior) changes UNCHANGED. If a refactor
-//     breaks one, the change was not Tier 0 - or it is a defect.
+//   - These tests must survive Small Fix changes UNCHANGED. If a refactor
+//     breaks one, the change was not a Small Fix - or it is a defect.
 //   - Never edit a contract test to make a build pass. That silently narrows a promise.
 //   - Prefer real dependencies over mocks; a contract verified only against mocks is
 //     not verified.

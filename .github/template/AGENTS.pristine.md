@@ -61,27 +61,27 @@ axes before touching anything. That file is the **single definition** of both �
 and routes; it never restates what they mean.
 
 - **Mode** — `Intake`, `Change`, `Maintenance`, or `Migration`. Decides what you may touch.
-- **Tier** — `Tier 0 (Interior)`, `Tier 1 (Contract)`, or `Tier 2 (Structural)`, within Change mode.
-  Decides how much documentation moves.
+- **Scope** — `Small Fix`, `Contract Change`, or `Structural Change`, within Change mode. Decides how
+  much documentation moves.
 
 Routing once classified:
 
-| Mode / Tier | Route |
+| Mode / Scope | Route |
 | --- | --- |
 | Intake | `dispatch` appends to `BACKLOG.md` or README assumptions, or proposes a constraint; no other agent runs |
-| Change, Tier 0 (Interior) | `apply` |
-| Change, Tier 1 (Contract) or Tier 2 (Structural) | `architecture-update` → `apply` → `tier-check` |
+| Change, Small Fix | `apply` |
+| Change, Contract Change or Structural Change | `architecture-update` → `apply` → `scope-check` |
 | Maintenance | `apply`, within a declared bound |
 | Migration | `architecture-design` → approved `MIGRATION.md` → staged `apply` work |
 
-Modes and tiers may be raised mid-flight, never silently lowered. An agent never promotes itself
+Modes and scope may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
 report.
 
 # Test Lifecycles (ALL Agents)
 
 - **Contract tests** are durable. They exercise a system only through its public boundary, are named
-  in the clause they verify, and must survive Tier 0 changes untouched.
+  in the clause they verify, and must survive Small Fix changes untouched.
 - **Interior tests** are disposable. Delete or rewrite them freely when the code they cover is
   restructured. They need no clause and no justification.
 
@@ -118,7 +118,7 @@ Skills in `.github/skills/` are loaded on demand, when the situation they descri
 the skill over reconstructing a procedure from memory.
 
 - **check-contracts** — running and interpreting `check-contracts.ps1`: which invocation to use for
-  each tier, and how to resolve each failure
+  each scope, and how to resolve each failure
 
 # Agent Delegation Guidelines
 
@@ -131,11 +131,11 @@ conversation on the user's behalf, and do not attempt the work instead.
 
 Delegate only for:
 
-- **Any non-trivial change** → `dispatch` (classifies the mode and tier, then routes to the minimum
+- **Any non-trivial change** → `dispatch` (classifies the mode and scope, then routes to the minimum
   process)
 - **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
-- **Verifying a completed change against its tier** → `tier-check`
+- **Verifying a completed change against its scope** → `scope-check`
 - **Repository layout versus template** → `template-sync`
 
 # Agent Reporting (Specialized Agents Must Follow)

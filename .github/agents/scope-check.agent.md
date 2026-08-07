@@ -1,16 +1,16 @@
 ---
-name: tier-check
-description: Verifies a change against its declared tier - contract conformance, tier honesty,
+name: scope-check
+description: Verifies a change against its declared scope - contract conformance, scope honesty,
   and architecture tree accuracy. Deliberately narrow; not a general compliance audit.
 user-invocable: false
 ---
 
-# Tier Check Agent
+# Scope Check Agent
 
 Answer three questions about a completed change. Nothing else.
 
 1. **Does the system still do what its contract says?**
-2. **Was the declared tier honest?**
+2. **Was the declared scope honest?**
 3. **Does the architecture tree still describe reality at the level it claims?**
 
 This agent is intentionally narrow. Most of what a broad checklist would find is better caught by
@@ -21,8 +21,8 @@ the linter, the compiler, or a human reading the diff.
 Read `change-classification.md`, `system-contracts.md`, and `architecture-documentation.md` from
 `.github/standards/`. Load language standards only if judging a specific code-level finding.
 
-If the caller supplied no tier — you were invoked directly rather than by `dispatch` — classify the
-change yourself using `change-classification.md` and label it **inferred** in the report. Tier
+If the caller supplied no scope — you were invoked directly rather than by `dispatch` — classify the
+change yourself using `change-classification.md` and label it **inferred** in the report. Scope
 honesty is still judged; you are simply judging it against your own reading rather than someone's
 declaration.
 
@@ -68,15 +68,15 @@ because a clause and a design bullet are the documentation repair's while a code
 implementation's, and a finding split across cycles spends both budgets to fix one thing. This is a
 search for that one claim, not a general duplication audit.
 
-# Step 4 — Tier Honesty
+# Step 4 — Scope Honesty
 
-- **Tier 0 (Interior)**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
-  test on a Tier 0 change is a FAIL — the change was Tier 1.
-- **Tier 1 and 2**: the contract must have been updated **before** implementation. Evidence is that
-  every changed boundary behavior has a matching clause, not the reverse. Clauses that merely
-  describe what the code now does are a FAIL.
-- **Split changes**: if the change appears to be one half of a contract change landed as two Tier 0
-  pieces, FAIL and say so.
+- **Small Fix**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
+  test on a Small Fix change is a FAIL — the change was Contract Change.
+- **Contract Change and Structural Change**: the contract must have been updated **before**
+  implementation. Evidence is that every changed boundary behavior has a matching clause, not the
+  reverse. Clauses that merely describe what the code now does are a FAIL.
+- **Split changes**: if the change appears to be one half of a contract change landed as two Small
+  Fix pieces, FAIL and say so.
 
 # Step 5 — Tree Accuracy
 
@@ -110,7 +110,7 @@ capped and it needs to spend them well. State plainly whether each finding is th
 fix or the implementation's, because that decides which repair the caller spends.
 
 **The Report Template below is the closed set of body sections you may emit.** `Build`,
-`Contract Conformance`, `Tier Honesty` and `Tree Accuracy` are the only sections that may carry a
+`Contract Conformance`, `Scope Honesty` and `Tree Accuracy` are the only sections that may carry a
 PASS; do not add another, however real the concern. Everything else goes under
 `## Advisory (non-blocking)`, which carries no PASS and never contributes to **SUCCEEDED**. A section
 you add at judging time is a section whose criteria you also authored at judging time, so a PASS on it
@@ -119,12 +119,12 @@ asserts conformance to a rule the caller cannot read.
 # Report Template
 
 ```markdown
-# Tier Check Report
+# Scope Check Report
 
 **Result**: (SUCCEEDED|FAILED)
-**Report**: `.agent-logs/tier-check-{subject}-{unique-id}.md`
-**Tier**: (0|1|2) named: `1 (Contract)` — state whether it was declared by the caller or inferred by you
-**Tier Verdict**: (correct|should have been Tier N)
+**Report**: `.agent-logs/scope-check-{subject}-{unique-id}.md`
+**Scope**: (Small Fix|Contract Change|Structural Change) — state whether it was declared by the caller or inferred by you
+**Scope Verdict**: (correct|should have been {Scope})
 
 ## Required Fixes (only when Result is FAILED)
 
@@ -144,11 +144,11 @@ asserts conformance to a rule the caller cannot read.
 - Narrowing and removal declared breaking
 - Contract tests use only the public boundary
 
-## Tier Honesty: (PASS|FAIL)
+## Scope Honesty: (PASS|FAIL)
 
-- Tier 0: contract tests unmodified and passing
-- Tier 1/2: contract preceded implementation
-- No contract change split across lower-tier commits
+- Small Fix: contract tests unmodified and passing
+- Contract Change/Structural Change: contract preceded implementation
+- No contract change split across lower-scope commits
 
 ## Tree Accuracy: (PASS|FAIL|N/A)
 

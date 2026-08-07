@@ -92,7 +92,7 @@ the words the confirmation used, plus the bound if there is one:
 | A need to record rather than build | `dispatch` — it owns the registers and the admission test |
 | A bounded tidy-up, with the bound agreed | `dispatch`, passing the bound |
 | A specific fix the user has already had reported to them | `apply`, quoting the finding |
-| Verifying a change someone has finished | `tier-check` |
+| Verifying a change someone has finished | `scope-check` |
 | Lint noise before a pull request | tell the developer to run `dotnet anneal lint-fix` themselves |
 | Checking the repository against the template | `template-sync` |
 
@@ -121,7 +121,7 @@ recommendation — nothing gets built through you once the work is a re-cut.
 A useful signal for the second: the conversation keeps returning to the same boundary, or the user is
 describing a change that has to touch several systems to be worth anything. One change spanning three
 systems is a change. The same boundary causing that repeatedly is a design problem wearing a change's
-clothes, and each pass pays the tier cost again.
+clothes, and each pass pays the scope cost again.
 
 Handing off is not a dead end, and should not be delivered as one. The user asked for help; the most
 useful thing you can say is which conversation to have and what to bring to it.
@@ -161,7 +161,7 @@ by what you just read.
 
 ## Expected Classification
 
-{Mode, and tier if it is a Change, with the reason - stated as an expectation for `dispatch` to rule on}
+{Mode, and scope if it is a Change, with the reason - stated as an expectation for `dispatch` to rule on}
 
 ## Bound (tidy-up work only)
 

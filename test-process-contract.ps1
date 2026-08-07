@@ -215,7 +215,7 @@ function Get-PayloadDestination {
 
 # Every payload file that carries prose an agent reads. Fenced blocks are
 # deliberately NOT stripped here, because the report templates - which live
-# inside fences - are exactly where the mode and tier declaration lines are.
+# inside fences - are exactly where the mode and scope declaration lines are.
 # The template tree is walked whole rather than by named file: everything under
 # .github/template/ ships to every installed repository, so a claim it makes
 # about the vocabulary is as binding as one an agent prompt makes, and a new
@@ -251,19 +251,22 @@ function Get-DefinedMode {
     return $modes
 }
 
-# The tier scale, read from the '# Tier {n} - {Qualifier} Change' headings of the
-# same standard. The trailing word 'Change' is part of the heading's sentence,
-# not of the name, so 'Interior Change' yields the qualifier 'Interior'.
-function Get-DefinedTier {
+# The scope vocabulary, read from the top-level '# {Name}' headings of the same
+# standard that immediately follow the classifying-question section — Small Fix,
+# Contract Change, Structural Change. Read rather than listed, so a rename in the
+# standard is what the check sees too.
+function Get-DefinedScope {
     param([string] $Path)
 
-    $tiers = [ordered]@{}
+    $scopes = [System.Collections.Generic.List[string]]::new()
+    $inScopeSection = $false
     foreach ($line in ((Read-Text $Path) -split "`n")) {
-        if ($line -match '^#\s*Tier\s+(\d+)\s*—\s*(.+?)\s*$') {
-            $tiers[$Matches[1]] = ($Matches[2] -replace '\s+Change$', '')
-        }
+        if ($line -match '^#\s*The Classifying Question') { $inScopeSection = $true; continue }
+        if ($line -match '^#\s*Discipline') { $inScopeSection = $false; continue }
+        if (-not $inScopeSection) { continue }
+        if ($line -match '^#\s+(.+?)\s*$') { $scopes.Add($Matches[1].Trim()) }
     }
-    return $tiers
+    return $scopes
 }
 
 # ==============================================================================
@@ -599,7 +602,7 @@ Test-Case -Name "ModeVocabularyIsClosed" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
     # Sentence-initial function words that legitimately precede the bare noun
-    # "mode" in ordinary English - "The mode and tier decide the workflow". They
+    # "mode" in ordinary English - "The mode and scope decide the workflow". They
     # are exempted by name rather than by weakening the capture, because a
     # narrower pattern would also stop seeing a genuinely undefined mode name.
     # Not one of these words could plausibly name a mode, so the list gives up
@@ -711,23 +714,24 @@ Test-Case -Name "AgentsFileMatchesPristine" -Body {
 }
 
 # --- PROCESS-09 ---------------------------------------------------------------
-# Three shapes, one vocabulary. The ordinal pass catches a scale that has been
-# extended; the qualifier pass catches one that has been re-labelled; the field
-# pass catches a report template that offers a tier no document defines. A
-# non-digit placeholder such as 'Tier N' is not an ordinal claim and is not
-# matched by any of them.
-Test-Case -Name "TierVocabularyIsClosed" -Body {
+# Unlike the retired ordinal scale, a Scope name is an ordinary English phrase
+# ("Contract Change", "Structural Change") that appears constantly in prose with
+# no special meaning, so scanning free text for it would manufacture false
+# positives rather than catch a real vocabulary break. The one site that is both
+# safe and load-bearing is a report template's own **Scope** field, which is
+# always a closed enumeration and is exactly what an agent reads to decide how to
+# act.
+Test-Case -Name "ScopeVocabularyIsClosed" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
     $classification = Repo-Path ".github/standards/change-classification.md"
-    $tiers = Get-DefinedTier -Path $classification
+    $scopes = Get-DefinedScope -Path $classification
 
     # Fail closed, for the same reason the mode case does.
-    if ($tiers.Count -lt 2) {
-        $problems.Add("only $($tiers.Count) tier heading(s) parsed from change-classification.md in the form '# Tier {n} — {Qualifier} Change'; the scale has no readable owner")
+    if ($scopes.Count -lt 2) {
+        $problems.Add("only $($scopes.Count) scope heading(s) parsed from change-classification.md between '# The Classifying Question (Change Mode)' and '# Discipline (MANDATORY)'; the vocabulary has no readable owner")
         return $problems
     }
-    $ordinals = @($tiers.Keys)
 
     $sites = 0
     $files = Get-PayloadTextFile
@@ -737,42 +741,38 @@ Test-Case -Name "TierVocabularyIsClosed" -Body {
         foreach ($line in ((Read-Text $path) -split "`n")) {
             $number++
 
-            # Ordinals, including runs: 'Tier 1/2', 'Tier 1 or 2', 'Tier 1, 2'.
-            foreach ($match in [regex]::Matches($line, '(?i)\b[Tt]iers?\s+(\d+(?:\s*(?:/|,|\s(?:or|and)\s)\s*\d+)*)')) {
+            # A report template's scope field: every alternative of its (A|B|C)
+            # group and every backticked token on the line is a claim about the
+            # vocabulary. '**Scope Verdict**' and '**Scope Deviations**' are
+            # different fields and deliberately do not match.
+            if ($line -match '^\s*(?:-\s*)?\*\*Scope\*\*\s*(?::|—|-)') {
                 $sites++
-                foreach ($digit in [regex]::Matches($match.Groups[1].Value, '\d+')) {
-                    if ($ordinals -contains $digit.Value) { continue }
-                    $problems.Add("$name line ${number}: 'Tier $($digit.Value)' is not an ordinal change-classification.md defines")
+                $tokens = [System.Collections.Generic.List[string]]::new()
+                foreach ($group in [regex]::Matches($line, '\(([^)]*)\)')) {
+                    # A parenthesized group is only an alternation ('A|B|C') when it
+                    # actually contains one; a bare qualifier like '(fixed by mode)'
+                    # attached to a scope name is not itself a claim about the
+                    # vocabulary and must not be checked as one.
+                    if ($group.Groups[1].Value -notmatch '\|') { continue }
+                    foreach ($alternative in ($group.Groups[1].Value -split '\|')) { $tokens.Add($alternative.Trim()) }
                 }
-            }
+                foreach ($span in [regex]::Matches($line, '`([^`]+)`')) { $tokens.Add($span.Groups[1].Value.Trim()) }
 
-            # Qualifiers, compared exactly: a re-labelled tier is as much a
-            # vocabulary break as an invented one.
-            foreach ($match in [regex]::Matches($line, '\b[Tt]ier\s+(\d+)\s*\(([^)]*)\)')) {
-                $sites++
-                $ordinal = $match.Groups[1].Value
-                $qualifier = $match.Groups[2].Value
-                if ($ordinals -notcontains $ordinal) { continue }
-                if ($tiers[$ordinal] -cne $qualifier) {
-                    $problems.Add("$name line ${number}: 'Tier $ordinal ($qualifier)' contradicts change-classification.md, which names Tier $ordinal '$($tiers[$ordinal])'")
-                }
-            }
-
-            # A report template's tier field. '**Tier Verdict**' is a different
-            # field and deliberately does not match.
-            if ($line -match '^\s*(?:-\s*)?\*\*Tier\*\*\s*(?::|—|-)') {
-                $sites++
-                foreach ($digit in [regex]::Matches($line, '\d')) {
-                    if ($ordinals -contains $digit.Value) { continue }
-                    $problems.Add("$name line ${number}: the tier field offers '$($digit.Value)', which is not an ordinal change-classification.md defines")
+                foreach ($token in $tokens) {
+                    if ($token -eq "" -or $token -eq "n/a") { continue }
+                    if ($scopes -contains $token) { continue }
+                    # A backticked span may carry a scope name plus a trailing
+                    # qualifier, e.g. `Small Fix (fixed by mode)` - only the leading
+                    # scope name is the claim being checked.
+                    if ($token -match '^(Small Fix|Contract Change|Structural Change)\b') { continue }
+                    $problems.Add("$name line ${number}: the scope field names '$token', which change-classification.md does not define")
                 }
             }
         }
     }
 
-    $named = @(foreach ($ordinal in $ordinals) { "$ordinal ($($tiers[$ordinal]))" })
-    Add-Note "tiers: $($named -join ', ')"
-    Add-Note "tier sites checked: $sites across $($files.Count) payload files"
+    Add-Note "scopes: $($scopes -join ', ')"
+    Add-Note "scope field sites checked: $sites across $($files.Count) payload files"
     return $problems
 }
 

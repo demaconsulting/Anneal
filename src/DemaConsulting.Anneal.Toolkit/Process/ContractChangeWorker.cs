@@ -6,10 +6,10 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Process;
 
 /// <summary>
-///     The Tier 1 (Contract) path: <see cref="DocumentAuthor" /> updates the affected system contract document(s)
+///     The Contract Change path: <see cref="DocumentAuthor" /> updates the affected system contract document(s)
 ///     and prunes their section docs, <see cref="Developer" /> implements code and tests against the clauses that
 ///     just changed, two <see cref="DeterministicCheck" /> steps run <c>build.ps1</c> and a strict contract check,
-///     and a model-backed <see cref="Verifier" /> judges contract conformance, tier honesty, and tree accuracy
+///     and a model-backed <see cref="Verifier" /> judges contract conformance, scope honesty, and tree accuracy
 ///     against that evidence before either finishing or spending one of two independent one-shot repair budgets.
 /// </summary>
 /// <remarks>
@@ -30,7 +30,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 ///         <see cref="DocumentAuthor" /> or <see cref="Developer" /> itself names a better owner while authoring,
 ///         exactly as <see cref="SmallFixWorker" /> surfaces <see cref="Developer" />'s own reroute unchanged; (2)
 ///         the <see cref="Verifier" /> reaches <see cref="VerificationVerdict.RerouteRequired" /> because the
-///         change should have been classified Tier 2 (Structural) instead of Tier 1 (Contract); (3) the same
+///         change should have been classified Structural Change instead of Contract Change; (3) the same
 ///         verdict, reached instead because the verifier's reasoning surfaces a contradiction with a stated README
 ///         Assumption that implies a re-cut of the repository's boundaries or Migration-scale work. Both (2) and
 ///         (3) are instructions given to the verifier's own charter and question, not two separately-detected
@@ -57,11 +57,11 @@ internal sealed class ContractChangeWorker
     /// </summary>
     private const string VerifierQuestion =
         """
-        Judge whether this change conforms to every contract clause it touches, is honestly tiered as Tier 1
-        (Contract) rather than Tier 2 (Structural), and leaves docs/architecture/ accurate for what was
+        Judge whether this change conforms to every contract clause it touches, is honestly scoped as Contract
+        Change rather than Structural Change, and leaves docs/architecture/ accurate for what was
         actually built. Report the verdict 'RerouteRequired', with your reasoning in the required fixes, when
-        either: (1) the change actually needed a system-boundary move and should have been classified Tier 2
-        (Structural) instead of Tier 1 (Contract); or (2) your reasoning surfaces a contradiction with a stated
+        either: (1) the change actually needed a system-boundary move and should have been classified Structural
+        Change instead of Contract Change; or (2) your reasoning surfaces a contradiction with a stated
         README Assumption that implies the repository needs a re-cut of its boundaries or Migration-scale work,
         not a routine contract change.
         """;

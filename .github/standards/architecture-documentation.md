@@ -186,7 +186,7 @@ covers:
 ```
 
 `covers` names the source a document describes, so **drift** — source under `covers` changed while
-the document did not — can be spotted. Nothing computes it; the `tier-check` agent judges it by
+the document did not — can be spotted. Nothing computes it; the `scope-check` agent judges it by
 reading, and it is advisory either way: a review flag, never a hard failure. Blocking gates on every
 file change are precisely what makes evolution expensive.
 
@@ -218,8 +218,8 @@ it:
 - The document has decayed into restating names and signatures.
 - The rejected alternative it preserved is no longer a plausible option.
 
-The `architecture-update` agent MUST perform a prune check on every Tier 1 (Contract) and Tier 2
-(Structural) change: list the section documents under the affected system and confirm each still
+The `architecture-update` agent MUST perform a prune check on every Contract Change and Structural
+Change: list the section documents under the affected system and confirm each still
 earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
 silently becomes an anchor.
 

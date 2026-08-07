@@ -62,7 +62,7 @@ and the documents describing it in agreement.
   `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
   establishes system boundaries by interview. The other five are invoked by the process rather than by
   you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
-  architecture documents with it, `tier-check` verifies the finished change, and `template-sync` keeps
+  architecture documents with it, `scope-check` verifies the finished change, and `template-sync` keeps
   the repository aligned with the template.
 - **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
   sole owner of its subject: coding principles and C# language, testing principles and C# testing,
@@ -115,7 +115,7 @@ that could not evolve, and replaces it.
 Routing is what makes that catalog affordable. A planning-and-review process that runs on every
 change multiplies the cost of every change, which is exactly the mechanism this repository refuses;
 the same process run only on work that earns it is proportionality, not overhead. That is the same
-principle progressive disclosure and tiering already apply — read only as deep as the task needs,
+principle progressive disclosure and scoped effort already apply — read only as deep as the task needs,
 document only as much as the contract moved, run only as heavy a process as the work warrants.
 
 **The dividing line.** The Toolkit may absorb **control flow and context assembly** — sequencing

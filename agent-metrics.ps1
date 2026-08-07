@@ -53,7 +53,7 @@ foreach ($file in $reports) {
         Agent   = ""
         Subject = ""
         Result  = ""
-        Tier    = ""
+        Scope   = ""
         Mode    = ""
         Repairs = ""
         Size    = $file.Length
@@ -94,7 +94,7 @@ foreach ($file in $reports) {
     if ($head) {
         foreach ($line in $head) {
             if ($line -match '^\*\*Result\*\*:\s*(.+)') { $record.Result = $Matches[1].Trim() }
-            elseif ($line -match '^\*\*Tier\*\*:\s*(.+)') { $record.Tier = $Matches[1].Trim() }
+            elseif ($line -match '^\*\*Scope\*\*:\s*(.+)') { $record.Scope = $Matches[1].Trim() }
             elseif ($line -match '^\*\*Mode\*\*:\s*(.+)') { $record.Mode = $Matches[1].Trim() }
             elseif ($line -match '^\*\*Repairs Used\*\*:\s*(.+)') { $record.Repairs = $Matches[1].Trim() }
         }

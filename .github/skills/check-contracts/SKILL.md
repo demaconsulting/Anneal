@@ -1,8 +1,9 @@
 ---
 name: check-contracts
 description: Run and interpret the system contract check. Use when implementing or verifying a
-  Tier 1 or Tier 2 change, when a contract clause is added or altered, or when lint.ps1 reports a
-  contract failure. Covers which invocation to use for each tier and how to resolve each failure.
+  Contract Change or Structural Change, when a contract clause is added or altered, or when
+  lint.ps1 reports a contract failure. Covers which invocation to use for each scope and how to
+  resolve each failure.
 ---
 
 # Check Contracts
@@ -33,9 +34,9 @@ script to teach it a new shape is the wrong repair — it ships to every reposit
 
 | Situation | Command |
 | --- | --- |
-| Tier 0 (Interior) change | Not required — no clause changed |
-| Tier 1 (Contract) or Tier 2 (Structural), implementing | `pwsh ./check-contracts.ps1` |
-| Tier 1 (Contract) or Tier 2 (Structural), verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
+| Small Fix change | Not required — no clause changed |
+| Contract Change or Structural Change, implementing | `pwsh ./check-contracts.ps1` |
+| Contract Change or Structural Change, verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
 | Bootstrapping a tree, tests not yet written | `pwsh ./check-contracts.ps1` |
 | Landing a migration stage with later stages outstanding | `pwsh ./check-contracts.ps1` |
 

@@ -6,7 +6,7 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Process;
 
 /// <summary>
-///     The Tier 2 (Structural) path: a single-shot <see cref="Planner" /> decides whether the change needs a
+///     The Structural Change path: a single-shot <see cref="Planner" /> decides whether the change needs a
 ///     plan at all, its steps (when there is a plan) compose the instructions <see cref="DocumentAuthor" /> and
 ///     <see cref="Developer" /> author against — a structural change routinely touches <c>overview.md</c> plus
 ///     multiple system documents, not the single document Contract Change assumes — followed by the same two

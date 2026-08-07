@@ -69,10 +69,10 @@ is written.
   Template Stewardship section, so process content cannot drift between the working and shipped copies.
   *Verified by:* `AgentsFileMatchesPristine`
 
-- **PROCESS-09** — Every tier the payload names is an ordinal `change-classification.md` defines, and
-  wherever one is named with its qualifier the qualifier is the one that document gives that ordinal, so
-  the scale agents route on cannot be extended, re-ordered, or re-labelled by a single file.
-  *Verified by:* `TierVocabularyIsClosed`
+- **PROCESS-09** — Every Scope value the payload's report-template fields name is one that
+  `change-classification.md` defines, so the vocabulary agents route on cannot be extended or
+  re-labelled by a single file.
+  *Verified by:* `ScopeVocabularyIsClosed`
 
 ### Requires
 
@@ -110,7 +110,7 @@ flowchart TD
         Dispatch[dispatch]
         ArchUpdate[architecture-update]
         Apply[apply]
-        TierCheck[tier-check]
+        ScopeCheck[scope-check]
         TemplateSync[template-sync]
     end
 
@@ -122,7 +122,7 @@ flowchart TD
     Helper --> TemplateSync
     Dispatch --> ArchUpdate
     Dispatch --> Apply
-    Dispatch --> TierCheck
+    Dispatch --> ScopeCheck
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
@@ -205,7 +205,7 @@ every cost by up to four and made the process expensive rather than the design. 
 the multiplier — cost paid on every subsequent change — not orchestration itself; sequencing bounded
 work is what `dispatch` already is.
 
-**The classification vocabulary is contracted as two clauses, not one** — modes and tiers are one idea
+**The classification vocabulary is contracted as two clauses, not one** — modes and scope are one idea
 to a reader and two different problems to a checker, and PROCESS-07 spent a release as an unfulfilled
 obligation because of it. The mode half is only checkable while no payload file uses the word for
 something else: `template-sync` called its own three operations modes, and its report field declared
@@ -230,18 +230,18 @@ in [overview.md](./overview.md) and is established by inspection. Mechanizing it
 text alone whether a mention of `CONSTRAINTS.md` authorizes a write or merely points at it — a judgement
 the four files that legitimately name the register would defeat.
 
-**Tier ordinals carry their qualifier where a tier is decided** — routing tables, report-template field
-definitions, and the first use in each document write `Tier 1 (Contract)` rather than `Tier 1`, while
-every other site stays bare. The ordinals are kept because the process depends on the scale being
-ordered: modes and tiers may be raised but never silently lowered, and a name alone carries no
-direction. The names are added because `0`, `1`, `2` carries no direction either, and the priors a
-model brings point the wrong way — Tier 0 is the most severe class in incident and security usage, and
-Tier 1 is the top in capital and the simplest in support, while here Tier 0 is the trivial one. This is
-preventive: no agent has been observed inverting the scale, and saying so matters, because a rule
-justified by a defect that never happened is a rule the next reader cannot weigh. It is bounded to
-decision sites for the same reason the budget in [Prompt Authoring](./process/prompt-authoring.md)
-exists — naming all seventy-odd sites would spend attention everywhere to buy certainty in the few
-places a wrong reading changes what an agent does.
+**Scope values are bare names, not qualified ordinals** — S10 retired the numeric ordinal scale in
+favor of naming each value directly after the toolkit's own compiled worker
+(`SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker`), so the vocabulary humans read and
+the vocabulary the code already runs became the same words. The ordinal-plus-qualifier apparatus this
+entry used to describe existed only to keep a bare numeric scale readable and correctly ordered — a
+name alone carries no direction, and the priors a model brings about a bare `0`, `1`, `2` scale point
+the wrong way in this domain, where its lowest ordinal was the trivial class rather than the severe
+one incident and security usage would suggest. Once the scope vocabulary is itself a set of names with
+no numeral to misread, that scaffolding is redundant weight rather than a safeguard: **Scope may still
+be raised mid-flight, never silently lowered** — `change-classification.md` states the order the three
+names carry — but nothing about that ordering depends on a digit or a parenthetical qualifier being
+repeated at each decision site.
 
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this

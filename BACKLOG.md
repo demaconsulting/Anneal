@@ -60,9 +60,9 @@ where `architecture-design` will read them. See the Intake admission test in
   The reason to revisit it is cost: `fix.ps1` takes 11.3s and `lint.ps1` 7.5s in this repository, so
   a three-agent chain spends the large majority of its wall-clock on model reasoning in separate
   contexts rather than on tooling, and a two-line change measured 4m53s end to end; `helper` also
-  routed a five-line Tier 0 change through the full `dispatch` chain that `AGENTS.md` says goes to
+  routed a five-line Small Fix change through the full `dispatch` chain that `AGENTS.md` says goes to
   `apply` alone. Any exemption must be checkable before the work rather than after; the shape
-  discussed was mode is Maintenance or Change/Tier 0, the routed request already names the exact
+  discussed was mode is Maintenance or Change/Small Fix, the routed request already names the exact
   files and the exact final text, no file created or deleted, no test touched, nothing under `src/`,
   plus a requirement that `dispatch` record `performed inline` with its reason and run the gates
   itself. Weigh against the risk that

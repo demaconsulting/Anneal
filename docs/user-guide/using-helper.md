@@ -6,7 +6,7 @@ question first.
 
 ## How to Ask
 
-Name the **outcome** you want. Do not name agents, modes, tiers, or documents — those are decided
+Name the **outcome** you want. Do not name agents, modes, scopes, or documents — those are decided
 for you.
 
 A request that is already clear is routed straight through with a sentence saying so. When you arrive
