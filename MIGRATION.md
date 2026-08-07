@@ -102,7 +102,51 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S10 — Retiring "Tier", and wiring the Router into a real CLI action
+### S11 — Dispatch hands Change-mode work to the Router
+
+S10 landed in full: Part A (commit `ed50468`) retired "Tier" everywhere in favor of Mode/Scope and
+the toolkit's own worker names; Part B (commit `0b28c93`) wired `Router` into a real `route` CLI
+action with a production catalog of all three workers. Two further live trials of `route` after Part B
+found and fixed a real defect (commit `216368d`: an honest `NeedResearch` reply was being treated as a
+hard failure) and confirmed correct Contract Change routing end to end. Full narrative in the S10
+discovery-log entries below.
+
+**What live evidence does not yet cover:** across every trial run so far — S9's direct worker calls
+and S10's three `route` trials — the routing oracle has never once been asked a work item that should
+select **Structural Change**, and no live trial has exercised a worker-initiated reroute or an
+escalation path. `StructuralChangeWorker` itself was proven directly in S9; what is unproven is
+whether the oracle *recognizes* work that needs it and routes there correctly.
+
+**This stage, in order:**
+
+1. **One live trial of `route` aimed at Structural Change** — a work item genuinely requiring
+   coordinated changes across more than one document or system, the same shape S9's own smoke test
+   used, given to `route` rather than to `StructuralChangeWorker` directly. Independently verify the
+   outcome the same way every prior trial did: read the changed files by hand, re-run the fixture's
+   own checks fresh, confirm `git diff`/`git status` show only the expected files. If this surfaces a
+   defect, fix it following the same discipline as `216368d` — root-caused, smallest correct fix,
+   re-verified, committed and pushed separately before continuing.
+
+2. **Once that trial confirms correct routing (or a found defect is fixed and re-verified), update
+   `.github/agents/dispatch.agent.md`:** for Change-mode work specifically, `dispatch` hands off to the
+   `route` action instead of sequencing `architecture-update` → `apply` → `scope-check`. `dispatch`
+   keeps its other jobs unchanged — Intake (appending to `BACKLOG.md`/`CONSTRAINTS.md`/README
+   assumptions) and handing off Maintenance and Migration work — because `route`'s catalog covers none
+   of those, and `Router`'s worker catalog is Change-mode only, not a general dispatcher replacement.
+
+**What this stage does not do:** it does not delete `apply.agent.md`, `architecture-update.agent.md`,
+or `scope-check.agent.md`. Each keeps a live job `route` does not cover: `apply` still does
+Maintenance-mode work directly, `architecture-update`/`scope-check` still apply to Migration-mode
+work and to any Change-mode invocation a caller runs through the prose path directly rather than
+through `dispatch`. Deleting those files is a later stage, once every mode they still serve has its
+own compiled equivalent or is deliberately decided to stay prose. It does not fold `architecture-design`
+into `helper` — that remains a separate, later, named stage.
+
+**Exit conditions:** the Structural Change live trial is run and independently verified (or its
+defect fixed and re-verified); `dispatch.agent.md` is updated and its Change-mode routing table entry
+reads `route` rather than `architecture-update` → `apply` → `scope-check`; `pwsh ./lint.ps1` passes.
+
+### S10 — Retiring "Tier", and wiring the Router into a real CLI action — landed
 
 Two pieces of work, decided together in one conversation because neither blocks the other and both
 were raised at once; they may land as separate commits, in either order.
