@@ -102,7 +102,60 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S11 — Dispatch hands Change-mode work to the Router
+### S12 — Compiled workers gain baseline standards-loading (S11 step 2's new prerequisite)
+
+**Why this jumped the queue:** while designing S11 step 2 (flip `dispatch`'s Change-mode default to
+`route`), a live conversation surfaced a real, previously unexamined gap: prose agents (`apply`,
+`architecture-update`) explicitly read `.github/standards/*.md` before touching anything, via
+`AGENTS.md`'s own "Standards Application" table — grepping `src/DemaConsulting.Anneal.Toolkit/Process/`
+confirms **no compiled worker does this at all**. `WorkerBrief.ConstraintRefs` carries architecture
+documents the router judged relevant, but its own doc comment says loading standards is left as "the
+worker's own... job," and no worker does that job today. Flipping `dispatch`'s default to `route`
+before closing this gap would mean every future Change-mode edit to this repository is authored with
+zero awareness of its own coding, testing, and documentation standards — exactly the silent-drift risk
+the whole process exists to prevent, and it would compound with every change once `route` is the
+default path. S11 step 2 is therefore blocked on this stage landing and being validated, not merely
+sequenced after it as a nice-to-have.
+
+**Scope, deliberately minimal for this stage:** a static, per-worker, filesystem-read mechanism —
+each worker reads its own small fixed list of standards from `.github/standards/` (mirroring
+`AGENTS.md`'s existing table: `coding-principles.md` always; `csharp-language.md` for C# code;
+`testing-principles.md`/`csharp-testing.md` for C# tests; `architecture-documentation.md`/
+`system-contracts.md`/`technical-documentation.md` for doc changes) and injects the content verbatim
+into the relevant `Developer`/`DocumentAuthor` prompt. No oracle call, no dynamic selection, no
+embedded-resource question — those are a separate, larger, non-blocking follow-on (see below).
+
+**Built by the reliable path, not the path being fixed:** this stage is designed by
+`architecture-design` and implemented by `apply`/`architecture-update` (the prose agents), explicitly
+*not* by routing the work through `route`/a compiled worker — a worker that does not yet consult
+standards is the wrong tool to build "workers now consult standards." Prose agents remain the default
+for all real repository development until this stage lands and is validated; nothing changes
+operationally before then.
+
+**Validation, not just landing:** after implementation, run one live trial that would visibly violate
+a specific written standard if the worker ignored it (e.g., a naming or test-structure convention
+stated in `coding-principles.md`/`csharp-testing.md` that a generic model would not otherwise reliably
+follow), and confirm the fixed output honors it. This is the same "prove it, don't assume it" discipline
+used for every prior stage's live trials.
+
+**Deliberately deferred, not part of this stage:** the fuller design discussed alongside this one —
+`Router`'s own routing-decision oracle call proposing an initial `RelevantStandards` list from the
+work item's free text (closing the gap a purely static/glob mapping can't, e.g. "make sure we properly
+test XYZ" implying both `testing-principles.md`/`csharp-testing.md` and potentially
+`coding-principles.md`/`csharp-language.md`, decided before any file list exists), with workers
+amending that list as they go (a static append at repair time keyed off which repair branch fired for
+`SmallFixWorker`/`ContractChangeWorker`; `StructuralChangeWorker`'s own `Planner` call refining it
+further once the concrete file/system list is known) — and the standalone-tool question of whether
+standards should ship as toolkit assembly-embedded resources (a baseline that works with no installed
+template at all) with a target repo's own `.github/standards/` as an optional override/extension
+layer, versus purely filesystem-read as today. Both remain open, real, and valuable — but they are a
+separate stage once this baseline is proven, not a prerequisite for it.
+
+**Exit conditions:** every worker (`SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker`)
+reads and injects its fixed standards list before its first `Developer`/`DocumentAuthor` call; the
+validation trial is run and independently verified; `pwsh ./build.ps1` and `pwsh ./lint.ps1` pass.
+
+### S11 — Dispatch hands Change-mode work to the Router (step 2 blocked on S12)
 
 S10 landed in full: Part A (commit `ed50468`) retired "Tier" everywhere in favor of Mode/Scope and
 the toolkit's own worker names; Part B (commit `0b28c93`) wired `Router` into a real `route` CLI
@@ -125,10 +178,12 @@ whether the oracle *recognizes* work that needs it and routes there correctly.
    outcome the same way every prior trial did: read the changed files by hand, re-run the fixture's
    own checks fresh, confirm `git diff`/`git status` show only the expected files. If this surfaces a
    defect, fix it following the same discipline as `216368d` — root-caused, smallest correct fix,
-   re-verified, committed and pushed separately before continuing.
+   re-verified, committed and pushed separately before continuing. **Landed**: commits `8b04351`
+   (`StructuralChangeWorker`'s `Planner` step budget defect, found live and fixed) and `81259ed`
+   (discovery-log entry).
 
-2. **Once that trial confirms correct routing (or a found defect is fixed and re-verified), update
-   `.github/agents/dispatch.agent.md`:** for Change-mode work specifically, `dispatch` hands off to the
+2. **Blocked on S12 landing and being validated.** Once that prerequisite closes, update
+   `.github/agents/dispatch.agent.md`: for Change-mode work specifically, `dispatch` hands off to the
    `route` action instead of sequencing `architecture-update` → `apply` → `scope-check`. `dispatch`
    keeps its other jobs unchanged — Intake (appending to `BACKLOG.md`/`CONSTRAINTS.md`/README
    assumptions) and handing off Maintenance and Migration work — because `route`'s catalog covers none
@@ -143,8 +198,9 @@ own compiled equivalent or is deliberately decided to stay prose. It does not fo
 into `helper` — that remains a separate, later, named stage.
 
 **Exit conditions:** the Structural Change live trial is run and independently verified (or its
-defect fixed and re-verified); `dispatch.agent.md` is updated and its Change-mode routing table entry
-reads `route` rather than `architecture-update` → `apply` → `scope-check`; `pwsh ./lint.ps1` passes.
+defect fixed and re-verified) — **done**; `dispatch.agent.md` is updated and its Change-mode routing
+table entry reads `route` rather than `architecture-update` → `apply` → `scope-check` — **blocked on
+S12**; `pwsh ./lint.ps1` passes.
 
 **Step 1 is done: the Structural Change live trial ran, found and fixed a real defect, then confirmed
 correct routing end to end.** A throwaway fixture (`OrderPipeline`, outside this repository, same
