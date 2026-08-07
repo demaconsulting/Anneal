@@ -304,7 +304,9 @@ public sealed class ModelSession
                 .CompleteAsync(new ChatTurnRequest(messages, tools, _maxOutputTokens, model), cancellationToken)
                 .ConfigureAwait(false);
 
-            Transcribe(at, activity, role, model, messages, turn.Text, turn.Usage, ModelTranscript.Replied, null);
+            Transcribe(
+                at, activity, role, model, messages, turn.Text, turn.Usage, ModelTranscript.Replied, null,
+                turn.Progress);
             InvocationScope.Current?.Observe(turn.Usage);
             return turn;
         }
@@ -312,8 +314,9 @@ public sealed class ModelSession
         {
             // A withdrawn turn is transcribed on the same path as a refused or unreachable one, deliberately:
             // all three are interactions that produced no reply, and which of them happened is what the recorded
-            // failure says.
-            Transcribe(at, activity, role, model, messages, null, null, ModelTranscript.Failed, exception.Message);
+            // failure says. There is no reply on this path, so there is nothing to have surfaced progress
+            // alongside either.
+            Transcribe(at, activity, role, model, messages, null, null, ModelTranscript.Failed, exception.Message, []);
             InvocationScope.Current?.Observe(null);
             throw;
         }
@@ -328,7 +331,8 @@ public sealed class ModelSession
         string? reply,
         ModelUsage? usage,
         string result,
-        string? failure) =>
+        string? failure,
+        IReadOnlyList<string> progress) =>
         _roles.Transcripts.Append(new ModelTranscript(
             at,
             activity.ToString(),
@@ -338,7 +342,8 @@ public sealed class ModelSession
             reply,
             usage,
             result,
-            failure));
+            failure,
+            progress));
 
     /// <remarks>
     ///     Question first, schema last: the block the model must obey is the final thing it reads before it

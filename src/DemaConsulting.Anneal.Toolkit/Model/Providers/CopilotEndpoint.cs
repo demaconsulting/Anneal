@@ -302,6 +302,11 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
         long outputTokens = 0;
         var usageReported = false;
 
+        // Intermediate reasoning text the session surfaces mid-turn, distinct from the final accumulated reply
+        // and captured only for the durable transcript TOOLKIT-22 contracts - nothing above the seam widens
+        // what CompleteAsync hands back on account of this.
+        var progress = new List<string>();
+
         using var subscription = session.On<SessionEvent>(evt =>
         {
             switch (evt)
@@ -310,6 +315,14 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
                     lock (output)
                     {
                         output.Append(assistant.Data.Content);
+                    }
+
+                    break;
+                case AssistantReasoningEvent reasoning:
+                    lock (output)
+                    {
+                        if (!string.IsNullOrEmpty(reasoning.Data.Content))
+                            progress.Add(reasoning.Data.Content);
                     }
 
                     break;
@@ -329,8 +342,8 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
                     completion.TrySetException(new InvalidOperationException(error.Data.Message));
                     break;
                 default:
-                    // Progress and tool-activity events carry nothing the caller decodes; the assistant text is
-                    // the answer.
+                    // Tool-activity events carry nothing the caller decodes here: every invocation is already
+                    // fully captured through ToolCallRecorder's AIFunction wrapping, not through this switch.
                     break;
             }
         });
@@ -344,7 +357,8 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
             // are different facts, and a transcript that confused them would understate what a run spent.
             return new ChatTurnResult(
                 output.ToString().Trim(),
-                usageReported ? new ModelUsage(inputTokens, outputTokens) : null);
+                usageReported ? new ModelUsage(inputTokens, outputTokens) : null,
+                progress);
         }
     }
 

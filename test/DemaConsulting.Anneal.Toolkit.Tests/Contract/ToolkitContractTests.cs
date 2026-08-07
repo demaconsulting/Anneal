@@ -1400,6 +1400,76 @@ public class ToolkitContractTests
     }
 
     /// <summary>
+    ///     TOOLKIT-22 — when a provider surfaces intermediate reasoning or progress text during a turn, distinct
+    ///     from the turn's final reply, that text is captured as part of the same durable per-turn evidence
+    ///     TOOLKIT-11 already transcribes, for every turn a provider offers it, always.
+    /// </summary>
+    /// <remarks>
+    ///     The scripted endpoint stands in for a provider that surfaces such text alongside its final reply — the
+    ///     shape <c>CopilotEndpoint</c> takes when its session reports intermediate reasoning distinct from the
+    ///     accumulated assistant message. The assertion is on the persisted transcript, not on what
+    ///     <see cref="ModelSession.RunAsync" /> hands back, because TOOLKIT-22 is a promise about the transcript
+    ///     and says nothing about widening the caller-facing result: the reply a caller receives stays exactly
+    ///     the final prose.
+    /// </remarks>
+    [Fact]
+    public async Task IntermediateProgressIsTranscribed()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            string[] progress = ["thinking about the owner rule...", "checking owner.md..."];
+            var endpoint = new ScriptedEndpoint("SingleOwner: owner.md") { Progress = progress };
+
+            var session = new ModelSession(new ModelRoles(root, _ => endpoint), "a charter");
+
+            var reply = await session.RunAsync(
+                "who owns the rule?", ModelRole.Heavy, TestContext.Current.CancellationToken);
+
+            var transcripts = ReadRecords(RecordStore.TranscriptsPathFor(root));
+            var replied = transcripts.Single(entry => Text(entry, "result") == ModelTranscript.Replied);
+
+            Assert.Multiple(
+                // The caller-facing reply stays exactly the final prose - TOOLKIT-22 widens the transcript, not
+                // what RunAsync hands back.
+                () => Assert.Equal("SingleOwner: owner.md", reply),
+
+                // Every progress entry the provider surfaced landed in the transcript, in order.
+                () => Assert.Equal(progress, Strings(replied, "progress")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-22 — a provider that surfaces no intermediate progress for a turn is recorded as having none;
+    ///     the absence is silence, not a defect.
+    /// </summary>
+    [Fact]
+    public async Task NoIntermediateProgressIsRecordedAsNone()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new ScriptedEndpoint("a plain reply");
+            var session = new ModelSession(new ModelRoles(root, _ => endpoint), "a charter");
+
+            await session.RunAsync("anything", ModelRole.Heavy, TestContext.Current.CancellationToken);
+
+            var transcripts = ReadRecords(RecordStore.TranscriptsPathFor(root));
+            var replied = transcripts.Single(entry => Text(entry, "result") == ModelTranscript.Replied);
+
+            Assert.Empty(Strings(replied, "progress"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
     ///     TOOLKIT-I6 — a model is granted tools only by group selection, every filesystem path resolves inside
     ///     the repository root, and a write to a protected configuration file or repository script is refused.
     /// </summary>
@@ -2038,6 +2108,12 @@ public class ToolkitContractTests
         public IReadOnlyCollection<string> Offers { get; init; } = [];
 
         /// <summary>
+        ///     The intermediate progress text reported alongside every reply this endpoint gives, or empty for
+        ///     a test about something other than progress.
+        /// </summary>
+        public IReadOnlyList<string> Progress { get; init; } = [];
+
+        /// <summary>
         ///     How many times this endpoint was asked what it offers, so a test can assert that a run which
         ///     consulted no model asked nothing.
         /// </summary>
@@ -2052,7 +2128,8 @@ public class ToolkitContractTests
             Requests.Add(request);
             return Task.FromResult(new ChatTurnResult(
                 _replies.Count > 0 ? _replies.Dequeue() : "(script exhausted)",
-                new ModelUsage(ReportedInputTokens, ReportedOutputTokens)));
+                new ModelUsage(ReportedInputTokens, ReportedOutputTokens),
+                Progress));
         }
 
         public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken)

@@ -60,6 +60,16 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
   for a worker that writes is the only part of its behavior worth auditing.
   *Verified by:* `ToolkitContractTests.ToolInvocationsAreTranscribed`
 
+- **TOOLKIT-22** — When a provider surfaces intermediate reasoning or progress text during a turn,
+  distinct from the turn's final reply, that text is captured as part of the same durable per-turn
+  evidence `TOOLKIT-11` already transcribes — for every turn a provider offers it, always, and with no
+  opt-in that could leave it off. A provider that runs its session natively and surfaces nothing beyond
+  a final accumulated reply leaves a reviewer auditing a completed run able to see only that final text
+  and the token totals, blind to how the turn's reasoning got there, which for a run under audit is the
+  same gap `TOOLKIT-18` closed for tool calls. A provider that surfaces no such text for a turn is
+  recorded as having none; the absence is silence, not a defect.
+  *Verified by:* `ToolkitContractTests.IntermediateProgressIsTranscribed`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the invocation record the transcript is captured alongside, and the
@@ -214,3 +224,15 @@ The volume is real but small; a measurement run made sixteen probes. Because a t
 repository source, the files are gitignored and never committed. That capture happens is therefore what
 `TOOLKIT-11` contracts; where the transcripts live, their format, and any pruning of them are interior
 concerns.
+
+**Intermediate progress text is a promise about the transcript, not about what an operation gets back**
+— `TOOLKIT-22` extends the durable per-turn evidence `TOOLKIT-11` already contracts; it says nothing
+about widening what `RunAsync` or `ProbeAsync` hand back to the operation that called them, which stay
+the final prose reply and the decoded value they are today. No operation in this repository has a use
+for its own turn's rough draft while the turn is still running — the transcript is exactly the evidence
+a reviewer reaches for once a run has already finished, which is the same shape the `TOOLKIT-11` /
+`TOOLKIT-18` split already drew for tool calls: the outcome an operation acts on and the evidence an
+auditor reads afterward are different consumers with different needs. How the text travels from the
+provider that surfaced it to the transcript it lands in — including whether it passes through the same
+seam-internal result type the final reply already does — is interior plumbing the contract does not
+fix, for the same reason the transcript's own storage format is left unfixed today.

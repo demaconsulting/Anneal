@@ -49,7 +49,18 @@ public sealed record ChatTurnRequest(
 ///     What the turn consumed, or null when the provider reported nothing. Null means "not reported" and never
 ///     "cost nothing".
 /// </param>
-public sealed record ChatTurnResult(string Text, ModelUsage? Usage = null);
+/// <param name="Progress">
+///     Intermediate reasoning or progress text the provider surfaced while producing <paramref name="Text" />,
+///     in the order it arrived, distinct from the final reply. Never null; empty means the provider surfaced
+///     none for this turn, which is recorded as having none rather than treated as a defect. This is captured
+///     for the durable transcript only — nothing above the seam widens what it hands back on account of this,
+///     which stays <paramref name="Text" /> and nothing else.
+/// </param>
+public sealed record ChatTurnResult(string Text, ModelUsage? Usage = null, IReadOnlyList<string> Progress = null!)
+{
+    /// <inheritdoc cref="Progress" />
+    public IReadOnlyList<string> Progress { get; init; } = Progress ?? [];
+}
 
 /// <summary>
 ///     The seam that hides how a single model turn is completed, so that no operation knows which provider

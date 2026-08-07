@@ -36,6 +36,11 @@ public sealed record TranscriptMessage(string Role, string Text);
 ///     name so its meaning survives the set of results growing.
 /// </param>
 /// <param name="Failure">Why the interaction produced no reply, or null when it produced one.</param>
+/// <param name="Progress">
+///     Intermediate reasoning or progress text the provider surfaced during the turn, in the order it arrived,
+///     distinct from <paramref name="Reply" />. Never null; empty when the provider surfaced none for this
+///     turn, which is recorded as having none rather than treated as a defect.
+/// </param>
 public sealed record ModelTranscript(
     DateTimeOffset At,
     string Activity,
@@ -45,8 +50,12 @@ public sealed record ModelTranscript(
     string? Reply,
     ModelUsage? Usage,
     string Result,
-    string? Failure)
+    string? Failure,
+    IReadOnlyList<string> Progress = null!)
 {
+    /// <inheritdoc cref="Progress" />
+    public IReadOnlyList<string> Progress { get; init; } = Progress ?? [];
+
     /// <summary>
     ///     The <see cref="Result" /> of an interaction the model answered.
     /// </summary>
