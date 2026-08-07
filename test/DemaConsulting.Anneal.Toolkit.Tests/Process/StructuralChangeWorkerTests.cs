@@ -71,6 +71,78 @@ public class StructuralChangeWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_PlanWithTenStepsUnderRaisedDefaultBudget_StillCompletes()
+    {
+        // Arrange: S11's live routing trials found a genuinely-scoped structural change (one new system
+        // plus its two existing neighbors) produces a real model plan of exactly 10 steps, which the
+        // un-widened Planner default of 8 refused outright with no repair path. This regression-tests the
+        // fix: StructuralChangeWorker's own default (12) must comfortably admit a 10-step plan.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var tenStepPlan =
+                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step 1","step 2","step 3","step 4","step 5","step 6","step 7","step 8","step 9","step 10"]}""";
+
+            var endpoint = new QueuedEndpoint(
+                tenStepPlan,
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"split the system"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
+                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MaxPlanStepsOverride_StillFailsClosedWhenPlanExceedsIt()
+    {
+        // Arrange: the raised default must still act as a budget - an explicit, smaller override proves a
+        // plan exceeding it is still refused and the worker still fails closed, exactly as
+        // documentAuthorTargetFileCountBudget's own budget already does for DocumentAuthor.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step 1","step 2","step 3","step 4"]}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                maxPlanSteps: 3,
+                endpointFor: _ => endpoint);
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Null(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_PlannerReroutes_ReturnsRerouteWithoutRunningAnyOtherPrimitive()
     {
         // Arrange: the planner itself concludes this work does not belong to a structural worker

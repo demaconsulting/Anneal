@@ -124,6 +124,16 @@ internal sealed class StructuralChangeWorker
     ///     <see cref="DocumentAuthor" />'s own default of 3 because a structural change routinely touches
     ///     <c>overview.md</c> plus multiple system documents, not the single document Contract Change assumes.
     /// </param>
+    /// <param name="maxPlanSteps">
+    ///     The most steps a <see cref="Planner" /> plan may contain before it is treated as having failed to stay
+    ///     narrow. Must be greater than zero; defaults to 12, raised from <see cref="Planner" />'s own generic
+    ///     default of 8 for the same reason <paramref name="documentAuthorTargetFileCountBudget" /> was already
+    ///     raised: a genuinely-scoped structural change decomposes into more granular steps (inspect the tree, edit
+    ///     each affected contract document, add the new system's code, edit each dependent system's code, add or
+    ///     move tests, run the build) than a single-system Contract Change plan needs, and the un-widened default
+    ///     was found, live, to fail-closed two live routing trials (S11's discovery log) whose own plans reached
+    ///     exactly 10 steps for a change genuinely scoped to one new system and its two existing neighbors.
+    /// </param>
     /// <param name="endpointFor">
     ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
     ///     Injected so this worker's whole behavior is exercisable without a network call.
@@ -153,7 +163,8 @@ internal sealed class StructuralChangeWorker
     /// <exception cref="ArgumentOutOfRangeException">
     ///     Thrown when <paramref name="maxDocumentationRepairAttempts" />, <paramref name="maxCodeRepairAttempts" />,
     ///     or <paramref name="maxReplanAttempts" /> is negative, or when
-    ///     <paramref name="documentAuthorTargetFileCountBudget" /> is not greater than zero.
+    ///     <paramref name="documentAuthorTargetFileCountBudget" /> or <paramref name="maxPlanSteps" /> is not
+    ///     greater than zero.
     /// </exception>
     public StructuralChangeWorker(
         string repositoryRoot,
@@ -165,6 +176,7 @@ internal sealed class StructuralChangeWorker
         int maxCodeRepairAttempts = 1,
         int maxReplanAttempts = 1,
         int documentAuthorTargetFileCountBudget = 8,
+        int maxPlanSteps = 12,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildRunScript = null,
         RunRepositoryScript? contractCheckRunScript = null,
@@ -179,10 +191,11 @@ internal sealed class StructuralChangeWorker
         ArgumentOutOfRangeException.ThrowIfNegative(maxCodeRepairAttempts);
         ArgumentOutOfRangeException.ThrowIfNegative(maxReplanAttempts);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(documentAuthorTargetFileCountBudget);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPlanSteps);
 
         var root = Path.GetFullPath(repositoryRoot);
 
-        _planner = new Planner(root, plannerCharter, endpointFor: endpointFor);
+        _planner = new Planner(root, plannerCharter, maxPlanSteps: maxPlanSteps, endpointFor: endpointFor);
         _documentAuthor = new DocumentAuthor(
             root, documentAuthorCharter, targetFileCountBudget: documentAuthorTargetFileCountBudget, endpointFor: endpointFor);
         _developer = new Developer(root, developerCharter, endpointFor: endpointFor);
