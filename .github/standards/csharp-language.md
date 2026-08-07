@@ -19,51 +19,16 @@ missing XmlDoc on a publicly visible member — a **build error**. This is one o
 this process that is mechanically enforced rather than left to judgement, so treat a missing
 boundary doc comment as a broken build, not a review comment.
 
+The required tag shape:
+
 ```csharp
-/// <summary>
-///     Converts a raw sensor reading into a validated measurement ready for downstream consumers.
-/// </summary>
-/// <remarks>
-///     Clamping is preferred over throwing on out-of-range values because sensor drift at
-///     range boundaries is expected; clamping produces a usable result where rejection would
-///     discard valid near-boundary readings. Stateless and thread-safe; the calibration
-///     profile is read but never modified.
-/// </remarks>
-/// <param name="reading">Raw sensor value. Must be finite (NaN and infinities are rejected).</param>
-/// <param name="calibration">Calibration profile providing offset and range. Must not be null.</param>
-/// <returns>Corrected value clamped to [calibration.Minimum, calibration.Maximum].</returns>
-/// <exception cref="ArgumentException">Thrown when <paramref name="reading"/> is NaN or infinite.</exception>
-/// <exception cref="ArgumentNullException">Thrown when <paramref name="calibration"/> is null.</exception>
+/// <summary>Converts a raw reading into a validated measurement.</summary>
+/// <remarks>Clamps rather than throws: sensor drift at range boundaries is expected.</remarks>
+/// <param name="reading">Raw sensor value. Must be finite.</param>
+/// <returns>Corrected value clamped to the calibration range.</returns>
+/// <exception cref="ArgumentException">Thrown when <paramref name="reading"/> is not finite.</exception>
 public double ProcessReading(double reading, CalibrationProfile calibration)
-{
-    // Reject invalid inputs before any calculation - non-finite readings cannot be
-    // corrected, and a null calibration profile provides no offset or range to apply
-    if (!double.IsFinite(reading))
-        throw new ArgumentException("Reading must be a finite number.", nameof(reading));
-    ArgumentNullException.ThrowIfNull(calibration);
-
-    // Apply the calibration offset to convert raw counts to physical units
-    var corrected = reading + calibration.Offset;
-
-    // Clamp to the operational range so consumers can rely on the documented contract
-    return Math.Clamp(corrected, calibration.Minimum, calibration.Maximum);
-}
 ```
-
-Key qualities demonstrated above:
-
-- **`<summary>`** is a brief one-liner explaining *what* the method does
-- **`<remarks>`** sits directly after summary and carries the extended intent -
-  *why* it exists, design decisions, thread-safety, and side-effect disclosures
-- **`<param>` tags** state constraints (finite, non-null) so callers know what
-  is valid without reading the body
-- **`<returns>`** documents the boundary guarantee so consumers can rely on the
-  contract
-- **`<exception>` tags** name every thrown exception and the condition that
-  triggers each one
-- **Inline block comments** follow the Literate Coding principles from
-  `coding-principles.md`, separating logical steps so reviewers can verify each
-  step against design intent
 
 ## Interior Members (BY REASON, not by rule)
 
@@ -89,19 +54,10 @@ The second carries a constraint, a rejected alternative, and a non-local reason 
 survive in the code alone, and all of which the next agent would otherwise have to rediscover by
 breaking something.
 
-This is a defect, not compliance:
-
-```csharp
-/// <summary>
-///     Gets the user identifier.
-/// </summary>
-/// <returns>The user identifier.</returns>
-private int GetUserId() => _userId;
-```
-
-It restates the signature, so it adds nothing a reader did not already have. Worse, it is
-indistinguishable at a glance from a comment that does carry intent — and once a file is full of
-these, a doc comment stops meaning "stop, there is something here you cannot infer." Delete it.
+This is a defect, not compliance: `/// <summary>Gets the user identifier.</summary>` on
+`private int GetUserId() => _userId;` restates the signature and adds nothing a reader did not
+already have. Delete it rather than let a file fill with comments indistinguishable from ones that
+carry real intent.
 
 # Code Formatting
 
@@ -111,8 +67,6 @@ these, a doc comment stops meaning "stop, there is something here you cannot inf
 
 # Quality Checks
 
-- [ ] Zero compiler warnings (`TreatWarningsAsErrors=true`)
 - [ ] XmlDoc complete on every publicly visible member (CS1591 clean)
 - [ ] Interior members documented where intent is not recoverable from the code
-- [ ] No doc comment restates the name, parameters, or return of its member
 - [ ] `dotnet format` applied (run `pwsh ./fix.ps1`)
