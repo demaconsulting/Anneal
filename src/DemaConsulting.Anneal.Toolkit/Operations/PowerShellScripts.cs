@@ -73,7 +73,7 @@ public sealed class PowerShellScripts
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(script);
 
-        using var process = new Process
+        using var process = new System.Diagnostics.Process
         {
             StartInfo = new ProcessStartInfo("pwsh")
             {
@@ -125,7 +125,7 @@ public sealed class PowerShellScripts
     ///     the check and the kill raises <see cref="InvalidOperationException" />, which is the outcome that was
     ///     wanted anyway.
     /// </remarks>
-    private static async Task TerminateAsync(Process process)
+    private static async Task TerminateAsync(System.Diagnostics.Process process)
     {
         try
         {

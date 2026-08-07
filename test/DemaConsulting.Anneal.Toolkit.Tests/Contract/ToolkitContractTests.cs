@@ -2209,7 +2209,7 @@ public class ToolkitContractTests
     ///     framework-dependent assembly is the fallback, so a platform that builds no launcher still runs the
     ///     same entry point in a process of its own — which is the part this clause is about.
     /// </remarks>
-    private static Process StartTool(string workingDirectory, params string[] arguments)
+    private static System.Diagnostics.Process StartTool(string workingDirectory, params string[] arguments)
     {
         var launcher = Path.Combine(
             AppContext.BaseDirectory,
@@ -2235,7 +2235,7 @@ public class ToolkitContractTests
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
 
-        return Process.Start(start) ?? throw new InvalidOperationException("the tool did not start");
+        return System.Diagnostics.Process.Start(start) ?? throw new InvalidOperationException("the tool did not start");
     }
 
     /// <summary>
@@ -2249,7 +2249,7 @@ public class ToolkitContractTests
     ///     to that console — otherwise the run that raises the interrupt is one of the processes interrupted
     ///     by it.
     /// </remarks>
-    private static void Interrupt(Process process)
+    private static void Interrupt(System.Diagnostics.Process process)
     {
         if (!OperatingSystem.IsWindows())
         {

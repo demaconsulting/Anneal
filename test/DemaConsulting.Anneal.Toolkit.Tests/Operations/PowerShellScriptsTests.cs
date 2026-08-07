@@ -78,7 +78,7 @@ public class PowerShellScriptsTests
     {
         try
         {
-            using var process = Process.GetProcessById(pid);
+            using var process = System.Diagnostics.Process.GetProcessById(pid);
             return process.HasExited;
         }
         catch (ArgumentException)
