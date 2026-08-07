@@ -69,21 +69,41 @@ public sealed class PowerShellScripts
     /// <returns>The exit code and the collected output.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="script" /> is null, empty or blank.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
-    public async Task<ScriptRun> RunAsync(string script, CancellationToken cancellationToken)
+    public Task<ScriptRun> RunAsync(string script, CancellationToken cancellationToken) =>
+        RunAsync(script, [], cancellationToken);
+
+    /// <summary>
+    ///     Runs one script with extra command-line arguments and collects what it produced.
+    /// </summary>
+    /// <param name="script">The repository-relative script to run. Must not be null or blank.</param>
+    /// <param name="arguments">
+    ///     Extra arguments appended after the script path, such as a switch the script itself declares (for
+    ///     example <c>-Strict</c>). Must not be null; empty runs the script exactly as
+    ///     <see cref="RunAsync(string, CancellationToken)" /> does.
+    /// </param>
+    /// <param name="cancellationToken">The caller's signal; cancelling it kills the script.</param>
+    /// <returns>The exit code and the collected output.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="script" /> is null, empty or blank.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="arguments" /> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
+    public async Task<ScriptRun> RunAsync(
+        string script, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(script);
+        ArgumentNullException.ThrowIfNull(arguments);
 
-        using var process = new System.Diagnostics.Process
+        var startInfo = new ProcessStartInfo("pwsh")
         {
-            StartInfo = new ProcessStartInfo("pwsh")
-            {
-                ArgumentList = { "-NoProfile", "-File", Path.Combine(_repositoryRoot, script) },
-                WorkingDirectory = _repositoryRoot,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            }
+            ArgumentList = { "-NoProfile", "-File", Path.Combine(_repositoryRoot, script) },
+            WorkingDirectory = _repositoryRoot,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
         };
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+
+        using var process = new System.Diagnostics.Process { StartInfo = startInfo };
 
         process.Start();
 

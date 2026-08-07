@@ -293,6 +293,71 @@ public class RouterTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_TwoEntryCatalog_RoutesToContractChangeWithoutDisturbingSmallFix()
+    {
+        // Arrange: a catalog with both worker keys pass 3 introduces, confirming the second entry does not
+        // shadow or otherwise disturb small-fix's own existing routing
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("contract-change", "this touches a contract"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            var smallFixCalls = 0;
+            WorkerRunner smallFixRunner = (_, _) =>
+            {
+                smallFixCalls++;
+                return Task.FromResult(new StepResult<WorkerRunResult>(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                    []));
+            };
+
+            var contractChangeCalls = 0;
+            WorkerRunner contractChangeRunner = (_, _) =>
+            {
+                contractChangeCalls++;
+                return Task.FromResult(new StepResult<WorkerRunResult>(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["docs/architecture/toolkit.md"], "updated the contract")),
+                    []));
+            };
+
+            WorkerCatalogEntry smallFix = new(new WorkerDescriptor("small-fix", "the cheap path"), smallFixRunner);
+            WorkerCatalogEntry contractChange =
+                new(new WorkerDescriptor("contract-change", "contract clause changes"), contractChangeRunner);
+
+            var router = new Router(
+                root,
+                "route charter",
+                "research charter",
+                [smallFix, contractChange],
+                recordStore,
+                maxResearchIterations: 3,
+                maxWorkerReroutes: 2,
+                endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
+
+            // Act
+            var result = await router.RunAsync("add a contract clause", null, TestContext.Current.CancellationToken);
+
+            // Assert: routed to the newly-added worker, and small-fix's own runner was never invoked
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
+                () => Assert.Equal(1, contractChangeCalls),
+                () => Assert.Equal(0, smallFixCalls));
+
+            var records = ReadRecords(root);
+            Assert.Contains(records, record => record.Step == "Worker:contract-change");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static Router BuildRouter(
         string root,
         RecordStore recordStore,

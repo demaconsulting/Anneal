@@ -50,6 +50,66 @@ public class PowerShellScriptsTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_WithArguments_AppendsThemAfterTheScriptPath()
+    {
+        // Arrange: a script that only exits zero when given the switch this overload is for, so the test proves
+        // the argument was actually forwarded to the process rather than merely accepted by the signature
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, "switch-check.ps1"),
+                """
+                param([switch] $Strict)
+                if ($Strict) { exit 0 } else { exit 1 }
+                """);
+
+            var scripts = new PowerShellScripts(root);
+
+            // Act
+            var withoutSwitch = await scripts.RunAsync(
+                "switch-check.ps1", [], TestContext.Current.CancellationToken);
+            var withSwitch = await scripts.RunAsync(
+                "switch-check.ps1", ["-Strict"], TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(1, withoutSwitch.ExitCode),
+                () => Assert.Equal(0, withSwitch.ExitCode));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WithoutArguments_BehavesExactlyAsTheTwoArgumentOverload()
+    {
+        // Arrange: the original overload now delegates to the arguments overload with an empty list - this
+        // proves that delegation did not change its observable behavior
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "echo.ps1"), "Write-Output 'ran'; exit 0");
+
+            var scripts = new PowerShellScripts(root);
+
+            // Act
+            var run = await scripts.RunAsync("echo.ps1", TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(0, run.ExitCode),
+                () => Assert.Contains("ran", run.Output));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     /// <summary>
     ///     Waits for the script to record its process, so cancellation lands on a running script rather than
     ///     racing its startup.
