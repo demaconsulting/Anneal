@@ -76,7 +76,8 @@ public static class AnnealTool
         new ProbeRuleOwnerOperation(),
         new CheckContractsOperation(),
         new LintFixOperation(),
-        new StatsOperation()
+        new StatsOperation(),
+        new RouteOperation()
     ];
 
     /// <summary>

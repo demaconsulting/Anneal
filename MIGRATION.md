@@ -478,3 +478,60 @@ pass with no contract clause touched or broken; a live smoke test confirmed the 
 end-to-end against a real model with independent verification, and the re-plan path's non-firing
 across two deliberate attempts is recorded above as a characterized, understood boundary rather than
 an unexamined gap.
+
+### S10 Part B — Router wired into a real CLI action — landed
+
+Added `RouteOperation` (`src/DemaConsulting.Anneal.Toolkit/Operations/RouteOperation.cs`), the first
+`IOperation` that ever constructs a real `Process.Router` outside a throwaway test harness, and
+registered it in `AnnealTool.DefaultOperations` as the sixth shipped action. It assembles a production
+`WorkerCatalogEntry[]` wiring all three landed workers under the exact keys their own interior tests
+already use (`small-fix`, `contract-change`, `structural-change`), and projects the internal
+`RouterOutcome`/`RouteFailureReport` types into a new public `RouteReport` finding, the same
+"populated half tells you which path was taken" shape `LintFixReport` already established.
+
+**The action name, argument shape, and charters were this pass's own judgement call, as the stage's
+own text anticipated.** `route` was chosen over `develop`/`work` as reading most plainly as "hand this
+repository a real piece of work and let the routing oracle decide." The work item is a single
+positional argument, changed-file hints follow it positionally, mirroring every other action's own
+style (`probe-rule-owner <rule>`). Every charter (route oracle, research, planner, document author,
+developer, verifier) was authored fresh rather than lifted from a prose agent, since Router and its
+three workers have never had a prose predecessor — unlike `lint-fix`, which duplicated
+`lint-fix.agent.md`'s own guidance. `RequiredRole => ModelRole.Heavy` and
+`Category => OperationCategory.Authoring` follow `LintFixOperation`'s own reasoning: the most demanding
+role and the most permissive category any path through the action can reach, declared unconditionally
+regardless of which path a given run actually takes.
+
+Added contract clause `TOOLKIT-23` to `docs/architecture/toolkit/route.md` (a new section document,
+mirroring `stats.md`'s shape) naming `ToolkitContractTests.RouteRunsTheSelectedCompiledWorker`, and
+extended `ToolkitContractTests`' `TOOLKIT-01` action-list assertion to include `"route"`. Eight new
+interior tests (`RouteOperationTests.cs`) cover a route to each of the three workers completing, the
+oracle naming no route (`Failed`), the oracle naming a human-only next step (`Escalated`), and the two
+usage-error argument shapes, all driven through the same single-`QueuedEndpoint`, strict-call-order
+fake-endpoint pattern every prior worker's own tests already use.
+
+**A live smoke test exercised the routing oracle itself against a real model, not merely a worker.** A
+throwaway harness (a standalone console project outside this repository, referencing this repository's
+Toolkit project directly and calling the public `AnnealTool.RunAsync(["route", workItem], ...)`
+surface with no substituted endpoint) drove a real Copilot endpoint against a real scratch fixture: a
+tiny two-project .NET solution with a deliberate, genuine off-by-one bug in `Calculator.Average`
+(divides by `numbers.Length - 1` instead of `numbers.Length`) and one xUnit test that failed against
+it, confirmed failing by an independent `build.ps1` run before the harness touched anything. The
+harness gave `route` one plain-English work item naming the failing test and the wrong method. The
+routing oracle selected `small-fix` and the action completed on its first pass, reporting exactly one
+changed file, `src/Calc/Calculator.cs`. Independent verification: reading the file by hand confirmed
+the exact one-line divisor fix (`numbers.Length` in place of `numbers.Length - 1`); re-running the
+fixture's own `build.ps1` from a fresh shell after the harness exited showed the previously-failing
+test now passing; `git status`/`git diff --stat` inside the fixture showed only `Calculator.cs` (plus
+build output) touched, matching the tool's own report exactly. Both the fixture and the harness project
+were deleted afterward, and `git status --short` in this repository was confirmed clean of any harness
+artifact before landing.
+
+**Exit conditions met:** the new `route` action exists, is covered by eight interior tests against the
+fake endpoint the same way every prior worker was; `pwsh ./build.ps1` (263 C# tests, +8 from this pass),
+`pwsh ./lint.ps1`, and a strict `check-contracts` run all pass, with `TOOLKIT-23` confirmed naming a
+real, passing boundary test; and the routing oracle itself was exercised at least once against a real
+model on a real work item, with both the classification and the resulting file change independently
+re-verified by hand — the one exit condition S9's own entry noted no prior stage had proven.
+
+**What this stage does not do:** `dispatch`, `apply`, `architecture-update`, and `scope-check` are not
+retired by this pass — that remains a later stage, as S10's own text said it would.

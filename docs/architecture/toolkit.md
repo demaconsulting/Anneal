@@ -90,7 +90,9 @@ from.
   [ContractCheck](./toolkit/contract-check.md) and [Stats](./toolkit/stats.md) are deterministic and
   built on the Runtime alone; [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds
   the Model Seam, and [LintFix](./toolkit/lint-fix.md) is model-backed and also writes to the
-  repository.
+  repository. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
+  operation built on Process rather than the Model Seam alone: it constructs a real Router over the
+  production worker catalog and runs whichever compiled worker the routing oracle selects.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
