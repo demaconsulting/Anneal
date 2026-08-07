@@ -146,6 +146,69 @@ into `helper` — that remains a separate, later, named stage.
 defect fixed and re-verified); `dispatch.agent.md` is updated and its Change-mode routing table entry
 reads `route` rather than `architecture-update` → `apply` → `scope-check`; `pwsh ./lint.ps1` passes.
 
+**Step 1 is done: the Structural Change live trial ran, found and fixed a real defect, then confirmed
+correct routing end to end.** A throwaway fixture (`OrderPipeline`, outside this repository, same
+harness pattern as every prior trial: a standalone console project referencing this repository's
+Toolkit project directly, calling `AnnealTool.RunAsync(["route", workItem], ...)` against a real
+Copilot endpoint) modeled a two-system `.NET` solution — `Ingest` parsing CSV rows with validation
+logic wrongly bundled inline, and `Report` summarizing the parsed records — and was given a work item
+asking to split validation out into a new, third `Validator` system with its own contract clause, with
+`Ingest`'s own contract narrowed and `Report` updated to depend on `Validator` instead, and
+`overview.md` updated to list three systems: the shape `change-classification.md` itself names as
+Structural Change (new system boundary, coordinated cross-document changes), not defensible as a
+Small Fix or as one file's Contract Change.
+
+*Trial 1* — the oracle selected `contract-change` (**incorrect**: the work item explicitly asked for
+a new system, not an edit to one existing document). `ContractChangeWorker` ran anyway and failed on
+its own terms: its internal `DocumentAuthor` authored four documents (a new `validator.md` plus edits
+to `ingest.md`, `report.md`, and `overview.md`), exceeding `ContractChangeWorker`'s own
+`targetFileCountBudget` of 3 with no repair path, reporting `Failed`. This is the wrong worker
+behaving as designed once the routing itself went wrong, not itself a defect.
+
+*Trials 2 and 3* — the oracle correctly selected `structural-change` both times. Both times
+`Planner.PlanAsync` produced a legitimate 10-step plan for the genuinely-scoped three-system split, and
+both times `Planner`'s un-widened generic `maxPlanSteps` default of 8 refused it outright, with
+`RunPlannerAsync` mapping the `Refused` decision straight to `Failed` — no re-plan-with-fewer-steps
+path exists for a step-count overflow (only a completed plan's own `Verifier`-triggered
+`StrategyRevisionRequired` spends the one re-plan budget).
+
+**A real defect was found and fixed.** `StructuralChangeWorker` already exposes and deliberately
+raises `documentAuthorTargetFileCountBudget` (to 8, from `DocumentAuthor`'s own default of 3 — S9's own
+fix for the same class of problem) but had no equivalent override for `Planner`'s `maxPlanSteps`,
+silently inheriting `Planner`'s generic default of 8 even though a genuinely-scoped structural change
+naturally decomposes into more steps than a single-system change ever would. **Fix:**
+`StructuralChangeWorker` now exposes its own `maxPlanSteps` parameter (default 12, mirroring
+`documentAuthorTargetFileCountBudget`'s own reasoning: a deliberately round number comfortably above
+the 10 steps observed live twice, without ceasing to act as a budget), threaded into the `Planner` it
+constructs, guarded by the same `ArgumentOutOfRangeException.ThrowIfNegativeOrZero` pattern already
+used for the file-count budget. Two new interior tests
+(`RunAsync_PlanWithTenStepsUnderRaisedDefaultBudget_StillCompletes` and
+`RunAsync_MaxPlanStepsOverride_StillFailsClosedWhenPlanExceedsIt`) lock in both halves: the raised
+default admits the exact plan size found live, and the budget still fails closed when a smaller
+override is exceeded. Fixed in `src/DemaConsulting.Anneal.Toolkit/Process/StructuralChangeWorker.cs`
+and `test/DemaConsulting.Anneal.Toolkit.Tests/Process/StructuralChangeWorkerTests.cs`, verified by
+`pwsh ./build.ps1` (267 C# tests, +2 from this pass) and `pwsh ./lint.ps1`. Commit `8b04351`.
+
+*Trial 4, after the fix* — the oracle again correctly selected `structural-change`; `Planner` succeeded
+on its first attempt (the same 10-step plan now within the raised 12-step budget); `DocumentAuthor`
+authored all four documents; `Developer` implemented the split (new `Validator` system, `Ingest`
+narrowed, `Report` updated to call it); one code-repair pass fixed a first deterministic-check failure,
+after which both checks and `Verifier` passed, reporting `Succeeded`. Independent verification: every
+changed file read by hand matched the tool's own summary; a fresh-shell `build.ps1` passed 7/7 tests; a
+fresh-shell `check-contracts.ps1 -Strict` reported three clauses (`ING-01`, `REP-01`, `VAL-01`) all
+passing; `git status --short` in the fixture (filtered to non-`bin`/`obj` paths) showed exactly the
+expected files, matching the tool's report — with one minor exception: the tool's own completion
+summary text mentioned a `requirements.yaml` file as changed, but no such file exists or was ever
+touched. This is a self-report inaccuracy in the worker's own conversational summary, not a
+control-flow defect — nothing in the architecture treats a worker's self-reported summary as ground
+truth, which is exactly why every trial in this migration re-verifies by hand instead of trusting it.
+
+Both the fixture and its harness were deleted afterward; `git status --short` in this repository was
+confirmed clean before landing.
+
+Step 2 (updating `dispatch.agent.md`) remains outstanding and is intentionally out of scope for this
+step — a human decides separately whether to proceed to it.
+
 ### S10 — Retiring "Tier", and wiring the Router into a real CLI action — landed
 
 Two pieces of work, decided together in one conversation because neither blocks the other and both
