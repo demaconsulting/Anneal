@@ -105,6 +105,45 @@ public class DocumentAuthorTests
     }
 
     [Fact]
+    public async Task AuthorAsync_RecoveredMidTaskThenAuthored_Succeeds()
+    {
+        // Arrange: the run reply itself represents recovery after a mid-task problem (a tool call that
+        // failed and was then corrected later in the same transcript), followed by a probe reply reporting
+        // Authored with real filesChanged/summary values. QueuedEndpoint replays canned replies regardless
+        // of prompt content, so this test guards the mapping/wiring layer against regressing on this
+        // transcript shape; it cannot itself exercise real model judgment against the new probe wording,
+        // which is why the fix is prompt text reviewed for correctness rather than something a fake-endpoint
+        // test can prove by itself.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "An edit failed partway through, but I corrected it and finished the document change.",
+                """
+                {
+                    "kind": "Authored",
+                    "why": "",
+                    "filesChanged": ["docs/example.md"],
+                    "summary": "recovered from a failed edit and completed the change"
+                }
+                """);
+            var author = new DocumentAuthor(root, "a charter", endpointFor: _ => endpoint);
+
+            // Act
+            var result = await author.AuthorAsync("clarify this", TestContext.Current.CancellationToken);
+
+            // Assert: self-recovery mid-transcript is not evidence of incompleteness
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task AuthorAsync_NoModelAvailable_Fails()
     {
         // Arrange

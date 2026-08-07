@@ -115,7 +115,15 @@ internal sealed class DocumentAuthor
 
             var envelope = await session
                 .ProbeAsync<DocumentAuthoringEnvelope>(
-                    "Report what you authored, or why this change belongs to a different worker.",
+                    """
+                    Report what you authored, per the tool results already shown above in this conversation —
+                    those results are the evidence of what happened, not your narrative impression of how the
+                    attempt felt. An earlier tool call that failed and was then corrected later in this same
+                    conversation is not, by itself, evidence the work is unfinished; self-recovery is the normal,
+                    successful path. Reroute is reserved only for "this change belongs to a different worker" — a
+                    scope/ownership judgment — never for hedging uncertainty about whether the authoring itself
+                    finished.
+                    """,
                     role: null,
                     cancellationToken)
                 .ConfigureAwait(false);

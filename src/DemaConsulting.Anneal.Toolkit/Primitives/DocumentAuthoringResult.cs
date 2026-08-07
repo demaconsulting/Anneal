@@ -55,7 +55,12 @@ internal sealed record DocumentAuthoringEnvelope
     /// <summary>Which case of <see cref="DocumentAuthoringResult" /> this reply reaches.</summary>
     public required DocumentAuthoringOutcomeKind Kind { get; init; }
 
-    /// <summary>Why, when <see cref="Kind" /> is <see cref="DocumentAuthoringOutcomeKind.Reroute" />; the empty string otherwise.</summary>
+    /// <summary>
+    ///     Why this change belongs to a different worker entirely, when <see cref="Kind" /> is
+    ///     <see cref="DocumentAuthoringOutcomeKind.Reroute" />; the empty string otherwise. Never a hedge about
+    ///     whether the authoring itself finished — that judgment belongs to
+    ///     <see cref="DocumentAuthoringOutcomeKind.Authored" />.
+    /// </summary>
     public required string Why { get; init; }
 
     /// <summary>The repository-relative files changed, when authored; empty otherwise.</summary>
@@ -69,10 +74,12 @@ internal sealed record DocumentAuthoringEnvelope
 internal enum DocumentAuthoringOutcomeKind
 {
     /// <summary>A change set was authored.</summary>
-    [Description("a documentation change set was authored")]
+    [Description("a documentation change set was authored, per the tool results already shown in this conversation")]
     Authored,
 
     /// <summary>A better owner was named for this change, or this pass is not the correct one to make it.</summary>
-    [Description("a better owner was named for this change; it belongs to a different worker")]
+    [Description(
+        "this change belongs entirely to a different worker — a scope/ownership judgment, never a way to " +
+        "hedge uncertainty about whether the authoring itself finished")]
     Reroute
 }

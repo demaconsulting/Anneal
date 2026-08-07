@@ -54,7 +54,11 @@ internal sealed record DevelopmentEnvelope
     /// <summary>Which case this reply reaches.</summary>
     public required DevelopmentOutcomeKind Kind { get; init; }
 
-    /// <summary>Why, when <see cref="Kind" /> is <see cref="DevelopmentOutcomeKind.Reroute" />; the empty string otherwise.</summary>
+    /// <summary>
+    ///     Why this change belongs to a different worker entirely, when <see cref="Kind" /> is
+    ///     <see cref="DevelopmentOutcomeKind.Reroute" />; the empty string otherwise. Never a hedge about whether
+    ///     the edit itself finished — that judgment belongs to <see cref="DevelopmentOutcomeKind.Completed" />.
+    /// </summary>
     public required string Why { get; init; }
 
     /// <summary>The worker this change likely belongs to, when rerouting; the empty string when none is known.</summary>
@@ -71,10 +75,12 @@ internal sealed record DevelopmentEnvelope
 internal enum DevelopmentOutcomeKind
 {
     /// <summary>The work was completed.</summary>
-    [Description("the code or test change was completed")]
+    [Description("the code or test change was completed, per the tool results already shown in this conversation")]
     Completed,
 
     /// <summary>A better owner was named for this change; it does not belong to the developer that answered.</summary>
-    [Description("a better owner was named for this change; it belongs to a different worker")]
+    [Description(
+        "this change belongs entirely to a different worker — a scope/ownership judgment, never a way to " +
+        "hedge uncertainty about whether the edit itself finished")]
     Reroute
 }
