@@ -51,7 +51,15 @@ internal enum VerificationVerdict
 
     /// <summary>The classification underneath this work was wrong and needs rerouting.</summary>
     [Description("the classification underneath this work was wrong and needs rerouting")]
-    RerouteRequired
+    RerouteRequired,
+
+    /// <summary>
+    ///     The plan's decomposition itself was wrong, not its execution. A different failure class than a repair:
+    ///     a documentation or code finding names an owner whose work needs fixing, while this verdict names the
+    ///     plan those owners executed correctly against.
+    /// </summary>
+    [Description("the plan's decomposition itself was wrong, not its execution; a different failure than a repair")]
+    StrategyRevisionRequired
 }
 
 /// <summary>
