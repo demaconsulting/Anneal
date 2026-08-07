@@ -102,8 +102,79 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is in progress. S9 landed and is recorded in the discovery log below; the next stage is
-chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
+### S10 — Retiring "Tier", and wiring the Router into a real CLI action
+
+Two pieces of work, decided together in one conversation because neither blocks the other and both
+were raised at once; they may land as separate commits, in either order.
+
+**Part A — Mode/Scope vocabulary rename.** "Tier" is retired everywhere. The classification axis it
+named is renamed **Scope** (paired with **Mode**, unchanged), and its three values are renamed to
+the toolkit's own worker names, so the vocabulary humans read and the vocabulary the code already
+runs are the same words:
+
+- Tier 0 (Interior) → **Small Fix**
+- Tier 1 (Contract) → **Contract Change**
+- Tier 2 (Structural) → **Structural Change**
+
+The prose agent `.github/agents/tier-check.agent.md` is renamed to `.github/agents/scope-check.agent.md`,
+with every reference to it elsewhere (routing tables, worked examples, quality gates) updated to the
+new name. `scope-check`'s job is unchanged — auditing that `dispatch`→`apply` did not silently
+misclassify or narrow scope — but it is understood to be short-lived on its own terms: once Part B
+lands and proves out, Change-mode work for this repository routes through `Router` and a compiled
+worker instead of the prose pipeline, and a compiled worker's composition already *is* its
+classification, the same reasoning that made `VerificationIntent.TierCheck` dead code this morning.
+`scope-check` keeps auditing whatever prose-routed work still exists, and retires for good, per the
+Migration's one-way invariant, once nothing routes through the prose pipeline any longer — this entry
+does not retire it yet.
+
+**Files touched** (rename one, update fifteen — this is a Migration-mode commit and may touch
+anything the plan declares, so no `architecture-update`/`tier-check` hop is needed for it):
+
+- Rename: `.github/agents/tier-check.agent.md` → `.github/agents/scope-check.agent.md`
+- Update: `.github/standards/change-classification.md`, `.github/standards/architecture-documentation.md`,
+  `.github/standards/system-contracts.md`, `.github/agents/apply.agent.md`,
+  `.github/agents/architecture-update.agent.md`, `.github/agents/dispatch.agent.md`,
+  `.github/agents/helper.agent.md`, `.github/skills/check-contracts/SKILL.md`,
+  `docs/architecture/process.md`, `docs/architecture/toolkit.md`,
+  `docs/architecture/toolkit/contract-check.md`, `AGENTS.md`, `.github/template/AGENTS.pristine.md`
+  (must remain identical to `AGENTS.md` per its own rule), `MIGRATION.md`, `CONSTRAINTS.md`,
+  `README.md`
+
+**Part A exit conditions:** no file in the repository contains the word "tier" (case-insensitive,
+excluding this discovery-log entry and S8/S9's own landed entries above, which are history and are
+never rewritten); `AGENTS.md` and `.github/template/AGENTS.pristine.md` are byte-identical apart from
+the one repository-specific section `AGENTS.md` is permitted to carry; `pwsh ./lint.ps1` passes.
+
+**Part B — Router wired into a real CLI action.** Today `AnnealTool` dispatches only among the
+standalone operations (`lint-fix`, `check-contracts`, `verify-evidence`, `probe-rule-owner`, `stats`);
+nothing in the shipped tool ever constructs a `Router`. Every worker proven so far (Small Fix,
+Contract Change, Structural Change) has only ever run inside a throwaway test harness. This part:
+
+- Adds a new `AnnealTool` action that accepts a work item (and optional changed-file hints, mirroring
+  `Router.RunAsync`'s own parameters) and runs it through a real `Router`.
+- Assembles a production `WorkerCatalogEntry` list wiring in all three landed workers, replacing the
+  single-entry catalog every prior worker's own tests used in isolation.
+- The exact action name, its argument shape, and how repository configuration reaches `ModelRoles`
+  are implementation judgment calls for `apply` to make and document, the same way file-count budgets
+  and instruction phrasing were left to `apply` in S9 — there is no existing convention elsewhere in
+  `AnnealTool` this must match beyond the pattern the other five actions already establish.
+
+**Part B exit conditions:** the new action exists, is covered by interior tests against the fake
+endpoint the same way every prior worker was, `pwsh ./build.ps1` and `pwsh ./lint.ps1` both pass, and
+— the one exit condition that cannot be satisfied by interior tests alone — **the routing oracle
+itself has been exercised at least once against a real model on a real work item**, with the result
+independently verified the same way S8's and S9's live smoke tests were: not merely "the run
+completed," but the classification and the resulting change re-checked by hand. This is the one thing
+no prior stage has proven; every previous live trial called a worker directly and never exercised
+`Router`'s own routing judgement.
+
+**What this stage does not do:** it does not retire `dispatch`, `apply`, `architecture-update`, or
+`scope-check`. Retiring any of them is a later stage, gated on Part B landing and being proven live —
+not on `template-sync`, which remains deferred as a separate, occasional, cross-repository task
+decoupled from this repository's own use of its toolkit. It does not fold `architecture-design` into
+`helper`; that remains a named future stage, sequenced after Part B so that folding the two prose
+agents together is a change in what `helper` can *do* (call a real `Router`), not merely a rename of
+two prompts into one.
 
 ## Discovery log
 
