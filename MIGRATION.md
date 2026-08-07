@@ -102,8 +102,62 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is in progress. S8 landed and is recorded in the discovery log below; the next stage is
-chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
+### S9 — The Structural Change worker
+
+**Scope.** `StructuralChangeWorker` replaces the prose pipeline's Tier 2 handling
+(`architecture-update` → `apply` → `tier-check` run in sequence) with a single compiled worker, the
+fourth and last of the migration's four planned workers, alongside Small Fix (S8) and Contract Change
+(S8). Template Sync remains deferred.
+
+**Shape.** `Planner.PlanAsync(...)` runs once, producing an `ImplementationPlan` (which systems/tree
+levels change, whether a node is created or pruned, what code follows). Its steps compose the
+instruction text for `DocumentAuthor.AuthorAsync(...)` (constructed with a raised
+`targetFileCountBudget`, since a structural change routinely touches `overview.md` plus multiple
+system documents, not the single document Contract Change assumes) and then
+`Developer.DevelopAsync(...)`, followed by the same two `DeterministicCheck`s Contract Change already
+runs (`build.ps1`, `check-contracts.ps1 -Strict`) and a `Verifier.VerifyAsync(...)` pass.
+
+**The one addition to `VerificationVerdict`.** A new case, `StrategyRevisionRequired`, sits alongside
+the existing `DocumentationRepairRequired`/`CodeRepairRequired`/`BothRepairsRequired`/`RerouteRequired`.
+It names a different failure than a repair: the plan's decomposition itself was wrong, not its
+execution. On this verdict, the worker spends its **one** re-plan budget — a second, final
+`Planner.PlanAsync(...)` call, informed by what the first attempt got wrong — and restarts
+`DocumentAuthor` → `Developer` → checks → `Verifier` once. No budget resets afterward; a second
+`StrategyRevisionRequired` or an exhausted documentation/code repair budget reports `Failed` (or
+`Escalated`, only when the verifier names a specific fact only a person can supply — never for bare
+exhaustion).
+
+**Why this, and not a separate architecture-review oracle or a literal `RepairLoop<T>`.** Folding
+severity into `Verifier`'s own typed finding was chosen over bolting on a distinct
+`Oracle<ArchitectureReviewDecision>` step: `Verifier` already owns this worker's branching decision,
+and a second model-backed judgement pass buys no evidence of better outcomes that a single
+well-posed verdict doesn't already give — external precedent (LangGraph's Plan-Execute-Validate,
+SWE-Review) converges on exactly this single-triage-point shape rather than a separate pre-review
+stage. `RepairLoop<TState>` still doesn't fit, for the same reason Contract Change already found: the
+repair step is chosen dynamically per verdict among three owners now (`Planner`, `DocumentAuthor`,
+`Developer`), not fixed at construction, so this worker hand-rolls the contract the same way Contract
+Change does, extended by one more owner and one more budget.
+
+**Revises a prior decision, visibly.** [process.md](docs/architecture/process.md)'s committed sentence
+— *"a Structural Change worker uses a single-shot Planner outside any repair loop"* — becomes *"at
+most two Planner calls, both outside the documentation/code repair loop; a second call is spent only
+against a `StrategyRevisionRequired` verdict, never re-triggered by a repair finding."* This is a
+deliberate, recorded revision, not a silent widening.
+
+**Budgets, unchanged from Contract Change's precedent pending live evidence.** One re-plan, one
+documentation repair, one code repair — kept equal to Contract Change's existing 1+1 rather than
+widened per generic practitioner guidance (1 re-plan + 2–3 local repairs), because live
+smoke-testing is how S8 already decided repair-budget questions, and this stage should follow the
+same discipline rather than guess ahead of evidence.
+
+**No contract clause changes.** Same as S8: internal composition, no CLI/`IOperation` surface yet.
+That question is still open for whichever stage wires a `dotnet anneal` action to the Router.
+
+**Exit conditions:** `StructuralChangeWorker` exists, composes the primitives above, is proven by
+interior tests (fake-endpoint, mirroring Contract Change's test shape) covering the re-plan path, both
+repair paths, and exhaustion/escalation; `pwsh ./build.ps1` and `pwsh ./lint.ps1` both pass; a live
+smoke test (same throwaway-harness pattern as S8's) confirms the re-plan path actually fires and
+resolves correctly against a real model on a genuinely mis-planned structural change.
 
 ## Discovery log
 
