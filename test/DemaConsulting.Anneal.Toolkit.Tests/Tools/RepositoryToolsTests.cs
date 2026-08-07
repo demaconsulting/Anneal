@@ -21,7 +21,6 @@ public class RepositoryToolsTests
     [Theory]
     [InlineData("docs/architecture/toolkit.md")]
     [InlineData("./docs/toolkit.md")]
-    [InlineData(@"docs\toolkit.md")]
     [InlineData("docs/sub/../toolkit.md")]
     [InlineData(".")]
     public void ContainedPathsResolve(string path)
@@ -50,6 +49,7 @@ public class RepositoryToolsTests
     [InlineData("bad\0name.txt")]
     [InlineData("fix.ps1::$DATA")]
     [InlineData(@"docs\toolkit.md:hidden")]
+    [InlineData(@"docs\toolkit.md")]
     public void PathsThatEscapeAreRefusedWithoutThrowing(string? path)
     {
         var root = CreateTemporaryDirectory();

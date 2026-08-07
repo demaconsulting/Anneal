@@ -18,7 +18,10 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 ///         rejected. Rooted, drive-qualified, cross-drive, UNC and device inputs are rejected, as is anything
 ///         climbing above the root through <c>..</c>. An alternate-data-stream suffix such as
 ///         <c>fix.ps1::$DATA</c> — which the runtime resolves to the file's own contents, defeating any check
-///         phrased over the resolved path — is rejected, as is any other path carrying a colon. A path the
+///         phrased over the resolved path — is rejected, as is any other path carrying a colon. A path
+///         carrying a backslash is rejected outright too, since a UNC form such as
+///         <c>\\server\share\x</c> is only recognized as rooted by the runtime on Windows; on Linux and
+///         macOS it would otherwise be treated as a literal, contained filename segment. A path the
 ///         runtime cannot parse at all — an embedded NUL,
 ///         an illegal character, an over-long name — is rejected too. It fails closed and never throws, because
 ///         a containment check that throws is one some caller will eventually wrap in a swallow.
@@ -74,6 +77,17 @@ public static class RepositoryPath
         // repository-relative path on any platform this runs on - a drive qualifier is already refused as
         // rooted - so refusing it outright closes the alias for every tool at once rather than for one check.
         if (relativePath.Contains(':', StringComparison.Ordinal))
+            return false;
+
+        // A backslash is refused outright for the identical reason: Path.IsPathRooted and Path.GetFullPath
+        // only recognize backslash as a directory separator on Windows, so a UNC form such as
+        // '\\server\share\x' is not rooted on Linux or macOS and Path.Combine/Path.GetFullPath there treat it
+        // as a literal, single-segment filename - one that happens to textually land inside the root, so the
+        // escape it names is never detected. RepositoryPath.Relative already renders every contained path back
+        // to the model using '/' alone, so a legitimate repository-relative path never contains a backslash;
+        // refusing it outright closes the alias for every platform at once rather than only for the one
+        // (Windows) where Path.IsPathRooted happens to catch it.
+        if (relativePath.Contains('\\', StringComparison.Ordinal))
             return false;
 
         string root, candidate, relative;
