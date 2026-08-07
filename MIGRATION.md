@@ -102,7 +102,7 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S12 — Compiled workers gain baseline standards-loading (S11 step 2's new prerequisite)
+### S12 — Compiled workers gain baseline standards-loading (S11 step 2's new prerequisite) — landed
 
 **Why this jumped the queue:** while designing S11 step 2 (flip `dispatch`'s Change-mode default to
 `route`), a live conversation surfaced a real, previously unexamined gap: prose agents (`apply`,
@@ -155,7 +155,73 @@ separate stage once this baseline is proven, not a prerequisite for it.
 reads and injects its fixed standards list before its first `Developer`/`DocumentAuthor` call; the
 validation trial is run and independently verified; `pwsh ./build.ps1` and `pwsh ./lint.ps1` pass.
 
-### S11 — Dispatch hands Change-mode work to the Router (step 2 blocked on S12)
+**Landed as designed, with one adjustment made honestly rather than silently.** A new
+`WorkerStandards.Render(repositoryRoot, params fileNames)` helper reads `.github/standards/{name}.md`
+verbatim and wraps each in a `<standard name="...">` tag; a missing file is skipped, not thrown,
+because a repository that has not installed a given standard (or has renamed one) must still get a
+worker that runs — the same "best effort over an optional read" posture `RepositoryFacts` already
+takes for `README.md` and `MIGRATION.md` itself. Each worker's own `Compose*Instruction` method now
+calls this helper and folds the result into a `<standards>` block, so every repair call carries the
+same content as the first call (`Compose*Instruction` is re-invoked on every repair, not cached).
+
+**Per-worker split, decided from what each worker's own doc comment and existing tests already say it
+does, not guessed:** `SmallFixWorker`'s own remit doc comment and its `DeterministicCheck` (which runs
+`build.ps1`'s full test suite) confirm it authors both code and tests, and
+`change-classification.md`'s own Small Fix entry names "test additions" explicitly — so it carries all
+four: `coding-principles.md`, `csharp-language.md`, `testing-principles.md`, `csharp-testing.md`.
+`ContractChangeWorker` and `StructuralChangeWorker` both already state, in their own constructor doc
+comments, that `Developer` "implement[s] code and tests" — so both give `DocumentAuthor` the
+documentation pair (`architecture-documentation.md`, `system-contracts.md`) and `Developer` the same
+four-standard code/testing set `SmallFixWorker` carries. `StructuralChangeWorker`'s `Planner` call
+additionally carries `change-classification.md` alone, since `Planner` is the one place this worker
+decides scope/plan shape and the plan itself is what a re-plan revises.
+
+**Ten new interior tests** (across `SmallFixWorkerTests`, `ContractChangeWorkerTests`,
+`StructuralChangeWorkerTests`) prove the split by installing marker-content standard files under a
+temporary repository root, running the worker against a `QueuedEndpoint` extended to capture every
+`ChatTurnRequest` it was asked to complete (a new `Requests` property, additive and non-breaking to
+every existing caller), and asserting each marker appears in the expected primitive's prompt and not
+in the wrong one — plus one "no standards installed" test per worker confirming the worker still
+completes normally rather than throwing. `pwsh ./build.ps1` passed 273 C# tests (+10 from this pass,
+0 regressions); `pwsh ./lint.ps1` passed clean (only pre-existing planned-obligation warnings for
+`installer.md`/`template.md`/`process.md`, unrelated to this stage); no contract clause was touched,
+confirmed by `check-contracts` reporting the same 72 clauses/72 test links as before this change.
+
+**Validation trial, run against a real model.** A throwaway fixture (`anneal-s12-trial`, outside this
+repository, same harness pattern as every prior live trial: a standalone console project referencing
+this repository's Toolkit project directly, calling `AnnealTool.RunAsync(["route", workItem], ...,
+[new RouteOperation(repositoryRoot)], repositoryRoot, ...)` against a real Copilot endpoint) carried a
+tiny C# `Calc` solution with one deliberate bug (its `Average` method divided by `values.Count + 1`
+and did not handle an empty list) and its own installed `.github/standards/csharp-testing.md` stating
+one deliberately unusual, non-default, hard-to-miss rule: every interior test method name in the
+repository **must** start with the literal prefix `Regression_` — a convention no generic model would
+produce unprompted, and distinct from the real `csharp-testing.md`'s own `{Subject}_{Method}_{Scenario}_
+{Expected}` convention, so compliance could not be mistaken for a coincidence. The work item asked
+`SmallFixWorker` (the simplest, cheapest path, reached via `route`) to fix the bug and add a
+regression test for the empty-list case. **The worker completed successfully on the first attempt**:
+the `Average` method was corrected (early-return 0 for an empty list, divide by `values.Count`
+otherwise), and the new test was named `Regression_AverageOfEmptyList_ReturnsZero` — honoring the
+fixture's own injected standard exactly, while the pre-existing test kept its original, differently-
+patterned name untouched. A fresh-shell `pwsh ./build.ps1` in the fixture passed 2/2 tests. The
+fixture and its harness were deleted afterward; `git status --short` in this repository was confirmed
+clean before landing, and shows only this stage's own files.
+
+**One honest caveat on the trial's own strength as evidence:** `Developer` is granted `Read` tools
+over the repository, so a sufficiently agentic model could in principle have discovered
+`csharp-testing.md` by reading it directly rather than from the injected `<standards>` block in its
+prompt — this stage cannot fully isolate "complied because it was told" from "complied because it
+looked it up itself" without disabling read tools, which would break the worker's normal operation.
+Both paths are consistent with this stage's own goal (a worker that is aware of and honors repository
+standards), so the trial still stands as positive evidence for the exit condition as written, and this
+caveat is recorded rather than hidden.
+
+**Deliberately not done here, per this stage's own declared scope:** the Router-seeded dynamic
+`RelevantStandards` oracle call, the repair-time static append keyed off which repair branch fired
+beyond the fixed per-primitive split above, and the embedded-assembly-resources/standalone-tool
+question remain open, real, and valuable — a separate stage once this baseline is proven, not folded
+in here.
+
+### S11 — Dispatch hands Change-mode work to the Router (step 1 done; step 2 now unblocked, not yet taken)
 
 S10 landed in full: Part A (commit `ed50468`) retired "Tier" everywhere in favor of Mode/Scope and
 the toolkit's own worker names; Part B (commit `0b28c93`) wired `Router` into a real `route` CLI
@@ -182,10 +248,12 @@ whether the oracle *recognizes* work that needs it and routes there correctly.
    (`StructuralChangeWorker`'s `Planner` step budget defect, found live and fixed) and `81259ed`
    (discovery-log entry).
 
-2. **Blocked on S12 landing and being validated.** Once that prerequisite closes, update
-   `.github/agents/dispatch.agent.md`: for Change-mode work specifically, `dispatch` hands off to the
-   `route` action instead of sequencing `architecture-update` → `apply` → `scope-check`. `dispatch`
-   keeps its other jobs unchanged — Intake (appending to `BACKLOG.md`/`CONSTRAINTS.md`/README
+2. **Was blocked on S12 landing and being validated; S12 has now landed (see its own entry above), so
+   this step is unblocked.** It has not been done in this session — updating
+   `.github/agents/dispatch.agent.md` is a separate follow-on left for a human to decide when to
+   pursue, per this stage's own instructions. Once done: for Change-mode work specifically, `dispatch`
+   hands off to the `route` action instead of sequencing `architecture-update` → `apply` → `scope-check`.
+   `dispatch` keeps its other jobs unchanged — Intake (appending to `BACKLOG.md`/`CONSTRAINTS.md`/README
    assumptions) and handing off Maintenance and Migration work — because `route`'s catalog covers none
    of those, and `Router`'s worker catalog is Change-mode only, not a general dispatcher replacement.
 
@@ -199,8 +267,8 @@ into `helper` — that remains a separate, later, named stage.
 
 **Exit conditions:** the Structural Change live trial is run and independently verified (or its
 defect fixed and re-verified) — **done**; `dispatch.agent.md` is updated and its Change-mode routing
-table entry reads `route` rather than `architecture-update` → `apply` → `scope-check` — **blocked on
-S12**; `pwsh ./lint.ps1` passes.
+table entry reads `route` rather than `architecture-update` → `apply` → `scope-check` — **unblocked
+now that S12 has landed, but not yet taken**; `pwsh ./lint.ps1` passes.
 
 **Step 1 is done: the Structural Change live trial ran, found and fixed a real defect, then confirmed
 correct routing end to end.** A throwaway fixture (`OrderPipeline`, outside this repository, same
