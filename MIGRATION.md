@@ -102,62 +102,8 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S9 — The Structural Change worker
-
-**Scope.** `StructuralChangeWorker` replaces the prose pipeline's Tier 2 handling
-(`architecture-update` → `apply` → `tier-check` run in sequence) with a single compiled worker, the
-fourth and last of the migration's four planned workers, alongside Small Fix (S8) and Contract Change
-(S8). Template Sync remains deferred.
-
-**Shape.** `Planner.PlanAsync(...)` runs once, producing an `ImplementationPlan` (which systems/tree
-levels change, whether a node is created or pruned, what code follows). Its steps compose the
-instruction text for `DocumentAuthor.AuthorAsync(...)` (constructed with a raised
-`targetFileCountBudget`, since a structural change routinely touches `overview.md` plus multiple
-system documents, not the single document Contract Change assumes) and then
-`Developer.DevelopAsync(...)`, followed by the same two `DeterministicCheck`s Contract Change already
-runs (`build.ps1`, `check-contracts.ps1 -Strict`) and a `Verifier.VerifyAsync(...)` pass.
-
-**The one addition to `VerificationVerdict`.** A new case, `StrategyRevisionRequired`, sits alongside
-the existing `DocumentationRepairRequired`/`CodeRepairRequired`/`BothRepairsRequired`/`RerouteRequired`.
-It names a different failure than a repair: the plan's decomposition itself was wrong, not its
-execution. On this verdict, the worker spends its **one** re-plan budget — a second, final
-`Planner.PlanAsync(...)` call, informed by what the first attempt got wrong — and restarts
-`DocumentAuthor` → `Developer` → checks → `Verifier` once. No budget resets afterward; a second
-`StrategyRevisionRequired` or an exhausted documentation/code repair budget reports `Failed` (or
-`Escalated`, only when the verifier names a specific fact only a person can supply — never for bare
-exhaustion).
-
-**Why this, and not a separate architecture-review oracle or a literal `RepairLoop<T>`.** Folding
-severity into `Verifier`'s own typed finding was chosen over bolting on a distinct
-`Oracle<ArchitectureReviewDecision>` step: `Verifier` already owns this worker's branching decision,
-and a second model-backed judgement pass buys no evidence of better outcomes that a single
-well-posed verdict doesn't already give — external precedent (LangGraph's Plan-Execute-Validate,
-SWE-Review) converges on exactly this single-triage-point shape rather than a separate pre-review
-stage. `RepairLoop<TState>` still doesn't fit, for the same reason Contract Change already found: the
-repair step is chosen dynamically per verdict among three owners now (`Planner`, `DocumentAuthor`,
-`Developer`), not fixed at construction, so this worker hand-rolls the contract the same way Contract
-Change does, extended by one more owner and one more budget.
-
-**Revises a prior decision, visibly.** [process.md](docs/architecture/process.md)'s committed sentence
-— *"a Structural Change worker uses a single-shot Planner outside any repair loop"* — becomes *"at
-most two Planner calls, both outside the documentation/code repair loop; a second call is spent only
-against a `StrategyRevisionRequired` verdict, never re-triggered by a repair finding."* This is a
-deliberate, recorded revision, not a silent widening.
-
-**Budgets, unchanged from Contract Change's precedent pending live evidence.** One re-plan, one
-documentation repair, one code repair — kept equal to Contract Change's existing 1+1 rather than
-widened per generic practitioner guidance (1 re-plan + 2–3 local repairs), because live
-smoke-testing is how S8 already decided repair-budget questions, and this stage should follow the
-same discipline rather than guess ahead of evidence.
-
-**No contract clause changes.** Same as S8: internal composition, no CLI/`IOperation` surface yet.
-That question is still open for whichever stage wires a `dotnet anneal` action to the Router.
-
-**Exit conditions:** `StructuralChangeWorker` exists, composes the primitives above, is proven by
-interior tests (fake-endpoint, mirroring Contract Change's test shape) covering the re-plan path, both
-repair paths, and exhaustion/escalation; `pwsh ./build.ps1` and `pwsh ./lint.ps1` both pass; a live
-smoke test (same throwaway-harness pattern as S8's) confirms the re-plan path actually fires and
-resolves correctly against a real model on a genuinely mis-planned structural change.
+No stage is in progress. S9 landed and is recorded in the discovery log below; the next stage is
+chosen fresh, the same way every prior one was, rather than following a schedule fixed in advance.
 
 ## Discovery log
 
@@ -400,3 +346,64 @@ the stage's own scope line always said.
 Fix, and Contract Change — are landed and covered by interior tests; `pwsh ./build.ps1` passes clean
 across all three passes' cumulative test count (241 C# tests, 9 process-contract, 43 check-contracts
 self-tests, all passing) with no contract clause touched and none broken.
+
+### S9 — The Structural Change worker — landed
+
+Built and landed in one pass rather than three, since S8 had already proven every primitive this stage
+composes; only `StructuralChangeWorker` itself and one new `VerificationVerdict` case were new.
+`Planner.PlanAsync(...)` runs once, producing an `ImplementationPlan` whose steps compose the
+instruction text for `DocumentAuthor.AuthorAsync(...)` — constructed with `targetFileCountBudget: 8`,
+a deliberately round number chosen to comfortably cover `overview.md` plus several system and section
+documents without ceasing to act as a budget — and then `Developer.DevelopAsync(...)`, followed by the
+same two `DeterministicCheck`s Contract Change already runs and a `Verifier.VerifyAsync(...)` pass. A
+new `VerificationVerdict.StrategyRevisionRequired` case names a different failure than a repair: the
+plan's decomposition itself was wrong, not its execution. On this verdict the worker spends its one
+re-plan budget — a second, final `Planner.PlanAsync(...)` call, fed the verifier's own finding — and
+restarts `DocumentAuthor` → `Developer` → checks → `Verifier` once; a second `StrategyRevisionRequired`
+or an exhausted documentation/code repair budget reports `Failed`. All three budgets (re-plan,
+documentation repair, code repair) are independent and none resets another, exactly as designed.
+
+**The design's "outside any repair loop" framing needed correcting once the code existed to check it
+against.** The doc-update pass that followed implementation re-read `StructuralChangeWorker.cs` itself
+rather than trusting the design doc or the implementation report, and found the re-plan path does
+re-enter `DocumentAuthor` → `Developer` → checks → `Verifier` the same way a documentation or code
+repair does — it is not, in fact, outside the loop. What stays independent is the *budget*, not the
+control flow: the re-plan budget is counted, spent and exhausted on its own, never borrowing headroom
+from or lending it to the documentation/code repair budgets. `process.md`'s Decisions section was
+revised to say this precisely, rather than leaving the original, now-inaccurate sentence standing
+next to code that contradicts it.
+
+**A live smoke test proved the ordinary path and could not induce the re-plan path — and found out
+why.** A throwaway harness (the same pattern S8 established: a standalone project exploiting
+`InternalsVisibleTo`, driving the real Copilot SDK against a scratch fixture outside this repository)
+ran `StructuralChangeWorker` once against a genuinely cross-system fixture requiring coordinated edits
+across three documents and two source files. `Planner`, `DocumentAuthor`, `Developer`, both
+`DeterministicCheck`s and `Verifier` all fired in the right order; the file changes were real and
+independently re-verified by re-running the fixture's own check scripts from a fresh shell after the
+worker finished. No repair or re-plan was spent, correctly, since the task was designed not to need
+one. A second, harder attempt tried twice, across two different fixtures, to induce a genuine
+`StrategyRevisionRequired` finding by hiding a cross-system invariant a first plan would plausibly
+miss — and could not. The reason is architectural, not a failure of effort: `Planner` alone has no tool
+access and judges from brief text only, but `DocumentAuthor` and `Developer` do have full repository
+tools and their own instructions are already open-ended, so a capable model routinely discovers and
+self-corrects exactly this kind of cross-system miss before any deterministic check or `Verifier` pass
+ever runs. `StrategyRevisionRequired` is therefore only reachable when every deterministic check
+already passes and `Verifier`, reading evidence text with no tool access of its own, judges the plan's
+decomposition wrong regardless — a narrower window than either the design or the interior tests alone
+would suggest. The re-plan control flow remains proven correct by interior tests against a scripted
+endpoint (exact call counts, budget isolation, no-third-attempt exhaustion); it is not yet proven to
+fire against a real model's own judgement, and this entry records why that is a harder, rarer condition
+to reach than a first reading of the design would assume, not an open defect.
+
+**Leaves working:** every existing prose agent; Template Sync is now the only remaining deferred
+worker, and no prose agent retires until it exists and is proven, per the migration's one-way
+invariant.
+
+**Exit conditions met:** `StructuralChangeWorker` is landed, covered by 9 interior tests spanning the
+happy path, both `PlanningDecision` non-`Plan` cases, single and exhausted documentation repair, single
+and exhausted re-plan, verifier reroute/escalation, and the two failure paths; `pwsh ./build.ps1` (255
+C# tests, 9 process-contract, 43 check-contracts self-tests, all passing) and `pwsh ./lint.ps1` both
+pass with no contract clause touched or broken; a live smoke test confirmed the ordinary path
+end-to-end against a real model with independent verification, and the re-plan path's non-firing
+across two deliberate attempts is recorded above as a characterized, understood boundary rather than
+an unexamined gap.
