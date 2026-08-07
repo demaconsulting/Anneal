@@ -72,6 +72,30 @@ internal sealed class StructuralChangeWorker
         required fixes, when this change does not belong to a structural worker at all.
         """;
 
+    /// <summary>
+    ///     The fixed standards injected into every <see cref="Planner" /> call, mirroring
+    ///     <c>AGENTS.md</c>'s "Classifying work" entry — <see cref="Planner" /> is the one place this worker
+    ///     decides scope/plan shape, so it is the place a re-plan needs classification guidance most.
+    /// </summary>
+    private static readonly string[] PlannerStandards = ["change-classification.md"];
+
+    /// <summary>
+    ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call, mirroring <c>AGENTS.md</c>'s
+    ///     own "Standards Application" table for the documentation half of this worker's split.
+    /// </summary>
+    private static readonly string[] DocumentAuthorStandards =
+        ["architecture-documentation.md", "system-contracts.md"];
+
+    /// <summary>
+    ///     The fixed standards injected into every <see cref="Developer" /> call, mirroring <c>AGENTS.md</c>'s own
+    ///     "Standards Application" table for the code half of this worker's split: coding and C# language always,
+    ///     plus testing and C# testing since this worker's own charter has <see cref="Developer" /> "implement code
+    ///     and tests against the plan and documentation the earlier passes just produced".
+    /// </summary>
+    private static readonly string[] DeveloperStandards =
+        ["coding-principles.md", "csharp-language.md", "testing-principles.md", "csharp-testing.md"];
+
+    private readonly string _repositoryRoot;
     private readonly Planner _planner;
     private readonly DocumentAuthor _documentAuthor;
     private readonly Developer _developer;
@@ -195,6 +219,7 @@ internal sealed class StructuralChangeWorker
 
         var root = Path.GetFullPath(repositoryRoot);
 
+        _repositoryRoot = root;
         _planner = new Planner(root, plannerCharter, maxPlanSteps: maxPlanSteps, endpointFor: endpointFor);
         _documentAuthor = new DocumentAuthor(
             root, documentAuthorCharter, targetFileCountBudget: documentAuthorTargetFileCountBudget, endpointFor: endpointFor);
@@ -492,7 +517,7 @@ internal sealed class StructuralChangeWorker
             ? "the verifier concluded this change needs to be rerouted, with no further reason recorded"
             : string.Join("; ", finding.RequiredFixes);
 
-    private static string ComposePlanningQuestion(WorkerBrief brief, IReadOnlyList<string>? priorFindings) =>
+    private string ComposePlanningQuestion(WorkerBrief brief, IReadOnlyList<string>? priorFindings) =>
         priorFindings is null or []
             ? $"""
                {brief.OriginalWorkItem}
@@ -510,6 +535,10 @@ internal sealed class StructuralChangeWorker
                <prior-reroutes>
                {RenderReroutes(brief)}
                </prior-reroutes>
+
+               <standards>
+               {WorkerStandards.Render(_repositoryRoot, PlannerStandards)}
+               </standards>
                """
             : $"""
                {brief.OriginalWorkItem}
@@ -520,9 +549,13 @@ internal sealed class StructuralChangeWorker
                {string.Join("\n", priorFindings)}
 
                Why this worker was selected: {brief.ScopeHint}
+
+               <standards>
+               {WorkerStandards.Render(_repositoryRoot, PlannerStandards)}
+               </standards>
                """;
 
-    private static string ComposeDocumentInstruction(WorkerBrief brief, ImplementationPlan? plan) =>
+    private string ComposeDocumentInstruction(WorkerBrief brief, ImplementationPlan? plan) =>
         $"""
          {brief.OriginalWorkItem}
 
@@ -540,9 +573,13 @@ internal sealed class StructuralChangeWorker
          <prior-reroutes>
          {RenderReroutes(brief)}
          </prior-reroutes>
+
+         <standards>
+         {WorkerStandards.Render(_repositoryRoot, DocumentAuthorStandards)}
+         </standards>
          """;
 
-    private static string ComposeCodeInstruction(WorkerBrief brief, ImplementationPlan? plan, DocumentChangeSet documentChanges) =>
+    private string ComposeCodeInstruction(WorkerBrief brief, ImplementationPlan? plan, DocumentChangeSet documentChanges) =>
         $"""
          {brief.OriginalWorkItem}
 
@@ -558,6 +595,10 @@ internal sealed class StructuralChangeWorker
          <research-findings>
          {RenderResearch(brief)}
          </research-findings>
+
+         <standards>
+         {WorkerStandards.Render(_repositoryRoot, DeveloperStandards)}
+         </standards>
          """;
 
     private static string ComposeRepairInstruction(string originalInstruction, IReadOnlyList<string> requiredFixes) =>

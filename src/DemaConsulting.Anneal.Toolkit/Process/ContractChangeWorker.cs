@@ -50,6 +50,22 @@ internal sealed class ContractChangeWorker
     private const string ContractCheckScript = "check-contracts.ps1";
 
     /// <summary>
+    ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call, mirroring <c>AGENTS.md</c>'s
+    ///     own "Standards Application" table for the documentation half of this worker's split.
+    /// </summary>
+    private static readonly string[] DocumentAuthorStandards =
+        ["architecture-documentation.md", "system-contracts.md"];
+
+    /// <summary>
+    ///     The fixed standards injected into every <see cref="Developer" /> call, mirroring <c>AGENTS.md</c>'s own
+    ///     "Standards Application" table for the code half of this worker's split: coding and C# language always,
+    ///     plus testing and C# testing since this worker's own charter has <see cref="Developer" /> "implement code
+    ///     and tests against the clauses that just changed".
+    /// </summary>
+    private static readonly string[] DeveloperStandards =
+        ["coding-principles.md", "csharp-language.md", "testing-principles.md", "csharp-testing.md"];
+
+    /// <summary>
     ///     The narrower question a <see cref="Verifier" /> answers once its deterministic evidence has passed.
     ///     Names both reroute conditions explicitly, so a single <see cref="VerificationVerdict.RerouteRequired" />
     ///     verdict carries whichever reason applies, rather than this worker trying to detect either condition
@@ -66,6 +82,7 @@ internal sealed class ContractChangeWorker
         not a routine contract change.
         """;
 
+    private readonly string _repositoryRoot;
     private readonly DocumentAuthor _documentAuthor;
     private readonly Developer _developer;
     private readonly DeterministicCheck _buildCheck;
@@ -155,6 +172,7 @@ internal sealed class ContractChangeWorker
 
         var root = Path.GetFullPath(repositoryRoot);
 
+        _repositoryRoot = root;
         _documentAuthor = new DocumentAuthor(root, documentAuthorCharter, endpointFor: endpointFor);
         _developer = new Developer(root, developerCharter, endpointFor: endpointFor);
         _buildCheck = new DeterministicCheck(root, runScript: buildRunScript);
@@ -381,7 +399,7 @@ internal sealed class ContractChangeWorker
             ? "the verifier concluded this change needs to be rerouted, with no further reason recorded"
             : string.Join("; ", finding.RequiredFixes);
 
-    private static string ComposeDocumentInstruction(WorkerBrief brief) =>
+    private string ComposeDocumentInstruction(WorkerBrief brief) =>
         $"""
          {brief.OriginalWorkItem}
 
@@ -397,9 +415,13 @@ internal sealed class ContractChangeWorker
          <prior-reroutes>
          {RenderReroutes(brief)}
          </prior-reroutes>
+
+         <standards>
+         {WorkerStandards.Render(_repositoryRoot, DocumentAuthorStandards)}
+         </standards>
          """;
 
-    private static string ComposeCodeInstruction(WorkerBrief brief, DocumentChangeSet documentChanges) =>
+    private string ComposeCodeInstruction(WorkerBrief brief, DocumentChangeSet documentChanges) =>
         $"""
          {brief.OriginalWorkItem}
 
@@ -413,6 +435,10 @@ internal sealed class ContractChangeWorker
          <research-findings>
          {RenderResearch(brief)}
          </research-findings>
+
+         <standards>
+         {WorkerStandards.Render(_repositoryRoot, DeveloperStandards)}
+         </standards>
          """;
 
     private static string ComposeRepairInstruction(string originalInstruction, IReadOnlyList<string> requiredFixes) =>

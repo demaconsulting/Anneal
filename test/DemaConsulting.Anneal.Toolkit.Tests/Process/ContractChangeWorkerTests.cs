@@ -67,6 +67,94 @@ public class ContractChangeWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_ComposesInstructions_SplitsStandardsBetweenDocumentAuthorAndDeveloper()
+    {
+        // Arrange: S12 - DocumentAuthor gets the documentation standards, Developer gets the code/testing
+        // standards, matching this worker's own documentation/code split.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            WriteStandard(root, "architecture-documentation.md", "MARKER-ARCH-DOC");
+            WriteStandard(root, "system-contracts.md", "MARKER-SYSTEM-CONTRACTS");
+            WriteStandard(root, "coding-principles.md", "MARKER-CODING-PRINCIPLE");
+            WriteStandard(root, "csharp-language.md", "MARKER-CSHARP-LANGUAGE");
+            WriteStandard(root, "testing-principles.md", "MARKER-TESTING-PRINCIPLE");
+            WriteStandard(root, "csharp-testing.md", "MARKER-CSHARP-TESTING");
+
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
+                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root,
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            var documentAuthorText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            var developerText = string.Join("\n", endpoint.Requests[2].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("MARKER-ARCH-DOC", documentAuthorText),
+                () => Assert.Contains("MARKER-SYSTEM-CONTRACTS", documentAuthorText),
+                () => Assert.DoesNotContain("MARKER-CODING-PRINCIPLE", documentAuthorText),
+                () => Assert.Contains("MARKER-CODING-PRINCIPLE", developerText),
+                () => Assert.Contains("MARKER-CSHARP-LANGUAGE", developerText),
+                () => Assert.Contains("MARKER-TESTING-PRINCIPLE", developerText),
+                () => Assert.Contains("MARKER-CSHARP-TESTING", developerText),
+                () => Assert.DoesNotContain("MARKER-ARCH-DOC", developerText));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_StandardFileMissing_DegradesGracefullyWithoutThrowing()
+    {
+        // Arrange: S12 - a repository that has not installed a given standard must not fail the worker.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
+                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root,
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_DocumentAuthorReroutes_ReturnsRerouteWithoutRunningDeveloperOrChecks()
     {
         // Arrange
@@ -613,5 +701,12 @@ public class ContractChangeWorkerTests
         var root = Path.Combine(Path.GetTempPath(), "anneal-contract-change-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    private static void WriteStandard(string root, string fileName, string content)
+    {
+        var directory = Path.Combine(root, ".github", "standards");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), content);
     }
 }

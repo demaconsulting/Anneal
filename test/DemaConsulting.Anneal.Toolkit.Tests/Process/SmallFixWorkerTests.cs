@@ -158,6 +158,74 @@ public class SmallFixWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_ComposesInstruction_IncludesCodingAndTestingStandardsContent()
+    {
+        // Arrange: S12 - a compiled worker now injects its own fixed standards list into the Developer prompt.
+        // SmallFixWorker's own remit is code and tests (its deterministic check runs build.ps1's full test
+        // suite), so it carries coding, csharp-language, testing, and csharp-testing standards.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            WriteStandard(root, "coding-principles.md", "MARKER-CODING-PRINCIPLE");
+            WriteStandard(root, "csharp-language.md", "MARKER-CSHARP-LANGUAGE");
+            WriteStandard(root, "testing-principles.md", "MARKER-TESTING-PRINCIPLE");
+            WriteStandard(root, "csharp-testing.md", "MARKER-CSHARP-TESTING");
+
+            var endpoint = new QueuedEndpoint(
+                "I made the change.",
+                """{"kind": "Completed", "why": "", "suggestedWorker": "", "filesChanged": ["a.cs"], "summary": "fixed it"}""");
+
+            Task<ScriptRun> BuildCheck(string script, CancellationToken cancellationToken) =>
+                Task.FromResult(new ScriptRun(0, "all good"));
+
+            var worker = new SmallFixWorker(root, "a charter", endpointFor: _ => endpoint, runScript: BuildCheck);
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: the first (only) Developer call's user message carries every standard's content verbatim.
+            var userText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("MARKER-CODING-PRINCIPLE", userText),
+                () => Assert.Contains("MARKER-CSHARP-LANGUAGE", userText),
+                () => Assert.Contains("MARKER-TESTING-PRINCIPLE", userText),
+                () => Assert.Contains("MARKER-CSHARP-TESTING", userText));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_StandardFileMissing_DegradesGracefullyWithoutThrowing()
+    {
+        // Arrange: S12 - a repository that has not installed a given standard must not fail the worker.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I made the change.",
+                """{"kind": "Completed", "why": "", "suggestedWorker": "", "filesChanged": ["a.cs"], "summary": "fixed it"}""");
+
+            Task<ScriptRun> BuildCheck(string script, CancellationToken cancellationToken) =>
+                Task.FromResult(new ScriptRun(0, "all good"));
+
+            var worker = new SmallFixWorker(root, "a charter", endpointFor: _ => endpoint, runScript: BuildCheck);
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: no standards were installed under root, and the worker still completes normally.
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_NoModelAvailable_Fails()
     {
         // Arrange
@@ -188,5 +256,12 @@ public class SmallFixWorkerTests
         var root = Path.Combine(Path.GetTempPath(), "anneal-small-fix-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    private static void WriteStandard(string root, string fileName, string content)
+    {
+        var directory = Path.Combine(root, ".github", "standards");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), content);
     }
 }

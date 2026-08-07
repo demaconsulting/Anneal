@@ -71,6 +71,102 @@ public class StructuralChangeWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_ComposesInstructions_SplitsStandardsAcrossPlannerDocumentAuthorAndDeveloper()
+    {
+        // Arrange: S12 - Planner gets change-classification.md (it's the one place this worker decides scope/plan
+        // shape), DocumentAuthor gets the documentation standards, Developer gets the code/testing standards.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            WriteStandard(root, "change-classification.md", "MARKER-CLASSIFICATION");
+            WriteStandard(root, "architecture-documentation.md", "MARKER-ARCH-DOC");
+            WriteStandard(root, "system-contracts.md", "MARKER-SYSTEM-CONTRACTS");
+            WriteStandard(root, "coding-principles.md", "MARKER-CODING-PRINCIPLE");
+            WriteStandard(root, "csharp-language.md", "MARKER-CSHARP-LANGUAGE");
+            WriteStandard(root, "testing-principles.md", "MARKER-TESTING-PRINCIPLE");
+            WriteStandard(root, "csharp-testing.md", "MARKER-CSHARP-TESTING");
+
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
+                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            var plannerText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            var documentAuthorText = string.Join("\n", endpoint.Requests[1].Messages.Select(m => m.Text));
+            var developerText = string.Join("\n", endpoint.Requests[3].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("MARKER-CLASSIFICATION", plannerText),
+                () => Assert.DoesNotContain("MARKER-ARCH-DOC", plannerText),
+                () => Assert.Contains("MARKER-ARCH-DOC", documentAuthorText),
+                () => Assert.Contains("MARKER-SYSTEM-CONTRACTS", documentAuthorText),
+                () => Assert.DoesNotContain("MARKER-CODING-PRINCIPLE", documentAuthorText),
+                () => Assert.Contains("MARKER-CODING-PRINCIPLE", developerText),
+                () => Assert.Contains("MARKER-CSHARP-LANGUAGE", developerText),
+                () => Assert.Contains("MARKER-TESTING-PRINCIPLE", developerText),
+                () => Assert.Contains("MARKER-CSHARP-TESTING", developerText),
+                () => Assert.DoesNotContain("MARKER-ARCH-DOC", developerText));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_StandardFileMissing_DegradesGracefullyWithoutThrowing()
+    {
+        // Arrange: S12 - a repository that has not installed a given standard must not fail the worker.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
+                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_PlanWithTenStepsUnderRaisedDefaultBudget_StillCompletes()
     {
         // Arrange: S11's live routing trials found a genuinely-scoped structural change (one new system
@@ -535,5 +631,12 @@ public class StructuralChangeWorkerTests
         var root = Path.Combine(Path.GetTempPath(), "anneal-structural-change-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    private static void WriteStandard(string root, string fileName, string content)
+    {
+        var directory = Path.Combine(root, ".github", "standards");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, fileName), content);
     }
 }

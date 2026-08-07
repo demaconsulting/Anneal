@@ -39,6 +39,17 @@ internal sealed class SmallFixWorker
     /// <summary>The repository-relative build/test script this worker's deterministic check runs.</summary>
     private const string BuildScript = "build.ps1";
 
+    /// <summary>
+    ///     The fixed standards this worker injects into every <see cref="Developer" /> call, mirroring
+    ///     <c>AGENTS.md</c>'s own "Standards Application" table: coding and C# language always, since this worker
+    ///     only ever authors code, plus testing and C# testing — <c>change-classification.md</c>'s own Small Fix
+    ///     entry names "test additions" explicitly, and this worker's single deterministic check already runs
+    ///     <c>build.ps1</c>'s full test suite, so a fix this worker authors routinely touches test files too.
+    /// </summary>
+    private static readonly string[] DeveloperStandards =
+        ["coding-principles.md", "csharp-language.md", "testing-principles.md", "csharp-testing.md"];
+
+    private readonly string _repositoryRoot;
     private readonly Developer _developer;
     private readonly DeterministicCheck _check;
     private readonly RepairLoop<DevelopmentResult> _repairLoop;
@@ -79,6 +90,7 @@ internal sealed class SmallFixWorker
         ArgumentNullException.ThrowIfNull(developerCharter);
         ArgumentOutOfRangeException.ThrowIfNegative(maxRepairAttempts);
 
+        _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _developer = new Developer(repositoryRoot, developerCharter, endpointFor: endpointFor);
         _check = new DeterministicCheck(repositoryRoot, runScript: runScript);
         _repairLoop = new RepairLoop<DevelopmentResult>(maxRepairAttempts);
@@ -105,7 +117,7 @@ internal sealed class SmallFixWorker
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var instruction = ComposeInstruction(brief);
+        var instruction = ComposeInstruction(brief, _repositoryRoot);
 
         // The initial state is never read by Execute (which builds its result from `instruction` and
         // `requiredFixes` alone, not from a prior state), so a null starting point is safe here.
@@ -191,7 +203,7 @@ internal sealed class SmallFixWorker
                 check.Notes);
     }
 
-    private static string ComposeInstruction(WorkerBrief brief)
+    private static string ComposeInstruction(WorkerBrief brief, string repositoryRoot)
     {
         var research = brief.RelevantResearchFindings.Count == 0
             ? "none"
@@ -213,6 +225,10 @@ internal sealed class SmallFixWorker
                 <prior-reroutes>
                 {reroutes}
                 </prior-reroutes>
+
+                <standards>
+                {WorkerStandards.Render(repositoryRoot, DeveloperStandards)}
+                </standards>
                 """;
     }
 }
