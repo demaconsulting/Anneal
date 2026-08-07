@@ -163,6 +163,86 @@ public class RouterTests
     }
 
     [Fact]
+    public async Task RunAsync_NeedsResearchReportsInsufficientEvidence_StillRunsResearchAndSucceeds()
+    {
+        // Arrange: NeedResearch is the one decision kind where HasSufficientEvidence: false is the honest,
+        // expected reply - not a refusal to answer at all - per RouteCharter's own instruction to ask for a
+        // bounded look-around rather than guess. A live run against a real model produced exactly this
+        // shape and, before this test's own fix, it made Router.RunAsync fail closed immediately instead of
+        // spending its research budget as designed.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                NeedResearchJson("what changed recently?", "not enough context yet", hasSufficientEvidence: false),
+                ResearchFindingJson("what changed recently?", "nothing unusual", sufficientForNextDecision: true),
+                SelectWorkerJson("small-fix", "now it is clear"));
+            var researchEndpoint = new QueuedEndpoint("Looking around.");
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new StepResult<WorkerRunResult>(
+                OperationOutcome.Succeeded,
+                new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                []));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix the bug", null, TestContext.Current.CancellationToken);
+
+            // Assert: research actually ran rather than the run failing closed on the first ask
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
+                () => Assert.Equal(1, researchEndpoint.Calls));
+
+            var records = ReadRecords(root);
+            Assert.Multiple(
+                () => Assert.Equal(4, records.Count),
+                () => Assert.Equal("RouteOracle", records[0].Step),
+                () => Assert.Equal("Research", records[1].Step),
+                () => Assert.Equal("RouteOracle", records[2].Step),
+                () => Assert.Equal("Worker:small-fix", records[3].Step));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_SelectWorkerReportsInsufficientEvidence_FailsClosedWithoutRunningTheWorker()
+    {
+        // Arrange: SelectWorker with HasSufficientEvidence: false is a genuinely contradictory reply - the
+        // oracle named a worker while itself saying it lacks the evidence to commit to that answer - unlike
+        // NeedResearch, where the same flag is the expected, honest signal. This must still fail closed.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "maybe this", hasSufficientEvidence: false));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix the bug", null, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_ResearchBudgetAlreadyExhausted_FailsWithoutRunningResearch()
     {
         // Arrange: a research budget of zero means the very first NeedResearch fails closed
@@ -380,14 +460,14 @@ public class RouterTests
             endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
     }
 
-    private static string SelectWorkerJson(string workerKey, string why) =>
+    private static string SelectWorkerJson(string workerKey, string why, bool hasSufficientEvidence = true) =>
         $$"""
-          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":true}
+          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
           """;
 
-    private static string NeedResearchJson(string question, string why) =>
+    private static string NeedResearchJson(string question, string why, bool hasSufficientEvidence = true) =>
         $$"""
-          {"kind":"NeedResearch","why":"{{why}}","workerKey":"","question":"{{question}}","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":true}
+          {"kind":"NeedResearch","why":"{{why}}","workerKey":"","question":"{{question}}","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
           """;
 
     private static string NoRouteJson(string why, string humanOnlyNextStep) =>

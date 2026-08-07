@@ -176,7 +176,16 @@ internal sealed class Router
 
             RecordStep(parentInvocationId, "RouteOracle", askResult.Outcome, researchBudget, rerouteBudget);
 
-            if (askResult.Outcome is OperationOutcome.Failed or OperationOutcome.Refused)
+            // Only a genuine communication failure (no envelope was ever decoded) stops here. A Refused
+            // outcome still carries a decoded envelope - see Oracle<TDecision>.AskAsync - and for
+            // RouteDecisionKind.NeedResearch, HasSufficientEvidence: false is not a refusal to answer at
+            // all: it is the oracle honestly reporting the exact condition RouteCharter tells it to report
+            // ("ask for a bounded, narrow look-around ... do not guess"). Discarding that envelope here,
+            // as an earlier version of this method did, silently turned every honest research request into
+            // an immediate failure and left the research budget below never spent on the path it exists
+            // for - caught by a live run against a real model, where the fake-endpoint tests never
+            // exercised this because their own NeedResearch fixture hardcoded HasSufficientEvidence: true.
+            if (askResult.Outcome is OperationOutcome.Failed)
                 return Fail(ledger, "the route oracle could not be asked or could not answer on the evidence given");
 
             var envelope = askResult.Finding!;
@@ -212,6 +221,15 @@ internal sealed class Router
                         ledger.ResearchHistory.Add(researched.Finding);
 
                     continue;
+
+                // A SelectWorker envelope reached with Refused means the oracle named a worker while
+                // itself reporting insufficient evidence to commit to that answer - a genuinely
+                // contradictory reply, unlike NeedResearch above, where reporting insufficient evidence is
+                // the expected and honest signal. This is failed closed rather than run, exactly as it was
+                // before this method started distinguishing NeedResearch from a true refusal.
+                case RouteDecision.SelectWorker when askResult.Outcome != OperationOutcome.Succeeded:
+                    return Fail(
+                        ledger, "the route oracle named a worker but reported insufficient evidence to commit to it");
 
                 case RouteDecision.SelectWorker selectWorker:
                     ledger.ClassificationHypothesis = selectWorker.Why;

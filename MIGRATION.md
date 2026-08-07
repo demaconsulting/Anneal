@@ -535,3 +535,68 @@ re-verified by hand — the one exit condition S9's own entry noted no prior sta
 
 **What this stage does not do:** `dispatch`, `apply`, `architecture-update`, and `scope-check` are not
 retired by this pass — that remains a later stage, as S10's own text said it would.
+
+**Two further live trials, run after this stage first landed, built more confidence in the oracle's
+own judgement and caught a real defect.** One clean easy case (above) does not prove the oracle handles
+harder calls; two more real work items were routed against the real Copilot SDK, using the same
+harness pattern, each in its own throwaway scratch fixture repository outside this one.
+
+*Trial 1 — Contract Change.* A tiny `WidgetApi` fixture with one contract clause (`WIDGET-01`,
+`WidgetService.GetWidget` returning `Id`/`Name`) was handed a work item asking for a new optional
+`Description` field on the response, documented as part of the contract — the classification
+`change-classification.md`'s own worked-examples table names directly ("Add an optional field to an
+API response … New consumer-observable promise"). The oracle's **first** ask returned `NeedResearch`
+with `HasSufficientEvidence: false` ("I need a narrow look-around to find the contract document,
+response type, and existing test/requirement linkage before routing it"); `Router.RunAsync` then
+failed the run closed immediately instead of spending its research budget — see the defect below. On a
+second, independent invocation the oracle answered directly: `SelectWorker → contract-change`,
+reasoning "this work changes the Widget API contract by adding a new response field and explicitly
+documenting it." `ContractChangeWorker` updated `WIDGET-01`'s prose to describe the new optional field,
+added `WidgetResponse.Description`, wired it through `WidgetService`, and added a second contract test
+— all cited correctly in the updated clause. Independent verification: reading every changed file by
+hand matched the tool's own summary; a fresh-shell `build.ps1` passed 2/2 tests; a fresh-shell
+`check-contracts.ps1 -Strict` reported "1 clauses, 1 test links checked" clean; `git diff --stat` in
+the fixture showed exactly the four files the tool reported, nothing else. Correct on every count.
+
+*Trial 2 — a genuinely ambiguous case.* An `AgeParser` fixture's one contract clause (`AGE-01`) promised
+only that `ParseAge` parses text to an integer, throwing on non-numeric input — silent on the sign of
+the result. The work item asked to make `ParseAge` reject negative input, matching the shape of
+`change-classification.md`'s own "Tighten input validation … Narrows a clause; breaking" worked
+example, but genuinely arguable the other way since the clause never promised anything about negative
+numbers to begin with. The oracle answered `SelectWorker → small-fix` in one pass, reasoning "this is a
+localized code fix and test addition inside an existing component, with no contract-document or
+architecture change implied." `SmallFixWorker` added the `ArgumentException` check and one new test,
+touching no documentation. Independent verification: the two changed files matched the tool's report
+exactly; a fresh-shell `build.ps1` passed 2/2; `check-contracts.ps1 -Strict` still reported the one
+clause and its (unchanged) test cleanly. **Assessment:** defensible, not the only possible answer — the
+contract's own silence on sign supports reading this as filling a gap rather than narrowing a promise,
+which is different from `change-classification.md`'s own worked example (there, the clause it narrows
+is a stated one). The oracle's stated reasoning does not show it weighed the countervailing read at
+all — it asserts "no contract-document change implied" without engaging with why tightening validation
+might narrow an implicit promise, so an honest reading is that it picked a defensible path without
+visibly recognizing the two-sided nature of the call, not that it consciously chose the higher scope
+per `change-classification.md`'s own "when genuinely uncertain, choose the higher one" guidance.
+
+**A real defect was found and fixed from Trial 1's first invocation.** `Router.RunAsync` treated
+`OperationOutcome.Refused` from the route oracle identically to `OperationOutcome.Failed` — an
+immediate hard stop discarding the decoded envelope — before ever checking whether the decision was
+`RouteDecisionKind.NeedResearch`. But `Oracle<TDecision>.AskAsync` maps `HasSufficientEvidence: false`
+to `Refused` unconditionally, and for `NeedResearch` specifically, `HasSufficientEvidence: false` is
+not a failure to answer — it is `RouteCharter`'s own instructed, honest signal ("ask for a bounded,
+narrow look-around ... do not guess"). The `RouteDecision.NeedResearch` case already existed in
+`Router.RunAsync`'s own switch statement, spending the research budget correctly — it was simply
+unreachable on this path, because the fake-endpoint interior test for it
+(`RunAsync_NeedsResearchThenSelectsWorker_RunsResearchAndSucceeds`) hardcoded
+`"hasSufficientEvidence":true` in its own `NeedResearchJson` fixture helper, masking the exact
+condition a real model produces. **Fix:** `Router.RunAsync` now stops immediately only on a true
+`Failed` outcome (no envelope was ever decoded); a `Refused` outcome still decodes its envelope and is
+switched on exactly as `Succeeded` is, so `NeedResearch` spends its research budget as designed
+whichever outcome carried it, while `SelectWorker` reached with `Refused` still fails closed (a
+worker name paired with "I don't have enough evidence to commit to this" is a genuinely contradictory
+reply, unlike `NeedResearch`, where the same flag is expected). Two new interior tests
+(`RunAsync_NeedsResearchReportsInsufficientEvidence_StillRunsResearchAndSucceeds` and
+`RunAsync_SelectWorkerReportsInsufficientEvidence_FailsClosedWithoutRunningTheWorker`) lock in both
+halves of the corrected behavior; all pre-existing `RouterTests` still pass. Fixed in
+`src/DemaConsulting.Anneal.Toolkit/Process/Router.cs` and
+`test/DemaConsulting.Anneal.Toolkit.Tests/Process/RouterTests.cs`, verified by `pwsh ./build.ps1` (265
+C# tests, +2 from this pass) and `pwsh ./lint.ps1`.
