@@ -46,7 +46,7 @@ what the worker actually changed, so neither rule depends on a model's good beha
   worker names a reroute, when a protected-path write is refused, or when either post-run check below
   (`TOOLKIT-30`, `TOOLKIT-31`) trips; and fails when the worker's repair budget is exhausted or no
   model could be reached.
-  *Verified by:* `TODO.MaintainRunsDeclaredBoundDirectlyThroughSmallFixWorker`
+  *Verified by:* `MaintainRunsDeclaredBoundDirectlyThroughSmallFixWorker`
 
 - **TOOLKIT-30** — After the worker's run, `maintain` checks the actual files the worker reports having
   changed against the declared file-scope bound by strict-subset containment — the same mechanical
@@ -54,7 +54,7 @@ what the worker actually changed, so neither rule depends on a model's good beha
   worker's real output instead of a phase's declared intent. Every changed file must be contained by an
   entry the bound declared; a changed file the bound did not cover forces the same escalation outcome
   `TOOLKIT-29` defines, naming the offending file, rather than being reported as an unqualified success.
-  *Verified by:* `TODO.MaintainEscalatesWhenActualChangesExceedTheDeclaredBound`
+  *Verified by:* `MaintainEscalatesWhenActualChangesExceedTheDeclaredBound`
 
 - **TOOLKIT-31** — After the worker's run, `maintain` runs `ProtectedPathTripwire` — unchanged from its
   existing form, reused exactly as `TOOLKIT-27` already uses it — against the worker's actual
@@ -64,7 +64,7 @@ what the worker actually changed, so neither rule depends on a model's good beha
   "Maintenance may never edit the architecture tree, `CONSTRAINTS.md`, or `BACKLOG.md`" rule: a finding
   the tripwire reports is escalated to a person, never silently discarded and never silently allowed to
   stand as a completed Maintenance run.
-  *Verified by:* `TODO.MaintainEscalatesWhenActualChangesTripTheProtectedPathCheck`
+  *Verified by:* `MaintainEscalatesWhenActualChangesTripTheProtectedPathCheck`
 
 ### Requires
 

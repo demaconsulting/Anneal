@@ -167,6 +167,40 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         return (exitCode, writer.ToString());
     }
 
+    /// <summary>
+    ///     Runs a real, in-process <c>maintain</c> invocation against this fixture's working tree.
+    /// </summary>
+    /// <param name="workItem">The Maintenance work item text. Must not be null or blank.</param>
+    /// <param name="declaredBound">
+    ///     The file-scope bound entries to declare, positionally after the work item. Must not be null; must not
+    ///     be empty, since <c>maintain</c> reports a usage error rather than running with no declared bound.
+    /// </param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the run.</param>
+    /// <returns>The exit code <see cref="AnnealTool" /> reached, and everything it wrote to its output.</returns>
+    /// <remarks>
+    ///     Same rationale as <see cref="RunRouteAsync" />: the worker's deterministic build check is stubbed
+    ///     (<see cref="StubScriptRunner" />) since this throwaway fixture ships no real <c>build.ps1</c>, while
+    ///     every other path — <see cref="Operations.MaintainOperation" />, <c>SmallFixWorker</c>'s real reasoning,
+    ///     and the grading oracle — runs for real, against a real endpoint.
+    /// </remarks>
+    public async Task<(int ExitCode, string Output)> RunMaintainAsync(
+        string workItem, IReadOnlyList<string> declaredBound, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workItem);
+        ArgumentNullException.ThrowIfNull(declaredBound);
+
+        var operation = new MaintainOperation(RepositoryRoot, buildRunScript: StubScriptRunner);
+        var writer = new StringWriter();
+
+        var exitCode = await AnnealTool
+            .RunAsync(
+                [operation.Name, workItem, .. declaredBound], writer, [operation], RepositoryRoot,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return (exitCode, writer.ToString());
+    }
+
     private static Task<ScriptRun> StubScriptRunner(string script, CancellationToken cancellationToken) =>
         Task.FromResult(new ScriptRun(0, $"live trial stub: '{script}' was not run against this throwaway fixture"));
 
