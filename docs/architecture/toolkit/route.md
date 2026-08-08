@@ -37,6 +37,33 @@ the report separately from the completion fields.
   never null and are empty when no files were written before the worker stopped.
   *Verified by:* `Toolkit23InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`
 
+- **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
+  the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and
+  reports the classified value alongside whatever outcome the run reaches.
+  *Verified by:* `TODO.RouteReportsClassifiedEffort`
+
+- **TOOLKIT-26** — When `route` classifies a work item's Effort as Massive, it does not select a worker
+  for that item directly. It decomposes the item into phases and clears a mandatory cumulative check,
+  run once over the whole proposed phase set, before any phase is routed; only once that check clears
+  does `route` re-route each phase through the same Router. Every generated phase's declared file scope
+  is a strict subset of the file scope the original item's own classification already cleared — never
+  equal to it or larger.
+  *Verified by:* `TODO.CumulativeCheckClearsBeforeAnyPhaseIsRouted`,
+  `TODO.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
+
+- **TOOLKIT-27** — Any phase whose declared file scope touches `README.md`, anything under
+  `docs/architecture/`, `CONSTRAINTS.md`, or `BACKLOG.md` forces the same escalation outcome `TOOLKIT-23`
+  already defines, with a recommended next step naming the file, regardless of what the cumulative check
+  `TOOLKIT-26` runs concludes for the phase set as a whole.
+  *Verified by:* `TODO.PhaseTouchingProtectedFileForcesEscalation`
+
+- **TOOLKIT-28** — Decomposition recurses through the same Router at most once beyond a Massive item's
+  own first decomposition: a phase produced by decomposing a Massive item may itself be decomposed again
+  only if it too classifies as Massive, and the phases produced by that second decomposition are never
+  decomposed further — routing one of them as Massive again reaches the same escalation outcome
+  `TOOLKIT-23` defines, with a recommended next step, instead of decomposing it.
+  *Verified by:* `TODO.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built
@@ -82,3 +109,28 @@ documented invariant. `ProcessNote` is an append-only diagnostic log, not a stru
 overloading it for file lists would conflate two different concerns and force callers to parse notes to
 recover structured data. A separate `ChangeSetBeforeStopping` record makes the interrupted-change path
 explicit and structurally distinct from the completion path.
+
+**Effort is folded into the existing route oracle question, not a second oracle pass** — the router
+already asks one question with a closed set of shapes to its answer: select a worker, ask for bounded
+research, or report no route. Adding the classified Effort as another field of that same answer, present
+whenever the answer selects a worker or reports no route directly, is the same shape scaled by one more
+axis, not a second question — the pass still asks "what should happen with this work", and Effort is
+part of that answer the same way `RouteResearchScope` is already part of the `NeedResearch` answer
+rather than a question of its own. `process.md` § Decisions ("the router asks one narrow typed question
+per pass") is the design principle this follows: a second sequential oracle call — classify Effort, then
+separately select a worker — would double the per-routing model-call cost on every invocation, including
+every Small item that never needed it, and would let the two calls disagree with each other about the
+same work item, which is exactly the hazard the Router's two independent budgets (research iterations,
+worker reroutes) already exist to keep from compounding, this time between two answers about one call
+rather than between counters.
+
+**Decomposition recurses through `Router` itself, with a depth parameter, rather than a separate
+decomposer type** — a standalone decomposer would have to re-implement the oracle call, the worker
+catalog lookup, the research and reroute budgets, and the `NoRoute`/escalation reporting a second time,
+becoming a second place those rules have to be kept in sync with the Router's own, the same
+duplication-of-machinery cost this document's other decisions already decline to pay elsewhere. Routing
+a decomposed phase back through the same entry point a top-level work item uses means every phase gets
+the cumulative check, the tripwire, and the escalation shape by construction, not by two code paths
+staying manually consistent. The depth cap of two is carried the same way the existing budgets already
+are — as a bound threaded on the call — rather than as state the Router itself has to remember across a
+run it does not otherwise track recursion through.
