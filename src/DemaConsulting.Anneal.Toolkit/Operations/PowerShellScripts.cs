@@ -103,6 +103,11 @@ public sealed class PowerShellScripts
         foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
 
+        // Set so a script can tell it is one of this process's own children, rather than a person's direct
+        // invocation - the deliberate self-collision hazard being a script that would refresh the very Toolkit
+        // package currently running it. Name and value are the whole of the promise: presence, not content.
+        startInfo.Environment["ANNEAL_TOOLKIT"] = "1";
+
         using var process = new System.Diagnostics.Process { StartInfo = startInfo };
 
         process.Start();

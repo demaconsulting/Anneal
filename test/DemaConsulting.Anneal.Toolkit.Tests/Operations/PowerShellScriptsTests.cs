@@ -8,11 +8,13 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Operations;
 ///     Interior tests for the PowerShell script runner.
 /// </summary>
 /// <remarks>
-///     No contract clause promises how a script is run — the clause that matters, <c>TOOLKIT-19</c>, is about
-///     what <c>lint-fix</c> concludes, and it runs with the script seam substituted. What is here is the real
-///     host behavior, and in particular that cancelling a run stops the script rather than merely stopping the
-///     wait for it: <c>fix.ps1</c> edits files, so one that survived its caller would keep changing the
-///     repository after the caller withdrew.
+///     Most of what is here is unpromised: <c>TOOLKIT-19</c> is about what <c>lint-fix</c> concludes, not how
+///     a script is run, so most of this file exercises real host behavior with no clause backing it — in
+///     particular that cancelling a run stops the script rather than merely stopping the wait for it,
+///     since <c>fix.ps1</c> edits files and one that survived its caller would keep changing the repository
+///     after the caller withdrew. <c>TOOLKIT-24</c> is the one exception, and its own boundary test lives in
+///     <c>Contract/Toolkit24ScriptEnvironmentContractTests.cs</c> rather than here, because a clause needs a
+///     test in the folder <c>check-contracts</c> looks for.
 /// </remarks>
 public class PowerShellScriptsTests
 {

@@ -71,6 +71,17 @@ $toolkitProject = Join-Path $PSScriptRoot "src/DemaConsulting.Anneal.Toolkit/Dem
 $toolkitFeed = Join-Path $PSScriptRoot "artifacts/toolkit-feed"
 $toolkitStamp = Join-Path $PSScriptRoot "artifacts/toolkit-installed.sha256"
 
+if ($env:ANNEAL_TOOLKIT)
+{
+    # This build is itself a child of a live "dotnet anneal" invocation - almost certainly the very
+    # package this step would evict and reinstall. Refreshing it out from under its own running process
+    # is the self-collision this environment variable exists to avoid; the tool stays whatever it already
+    # was for this run, and a person can refresh it with a plain, non-nested "pwsh ./build.ps1" afterward.
+    Write-Host "  Running as a child of the Toolkit itself - skipping the refresh."
+}
+else
+{
+
 dotnet pack $toolkitProject --no-build --configuration Release --output $toolkitFeed
 $packed = $LASTEXITCODE -eq 0
 if (-not $packed) { $buildError = $true }
@@ -164,6 +175,8 @@ else
         if ($LASTEXITCODE -ne 0) { $buildError = $true }
         else { Set-Content -Path $toolkitStamp -Value $built }
     }
+}
+
 }
 
 # [PROJECT-SPECIFIC] The contract-check suite, driven against the Toolkit.

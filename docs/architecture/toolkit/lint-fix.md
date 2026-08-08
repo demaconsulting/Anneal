@@ -39,6 +39,11 @@ contract and a suite, and a worker told to fix lint would resolve it by renaming
   succeeds when `lint.ps1` exits zero, escalates when a repair needs a protected configuration file or
   repository script changed, and fails when its bounded budget is exhausted.
   *Verified by:* `ToolkitContractTests.LintFixDrivesTheRepositoryCleanOrReportsWhyNot`
+- **TOOLKIT-24** — every script run through `PowerShellScripts` has `ANNEAL_TOOLKIT=1` set in its own
+  environment, so a repository script can tell it is running as this process's own child rather than
+  from a person's direct invocation, and change its own behavior accordingly (for example, skipping a
+  step that would collide with the Toolkit package currently running it).
+  *Verified by:* `Toolkit24ScriptEnvironmentContractTests.ScriptsRunUnderTheToolkitSeeTheAnnealToolkitVariable`
 
 ### Requires
 
@@ -77,3 +82,12 @@ when none does.
 repository on behalf of a run that no longer exists. Cancellation stops the whole process tree and
 waits for it to be gone before the caller is told the run stopped, because these scripts start
 linters and the dotnet CLI as children of their own.
+
+**`ANNEAL_TOOLKIT` is set on every script, not just this repository's own** — found by a real
+self-collision hazard, not a hypothetical one: Anneal's own `build.ps1` refreshes the local
+`demaconsulting.anneal.toolkit` tool package, and a `route` run against this repository is that exact
+package running live. A CLI switch was considered and rejected: `RunRepositoryScript`'s delegate
+signature carries no argument-passing hook, so a switch would need extending that whole seam for one
+repository's own defense. An environment variable needs no signature change and works for any
+repository's own scripts, not only this one's, so `build.ps1` here checks for it directly and skips
+its own package-refresh step when it is present.

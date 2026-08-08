@@ -102,7 +102,7 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is currently in flight. S12 and S11 (below) both landed and validated this session. The
+No stage is currently in flight. S13, S12, and S11 (below) all landed and validated this session. The
 Migration's own state is otherwise unchanged from S10: `apply`, `architecture-update`, and
 `scope-check` remain in place for the jobs `route` does not cover (Maintenance mode, Migration-mode
 work, and any Change-mode invocation run through the prose path directly rather than through
@@ -110,6 +110,76 @@ work, and any Change-mode invocation run through the prose path directly rather 
 Router-seeded dynamic standards-selection design, and Template Sync are all still explicitly deferred,
 named stages — see the Suspension register above and each entry's own text for what would need to be
 true first.
+
+### S13 — Closing the RouteReport gap S11 found, live and self-hosted — landed
+
+**What this closes:** S11's own discovery log (below) named a genuine gap in `RouteReport`: on an
+Escalated or Failed outcome, files a worker had already written to disk before stopping were
+completely invisible to `route`'s caller, even though the working tree already held them. `RouteReport`
+gains two new fields, `FilesChangedBeforeStopping` and `SummaryBeforeStopping` — never null, empty
+when nothing was interrupted — threaded from a new `WorkerExecutionResult.Interrupted`
+(`ChangeSetBeforeStopping`) through `Router` and `RouteFailureReport`. `WorkerRunResult` itself is
+untouched, per its own doc comment reserving it for a worker that reached a typed answer; an
+interrupted run never reaches one.
+
+**This is this repository's first live, self-hosted `dotnet anneal route` run against its own
+production source** — not a throwaway fixture outside the repository, as every prior trial in this
+Migration used, but a real work item handed to `route` to modify Anneal's own Toolkit code while that
+same Toolkit build ran it. Full context (root cause, work item, verification) was independently
+re-established by hand before the run: `RepairLoop<TState>.RunAsync` returns `Failed` carrying the
+*last real state*, not null, on budget exhaustion, so the gap was reachable through Failed as well as
+Escalated; `ContractChangeWorker`/`StructuralChangeWorker` had several further discard points beyond
+the one S11 found (budget-exhausted repairs, verifier-Refused, an unnamed-verdict fallback), all
+confirmed by direct code reading before the work item was composed. An independent `general-purpose`
+sub-agent (a different context, not blindly trusted) reviewed the proposed design first and surfaced a
+real widening (the Failed-path gap) the original scoping had missed; every one of its claims was then
+re-verified against source before acting on it, per this Migration's own discipline of never trusting
+a sub-agent's or a worker's self-report.
+
+**Outcome of the live run:** `route` reported `failed` (exit 0 — `Authoring` never gates a Failed
+outcome, unrelated to this fix and confirmed pre-existing). The production code the compiled worker
+produced — the new record, the widened return type threaded through all three workers, `Router`, and
+`RouteOperation` — was correct on inspection, verified by a full line-by-line diff review of every
+changed file, not merely a passing build. Two defects were found and fixed by hand, both in the
+worker's own new test rather than in the implementation:
+
+1. The new contract test under-sized its queued model replies, assuming a zero repair budget where
+   `SmallFixWorker`'s actual default is one — `Developer.DevelopAsync` consumes two replies per
+   authoring turn, so the second (repair) call ran out of queued replies and hit
+   `ModelUnavailableException` instead of exercising the intended budget-exhaustion path. Fixed by
+   queuing two more replies for the second round.
+2. The test asserted the exit code would be non-zero on a Failed outcome, which `AnnealTool.cs`
+   already deliberately treats as always-`ExitSuccess` for an `Authoring`-category operation — a
+   pre-existing, unrelated behavior the worker's own test writer had not accounted for. Fixed to
+   assert `ExitSuccess` and check the "route: failed" text instead.
+
+**A further, independent defect was found during review, in the clause itself rather than the code.**
+The worker's own `*Verified by:*` line named two test references on two separate markdown lines. That
+is not a formatting nicety: `ArchitectureDocument.ReadVerifiers` deliberately stops collecting
+verifiers at end-of-line (documented behavior, not a bug — it is what stops a later sentence's own
+inline code from being misread as a promised test), so only the *first* line's verifier was ever
+linked; the second — which also named a test that did not exist under that name — was silently
+dropped, and `check-contracts -Strict` reported a clean pass regardless. The new promise had a real,
+passing test, but no clause actually linked to it. Fixed by folding the two new contract tests into
+one and naming it on a single line, matching every other clause in this tree (a survey during this fix
+found no existing clause anywhere in `docs/architecture/` names more than one verifier).
+
+**A second, deliberately deferred follow-up landed in the same session:** the self-collision hazard
+raised before the live run — `build.ps1`'s Toolkit-refresh step evicts and reinstalls the exact NuGet
+cache entry backing the local tool package that was, during the live run, running that very script —
+did not manifest this time, but was not proven safe under adversarial timing either. `PowerShellScripts`
+now sets `ANNEAL_TOOLKIT=1` in the environment of every script it runs (`TOOLKIT-24`, in
+`docs/architecture/toolkit/lint-fix.md`), and this repository's own `build.ps1` checks for it and skips
+its self-refresh step when present. A CLI-switch approach was considered and rejected:
+`RunRepositoryScript`'s delegate signature has no argument-passing hook, so a switch would have meant
+extending that whole seam for one repository's own defense; an environment variable needed no signature
+change and works for any repository's own scripts, not only this one's.
+
+**Exit conditions:** `RouteReport` carries the interrupted-change fields, correctly populated on both
+Escalated and Failed across all three workers — **done**, verified by a dedicated boundary test
+(`Toolkit23InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`) and five new interior
+tests covering each worker's discard points directly. `pwsh ./build.ps1` (284 C# tests, 9
+process-contract, 43 check-contracts, 0 failed) and `pwsh ./lint.ps1` (73/73 clauses) both pass.
 
 ### S12 — Compiled workers gain baseline standards-loading (S11 step 2's new prerequisite) — landed
 
