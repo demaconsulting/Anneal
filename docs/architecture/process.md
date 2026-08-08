@@ -78,7 +78,7 @@ is written.
   defines, so the magnitude vocabulary a decomposition check routes on cannot be extended or
   re-labelled by a single file — the same closure PROCESS-09 already gives Scope, extended to the
   axis alongside it.
-  *Verified by:* `TODO.EffortVocabularyIsClosed`
+  *Verified by:* `EffortVocabularyIsClosed`
 
 ### Requires
 

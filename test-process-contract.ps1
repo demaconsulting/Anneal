@@ -269,6 +269,32 @@ function Get-DefinedScope {
     return $scopes
 }
 
+# The Effort vocabulary, read from the '# Effort' section's own table in the
+# same standard - Small, Medium, Large, Massive - including its
+# '## Massive Effort Must Be Decomposed' subsection (a second-level heading, not
+# a new top-level section), and stopping at the next top-level '# ' heading.
+# Read rather than listed, so a rename in the standard is what the check sees
+# too.
+function Get-DefinedEffort {
+    param([string] $Path)
+
+    $efforts = [System.Collections.Generic.List[string]]::new()
+    $inSection = $false
+    $sawSeparator = $false
+    foreach ($line in ((Read-Text $Path) -split "`n")) {
+        if ($line -match '^#\s') {
+            if ($line -match '^#\s*Effort\s*$') { $inSection = $true; $sawSeparator = $false; continue }
+            if ($inSection) { break }
+            continue
+        }
+        if (-not $inSection) { continue }
+        if ($line -match '^\s*\|\s*-{2,}\s*\|') { $sawSeparator = $true; continue }
+        if (-not $sawSeparator) { continue }
+        if ($line -match '^\s*\|\s*([^|]+?)\s*\|') { $efforts.Add($Matches[1].Trim()) }
+    }
+    return $efforts
+}
+
 # ==============================================================================
 # CASES
 # ==============================================================================
@@ -773,6 +799,62 @@ Test-Case -Name "ScopeVocabularyIsClosed" -Body {
 
     Add-Note "scopes: $($scopes -join ', ')"
     Add-Note "scope field sites checked: $sites across $($files.Count) payload files"
+    return $problems
+}
+
+# --- PROCESS-10 ---------------------------------------------------------------
+# The same closure PROCESS-09 gives Scope, extended to the Effort axis: an
+# Effort name ("Small", "Medium", "Large", "Massive") appears constantly in
+# ordinary prose ("Small Fix", "a large mechanical rename") with no special
+# meaning there, so the one safe and load-bearing site is again a report
+# template's own **Effort** field, which is always a closed enumeration.
+Test-Case -Name "EffortVocabularyIsClosed" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $classification = Repo-Path ".github/standards/change-classification.md"
+    $efforts = Get-DefinedEffort -Path $classification
+
+    # Fail closed, for the same reason the scope case does.
+    if ($efforts.Count -lt 2) {
+        $problems.Add("only $($efforts.Count) effort row(s) parsed from change-classification.md's '# Effort' table; the vocabulary has no readable owner")
+        return $problems
+    }
+
+    $sites = 0
+    $files = Get-PayloadTextFile
+    foreach ($path in $files) {
+        $name = Split-Path $path -Leaf
+        $number = 0
+        foreach ($line in ((Read-Text $path) -split "`n")) {
+            $number++
+
+            # A report template's effort field: every alternative of its (A|B|C)
+            # group and every backticked token on the line is a claim about the
+            # vocabulary.
+            if ($line -match '^\s*(?:-\s*)?\*\*Effort\*\*\s*(?::|—|-)') {
+                $sites++
+                $tokens = [System.Collections.Generic.List[string]]::new()
+                foreach ($group in [regex]::Matches($line, '\(([^)]*)\)')) {
+                    # A parenthesized group is only an alternation ('A|B|C') when it
+                    # actually contains one; a bare qualifier attached to an effort
+                    # name is not itself a claim about the vocabulary and must not
+                    # be checked as one.
+                    if ($group.Groups[1].Value -notmatch '\|') { continue }
+                    foreach ($alternative in ($group.Groups[1].Value -split '\|')) { $tokens.Add($alternative.Trim()) }
+                }
+                foreach ($span in [regex]::Matches($line, '`([^`]+)`')) { $tokens.Add($span.Groups[1].Value.Trim()) }
+
+                foreach ($token in $tokens) {
+                    if ($token -eq "" -or $token -eq "n/a") { continue }
+                    if ($efforts -contains $token) { continue }
+                    $problems.Add("$name line ${number}: the effort field names '$token', which change-classification.md does not define")
+                }
+            }
+        }
+    }
+
+    Add-Note "efforts: $($efforts -join ', ')"
+    Add-Note "effort field sites checked: $sites across $($files.Count) payload files"
     return $problems
 }
 
