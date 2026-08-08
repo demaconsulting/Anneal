@@ -69,6 +69,17 @@ public sealed class RouteOperation : IOperation
 
         If you lack the facts to choose honestly, ask for a bounded, narrow look-around before answering - do not
         guess at a classification you cannot support.
+
+        Whenever you select a worker or conclude no route exists, also classify this work item's Effort - pure
+        magnitude, independent of which worker you selected - using exactly one of these four values:
+
+        - "Small": a few lines, obviously correct.
+        - "Medium": multiple files, one system, roughly 50-200 lines.
+        - "Large": the interiors of multiple systems.
+        - "Massive": cannot execute as one unit; would need decomposing into phases first.
+
+        You do not need to classify Effort when you ask for research first - that comes once you have the facts
+        to choose honestly.
         """;
 
     /// <summary>The system message a bounded research pass carries when the route oracle asks for one.</summary>
@@ -310,10 +321,13 @@ public sealed class RouteOperation : IOperation
         output.WriteLine($"route: completed - {completed.Summary.Summary}");
         foreach (var file in completed.Summary.FilesChanged)
             output.WriteLine($"  {file}");
+        output.WriteLine($"route: effort classified as {completed.Effort}");
 
         return new OperationResult(
             OperationOutcome.Succeeded,
-            new RouteReport(completed.Summary.FilesChanged, completed.Summary.Summary, [], string.Empty, [], string.Empty, [], string.Empty));
+            new RouteReport(
+                completed.Summary.FilesChanged, completed.Summary.Summary, [], string.Empty, [], string.Empty, [],
+                string.Empty, completed.Effort.ToString()));
     }
 
     private static OperationResult Reported(TextWriter output, OperationOutcome outcome, RouterOutcome.Report report)
@@ -327,6 +341,9 @@ public sealed class RouteOperation : IOperation
             output.WriteLine($"  tried: {tried}");
 
         output.WriteLine($"route: recommended next step - {report.FailureReport.RecommendedNextStep}");
+
+        if (report.FailureReport.Effort is { } effort)
+            output.WriteLine($"route: effort classified as {effort}");
 
         var interrupted = report.FailureReport.ChangeBeforeStopping;
         if (interrupted is not null && interrupted.FilesChanged.Count > 0)
@@ -350,6 +367,7 @@ public sealed class RouteOperation : IOperation
                 [.. report.FailureReport.RejectedWorkers.Select(rejected => $"{rejected.WorkerKey}: {rejected.Why}")],
                 report.FailureReport.RecommendedNextStep,
                 filesBeforeStopping,
-                summaryBeforeStopping));
+                summaryBeforeStopping,
+                report.FailureReport.Effort?.ToString() ?? string.Empty));
     }
 }

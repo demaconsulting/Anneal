@@ -33,12 +33,22 @@ internal abstract record RouteDecision
     /// <summary>A worker was selected to run this work.</summary>
     /// <param name="WorkerKey">The catalog key of the selected worker.</param>
     /// <param name="Why">Why this worker is the right one, in a sentence a person can check.</param>
-    internal sealed record SelectWorker(string WorkerKey, string Why) : RouteDecision;
+    /// <param name="Effort">
+    ///     The classified Effort — Small, Medium, Large, or Massive — the same pass that selected this worker
+    ///     also classified.
+    /// </param>
+    internal sealed record SelectWorker(string WorkerKey, string Why, Effort Effort) : RouteDecision;
 
     /// <summary>The router lacks the facts to route honestly and needs a bounded look-around first.</summary>
     /// <param name="Question">The research question to answer.</param>
     /// <param name="Scope">How broad the look-around should be.</param>
     /// <param name="Why">Why routing cannot proceed without this research.</param>
+    /// <remarks>
+    ///     Carries no Effort: asking how broad a look-around should be happens before the oracle has the facts
+    ///     to classify Effort honestly — the same reason it cannot yet select a worker either. Forcing an Effort
+    ///     value out of this case would mean guessing at a classification the oracle itself just said it lacks
+    ///     the evidence to support.
+    /// </remarks>
     internal sealed record NeedResearch(string Question, RouteResearchScope Scope, string Why) : RouteDecision;
 
     /// <summary>No route exists for this work, whatever research or worker catalog is available.</summary>
@@ -47,7 +57,11 @@ internal abstract record RouteDecision
     ///     The specific step only a person can take, when one is known — for example "this is a Migration
     ///     proposal" or "needs interactive architecture-design" — or null when none is known.
     /// </param>
-    internal sealed record NoRoute(string Why, string? HumanOnlyNextStep) : RouteDecision;
+    /// <param name="Effort">
+    ///     The classified Effort — Small, Medium, Large, or Massive — the same pass that concluded no route
+    ///     exists also classified.
+    /// </param>
+    internal sealed record NoRoute(string Why, string? HumanOnlyNextStep, Effort Effort) : RouteDecision;
 }
 
 /// <summary>The closed vocabulary a <see cref="RouteDecisionEnvelope" /> decodes its kind as.</summary>
@@ -98,6 +112,14 @@ internal sealed record RouteDecisionEnvelope : IOracleDecision
 
     /// <summary>How broad the research should be, when <see cref="Kind" /> is <see cref="RouteDecisionKind.NeedResearch" />; ignored otherwise.</summary>
     public required RouteResearchScope ResearchScope { get; init; }
+
+    /// <summary>
+    ///     The classified Effort — Small, Medium, Large, or Massive — when <see cref="Kind" /> is
+    ///     <see cref="RouteDecisionKind.SelectWorker" /> or <see cref="RouteDecisionKind.NoRoute" />; ignored
+    ///     otherwise. Folded into this same envelope rather than a second oracle pass — see <c>route.md</c> §
+    ///     Decisions ("Effort is folded into the existing route oracle question, not a second oracle pass").
+    /// </summary>
+    public required Effort Effort { get; init; }
 
     /// <summary>
     ///     The specific step only a person can take, whatever <see cref="Kind" /> is reached, or the empty string

@@ -37,7 +37,7 @@ public class Toolkit23InterruptedRouteContractTests
             // SmallFixWorker turns into Interrupted. Each Developer authoring turn consumes two replies (a
             // free-text turn, then the forced structured decision), so two full rounds need four replies.
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -82,7 +82,7 @@ public class Toolkit23InterruptedRouteContractTests
         {
             // Arrange: oracle selects small-fix; developer completes; build passes — normal success path.
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"simple fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"simple fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""");
 

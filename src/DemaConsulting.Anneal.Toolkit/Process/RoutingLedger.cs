@@ -64,4 +64,11 @@ internal sealed class RoutingLedger
     ///     narrow it. Null until the first route attempt names one.
     /// </summary>
     public string? ClassificationHypothesis { get; set; }
+
+    /// <summary>
+    ///     The Effort — Small, Medium, Large, or Massive — the most recent <see cref="RouteDecision.SelectWorker" />
+    ///     or <see cref="RouteDecision.NoRoute" /> pass classified. Null until one of those cases is reached, since
+    ///     <see cref="RouteDecision.NeedResearch" /> carries no Effort of its own.
+    /// </summary>
+    public Effort? EffortHypothesis { get; set; }
 }

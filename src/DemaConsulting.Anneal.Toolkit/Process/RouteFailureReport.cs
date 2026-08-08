@@ -27,9 +27,15 @@ internal sealed record RejectedWorker(string WorkerKey, string Why);
 ///     wrote nothing or no worker was ever selected. Populated only when a worker reached real authoring state
 ///     before an Escalated or Failed outcome stopped it.
 /// </param>
+/// <param name="Effort">
+///     The Effort — Small, Medium, Large, or Massive — the most recently reached <see cref="RouteDecision.SelectWorker" />
+///     or <see cref="RouteDecision.NoRoute" /> pass classified, or null when the run never reached either case (for
+///     example, the research budget was exhausted or the oracle could not be asked at all).
+/// </param>
 internal sealed record RouteFailureReport(
     IReadOnlyList<string> WhatWasTried,
     string WhatWasLearned,
     IReadOnlyList<RejectedWorker> RejectedWorkers,
     string RecommendedNextStep,
+    Effort? Effort = null,
     ChangeSetBeforeStopping? ChangeBeforeStopping = null);

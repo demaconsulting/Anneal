@@ -22,7 +22,8 @@ internal abstract record RouterOutcome
 
     /// <summary>A selected worker completed the work.</summary>
     /// <param name="Summary">What was changed.</param>
-    internal sealed record Completed(ChangeSetSummary Summary) : RouterOutcome;
+    /// <param name="Effort">The classified Effort — Small, Medium, Large, or Massive — the route oracle reached alongside selecting this worker.</param>
+    internal sealed record Completed(ChangeSetSummary Summary, Effort Effort) : RouterOutcome;
 
     /// <summary>The run could not route or complete the work; see the failure report for why.</summary>
     /// <param name="FailureReport">What was tried, what was learned, and a recommended next step.</param>
@@ -204,6 +205,7 @@ internal sealed class Router
             switch (decision)
             {
                 case RouteDecision.NoRoute noRoute:
+                    ledger.EffortHypothesis = noRoute.Effort;
                     return Fail(ledger, noRoute.Why, noRoute.HumanOnlyNextStep);
 
                 case RouteDecision.NeedResearch needResearch:
@@ -235,6 +237,7 @@ internal sealed class Router
 
                 case RouteDecision.SelectWorker selectWorker:
                     ledger.ClassificationHypothesis = selectWorker.Why;
+                    ledger.EffortHypothesis = selectWorker.Effort;
 
                     if (!TryFindWorker(selectWorker.WorkerKey, out var entry))
                         return Fail(
@@ -252,7 +255,8 @@ internal sealed class Router
                     {
                         case WorkerRunResult.Completed completed when workerResult.Outcome == OperationOutcome.Succeeded:
                             return new StepResult<RouterOutcome>(
-                                OperationOutcome.Succeeded, new RouterOutcome.Completed(completed.Summary), []);
+                                OperationOutcome.Succeeded,
+                                new RouterOutcome.Completed(completed.Summary, selectWorker.Effort), []);
 
                         case WorkerRunResult.Reroute reroute:
                             if (rerouteBudget <= 0)
@@ -307,11 +311,12 @@ internal sealed class Router
 
     private static RouteDecision Map(RouteDecisionEnvelope envelope) => envelope.Kind switch
     {
-        RouteDecisionKind.SelectWorker => new RouteDecision.SelectWorker(envelope.WorkerKey, envelope.Why),
+        RouteDecisionKind.SelectWorker => new RouteDecision.SelectWorker(envelope.WorkerKey, envelope.Why, envelope.Effort),
         RouteDecisionKind.NeedResearch =>
             new RouteDecision.NeedResearch(envelope.Question, envelope.ResearchScope, envelope.Why),
         RouteDecisionKind.NoRoute => new RouteDecision.NoRoute(
-            envelope.Why, string.IsNullOrWhiteSpace(envelope.HumanOnlyNextStep) ? null : envelope.HumanOnlyNextStep),
+            envelope.Why, string.IsNullOrWhiteSpace(envelope.HumanOnlyNextStep) ? null : envelope.HumanOnlyNextStep,
+            envelope.Effort),
         _ => throw new ArgumentOutOfRangeException(nameof(envelope), envelope.Kind, "Unknown route decision kind.")
     };
 
@@ -385,6 +390,6 @@ internal sealed class Router
             ? $"a person should review this routing run manually: {reason}"
             : namedStep;
 
-        return new RouteFailureReport(tried, learned, rejected, recommendedNextStep, changeBeforeStopping);
+        return new RouteFailureReport(tried, learned, rejected, recommendedNextStep, ledger.EffortHypothesis, changeBeforeStopping);
     }
 }

@@ -25,7 +25,7 @@ public class RouteOperationTests
         {
             var endpoint = new QueuedEndpoint(
                 // Route oracle: a single schema-last probe, no free-form pass.
-                SelectWorkerJson("small-fix", "this is a small, interior fix"),
+                SelectWorkerJson("small-fix", "this is a small, interior fix", effort: "Small"),
                 // Developer: free-form pass, then the schema.
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""");
@@ -43,6 +43,7 @@ public class RouteOperationTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(["src/Foo.cs"], result.FindingAs<RouteReport>()!.FilesChanged),
                 () => Assert.Equal("fixed the bug", result.FindingAs<RouteReport>()!.Summary),
+                () => Assert.Equal("Small", result.FindingAs<RouteReport>()!.Effort),
                 () => Assert.Contains("src/Foo.cs", output.ToString(), StringComparison.Ordinal));
         }
         finally
@@ -212,14 +213,14 @@ public class RouteOperationTests
         }
     }
 
-    private static string SelectWorkerJson(string workerKey, string why) =>
+    private static string SelectWorkerJson(string workerKey, string why, string effort = "Small") =>
         $$"""
-          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":true}
+          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"{{effort}}","hasSufficientEvidence":true}
           """;
 
-    private static string NoRouteJson(string why, string humanOnlyNextStep) =>
+    private static string NoRouteJson(string why, string humanOnlyNextStep, string effort = "Small") =>
         $$"""
-          {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","hasSufficientEvidence":true}
+          {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","effort":"{{effort}}","hasSufficientEvidence":true}
           """;
 
     private static string CreateTemporaryDirectory()

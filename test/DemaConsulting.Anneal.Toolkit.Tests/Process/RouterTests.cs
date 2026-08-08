@@ -319,6 +319,75 @@ public class RouterTests
     }
 
     [Fact]
+    public async Task RunAsync_SelectWorkerClassifiesEffort_ThreadsEffortOntoCompletedOutcome()
+    {
+        // Arrange
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "this is a small fix", effort: "Large"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Succeeded,
+                new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                null,
+                []));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix the bug", null, TestContext.Current.CancellationToken);
+
+            // Assert: the Effort the route oracle classified in the same pass that selected the worker
+            // threads through onto the Completed outcome, not just the selected worker's key.
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
+                () => Assert.Equal(Effort.Large, ((RouterOutcome.Completed)result.Finding!).Effort));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_NoRouteClassifiesEffort_ThreadsEffortOntoFailureReport()
+    {
+        // Arrange
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                NoRouteJson("nothing in the catalog fits", humanOnlyNextStep: "", effort: "Massive"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("do something odd", null, TestContext.Current.CancellationToken);
+
+            // Assert: the Effort the route oracle classified alongside concluding no route exists is
+            // reported on the failure report, not dropped.
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding),
+                () => Assert.Equal(
+                    Effort.Massive, ((RouterOutcome.Report)result.Finding!).FailureReport.Effort));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_NoRouteWithNoHumanStep_Fails()
     {
         // Arrange
@@ -579,19 +648,19 @@ public class RouterTests
             endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
     }
 
-    private static string SelectWorkerJson(string workerKey, string why, bool hasSufficientEvidence = true) =>
+    private static string SelectWorkerJson(string workerKey, string why, bool hasSufficientEvidence = true, string effort = "Small") =>
         $$"""
-          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
+          {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"{{effort}}","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
           """;
 
     private static string NeedResearchJson(string question, string why, bool hasSufficientEvidence = true) =>
         $$"""
-          {"kind":"NeedResearch","why":"{{why}}","workerKey":"","question":"{{question}}","researchScope":"Narrow","humanOnlyNextStep":"","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
+          {"kind":"NeedResearch","why":"{{why}}","workerKey":"","question":"{{question}}","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":{{(hasSufficientEvidence ? "true" : "false")}}}
           """;
 
-    private static string NoRouteJson(string why, string humanOnlyNextStep) =>
+    private static string NoRouteJson(string why, string humanOnlyNextStep, string effort = "Small") =>
         $$"""
-          {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","hasSufficientEvidence":true}
+          {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","effort":"{{effort}}","hasSufficientEvidence":true}
           """;
 
     private static string ResearchFindingJson(string question, string answer, bool sufficientForNextDecision) =>

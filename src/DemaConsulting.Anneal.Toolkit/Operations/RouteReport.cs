@@ -45,6 +45,12 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     A brief account of what the worker changed before stopping. Never null; empty on a completed run or when
 ///     no files were written before the worker stopped.
 /// </param>
+/// <param name="Effort">
+///     The Effort — "Small", "Medium", "Large", or "Massive" — the route oracle classified this work item as, in
+///     the same pass that selected a worker or reported no route. Never null; empty when the run never reached
+///     either of those (for example, it failed before the route oracle could be asked at all, or the research
+///     budget was exhausted first).
+/// </param>
 public sealed record RouteReport(
     IReadOnlyList<string> FilesChanged,
     string Summary,
@@ -53,4 +59,5 @@ public sealed record RouteReport(
     IReadOnlyList<string> RejectedWorkers,
     string RecommendedNextStep,
     IReadOnlyList<string> FilesChangedBeforeStopping,
-    string SummaryBeforeStopping);
+    string SummaryBeforeStopping,
+    string Effort);

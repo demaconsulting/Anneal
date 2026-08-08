@@ -40,7 +40,7 @@ the report separately from the completion fields.
 - **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
   the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and
   reports the classified value alongside whatever outcome the run reaches.
-  *Verified by:* `TODO.RouteReportsClassifiedEffort`
+  *Verified by:* `Toolkit25EffortContractTests.RouteReportsClassifiedEffort`
 
 - **TOOLKIT-26** — When `route` classifies a work item's Effort as Massive, it does not select a worker
   for that item directly. It decomposes the item into phases and clears a mandatory cumulative check,
