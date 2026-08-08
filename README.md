@@ -283,4 +283,4 @@ records the results that `lint.ps1` reads when it checks that each promise still
 [MIT](LICENSE)
 
 [^1]: `Anneal` is a sibling to [Agents](https://github.com/demaconsulting/Agents), which targets
- IEC 62304 regulated development. Use `Agents` where compliance evidence is required.
+      IEC 62304 regulated development. Use `Agents` where compliance evidence is required.

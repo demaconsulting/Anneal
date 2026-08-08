@@ -1,8 +1,8 @@
 <!-- TEMPLATE-DIRECTIVE: Wanted, not yet scheduled. One bullet per item. No agent reads this
- file to make a decision - it exists so an Intake item that completes rather than holds has
- somewhere to go instead of being dropped. Delete an entry when it ships or stops being
- wanted. A new repository has nothing to record here yet: delete the example bullet and leave
- the list empty rather than inventing one. Remove this block. -->
+     file to make a decision - it exists so an Intake item that completes rather than holds has
+     somewhere to go instead of being dropped. Delete an entry when it ships or stops being
+     wanted. A new repository has nothing to record here yet: delete the example bullet and leave
+     the list empty rather than inventing one. Remove this block. -->
 
 # Backlog
 

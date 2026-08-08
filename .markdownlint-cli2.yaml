@@ -33,9 +33,9 @@ config:
   MD004:
     style: dash
 
-  # Allow longer lines for URLs and technical content
-  MD013:
-    line_length: 120
+  # Line length - disabled (no limit enforced); editors soft-wrap, and a hard limit only
+  # costs agents time reflowing paragraphs. Matches .github/template/.markdownlint-cli2.yaml.
+  MD013: false
 
   # Allow multiple top-level headers per document
   MD025: false
