@@ -101,14 +101,51 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is currently in flight. S13, S12, and S11 (below) all landed and validated this session. The
-Migration's own state is otherwise unchanged from S10: `apply`, `architecture-update`, and
-`scope-check` remain in place for the jobs `route` does not cover (Maintenance mode, Migration-mode
-work, and any Change-mode invocation run through the prose path directly rather than through
-`dispatch`). Retiring any of those files, folding `architecture-design` into `helper`, the fuller
-Router-seeded dynamic standards-selection design, and Template Sync are all still explicitly deferred,
-named stages — see the Suspension register above and each entry's own text for what would need to be
-true first.
+### S14 — Live trial of Massive-Effort decomposition, then a compiled Maintenance path — in flight
+
+**Why now.** `TOOLKIT-25` through `TOOLKIT-28` (Effort classification and Massive decomposition —
+`PhaseDecomposition`, `CumulativeCheckDecision`, `ProtectedPathTripwire`, the depth-capped recursion
+through `Router.RunAsync` itself) landed with real contract tests, but every one of those tests runs
+against a fake endpoint. No live trial has ever handed `route` a genuinely Massive work item against a
+real model, the same gap S11 named and closed for Structural Change. Until that trial runs, "solid"
+is unproven the same way Structural Change routing was unproven before S11's own live trial found and
+fixed a real defect. This stage closes that gap, then opens the next named one: a compiled path for
+Maintenance mode, the last piece standing between today's shape and retiring `apply.agent.md`,
+`architecture-update.agent.md`, and `scope-check.agent.md` in favor of routing everything through
+`route`.
+
+**Step 1 — live trial of Massive decomposition.** A throwaway fixture (outside this repository,
+same harness pattern as every prior trial) modeling a work item too large to execute as one unit —
+touching the interiors of several systems at once — handed to `route` with no changed-file hints
+(so the containment check's "already-cleared scope" is genuinely empty, the untested path named in
+this Migration's own prior notes) and, separately, with hints, to exercise both containment
+branches. Independently verify: the phases proposed are a strict subset of cleared scope where hints
+were supplied; the tripwire and cumulative check both actually ran (not merely available); any
+defect found is root-caused, fixed at the smallest correct scope, and re-verified — the same
+discipline every prior live trial in this file used, never a silent patch.
+
+**Step 2 — compiled Maintenance path.** `change-classification.md` already defines Maintenance
+precisely: available capacity, no requested outcome, Small Fix by definition, forbidden from
+touching the architecture tree, `CONSTRAINTS.md`, or `BACKLOG.md`, and explicitly including a
+periodic self-triggered structural-cohesion sweep. Today that is entirely prose: `dispatch`'s Step 3
+hands Maintenance-mode work to `apply` directly, with no compiled equivalent. This step designs and
+lands a compiled Maintenance path — the shape (a sweep that proposes its own work item, then routes
+it exactly as Small Fix through the existing `Router`/`SmallFixWorker`, never a new worker) is a
+starting hypothesis, not a foregone conclusion; the step may find a better one, per this file's own
+"discovered better route reads as a finding" principle.
+
+**What this stage does not do.** It does not retire any prose agent file yet — that is blocked on
+Step 2 landing and being validated, exactly as S11 was blocked on S12. It does not touch Migration
+mode's own compiled surface, because none is missing: a Migration stage's implementation already
+classifies by Scope × Effort and routes normally once its exit condition is set, so `route` already
+covers it; what remains prose is declaring a stage itself, an interactive job `architecture-design`
+does deliberately and is not a gap this stage closes.
+
+**Exit conditions:** the Massive-decomposition live trial runs against a real endpoint on both the
+empty-hints and populated-hints paths, independently verified by hand, with any real defect found
+fixed and re-verified — not yet met; a compiled Maintenance path lands with its own live validation
+trial, mirroring S12's "prove it, don't assume it" discipline — not yet met; `pwsh ./build.ps1` and
+`pwsh ./lint.ps1` both pass after each landed step.
 
 ### S13 — Closing the RouteReport gap S11 found, live and self-hosted — landed
 
