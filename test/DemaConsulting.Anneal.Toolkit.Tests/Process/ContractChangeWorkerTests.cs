@@ -508,6 +508,138 @@ public class ContractChangeWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_TenetRepairRequired_RepairsThroughDeveloperThenPasses()
+    {
+        // Arrange: the verifier asks for a tenet repair only - a tenet finding also routes through Developer,
+        // the same primitive a code finding uses, since fixing a tenet violation is still a code-shaped fix
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"src/Foo.cs reaches across a system boundary CONSTRAINTS.md forbids"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                "I removed the boundary crossing.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root,
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
+                () => Assert.Equal(8, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_TenetRepairRequiredTwice_FailsNamingTheTenetConcernOnceItsBudgetIsSpent()
+    {
+        // Arrange: the tenet budget (default 1) is spent on the first finding, and a second tenet-repair verdict
+        // must not repair again - the failure names the tenet-repair budget specifically
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                "I tried to fix it.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"tried again"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"still crosses the boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root,
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: failed, not rerouted - a spent budget is not evidence of misclassification, and the
+            // failure note names the tenet-repair budget specifically
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Null(result.Finding),
+                () => Assert.Contains(
+                    result.Notes, note => note.Text.Contains("tenet-repair budget", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_CodeAndTenetRepairsRequired_DispatchesBothAgainstIndependentBudgets()
+    {
+        // Arrange: both a code and a tenet concern arrive together; code repairs first (tenet is checked after
+        // documentation and code in this worker's fixed dispatch order), then the next full re-verify finds the
+        // remaining tenet-only issue, which spends the independent tenet budget
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"},{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                "I fixed the null check.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired code"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                "I removed the boundary crossing.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired tenet"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root,
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
+                () => Assert.Equal(11, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_VerifierConcludesScopeMisclassification_Reroutes()
     {
         // Arrange: reroute trigger 1 - the verifier concludes this should have been Structural Change

@@ -9,14 +9,19 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 ///     The Contract Change path: <see cref="DocumentAuthor" /> updates the affected system contract document(s)
 ///     and prunes their section docs, <see cref="Developer" /> implements code and tests against the clauses that
 ///     just changed, two <see cref="DeterministicCheck" /> steps run <c>build.ps1</c> and a strict contract check,
-///     and a model-backed <see cref="Verifier" /> judges contract conformance, scope honesty, and tree accuracy
-///     against that evidence before either finishing or spending one of two independent one-shot repair budgets.
+///     and a model-backed <see cref="Verifier" /> judges contract conformance, scope honesty, tree accuracy, and
+///     tenet conformance against that evidence before either finishing or spending one of three independent
+///     one-shot repair budgets.
 /// </summary>
 /// <remarks>
 ///     Unlike <see cref="SmallFixWorker" />, this worker's repair is not one owner spending one shared budget —
 ///     <c>docs/architecture/process.md</c> § Decisions' "ownership-directed" repair means a documentation finding
-///     repairs through <see cref="DocumentAuthor" /> and a code finding through <see cref="Developer" />, each
-///     against its own one-shot budget, documentation first when a verdict names both. <see cref="RepairLoop{TState}" />
+///     repairs through <see cref="DocumentAuthor" />, a code finding through <see cref="Developer" />, and a
+///     <see cref="VerificationOwner.Tenet" /> finding also through <see cref="Developer" /> — a tenet violation is
+///     fixed by changing code or configuration to conform to <c>CONSTRAINTS.md</c> and the affected contracts,
+///     which is still a code-shaped fix, and no separate "tenet author" primitive exists — each against its own
+///     one-shot budget, documentation first, then code, then tenet, when a verdict names more than one.
+///     <see cref="RepairLoop{TState}" />
 ///     itself is not instantiated here: its shape closes over exactly one <c>execute</c> step bounded by one
 ///     counter, and this worker needs its <c>execute</c> step to be chosen dynamically, per pass, from the
 ///     <see cref="VerificationOwner" /> a <see cref="Verifier" />'s <see cref="VerificationConcern" />s just
@@ -80,12 +85,15 @@ internal sealed class ContractChangeWorker
         """
         Judge whether this change conforms to every contract clause it touches, is honestly scoped as Contract
         Change rather than Structural Change, and leaves docs/architecture/ accurate for what was
-        actually built. Report the verdict 'RerouteRequired', with your reasoning in the advisory notes, when
+        actually built. Also check the change against CONSTRAINTS.md's Satisfied constraints and the boundaries
+        of every system contract it touches; report any violation as a concern owned by Tenet, with a FixText
+        naming the specific constraint or contract boundary crossed and what must change to stop crossing it.
+        Report the verdict 'RerouteRequired', with your reasoning in the advisory notes, when
         either: (1) the change actually needed a system-boundary move and should have been classified Structural
         Change instead of Contract Change; or (2) your reasoning surfaces a contradiction with a stated
         README Assumption that implies the repository needs a re-cut of its boundaries or Migration-scale work,
         not a routine contract change. Otherwise, report 'RepairRequired' with one concern per fix needed, each
-        owned by Documentation or Code, or 'Passed' when nothing needs fixing.
+        owned by Documentation, Code, or Tenet, or 'Passed' when nothing needs fixing.
         """;
 
     private readonly string _repositoryRoot;
@@ -96,6 +104,7 @@ internal sealed class ContractChangeWorker
     private readonly Verifier _verifier;
     private readonly int _maxDocumentationRepairAttempts;
     private readonly int _maxCodeRepairAttempts;
+    private readonly int _maxTenetRepairAttempts;
     private readonly RecordStore? _recordStore;
 
     /// <summary>
@@ -122,8 +131,17 @@ internal sealed class ContractChangeWorker
     /// <param name="maxCodeRepairAttempts">
     ///     The most code-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Code" />,
     ///     independent of
-    ///     <paramref name="maxDocumentationRepairAttempts" />. Must be zero or greater; defaults to 1, per this
-    ///     worker's bound to one code repair.
+    ///     <paramref name="maxDocumentationRepairAttempts" /> and <paramref name="maxTenetRepairAttempts" />. Must
+    ///     be zero or greater; defaults to 1, per this worker's bound to one code repair.
+    /// </param>
+    /// <param name="maxTenetRepairAttempts">
+    ///     The most tenet-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Tenet" />,
+    ///     independent of <paramref name="maxDocumentationRepairAttempts" /> and <paramref name="maxCodeRepairAttempts" />.
+    ///     A tenet finding repairs through <see cref="Developer" /> — the same primitive a code finding uses —
+    ///     since fixing a tenet violation means changing code or configuration to conform to <c>CONSTRAINTS.md</c>
+    ///     and the affected contracts, spent from this separate budget rather than <paramref name="maxCodeRepairAttempts" />
+    ///     so a tenet finding cannot starve or be starved by a code finding in the same round. Must be zero or
+    ///     greater; defaults to 1, per this worker's bound to one tenet repair.
     /// </param>
     /// <param name="endpointFor">
     ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
@@ -154,8 +172,8 @@ internal sealed class ContractChangeWorker
     ///     <paramref name="verifierCharter" /> is null.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    ///     Thrown when <paramref name="maxDocumentationRepairAttempts" /> or <paramref name="maxCodeRepairAttempts" />
-    ///     is negative.
+    ///     Thrown when <paramref name="maxDocumentationRepairAttempts" />, <paramref name="maxCodeRepairAttempts" />,
+    ///     or <paramref name="maxTenetRepairAttempts" /> is negative.
     /// </exception>
     public ContractChangeWorker(
         string repositoryRoot,
@@ -164,6 +182,7 @@ internal sealed class ContractChangeWorker
         string verifierCharter,
         int maxDocumentationRepairAttempts = 1,
         int maxCodeRepairAttempts = 1,
+        int maxTenetRepairAttempts = 1,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildRunScript = null,
         RunRepositoryScript? contractCheckRunScript = null,
@@ -175,6 +194,7 @@ internal sealed class ContractChangeWorker
         ArgumentNullException.ThrowIfNull(verifierCharter);
         ArgumentOutOfRangeException.ThrowIfNegative(maxDocumentationRepairAttempts);
         ArgumentOutOfRangeException.ThrowIfNegative(maxCodeRepairAttempts);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxTenetRepairAttempts);
 
         var root = Path.GetFullPath(repositoryRoot);
 
@@ -188,6 +208,7 @@ internal sealed class ContractChangeWorker
         _verifier = new Verifier(root, verifierCharter, endpointFor: endpointFor);
         _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
         _maxCodeRepairAttempts = maxCodeRepairAttempts;
+        _maxTenetRepairAttempts = maxTenetRepairAttempts;
         _recordStore = recordStore;
     }
 
@@ -236,6 +257,7 @@ internal sealed class ContractChangeWorker
 
         var documentationRepairBudget = _maxDocumentationRepairAttempts;
         var codeRepairBudget = _maxCodeRepairAttempts;
+        var tenetRepairBudget = _maxTenetRepairAttempts;
 
         while (true)
         {
@@ -291,11 +313,17 @@ internal sealed class ContractChangeWorker
                 .Where(concern => concern.Owner == VerificationOwner.Code)
                 .Select(concern => concern.FixText)
                 .ToList();
+            var tenetFixes = concerns
+                .Where(concern => concern.Owner == VerificationOwner.Tenet)
+                .Select(concern => concern.FixText)
+                .ToList();
 
             var needsDocumentationRepair =
                 verdict == VerificationVerdict.RepairRequired && documentationFixes.Count > 0;
             var needsCodeRepair =
                 verdict == VerificationVerdict.RepairRequired && codeFixes.Count > 0;
+            var needsTenetRepair =
+                verdict == VerificationVerdict.RepairRequired && tenetFixes.Count > 0;
 
             if (needsDocumentationRepair)
             {
@@ -368,6 +396,39 @@ internal sealed class ContractChangeWorker
                         Interrupted = codeRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
                     };
                 code = repairedCode!;
+
+                continue;
+            }
+
+            if (needsTenetRepair)
+            {
+                if (tenetRepairBudget <= 0)
+                    return new WorkerExecutionResult(
+                        OperationOutcome.Failed,
+                        null,
+                        MergeInterrupted(documentation, code),
+                        [new ProcessNote(
+                            "the tenet-repair budget was already spent when another tenet finding arrived")]);
+
+                tenetRepairBudget--;
+
+                // A tenet finding repairs through Developer, the same primitive a code finding uses: fixing a
+                // tenet violation means changing code or configuration to conform to CONSTRAINTS.md and the
+                // affected contracts, which is still a code-shaped fix, and no separate "tenet author" primitive
+                // exists - see the Apply Report's judgment call.
+                var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
+                        ComposeRepairInstruction(ComposeCodeInstruction(brief, documentation), tenetFixes),
+                        parentInvocationId,
+                        "Developer:tenet-repair",
+                        cancellationToken,
+                        documentation)
+                    .ConfigureAwait(false);
+                if (tenetRepairTerminal is not null)
+                    return tenetRepairTerminal with
+                    {
+                        Interrupted = tenetRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                    };
+                code = repairedTenetCode!;
 
                 continue;
             }

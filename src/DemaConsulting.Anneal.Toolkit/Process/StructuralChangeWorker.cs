@@ -17,18 +17,22 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 /// <remarks>
 ///     Extends <see cref="ContractChangeWorker" />'s hand-rolled repair contract by one more owner and one more
 ///     budget, rather than composing a <see cref="RepairLoop{TState}" />, for the same reason Contract Change
-///     already found: the repair step is chosen dynamically per verdict among three owners now
-///     (<see cref="Planner" />, <see cref="DocumentAuthor" />, <see cref="Developer" />), not fixed at
-///     construction. A documentation or a code finding repairs through the owner the verdict names, spending
-///     that owner's own one-shot budget, exactly as Contract Change already does. A verifier finding whose
+///     already found: the repair step is chosen dynamically per verdict among four owners now
+///     (<see cref="Planner" />, <see cref="DocumentAuthor" />, <see cref="Developer" />, and a tenet-check repair
+///     that also routes through <see cref="Developer" />), not fixed at construction. A documentation, code, or
+///     tenet finding repairs through the owner the verdict names — a tenet finding through <see cref="Developer" />,
+///     the same primitive a code finding uses, since fixing a tenet violation means changing code or configuration
+///     to conform to <c>CONSTRAINTS.md</c> and the affected contracts — spending that owner's own one-shot budget,
+///     exactly as Contract Change already does. A verifier finding whose
 ///     verdict is <see cref="VerificationVerdict.RepairRequired" /> but whose <see cref="VerificationFinding.Concerns" />
-///     names neither <see cref="VerificationOwner.Documentation" /> nor <see cref="VerificationOwner.Code" /> is
-///     different in kind — the plan's own decomposition was wrong, not its execution — and spends a third,
+///     names none of <see cref="VerificationOwner.Documentation" />, <see cref="VerificationOwner.Code" />, or
+///     <see cref="VerificationOwner.Tenet" /> is
+///     different in kind — the plan's own decomposition was wrong, not its execution — and spends a fourth,
 ///     independent one-shot budget: a second
 ///     and final <see cref="Planner" /> call, informed by what the first attempt got wrong, after which
 ///     <see cref="DocumentAuthor" /> → <see cref="Developer" /> → checks → <see cref="Verifier" /> restart from
-///     the top. The documentation and code repair budgets are <b>not</b> reset when this happens — they are
-///     independent counters that simply carry whatever they had left across the re-plan, per
+///     the top. The documentation, code, and tenet repair budgets are <b>not</b> reset when this happens — they
+///     are independent counters that simply carry whatever they had left across the re-plan, per
 ///     <c>MIGRATION.md</c>'s S9 entry.
 ///     <para>
 ///         <b>When this worker reroutes.</b> Four paths surface a <see cref="WorkerRunResult.Reroute" />: (1)
@@ -63,19 +67,23 @@ internal sealed class StructuralChangeWorker
     /// <summary>
     ///     The narrower question a <see cref="Verifier" /> answers once its deterministic evidence has passed.
     ///     Names both the repair verdicts and the two failure classes this worker distinguishes — a
-    ///     <see cref="VerificationVerdict.RepairRequired" /> finding with no <see cref="VerificationOwner.Documentation" />
-    ///     or <see cref="VerificationOwner.Code" /> concern, against a documentation or code repair, and
+    ///     <see cref="VerificationVerdict.RepairRequired" /> finding with no <see cref="VerificationOwner.Documentation" />,
+    ///     <see cref="VerificationOwner.Code" />, or <see cref="VerificationOwner.Tenet" /> concern, against a
+    ///     documentation, code, or tenet repair, and
     ///     <see cref="VerificationVerdict.RerouteRequired" /> against either repair path — rather than this worker
     ///     trying to infer which applies from prose.
     /// </summary>
     private const string VerifierQuestion =
         """
         Judge whether this structural change conforms to every contract clause it touches and leaves
-        docs/architecture/ accurate for what was actually built. Report the verdict 'RepairRequired' with an
+        docs/architecture/ accurate for what was actually built. Also check the change against CONSTRAINTS.md's
+        Satisfied constraints and the boundaries of every system contract it touches; report any violation as a
+        concern owned by Tenet, with a FixText naming the specific constraint or contract boundary crossed and
+        what must change to stop crossing it. Report the verdict 'RepairRequired' with an
         empty list of concerns, and your reasoning in the advisory notes, when the plan's own decomposition was
         wrong - the wrong systems were touched, a needed split, merge, or new node was missed, or the steps taken
-        do not add up to the change asked for - as distinct from a documentation or code defect in an
-        otherwise-correctly-decomposed change, which is a documentation or code concern instead. Report the
+        do not add up to the change asked for - as distinct from a documentation, code, or tenet defect in an
+        otherwise-correctly-decomposed change, which is a documentation, code, or tenet concern instead. Report the
         verdict 'RerouteRequired', with your reasoning in the advisory notes, when this change does not belong to
         a structural worker at all.
         """;
@@ -112,6 +120,7 @@ internal sealed class StructuralChangeWorker
     private readonly Verifier _verifier;
     private readonly int _maxDocumentationRepairAttempts;
     private readonly int _maxCodeRepairAttempts;
+    private readonly int _maxTenetRepairAttempts;
     private readonly int _maxReplanAttempts;
     private readonly RecordStore? _recordStore;
 
@@ -136,18 +145,25 @@ internal sealed class StructuralChangeWorker
     /// </param>
     /// <param name="maxDocumentationRepairAttempts">
     ///     The most documentation-repair attempts spent when a verdict's concerns name
-    ///     <see cref="VerificationOwner.Documentation" />, independent of the other two budgets. Must be
+    ///     <see cref="VerificationOwner.Documentation" />, independent of the other three budgets. Must be
     ///     zero or greater; defaults to 1, kept equal to Contract Change's precedent pending live evidence.
     /// </param>
     /// <param name="maxCodeRepairAttempts">
     ///     The most code-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Code" />,
-    ///     independent of the other two budgets. Must be
+    ///     independent of the other three budgets. Must be
     ///     zero or greater; defaults to 1, kept equal to Contract Change's precedent pending live evidence.
     /// </param>
+    /// <param name="maxTenetRepairAttempts">
+    ///     The most tenet-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Tenet" />,
+    ///     independent of the other three budgets. A tenet finding repairs through <see cref="Developer" /> — the
+    ///     same primitive a code finding uses — since fixing a tenet violation means changing code or
+    ///     configuration to conform to <c>CONSTRAINTS.md</c> and the affected contracts. Must be zero or greater;
+    ///     defaults to 1, kept equal to Contract Change's precedent pending live evidence.
+    /// </param>
     /// <param name="maxReplanAttempts">
-    ///     The most times a <see cref="VerificationVerdict.RepairRequired" /> verdict with no documentation or
-    ///     code concern spends a second
-    ///     <see cref="Planner" /> call, independent of the other two budgets. Must be zero or greater; defaults to
+    ///     The most times a <see cref="VerificationVerdict.RepairRequired" /> verdict with no documentation, code,
+    ///     or tenet concern spends a second
+    ///     <see cref="Planner" /> call, independent of the other three budgets. Must be zero or greater; defaults to
     ///     1, per this stage's one re-plan budget.
     /// </param>
     /// <param name="documentAuthorTargetFileCountBudget">
@@ -195,7 +211,7 @@ internal sealed class StructuralChangeWorker
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     ///     Thrown when <paramref name="maxDocumentationRepairAttempts" />, <paramref name="maxCodeRepairAttempts" />,
-    ///     or <paramref name="maxReplanAttempts" /> is negative, or when
+    ///     <paramref name="maxTenetRepairAttempts" />, or <paramref name="maxReplanAttempts" /> is negative, or when
     ///     <paramref name="documentAuthorTargetFileCountBudget" /> or <paramref name="maxPlanSteps" /> is not
     ///     greater than zero.
     /// </exception>
@@ -207,6 +223,7 @@ internal sealed class StructuralChangeWorker
         string verifierCharter,
         int maxDocumentationRepairAttempts = 1,
         int maxCodeRepairAttempts = 1,
+        int maxTenetRepairAttempts = 1,
         int maxReplanAttempts = 1,
         int documentAuthorTargetFileCountBudget = 8,
         int maxPlanSteps = 12,
@@ -222,6 +239,7 @@ internal sealed class StructuralChangeWorker
         ArgumentNullException.ThrowIfNull(verifierCharter);
         ArgumentOutOfRangeException.ThrowIfNegative(maxDocumentationRepairAttempts);
         ArgumentOutOfRangeException.ThrowIfNegative(maxCodeRepairAttempts);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxTenetRepairAttempts);
         ArgumentOutOfRangeException.ThrowIfNegative(maxReplanAttempts);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(documentAuthorTargetFileCountBudget);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPlanSteps);
@@ -240,6 +258,7 @@ internal sealed class StructuralChangeWorker
         _verifier = new Verifier(root, verifierCharter, endpointFor: endpointFor);
         _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
         _maxCodeRepairAttempts = maxCodeRepairAttempts;
+        _maxTenetRepairAttempts = maxTenetRepairAttempts;
         _maxReplanAttempts = maxReplanAttempts;
         _recordStore = recordStore;
     }
@@ -279,6 +298,7 @@ internal sealed class StructuralChangeWorker
 
         var documentationRepairBudget = _maxDocumentationRepairAttempts;
         var codeRepairBudget = _maxCodeRepairAttempts;
+        var tenetRepairBudget = _maxTenetRepairAttempts;
         var replanBudget = _maxReplanAttempts;
 
         while (true)
@@ -355,11 +375,17 @@ internal sealed class StructuralChangeWorker
                     .Where(concern => concern.Owner == VerificationOwner.Code)
                     .Select(concern => concern.FixText)
                     .ToList();
+                var tenetFixes = concerns
+                    .Where(concern => concern.Owner == VerificationOwner.Tenet)
+                    .Select(concern => concern.FixText)
+                    .ToList();
 
                 var needsDocumentationRepair =
                     verdict == VerificationVerdict.RepairRequired && documentationFixes.Count > 0;
                 var needsCodeRepair =
                     verdict == VerificationVerdict.RepairRequired && codeFixes.Count > 0;
+                var needsTenetRepair =
+                    verdict == VerificationVerdict.RepairRequired && tenetFixes.Count > 0;
 
                 if (needsDocumentationRepair)
                 {
@@ -437,11 +463,44 @@ internal sealed class StructuralChangeWorker
                     continue;
                 }
 
-                // Judgment call (see the Apply Report): a `RepairRequired` verdict whose concerns name neither
-                // Documentation nor Code stands in for the old `StrategyRevisionRequired` verdict - the plan's
-                // own decomposition was wrong, not its execution - since the verifier was instructed to report
-                // this with an empty concerns list and its reasoning in the advisory notes instead of a concern
-                // owned by one of the three owners.
+                if (needsTenetRepair)
+                {
+                    if (tenetRepairBudget <= 0)
+                        return new WorkerExecutionResult(
+                            OperationOutcome.Failed,
+                            null,
+                            MergeInterrupted(documentation, code),
+                            [new ProcessNote(
+                                "the tenet-repair budget was already spent when another tenet finding arrived")]);
+
+                    tenetRepairBudget--;
+
+                    // A tenet finding repairs through Developer, the same primitive a code finding uses: fixing a
+                    // tenet violation means changing code or configuration to conform to CONSTRAINTS.md and the
+                    // affected contracts, which is still a code-shaped fix, and no separate "tenet author"
+                    // primitive exists - see the Apply Report's judgment call.
+                    var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
+                            ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), tenetFixes),
+                            parentInvocationId,
+                            "Developer:tenet-repair",
+                            cancellationToken,
+                            documentation)
+                        .ConfigureAwait(false);
+                    if (tenetRepairTerminal is not null)
+                        return tenetRepairTerminal with
+                        {
+                            Interrupted = tenetRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                        };
+                    code = repairedTenetCode!;
+
+                    continue;
+                }
+
+                // Judgment call (see the Apply Report): a `RepairRequired` verdict whose concerns name none of
+                // Documentation, Code, or Tenet stands in for the old `StrategyRevisionRequired` verdict - the
+                // plan's own decomposition was wrong, not its execution - since the verifier was instructed to
+                // report this with an empty concerns list and its reasoning in the advisory notes instead of a
+                // concern owned by one of the three owners.
                 if (verdict == VerificationVerdict.RepairRequired && concerns.Count == 0)
                 {
                     needsReplan = true;
@@ -476,8 +535,8 @@ internal sealed class StructuralChangeWorker
             if (replanTerminal is not null)
                 return replanTerminal;
 
-            // No budget resets afterward: documentationRepairBudget and codeRepairBudget carry whatever they had
-            // left across this re-plan, per MIGRATION.md's S9 entry.
+            // No budget resets afterward: documentationRepairBudget, codeRepairBudget, and tenetRepairBudget
+            // carry whatever they had left across this re-plan, per MIGRATION.md's S9 entry.
             plan = revisedPlan;
         }
     }
