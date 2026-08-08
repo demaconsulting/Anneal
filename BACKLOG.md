@@ -85,6 +85,13 @@ where `architecture-design` will read them. See the Intake admission test in
   list whose every entry has been retired. Those repositories keep the old list until then, which
   still sits awkwardly beside the *Model configuration is data, not code* decision in `toolkit.md`.
   Narrowed, not solved.
+- **Retire `agent-metrics.ps1` once its corpus is empty** — it scrapes `.agent-logs/*.md` prose
+  reports with regular expressions, a pattern `toolkit/runtime.md` already names as the mistake
+  `TOOLKIT-08`'s structured `InvocationRecord` exists to avoid. It is not gated by CI, lint, or
+  build, and has no recorded retirement condition anywhere, unlike `lint-fix.agent.md`'s. The
+  condition: once every remaining prose agent is absorbed into a compiled operation, nothing writes
+  `.agent-logs/*.md` anymore and `dotnet anneal stats` covers the whole corpus `InvocationRecord`
+  already carries. Delete the script and this backlog item together at that point.
 - **Give the remaining single-name compiled-in defaults a rearguard** — two shipped defaults still
   name one external identifier each, so each is a dead man's switch of the kind the *No compiled-in
   default may name a single external identifier* constraint describes. The Copilot SDK's

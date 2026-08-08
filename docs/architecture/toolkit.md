@@ -147,11 +147,12 @@ existing contract check already enforces. The cost is accepted for the visibilit
 into the Toolkit because they are deterministic and were unreliable when expressed as prose for an agent
 to follow. The decisions themselves do not move, because a unit test can prove that a step ran and
 cannot prove that a verdict was right, and because a rule compiled into a released tool is corrected
-through build, test, publish and restore where a prompt is corrected in one edit. Prompts, standards and
-contracts stay data the Toolkit composes. The rejected alternative was a process engine that owns both
-control flow and judgement — rejected because encoding judgement makes correcting it expensive on every
-subsequent change, which is the cost *What must not be reintroduced* in [overview.md](./overview.md)
-refuses.
+through build, test, publish and restore where a standard is corrected in one edit. The content a
+compiled step composes into what a model sees — standards, and a repository's own declared contracts —
+stays data for that reason; only the prose agent files that once carried both content and sequencing by
+hand compile away. The rejected alternative was a process engine that owns both control flow and
+judgement — rejected because encoding judgement makes correcting it expensive on every subsequent
+change, which is the cost *What must not be reintroduced* in [overview.md](./overview.md) refuses.
 
 **A misuse is not an outcome** — an operation that cannot use its arguments never ran, so it has nothing
 to report and the gating rule has nothing to weigh; `TOOLKIT-10` therefore routes it to the same

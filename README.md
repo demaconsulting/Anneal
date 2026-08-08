@@ -120,10 +120,13 @@ document only as much as the contract moved, run only as heavy a process as the 
 
 **The dividing line.** The Toolkit may absorb **control flow and context assembly** — sequencing
 steps, gating on their outcomes, and composing what a model is shown. It must never absorb
-**judgement as compiled behavior**. Prompts, standards and contracts stay data the tool composes:
-ordinary files, editable in one edit, without a release. A wrong prompt is corrected in one edit;
-a wrong encoded rule is corrected through build, test, publish and restore, and an agent editing
-the tool does not change the tool it is running under.
+**judgement as compiled behavior**. The agent prompt files under `.github/agents/` are bootstrap
+scaffolding and compile away with the rest of the control flow they once encoded by hand; what stays
+data is the *content* a compiled step composes into what a model sees — standards, and a repository's
+own declared contracts — because those are corrected in one edit, where a wrong compiled rule is
+corrected only through build, test, publish and restore. Whether that content stays a plain file or
+becomes a packaged resource is a delivery detail still open (see `MIGRATION.md`); a repository's own
+contracts cannot become one, because they are a fact about that installation, not shared behavior.
 
 The admission test underneath is the one *What must not be reintroduced* in
 [overview.md](docs/architecture/overview.md) turns on: does a mechanism add cost paid on every
