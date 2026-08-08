@@ -312,7 +312,7 @@ public sealed class RouteOperation : IOperation
 
         return new OperationResult(
             OperationOutcome.Succeeded,
-            new RouteReport(completed.Summary.FilesChanged, completed.Summary.Summary, [], string.Empty, [], string.Empty));
+            new RouteReport(completed.Summary.FilesChanged, completed.Summary.Summary, [], string.Empty, [], string.Empty, [], string.Empty));
     }
 
     private static OperationResult Reported(TextWriter output, OperationOutcome outcome, RouterOutcome.Report report)
@@ -327,6 +327,18 @@ public sealed class RouteOperation : IOperation
 
         output.WriteLine($"route: recommended next step - {report.FailureReport.RecommendedNextStep}");
 
+        var interrupted = report.FailureReport.ChangeBeforeStopping;
+        if (interrupted is not null && interrupted.FilesChanged.Count > 0)
+        {
+            output.WriteLine("route: files already written before stopping:");
+            foreach (var file in interrupted.FilesChanged)
+                output.WriteLine($"  {file}");
+            output.WriteLine($"route: summary before stopping - {interrupted.Summary}");
+        }
+
+        IReadOnlyList<string> filesBeforeStopping = interrupted?.FilesChanged ?? [];
+        var summaryBeforeStopping = interrupted?.Summary ?? string.Empty;
+
         return new OperationResult(
             outcome,
             new RouteReport(
@@ -335,6 +347,8 @@ public sealed class RouteOperation : IOperation
                 report.FailureReport.WhatWasTried,
                 report.FailureReport.WhatWasLearned,
                 [.. report.FailureReport.RejectedWorkers.Select(rejected => $"{rejected.WorkerKey}: {rejected.Why}")],
-                report.FailureReport.RecommendedNextStep));
+                report.FailureReport.RecommendedNextStep,
+                filesBeforeStopping,
+                summaryBeforeStopping));
     }
 }

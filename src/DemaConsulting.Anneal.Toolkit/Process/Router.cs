@@ -144,7 +144,9 @@ internal sealed class Router
     ///     work; <see cref="OperationOutcome.Failed" /> with a <see cref="RouteFailureReport" /> when no route
     ///     exists, a budget was exhausted, or a worker itself failed, and no human-only next step was named;
     ///     <see cref="OperationOutcome.Escalated" /> with a <see cref="RouteFailureReport" /> when the route oracle
-    ///     named a specific step only a person can take.
+    ///     named a specific step only a person can take. In both failure cases,
+    ///     <see cref="RouteFailureReport.ChangeBeforeStopping" /> is non-null when the selected worker wrote files
+    ///     to disk before its interrupted outcome.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="workItem" /> is null, empty or blank.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
@@ -267,9 +269,14 @@ internal sealed class Router
                             return workerResult.Outcome == OperationOutcome.Escalated
                                 ? new StepResult<RouterOutcome>(
                                     OperationOutcome.Escalated,
-                                    new RouterOutcome.Report(BuildReport(ledger, "the selected worker escalated to a person")),
+                                    new RouterOutcome.Report(
+                                        BuildReport(
+                                            ledger,
+                                            "the selected worker escalated to a person",
+                                            changeBeforeStopping: workerResult.Interrupted)),
                                     workerResult.Notes)
-                                : Fail(ledger, "the selected worker could not complete the work");
+                                : Fail(ledger, "the selected worker could not complete the work",
+                                    changeBeforeStopping: workerResult.Interrupted);
                     }
 
                 default:
@@ -332,7 +339,11 @@ internal sealed class Router
         return context;
     }
 
-    private static StepResult<RouterOutcome> Fail(RoutingLedger ledger, string reason, string? humanOnlyNextStep = null)
+    private static StepResult<RouterOutcome> Fail(
+        RoutingLedger ledger,
+        string reason,
+        string? humanOnlyNextStep = null,
+        ChangeSetBeforeStopping? changeBeforeStopping = null)
     {
         var namedStep = humanOnlyNextStep ?? ledger.RouteAttempts
             .AsEnumerable()
@@ -340,14 +351,18 @@ internal sealed class Router
             .Select(attempt => attempt.HumanOnlyNextStep)
             .FirstOrDefault(step => !string.IsNullOrWhiteSpace(step));
 
-        var report = BuildReport(ledger, reason, namedStep);
+        var report = BuildReport(ledger, reason, namedStep, changeBeforeStopping);
 
         return string.IsNullOrWhiteSpace(namedStep)
             ? new StepResult<RouterOutcome>(OperationOutcome.Failed, new RouterOutcome.Report(report), [])
             : new StepResult<RouterOutcome>(OperationOutcome.Escalated, new RouterOutcome.Report(report), []);
     }
 
-    private static RouteFailureReport BuildReport(RoutingLedger ledger, string reason, string? namedStep = null)
+    private static RouteFailureReport BuildReport(
+        RoutingLedger ledger,
+        string reason,
+        string? namedStep = null,
+        ChangeSetBeforeStopping? changeBeforeStopping = null)
     {
         List<string> tried =
         [
@@ -370,6 +385,6 @@ internal sealed class Router
             ? $"a person should review this routing run manually: {reason}"
             : namedStep;
 
-        return new RouteFailureReport(tried, learned, rejected, recommendedNextStep);
+        return new RouteFailureReport(tried, learned, rejected, recommendedNextStep, changeBeforeStopping);
     }
 }

@@ -1,5 +1,3 @@
-using DemaConsulting.Anneal.Toolkit.Primitives;
-
 namespace DemaConsulting.Anneal.Toolkit.Process;
 
 /// <summary>Names one worker in the catalog a <see cref="Router" /> selects from: its key and its one-line role.</summary>
@@ -20,10 +18,9 @@ internal sealed record WorkerDescriptor(string Key, string Description);
 /// <param name="brief">What the worker needs to know, projected from the <see cref="RoutingLedger" />.</param>
 /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
 /// <returns>
-///     What the worker concluded: completion, a reroute back to the <see cref="Router" />, or the worker's own
-///     failure/escalation.
+///     The full result of the run, including any files written before the worker stopped short of completion.
 /// </returns>
-internal delegate Task<StepResult<WorkerRunResult>> WorkerRunner(WorkerBrief brief, CancellationToken cancellationToken);
+internal delegate Task<WorkerExecutionResult> WorkerRunner(WorkerBrief brief, CancellationToken cancellationToken);
 
 /// <summary>One entry in the catalog a <see cref="Router" /> selects from: a worker's descriptor paired with how to run it.</summary>
 /// <param name="Descriptor">The worker's catalog identity.</param>

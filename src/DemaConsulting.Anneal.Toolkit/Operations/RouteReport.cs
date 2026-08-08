@@ -10,6 +10,12 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     public record instead. Exactly one half is populated on any given result — the completion fields on success,
 ///     the failure-report fields otherwise — the same "populated half tells you which path was taken" shape
 ///     <see cref="LintFixReport" /> already uses for its own escalation fields.
+///     <para>
+///         When a selected worker stopped short — Escalated or Failed — but had already written files to disk,
+///         <see cref="FilesChangedBeforeStopping" /> and <see cref="SummaryBeforeStopping" /> are non-empty so
+///         a caller can see what is already on disk. These are additive alongside the failure-report fields;
+///         they are always empty on a completed run.
+///     </para>
 ///     <para>Thread safety: immutable and safe to share.</para>
 /// </remarks>
 /// <param name="FilesChanged">
@@ -30,10 +36,21 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// <param name="RecommendedNextStep">
 ///     What a person should do next, when the run did not complete. Never null; empty on a completed run.
 /// </param>
+/// <param name="FilesChangedBeforeStopping">
+///     Files the selected worker wrote to disk before an Escalated or Failed outcome stopped it short of
+///     completion, in the order the worker reported them. Never null; empty on a completed run or when no files
+///     were written before the worker stopped.
+/// </param>
+/// <param name="SummaryBeforeStopping">
+///     A brief account of what the worker changed before stopping. Never null; empty on a completed run or when
+///     no files were written before the worker stopped.
+/// </param>
 public sealed record RouteReport(
     IReadOnlyList<string> FilesChanged,
     string Summary,
     IReadOnlyList<string> WhatWasTried,
     string WhatWasLearned,
     IReadOnlyList<string> RejectedWorkers,
-    string RecommendedNextStep);
+    string RecommendedNextStep,
+    IReadOnlyList<string> FilesChangedBeforeStopping,
+    string SummaryBeforeStopping);

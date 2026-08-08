@@ -18,7 +18,9 @@ oracle selects.
 It takes the work item as its first argument and any further arguments as changed-file hints, mirroring
 `Router.RunAsync`'s own two parameters. What comes back is a projection of the internal `RouterOutcome`
 into the public `RouteReport`: the files a completing worker changed and its summary on success, or what
-the run tried, learned, and recommends when no worker completed the work.
+the run tried, learned, and recommends when no worker completed the work. When the run ends Escalated or
+Failed and a worker had already written files before stopping, those files and their summary surface in
+the report separately from the completion fields.
 
 ## Contract
 
@@ -28,8 +30,12 @@ the run tried, learned, and recommends when no worker completed the work.
   `small-fix`, `contract-change`, `structural-change` — through a real Router, and runs whichever
   worker the routing oracle selects. It succeeds when a selected worker completes the work, escalates
   when the routing oracle or a worker names a step only a person can take, and fails when no route
-  exists, a routing budget is exhausted, or the selected worker could not complete the work.
-  *Verified by:* `ToolkitContractTests.RouteRunsTheSelectedCompiledWorker`
+  exists, a routing budget is exhausted, or the selected worker could not complete the work. On an
+  Escalated or Failed outcome, if the selected worker had already written files to disk before stopping
+  short of completion, `route` reports those files and a summary in
+  `RouteReport.FilesChangedBeforeStopping` and `RouteReport.SummaryBeforeStopping`; both fields are
+  never null and are empty when no files were written before the worker stopped.
+  *Verified by:* `Toolkit23InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`
 
 ### Requires
 
@@ -68,3 +74,11 @@ up only researching, refusing to route, or escalating — because the action as 
 writing to the repository, matching `lint-fix`'s own reasoning: a caller must not have to know which
 path a given invocation happened to take before it can know whether a failure of this action gates a
 build.
+
+**Interrupted-change data is carried in a new dedicated record, not in `WorkerRunResult` or
+`ProcessNote`** — `WorkerRunResult.Completed` carries the finding of a worker that reached a typed
+answer; an interrupted run never reached one, so reusing or extending that union would contradict its
+documented invariant. `ProcessNote` is an append-only diagnostic log, not a structured result carrier;
+overloading it for file lists would conflate two different concerns and force callers to parse notes to
+recover structured data. A separate `ChangeSetBeforeStopping` record makes the interrupted-change path
+explicit and structurally distinct from the completion path.

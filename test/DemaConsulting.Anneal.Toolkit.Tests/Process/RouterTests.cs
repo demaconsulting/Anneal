@@ -36,9 +36,10 @@ public class RouterTests
             WorkerRunner runner = (_, _) =>
             {
                 runnerCalls++;
-                return Task.FromResult(new StepResult<WorkerRunResult>(
+                return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                    null,
                     []));
             };
 
@@ -86,13 +87,15 @@ public class RouterTests
                 runnerCalls++;
                 return Task.FromResult(
                     runnerCalls == 1
-                        ? new StepResult<WorkerRunResult>(
+                        ? new WorkerExecutionResult(
                             OperationOutcome.Succeeded,
                             new WorkerRunResult.Reroute("needs a contract change", [], "contract-change"),
+                            null,
                             [])
-                        : new StepResult<WorkerRunResult>(
+                        : new WorkerExecutionResult(
                             OperationOutcome.Succeeded,
                             new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                            null,
                             []));
             };
 
@@ -135,9 +138,10 @@ public class RouterTests
             var researchEndpoint = new QueuedEndpoint("Looking around.");
             var recordStore = new RecordStore(root);
 
-            WorkerRunner runner = (_, _) => Task.FromResult(new StepResult<WorkerRunResult>(
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
                 OperationOutcome.Succeeded,
                 new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                null,
                 []));
 
             var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
@@ -180,9 +184,10 @@ public class RouterTests
             var researchEndpoint = new QueuedEndpoint("Looking around.");
             var recordStore = new RecordStore(root);
 
-            WorkerRunner runner = (_, _) => Task.FromResult(new StepResult<WorkerRunResult>(
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
                 OperationOutcome.Succeeded,
                 new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                null,
                 []));
 
             var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
@@ -288,9 +293,10 @@ public class RouterTests
             WorkerRunner runner = (_, _) =>
             {
                 runnerCalls++;
-                return Task.FromResult(new StepResult<WorkerRunResult>(
+                return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Reroute("needs a contract change", [], "contract-change"),
+                    null,
                     []));
             };
 
@@ -389,9 +395,10 @@ public class RouterTests
             WorkerRunner smallFixRunner = (_, _) =>
             {
                 smallFixCalls++;
-                return Task.FromResult(new StepResult<WorkerRunResult>(
+                return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                    null,
                     []));
             };
 
@@ -399,9 +406,10 @@ public class RouterTests
             WorkerRunner contractChangeRunner = (_, _) =>
             {
                 contractChangeCalls++;
-                return Task.FromResult(new StepResult<WorkerRunResult>(
+                return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Completed(new ChangeSetSummary(["docs/architecture/toolkit.md"], "updated the contract")),
+                    null,
                     []));
             };
 
@@ -431,6 +439,117 @@ public class RouterTests
 
             var records = ReadRecords(root);
             Assert.Contains(records, record => record.Step == "Worker:contract-change");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerEscalatesWithInterruptedChange_ChangeBeforeStoppingFlowsIntoReport()
+    {
+        // Arrange: a worker that escalates but carries files it already wrote
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Escalated,
+                null,
+                new ChangeSetBeforeStopping(["protected-file.cs"], "partial edit before escalation"),
+                [new ProcessNote("a protected path was reached")]));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: escalated outcome and the interrupted change flows into the report
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding));
+
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Contains("protected-file.cs", report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.Equal("partial edit before escalation", report.ChangeBeforeStopping!.Summary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerFailsWithInterruptedChange_ChangeBeforeStoppingFlowsIntoReport()
+    {
+        // Arrange: a worker that fails but carries files it already wrote
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                new ChangeSetBeforeStopping(["a.cs", "b.cs"], "two files edited before budget expired"),
+                []));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: failed outcome and the interrupted change flows into the report
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding));
+
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Equal(2, report.ChangeBeforeStopping!.FilesChanged.Count),
+                () => Assert.Equal("two files edited before budget expired", report.ChangeBeforeStopping!.Summary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerFailsWithNoInterruptedChange_ChangeBeforeStoppingIsNull()
+    {
+        // Arrange: a worker that fails with no file-write state (e.g. no model reachable)
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed, null, null, [new ProcessNote("no model reachable")]));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: failed outcome and no interrupted change
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding));
+
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Null(report.ChangeBeforeStopping);
         }
         finally
         {

@@ -197,13 +197,15 @@ internal sealed class ContractChangeWorker
     ///     <see cref="OperationOutcome.Succeeded" /> with <see cref="WorkerRunResult.Reroute" /> when
     ///     <see cref="DocumentAuthor" /> or <see cref="Developer" /> named a better owner, or the verifier
     ///     concluded the classification underneath this work needs to change; <see cref="OperationOutcome.Escalated" />
-    ///     when a repair needed a protected path; <see cref="OperationOutcome.Failed" /> with no finding when a
-    ///     repair budget was spent with its named finding still open, when the verifier judged its evidence
-    ///     insufficient, or when no model could be reached.
+    ///     when a repair needed a protected path; <see cref="OperationOutcome.Failed" /> when a repair budget was
+    ///     spent with its named finding still open, when the verifier judged its evidence insufficient, or when no
+    ///     model could be reached. Both Escalated and Failed populate <see cref="WorkerExecutionResult.Interrupted" />
+    ///     when the enclosing method already holds real documentation/code state, so the caller can see which files
+    ///     were already on disk.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="brief" /> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
-    public async Task<StepResult<WorkerRunResult>> RunAsync(WorkerBrief brief, CancellationToken cancellationToken)
+    public async Task<WorkerExecutionResult> RunAsync(WorkerBrief brief, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(brief);
 
@@ -218,7 +220,8 @@ internal sealed class ContractChangeWorker
             return documentTerminal;
 
         var (developerTerminal, initialCode) = await RunDeveloperAsync(
-                ComposeCodeInstruction(brief, documentChanges!), parentInvocationId, "Developer", cancellationToken)
+                ComposeCodeInstruction(brief, documentChanges!), parentInvocationId, "Developer", cancellationToken,
+                documentChanges)
             .ConfigureAwait(false);
         if (developerTerminal is not null)
             return developerTerminal;
@@ -256,17 +259,22 @@ internal sealed class ContractChangeWorker
 
             if (verified.Outcome == OperationOutcome.Succeeded &&
                 verified.Finding?.Verdict == VerificationVerdict.Passed)
-                return new StepResult<WorkerRunResult>(
-                    OperationOutcome.Succeeded, new WorkerRunResult.Completed(Merge(documentation, code)), []);
+                return new WorkerExecutionResult(
+                    OperationOutcome.Succeeded, new WorkerRunResult.Completed(Merge(documentation, code)), null, []);
 
             if (verified.Outcome == OperationOutcome.Escalated)
-                return new StepResult<WorkerRunResult>(
+                return new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.RequiredFixes ?? []], null),
+                    null,
                     []);
 
             if (verified.Outcome == OperationOutcome.Refused)
-                return new StepResult<WorkerRunResult>(OperationOutcome.Failed, null, verified.Notes);
+                return new WorkerExecutionResult(
+                    OperationOutcome.Failed,
+                    null,
+                    MergeInterrupted(documentation, code),
+                    verified.Notes);
 
             var verdict = verified.Finding?.Verdict;
             var fixes = verified.Finding?.RequiredFixes ?? [];
@@ -279,9 +287,10 @@ internal sealed class ContractChangeWorker
             if (needsDocumentationRepair)
             {
                 if (documentationRepairBudget <= 0)
-                    return new StepResult<WorkerRunResult>(
+                    return new WorkerExecutionResult(
                         OperationOutcome.Failed,
                         null,
+                        MergeInterrupted(documentation, code),
                         [new ProcessNote(
                             "the documentation-repair budget was already spent when another documentation finding arrived")]);
 
@@ -294,7 +303,10 @@ internal sealed class ContractChangeWorker
                         cancellationToken)
                     .ConfigureAwait(false);
                 if (documentRepairTerminal is not null)
-                    return documentRepairTerminal;
+                    return documentRepairTerminal with
+                    {
+                        Interrupted = documentRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                    };
                 documentation = repairedDocument!;
 
                 // No primitive reports whether a documentation repair altered an obligation the code must now
@@ -305,10 +317,14 @@ internal sealed class ContractChangeWorker
                         ComposeCodeInstruction(brief, documentation),
                         parentInvocationId,
                         "Developer:resync",
-                        cancellationToken)
+                        cancellationToken,
+                        documentation)
                     .ConfigureAwait(false);
                 if (resyncTerminal is not null)
-                    return resyncTerminal;
+                    return resyncTerminal with
+                    {
+                        Interrupted = resyncTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                    };
                 code = resyncCode!;
 
                 continue;
@@ -317,9 +333,10 @@ internal sealed class ContractChangeWorker
             if (needsCodeRepair)
             {
                 if (codeRepairBudget <= 0)
-                    return new StepResult<WorkerRunResult>(
+                    return new WorkerExecutionResult(
                         OperationOutcome.Failed,
                         null,
+                        MergeInterrupted(documentation, code),
                         [new ProcessNote(
                             "the code-repair budget was already spent when another code finding arrived")]);
 
@@ -329,10 +346,14 @@ internal sealed class ContractChangeWorker
                         ComposeRepairInstruction(ComposeCodeInstruction(brief, documentation), fixes),
                         parentInvocationId,
                         "Developer:repair",
-                        cancellationToken)
+                        cancellationToken,
+                        documentation)
                     .ConfigureAwait(false);
                 if (codeRepairTerminal is not null)
-                    return codeRepairTerminal;
+                    return codeRepairTerminal with
+                    {
+                        Interrupted = codeRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                    };
                 code = repairedCode!;
 
                 continue;
@@ -340,48 +361,73 @@ internal sealed class ContractChangeWorker
 
             // Every named verdict is handled above; an unnamed one is treated as a blocking failure rather than
             // silently passing.
-            return new StepResult<WorkerRunResult>(OperationOutcome.Failed, null, verified.Notes);
+            return new WorkerExecutionResult(
+                OperationOutcome.Failed, null, MergeInterrupted(documentation, code), verified.Notes);
         }
     }
 
-    private async Task<(StepResult<WorkerRunResult>? Terminal, DocumentChangeSet? Changes)> RunDocumentAuthorAsync(
+    private async Task<(WorkerExecutionResult? Terminal, DocumentChangeSet? Changes)> RunDocumentAuthorAsync(
         string instruction, string parentInvocationId, string stepName, CancellationToken cancellationToken)
     {
         var result = await _documentAuthor.AuthorAsync(instruction, cancellationToken).ConfigureAwait(false);
         RecordStep(parentInvocationId, stepName, result.Outcome);
 
         if (result.Outcome == OperationOutcome.Escalated)
-            return (new StepResult<WorkerRunResult>(OperationOutcome.Escalated, null, result.Notes), null);
+        {
+            // Preserve the underlying Authored finding when DocumentAuthor reports Escalated with one — it wrote
+            // files before the protected-path refusal stopped it, and the caller needs to see those files.
+            var authored = result.Finding as DocumentAuthoringResult.Authored;
+            ChangeSetBeforeStopping? interrupted = authored is not null
+                ? new ChangeSetBeforeStopping(authored.Changes.FilesChanged, authored.Changes.Summary)
+                : null;
+            return (new WorkerExecutionResult(OperationOutcome.Escalated, null, interrupted, result.Notes), null);
+        }
 
         if (result.Outcome != OperationOutcome.Succeeded || result.Finding is null)
-            return (new StepResult<WorkerRunResult>(result.Outcome, null, result.Notes), null);
+            return (new WorkerExecutionResult(result.Outcome, null, null, result.Notes), null);
 
         if (result.Finding is DocumentAuthoringResult.Reroute reroute)
             return (
-                new StepResult<WorkerRunResult>(
-                    OperationOutcome.Succeeded, new WorkerRunResult.Reroute(reroute.Why, [], null), []),
+                new WorkerExecutionResult(
+                    OperationOutcome.Succeeded, new WorkerRunResult.Reroute(reroute.Why, [], null), null, []),
                 null);
 
         return (null, ((DocumentAuthoringResult.Authored)result.Finding).Changes);
     }
 
-    private async Task<(StepResult<WorkerRunResult>? Terminal, ChangeSetSummary? Changes)> RunDeveloperAsync(
-        string instruction, string parentInvocationId, string stepName, CancellationToken cancellationToken)
+    private async Task<(WorkerExecutionResult? Terminal, ChangeSetSummary? Changes)> RunDeveloperAsync(
+        string instruction, string parentInvocationId, string stepName, CancellationToken cancellationToken,
+        DocumentChangeSet? priorDocumentation = null)
     {
         var result = await _developer.DevelopAsync(instruction, cancellationToken).ConfigureAwait(false);
         RecordStep(parentInvocationId, stepName, result.Outcome);
 
         if (result.Outcome == OperationOutcome.Escalated)
-            return (new StepResult<WorkerRunResult>(OperationOutcome.Escalated, null, result.Notes), null);
+        {
+            // Preserve the underlying Completed finding when Developer reports Escalated with one — it wrote
+            // files before the protected-path refusal stopped it. Merge with any prior documentation state so
+            // the caller sees the full interrupted working-tree picture.
+            var devCompleted = result.Finding as DevelopmentResult.Completed;
+            ChangeSetBeforeStopping? interrupted = devCompleted is not null
+                ? priorDocumentation is not null
+                    ? new ChangeSetBeforeStopping(
+                        [.. priorDocumentation.FilesChanged, .. devCompleted.Summary.FilesChanged],
+                        $"{priorDocumentation.Summary} {devCompleted.Summary.Summary}".Trim())
+                    : new ChangeSetBeforeStopping(devCompleted.Summary.FilesChanged, devCompleted.Summary.Summary)
+                : priorDocumentation is not null
+                    ? new ChangeSetBeforeStopping(priorDocumentation.FilesChanged, priorDocumentation.Summary)
+                    : null;
+            return (new WorkerExecutionResult(OperationOutcome.Escalated, null, interrupted, result.Notes), null);
+        }
 
         if (result.Outcome != OperationOutcome.Succeeded || result.Finding is null)
-            return (new StepResult<WorkerRunResult>(result.Outcome, null, result.Notes), null);
+            return (new WorkerExecutionResult(result.Outcome, null, null, result.Notes), null);
 
         if (result.Finding is DevelopmentResult.Reroute reroute)
             return (
-                new StepResult<WorkerRunResult>(
+                new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
-                    new WorkerRunResult.Reroute(reroute.Why, [], reroute.SuggestedWorker), []),
+                    new WorkerRunResult.Reroute(reroute.Why, [], reroute.SuggestedWorker), null, []),
                 null);
 
         return (null, ((DevelopmentResult.Completed)result.Finding).Summary);
@@ -393,6 +439,12 @@ internal sealed class ContractChangeWorker
 
     private static ChangeSetSummary Merge(DocumentChangeSet document, ChangeSetSummary code) =>
         new([.. document.FilesChanged, .. code.FilesChanged], $"{document.Summary} {code.Summary}".Trim());
+
+    private static ChangeSetBeforeStopping MergeInterrupted(DocumentChangeSet documentation, ChangeSetSummary code)
+    {
+        var merged = Merge(documentation, code);
+        return new ChangeSetBeforeStopping(merged.FilesChanged, merged.Summary);
+    }
 
     private static string RerouteReason(VerificationFinding? finding) =>
         finding is null || finding.RequiredFixes.Count == 0

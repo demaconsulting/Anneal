@@ -106,12 +106,14 @@ internal sealed class SmallFixWorker
     ///     was authored and <c>build.ps1</c> passed, with or without the one local repair; <see cref="OperationOutcome.Succeeded" />
     ///     with <see cref="WorkerRunResult.Reroute" /> when <see cref="Developer" /> named a better owner;
     ///     <see cref="OperationOutcome.Escalated" /> when a repair needed a protected path;
-    ///     <see cref="OperationOutcome.Failed" /> with no finding when the repair budget was spent with
-    ///     <c>build.ps1</c> still failing, or when no model could be reached.
+    ///     <see cref="OperationOutcome.Failed" /> when the repair budget was spent with <c>build.ps1</c> still
+    ///     failing, or when no model could be reached. Both Escalated and Failed populate
+    ///     <see cref="WorkerExecutionResult.Interrupted" /> when a real <see cref="DevelopmentResult.Completed" />
+    ///     state existed at that point, so the caller can see which files were already on disk.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="brief" /> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
-    public async Task<StepResult<WorkerRunResult>> RunAsync(WorkerBrief brief, CancellationToken cancellationToken)
+    public async Task<WorkerExecutionResult> RunAsync(WorkerBrief brief, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(brief);
 
@@ -132,16 +134,27 @@ internal sealed class SmallFixWorker
         return final switch
         {
             { Outcome: OperationOutcome.Succeeded, Finding: DevelopmentResult.Completed completed } =>
-                new StepResult<WorkerRunResult>(
-                    OperationOutcome.Succeeded, new WorkerRunResult.Completed(completed.Summary), []),
+                new WorkerExecutionResult(
+                    OperationOutcome.Succeeded, new WorkerRunResult.Completed(completed.Summary), null, []),
 
             { Outcome: OperationOutcome.Refused, Finding: DevelopmentResult.Reroute reroute } =>
-                new StepResult<WorkerRunResult>(
+                new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Reroute(reroute.Why, [], reroute.SuggestedWorker),
+                    null,
                     []),
 
-            _ => new StepResult<WorkerRunResult>(final.Outcome, null, final.Notes)
+            // Escalated or Failed with a real Completed state underneath: the developer wrote files before
+            // the interrupt, so populate Interrupted from that state rather than discarding it.
+            { Finding: DevelopmentResult.Completed interruptedCompleted } =>
+                new WorkerExecutionResult(
+                    final.Outcome,
+                    null,
+                    new ChangeSetBeforeStopping(
+                        interruptedCompleted.Summary.FilesChanged, interruptedCompleted.Summary.Summary),
+                    final.Notes),
+
+            _ => new WorkerExecutionResult(final.Outcome, null, null, final.Notes)
         };
     }
 

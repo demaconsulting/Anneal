@@ -108,10 +108,13 @@ public class SmallFixWorkerTests
             // Act
             var result = await worker.RunAsync(brief, TestContext.Current.CancellationToken);
 
-            // Assert
+            // Assert: failed and Interrupted carries what the developer wrote before the build check failed
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
-                () => Assert.Null(result.Finding));
+                () => Assert.Null(result.Finding),
+                () => Assert.NotNull(result.Interrupted),
+                () => Assert.Contains("a.cs", result.Interrupted!.FilesChanged),
+                () => Assert.Equal("attempt", result.Interrupted!.Summary));
         }
         finally
         {
@@ -150,6 +153,31 @@ public class SmallFixWorkerTests
                 () => Assert.Equal(
                     "contract-change", ((WorkerRunResult.Reroute)result.Finding!).SuggestedWorker),
                 () => Assert.Equal(0, checkCalls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_NoModelAvailable_FailsWithInterruptedNull()
+    {
+        // Arrange: no model available means no Developer state was ever reached — Interrupted must be null.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint();
+            var worker = new SmallFixWorker(root, "a charter", endpointFor: _ => endpoint);
+            var brief = MakeBrief();
+
+            // Act
+            var result = await worker.RunAsync(brief, TestContext.Current.CancellationToken);
+
+            // Assert: null Interrupted because no file-write state was ever reached
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Null(result.Interrupted));
         }
         finally
         {
@@ -218,29 +246,6 @@ public class SmallFixWorkerTests
 
             // Assert: no standards were installed under root, and the worker still completes normally.
             Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-        }
-    }
-
-    [Fact]
-    public async Task RunAsync_NoModelAvailable_Fails()
-    {
-        // Arrange
-        var root = CreateTemporaryDirectory();
-        try
-        {
-            var endpoint = new QueuedEndpoint();
-            var worker = new SmallFixWorker(root, "a charter", endpointFor: _ => endpoint);
-            var brief = MakeBrief();
-
-            // Act
-            var result = await worker.RunAsync(brief, TestContext.Current.CancellationToken);
-
-            // Assert
-            Assert.Equal(OperationOutcome.Failed, result.Outcome);
         }
         finally
         {

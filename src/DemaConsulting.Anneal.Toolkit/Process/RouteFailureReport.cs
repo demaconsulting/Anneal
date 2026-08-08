@@ -7,7 +7,8 @@ internal sealed record RejectedWorker(string WorkerKey, string Why);
 
 /// <summary>
 ///     What a routing run reports when it cannot complete: what was tried, what was learned, which workers were
-///     rejected and why, and a recommended next step for a person to take.
+///     rejected and why, a recommended next step for a person to take, and any files the selected worker already
+///     wrote before stopping short.
 /// </summary>
 /// <remarks>
 ///     Built entirely from the <see cref="RoutingLedger" /> a <see cref="Router" /> already accumulated — nothing
@@ -21,8 +22,14 @@ internal sealed record RejectedWorker(string WorkerKey, string Why);
 ///     What a person should do next: the most recently named human-only next step, when one was named, or a
 ///     generic recommendation to review the run manually when none was.
 /// </param>
+/// <param name="ChangeBeforeStopping">
+///     Files the selected worker already wrote to disk before the run was interrupted, or null when the worker
+///     wrote nothing or no worker was ever selected. Populated only when a worker reached real authoring state
+///     before an Escalated or Failed outcome stopped it.
+/// </param>
 internal sealed record RouteFailureReport(
     IReadOnlyList<string> WhatWasTried,
     string WhatWasLearned,
     IReadOnlyList<RejectedWorker> RejectedWorkers,
-    string RecommendedNextStep);
+    string RecommendedNextStep,
+    ChangeSetBeforeStopping? ChangeBeforeStopping = null);
