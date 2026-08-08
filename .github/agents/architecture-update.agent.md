@@ -39,7 +39,7 @@ Then decide **the single level** the change belongs at:
 
 - Contract clause or decomposition rationale changed → `{system}.md`
 - System inventory or inter-system interaction changed → `overview.md`, plus the affected
- `{system}.md` files
+  `{system}.md` files
 - A documented non-obvious specific changed → that `{system}/{section}.md`
 - Product purpose or audience changed → `README.md` (rare; verify before assuming)
 
@@ -51,15 +51,15 @@ duplicated content and remove it from the level that should not own it.
 For Contract Change and Structural Change, write the contract before any implementation exists:
 
 - Add, narrow, or remove clauses per `system-contracts.md`, which owns identifier discipline —
- including what happens to a clause when a system is renamed, split, or merged.
+  including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
- exist yet — the `apply` agent is obliged to create it under that name.
+  exist yet — the `apply` agent is obliged to create it under that name.
 - When no implementation will follow — you were invoked directly rather than by `dispatch` — write the
- verifier in the **placeholder form**: an uppercase `TODO.` or `TODO_` opening the verifier string,
- followed by the name the test will take, as in `TODO.InstallCopiesPayloadOnly`. Only that exact form
- is reported by `dotnet anneal check-contracts` as an unfulfilled obligation; anything else naming a test that
- does not exist is a hard error, so the prefix is what leaves the repository green until the test is
- written. `system-contracts.md` owns this rule — consult it before deviating.
+  verifier in the **placeholder form**: an uppercase `TODO.` or `TODO_` opening the verifier string,
+  followed by the name the test will take, as in `TODO.InstallCopiesPayloadOnly`. Only that exact form
+  is reported by `dotnet anneal check-contracts` as an unfulfilled obligation; anything else naming a test that
+  does not exist is a hard error, so the prefix is what leaves the repository green until the test is
+  written. `system-contracts.md` owns this rule — consult it before deviating.
 - Mark narrowing or removal explicitly as breaking in your report.
 
 **Never edit a clause to match what the code does**, which `system-contracts.md` forbids generally
@@ -78,7 +78,7 @@ Apply the change at the level chosen in Step 2 and nowhere else. Then:
 - Confirm every parent links to its children and every child links back to its parent.
 - Confirm no level summarizes a level below it.
 - Confirm no document grew for a reason that belongs at another level, per the length table in
- `architecture-documentation.md`; move or delete the material rather than trimming prose.
+  `architecture-documentation.md`; move or delete the material rather than trimming prose.
 
 If the change contradicts an assumption recorded in `README.md`, stop and report INCOMPLETE naming
 the assumption. A disproved assumption is a re-cut trigger belonging to `architecture-design`, not
@@ -120,7 +120,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 - **Never write implementation.** This agent changes documentation only.
 - **Never document interior structure below the decomposition rationale.** Class-level intent lives
- in doc comments.
+  in doc comments.
 - **Never create a requirement below system level.** There is no such artifact in this process.
 - **Never add a section document that does not earn its place under the benefit test**, however tempting the symmetry.
 - **Prefer deleting to rewriting** when a document's value is unclear. Git holds the history.

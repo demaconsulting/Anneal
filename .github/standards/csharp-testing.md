@@ -73,11 +73,11 @@ public void UserValidator_ValidateEmail_InvalidFormat_ThrowsArgumentException()
 These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 
 - **`IAsyncLifetime`**: Both `InitializeAsync` and `DisposeAsync` return `ValueTask`
- in v3, not `Task` - using `Task` compiles but does not satisfy the v3 interface
+  in v3, not `Task` - using `Task` compiles but does not satisfy the v3 interface
 - **`Assert.Multiple`**: Use to collect all assertion failures in a single test
- rather than stopping at the first
+  rather than stopping at the first
 - **`[Collection]` without `[CollectionDefinition]`**: Silently disables parallelism
- without providing any shared fixture - always pair them or remove `[Collection]`
+  without providing any shared fixture - always pair them or remove `[Collection]`
 
 # Quality Checks
 
@@ -88,4 +88,4 @@ These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 - [ ] Both success and failure scenarios covered including edge cases
 - [ ] External dependencies mocked with NSubstitute in interior tests
 - [ ] Test results generated in TRX format (`dotnet test --logger trx`) so
- `dotnet anneal check-contracts` can verify clause-to-test links passed
+  `dotnet anneal check-contracts` can verify clause-to-test links passed

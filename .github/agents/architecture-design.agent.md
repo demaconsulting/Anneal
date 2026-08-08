@@ -48,14 +48,14 @@ it is not, say so and let the user commit before you write anything.
 Three things must survive a re-cut:
 
 - **Decisions.** Carry `## Repository-Wide Decisions` and each system's `## Decisions` across. A
- decision the new tree overturns is rewritten to record what superseded it, never silently dropped —
- the reasoning is the most expensive content in the tree and cannot be reconstructed.
+  decision the new tree overturns is rewritten to record what superseded it, never silently dropped —
+  the reasoning is the most expensive content in the tree and cannot be reconstructed.
 - **`README.md`.** Update it in place. It describes the product, and a re-cut does not change what
- the product is.
+  the product is.
 - **Contract clauses that still hold.** Keep the clause and its test name. Moving a promise to a
- differently-named system does not release consumers who already rely on it. `system-contracts.md`
- owns what happens to the identifier when the owning system changes; follow it and report the old
- identifier for each clause you move.
+  differently-named system does not release consumers who already rely on it. `system-contracts.md`
+  owns what happens to the identifier when the owning system changes; follow it and report the old
+  identifier for each clause you move.
 
 Delete the documents of systems the new tree no longer has, and list every deletion in the report.
 Writing a new tree over an old one otherwise leaves orphans behind that nothing will ever prune.
@@ -96,15 +96,15 @@ A system that cannot answer "what would a consumer notice if this were rewritten
 - **Contracts**: for each system, what consumers may rely on — in observable terms
 - **Technology**: language, framework, storage, infrastructure
 - **Quality attributes**: only those that constrain structure — latency budgets, availability
- targets, security boundaries, throughput. Skip attributes that do not shape the decomposition.
+  targets, security boundaries, throughput. Skip attributes that do not shape the decomposition.
 - **Volatility**: what is expected to change often, and what must stay stable. This directly
- determines where section documents are warranted.
+  determines where section documents are warranted.
 - **Staging** (re-cut only): what must keep working while the move happens, and what may break
- temporarily. This decides what the stages *are*, not merely their order.
+  temporarily. This decides what the stages *are*, not merely their order.
 - **Assumptions**: what the design is taking on faith about its environment, platform, users, or
- tooling — the beliefs that would invalidate the decomposition if they turned out to be false. Ask
- what would have to be true for the proposed shape to be the right one. Record the load-bearing
- answers; a design resting on nothing unusual records none.
+  tooling — the beliefs that would invalidate the decomposition if they turned out to be false. Ask
+  what would have to be true for the proposed shape to be the right one. Record the load-bearing
+  answers; a design resting on nothing unusual records none.
 
 # Output Format
 
@@ -139,7 +139,7 @@ Write the tree directly into the repository:
 - `docs/architecture/overview.md` — system inventory, interactions, repository-wide decisions
 - `docs/architecture/{system}.md` — one per system, each with a `## Contract`
 - `docs/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
- genuine non-obvious specific that earns its place under the benefit test
+  genuine non-obvious specific that earns its place under the benefit test
 
 Also update `README.md` to the shape the template gives it — product, features, requirements, how it
 works, assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer:

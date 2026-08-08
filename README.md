@@ -27,23 +27,23 @@ annealing relieves the stress that repeated working builds up in metal, so it ca
 ## Features
 
 - **Refactor without paperwork.** Rearrange the inside of a system as much as you like.
- Documentation costs you something only when you change a promise other code depends on.
+  Documentation costs you something only when you change a promise other code depends on.
 - **Every promise is backed by a test.** Each clause of a contract names a test, and the build fails
- if that test is missing, renamed, or last seen failing.
+  if that test is missing, renamed, or last seen failing.
 - **Process sized to the change.** Every task is classified before work starts, and the common case —
- a change no other code can observe — carries no documentation step at all.
+  a change no other code can observe — carries no documentation step at all.
 - **Agents stop instead of improvising.** An agent declares what it will touch before it touches it.
- Reaching that boundary is a stop and a report back to you, never a decision to widen it.
+  Reaching that boundary is a stop and a report back to you, never a decision to widen it.
 - **Filing a need costs one line.** A standing property the product must always satisfy goes into
- `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`;
- a belief the design rests on goes into this file's Assumptions. No code, no tests, no contract.
+  `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`;
+  a belief the design rests on goes into this file's Assumptions. No code, no tests, no contract.
 - **Tidying is a first-class activity.** Background quality work has its own mode, with a declared
- scope and a stopping point, so it cannot drift into a redesign.
+  scope and a stopping point, so it cannot drift into a redesign.
 - **Restructuring is a defined operation.** Reshaping the architecture proceeds in steps you approve,
- rather than one enormous commit or a branch that lives for months.
+  rather than one enormous commit or a branch that lives for months.
 - **The reasoning survives.** Why a system promises what it promises is recorded beside the
- promise, so a new developer — or a new agent — can recover it without a parallel tree of design
- documents to keep in sync.
+  promise, so a new developer — or a new agent — can recover it without a parallel tree of design
+  documents to keep in sync.
 - **One command to install**, from a clone you check out at the revision you want.
 
 **One of these is enforced by a machine; the rest are instructions.** The clause-to-test link fails
@@ -59,21 +59,21 @@ and the documents describing it in agreement.
 **The parts:**
 
 - **Agents** (`.github/agents/`) — the workers. Two are conversational and you invoke them yourself:
- `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
- establishes system boundaries by interview. The other five are invoked by the process rather than by
- you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
- architecture documents with it, `scope-check` verifies the finished change, and `template-sync` keeps
- the repository aligned with the template.
+  `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
+  establishes system boundaries by interview. The other five are invoked by the process rather than by
+  you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
+  architecture documents with it, `scope-check` verifies the finished change, and `template-sync` keeps
+  the repository aligned with the template.
 - **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
- sole owner of its subject: coding principles and C# language, testing principles and C# testing,
- system contracts, architecture and technical documentation, and change classification. An agent
- loads the two or three relevant to the files in front of it, not all of them.
+  sole owner of its subject: coding principles and C# language, testing principles and C# testing,
+  system contracts, architecture and technical documentation, and change classification. An agent
+  loads the two or three relevant to the files in front of it, not all of them.
 - **Skills** (`.github/skills/`) — procedures loaded only when the situation arises, so a rarely
- needed recipe costs nothing the rest of the time.
+  needed recipe costs nothing the rest of the time.
 - **Scripts** (repository root) — `build.ps1`, `lint.ps1`, `fix.ps1`. These are what CI runs, so the
- checks apply whether a human or an agent made the change.
+  checks apply whether a human or an agent made the change.
 - **A command-line tool** (`dotnet anneal`) — the checks that need real analysis rather than pattern
- matching, packaged so they run identically on a laptop and in CI.
+  matching, packaged so they run identically on a laptop and in CI.
 
 **What steers them** is four documents in your repository, and the agents read and maintain these
 rather than carrying the knowledge in their prompts:
@@ -81,9 +81,9 @@ rather than carrying the knowledge in their prompts:
 - **`README.md`** — what the product is, who it is for, and what it promises. The entry point.
 - **`CONSTRAINTS.md`** — what the product must respect regardless of what anyone asks for.
 - **`BACKLOG.md`** — work identified but not yet scheduled, so a good idea raised at a bad moment is
- recorded instead of built.
+  recorded instead of built.
 - **`docs/architecture/`** — the systems the product is divided into and what each publishes to the
- others, in progressively finer detail.
+  others, in progressively finer detail.
 
 **How the parts meet.** A request reaches an agent, which reads only as far down that documentation
 as the work requires and loads only the standards that apply. It declares what it will touch, works
@@ -166,67 +166,67 @@ architecture resting on it is the wrong shape — so they are stated here rather
 the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 
 - **A focused agent is a reliable judge.** An agent given the specific facts and a single clear
- question answers it reliably. Reliability degrades with breadth and vagueness far more than with
- difficulty. This is why judgement is split into separate single-question invocations instead of
- being asked as one part of a larger job.
+  question answers it reliably. Reliability degrades with breadth and vagueness far more than with
+  difficulty. This is why judgement is split into separate single-question invocations instead of
+  being asked as one part of a larger job.
 - **Judging and doing have different incentives.** An agent asked to complete work is under pressure
- to call the work done. An agent asked only to judge is not. Classification and verification are
- therefore never performed by the agent that did the work.
+  to call the work done. An agent asked only to judge is not. Classification and verification are
+  therefore never performed by the agent that did the work.
 - **Correlated error is the residual risk.** Separate invocations of the same model can share a blind
- spot; independence of incentive is not independence of judgement. A judging agent is therefore
- given first-hand facts rather than the working agent's summary of them.
+  spot; independence of incentive is not independence of judgement. A judging agent is therefore
+  given first-hand facts rather than the working agent's summary of them.
 - **An agent that must justify its answer is more reliable than one that merely states it.** Separating
- incentives removes the motive to approve, but it does not oblige a judging agent to derive its verdict,
- and an unobliged judge can ratify a plausible impression it never checked. If agents required to show
- their reasoning proved no more accurate than agents asked only for a conclusion, the judging layer would
- be ceremony and reliability would have to be sought outside the prompts.
+  incentives removes the motive to approve, but it does not oblige a judging agent to derive its verdict,
+  and an unobliged judge can ratify a plausible impression it never checked. If agents required to show
+  their reasoning proved no more accurate than agents asked only for a conclusion, the judging layer would
+  be ceremony and reliability would have to be sought outside the prompts.
 - **The prompt files are the reliability mechanism.** Because reliability follows from the quality of
- the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
- downstream agent works from. Prompt changes are the highest-risk changes in this repository.
+  the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
+  downstream agent works from. Prompt changes are the highest-risk changes in this repository.
 - **Products adopting this process are .NET and C#.** The shipped layout defaults to `*.cs` sources,
- xUnit attributes and TRX results, and the template's build and lint scripts assume a solution. The
- process itself is language-neutral, but the repository it hands you is not. Adoption for another
- ecosystem would not be a defect to patch — it would mean the template is the wrong shape. The
- [Toolkit](docs/architecture/toolkit.md) hardens this from a default into a dependency: it ships as a
-.NET tool, so a repository outside that ecosystem can still read the process but cannot run its
- operations.
+  xUnit attributes and TRX results, and the template's build and lint scripts assume a solution. The
+  process itself is language-neutral, but the repository it hands you is not. Adoption for another
+  ecosystem would not be a defect to patch — it would mean the template is the wrong shape. The
+  [Toolkit](docs/architecture/toolkit.md) hardens this from a default into a dependency: it ships as a
+  .NET tool, so a repository outside that ecosystem can still read the process but cannot run its
+  operations.
 - **Structural properties of a prompt predict how an agent behaves.** Checking that references resolve,
- that every result value is handled, and that the context budget holds is worth doing because those
- properties correlate with reliable behavior. If they turn out not to, a mechanical contract over the
- payload is theater: it would pass while agents still misbehaved, and verification would have to move
- wholesale to inspection and sandbox runs.
+  that every result value is handled, and that the context budget holds is worth doing because those
+  properties correlate with reliable behavior. If they turn out not to, a mechanical contract over the
+  payload is theater: it would pass while agents still misbehaved, and verification would have to move
+  wholesale to inspection and sandbox runs.
 - **Where a response schema appears in a conversation changes how reliably it is followed.** A schema
- presented after the reasoning is done is followed more closely than the same schema given at the
- outset, because an instruction at the start is far behind by the time the answer is produced. This is
- the assumption the [Toolkit](docs/architecture/toolkit.md) exists to exploit — it is why controlling
- the conversation programmatically buys something no prompt file can. If a schema stated up front
- proved just as reliable, the tool would still be useful for deterministic checks but would have lost
- its main justification.
+  presented after the reasoning is done is followed more closely than the same schema given at the
+  outset, because an instruction at the start is far behind by the time the answer is produced. This is
+  the assumption the [Toolkit](docs/architecture/toolkit.md) exists to exploit — it is why controlling
+  the conversation programmatically buys something no prompt file can. If a schema stated up front
+  proved just as reliable, the tool would still be useful for deterministic checks but would have lost
+  its main justification.
 - **A described schema is enough without constrained decoding.** The Copilot session API offers no
- response-format facility, so a typed answer rests on a schema described in the prompt, tolerant
- extraction of the JSON object, and a retry that shows the model its own parse error. The falsifier is
- measurable and stage S1b of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
- retry budget often enough to matter, typed probes need a provider that enforces the shape on the
- wire.
+  response-format facility, so a typed answer rests on a schema described in the prompt, tolerant
+  extraction of the JSON object, and a retry that shows the model its own parse error. The falsifier is
+  measurable and stage S1b of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
+  retry budget often enough to matter, typed probes need a provider that enforces the shape on the
+  wire.
 - **Consulting a model adds no new exposure of repository content.** Operations run under the ambient
- Copilot account of the calling session — the same account the agents already run under — so content
- reaches no party that was not already receiving it. This stops holding the moment an operation
- authenticates as anything else, which is why the Toolkit supplies no token of its own.
+  Copilot account of the calling session — the same account the agents already run under — so content
+  reaches no party that was not already receiving it. This stops holding the moment an operation
+  authenticates as anything else, which is why the Toolkit supplies no token of its own.
 - **The build now requires network access.** The Copilot SDK (`GitHub.Copilot.SDK`) downloads the
- Copilot CLI npm tarball into `obj/` at build time — tarballs land under
- `src/DemaConsulting.Anneal.Toolkit/obj/{Debug,Release}/net10.0/copilot-cli/<version>/` — which is
- why `.markdownlint-cli2.yaml` and `.yamllint.yaml` had to widen their ignore lists to exclude
- `**/bin/**` and `**/obj/**`. This is a **build-time** dependency only: the *runtime* determinism of
- enforcement operations is unaffected, since `verify-evidence` and the other deterministic operations
- still consult no model.
+  Copilot CLI npm tarball into `obj/` at build time — tarballs land under
+  `src/DemaConsulting.Anneal.Toolkit/obj/{Debug,Release}/net10.0/copilot-cli/<version>/` — which is
+  why `.markdownlint-cli2.yaml` and `.yamllint.yaml` had to widen their ignore lists to exclude
+  `**/bin/**` and `**/obj/**`. This is a **build-time** dependency only: the *runtime* determinism of
+  enforcement operations is unaffected, since `verify-evidence` and the other deterministic operations
+  still consult no model.
 - **Two experimental-SDK suppressions back real guarantees.** The Copilot SDK flags both
- `ModelCapabilitiesOverride` (used to enforce `MaxOutputTokens`, the output-token ceiling) and
- `PermissionHandler`/`OnPermissionRequest` (used to auto-approve the Toolkit's own read-only tool
- grants) as GHCP001 — "for evaluation purposes only and is subject to change or removal". A contract
- guarantee and an operational simplification both rest on an API the vendor reserves the right to
- withdraw; the `#pragma warning disable GHCP001` blocks around each are narrow so a withdrawal breaks
- the build loudly, as a compile error, rather than the bound silently evaporating. The falsifier: the
- SDK withdraws the `ModelCapabilitiesOverride` or `PermissionHandler` types.
+  `ModelCapabilitiesOverride` (used to enforce `MaxOutputTokens`, the output-token ceiling) and
+  `PermissionHandler`/`OnPermissionRequest` (used to auto-approve the Toolkit's own read-only tool
+  grants) as GHCP001 — "for evaluation purposes only and is subject to change or removal". A contract
+  guarantee and an operational simplification both rest on an API the vendor reserves the right to
+  withdraw; the `#pragma warning disable GHCP001` blocks around each are narrow so a withdrawal breaks
+  the build loudly, as a compile error, rather than the bound silently evaporating. The falsifier: the
+  SDK withdraws the `ModelCapabilitiesOverride` or `PermissionHandler` types.
 
 ## The Architecture Tree
 
@@ -246,22 +246,22 @@ This repository is laid out exactly as a repository that has installed Anneal, s
 maintained using its own agents.
 
 - **`.github/agents/`, `.github/skills/`, `.github/standards/`** — the payload, live here and shipped
- unchanged
+  unchanged
 - **`.github/template/`** — the canonical repository layout and file templates, including the
- pristine `AGENTS.md`
+  pristine `AGENTS.md`
 - **`docs/architecture/`** — Anneal's own architecture tree, maintained with its own agents
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`src/`, `test/`, `Anneal.slnx`** — the Toolkit, a .NET tool hosting operations that combine
- deterministic checks with model-backed judgement
+  deterministic checks with model-backed judgement
 - **`.anneal/`** — repository-local runtime configuration the Toolkit resolves: role-to-model
- mapping, and the arguments a self-hosted run's contract check is invoked with
+  mapping, and the arguments a self-hosted run's contract check is invoked with
 - **`test-check-contracts.ps1`**, **`test-process-contract.ps1`** — fixture suites holding
- `dotnet anneal check-contracts` and the payload itself to their documented behavior
+  `dotnet anneal check-contracts` and the payload itself to their documented behavior
 - **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
- every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
- into a bounded behavioral summary
+  every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
+  into a bounded behavioral summary
 
 ## Technology
 

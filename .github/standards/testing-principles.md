@@ -14,14 +14,14 @@ behind it, and the code stops moving.
 Contract tests prove a clause in a system's `## Contract` (see `system-contracts.md`).
 
 - Exercise the system **only through its public boundary**. No internal types, no reaching past the
- entry points a real consumer would use.
+  entry points a real consumer would use.
 - Named in the clause they verify, so the link is greppable in both directions.
 - Live in a dedicated location — `test/{System}.Tests/Contract/` — so their special status is
- visible.
+  visible.
 - **Survive refactoring untouched.** A Small Fix change that breaks a contract test was misclassified:
- either the change is a Contract Change, or it is a defect.
+  either the change is a Contract Change, or it is a defect.
 - Changing one requires a corresponding contract change. Never edit a contract test to make a build
- pass.
+  pass.
 
 ## Interior Tests — Disposable
 
@@ -30,7 +30,7 @@ tests for fixed bugs.
 
 - Free to use internal types and to be as fine-grained as useful.
 - **Deleted or rewritten without ceremony** when the code they cover is restructured. They are
- scaffolding for the developer who wrote the code, not compliance evidence.
+  scaffolding for the developer who wrote the code, not compliance evidence.
 - Need no contract clause and no justification for existing.
 - A deleted interior test needs no approval; deleting a contract test does.
 
@@ -42,24 +42,24 @@ what is set up, what is exercised, and what is asserted without reconstructing i
 # Coverage Expectations
 
 - **Every contract clause and invariant has at least one passing contract test.** This is the only
- mandatory coverage rule in this process.
+  mandatory coverage rule in this process.
 - Interior coverage is a judgement call made by the developer. Chase behavior worth protecting, not
- a percentage.
+  a percentage.
 - Both success and failure paths are covered for contract clauses; error behavior is usually the
- part consumers depend on.
+  part consumers depend on.
 - External dependencies are mocked or stubbed in interior tests. Contract tests SHOULD use real
- dependencies where practical — a contract verified only against mocks is not verified.
+  dependencies where practical — a contract verified only against mocks is not verified.
 
 # Anti-Patterns
 
 - **Contract tests that touch internals** — they become interior tests wearing a durable label, and
- they will block refactoring.
+  they will block refactoring.
 - **Interior tests preserved out of sentiment** after their subject is gone.
 - **Editing a contract test to make a build pass** — that is silently narrowing a promise.
 - **Mirroring the class structure** with one test class per production class as an obligation. Test
- what is worth protecting.
+  what is worth protecting.
 - **Asserting on internal call sequences** rather than observable results, which welds the test to
- one implementation.
+  one implementation.
 
 # Language-Specific Implementation
 

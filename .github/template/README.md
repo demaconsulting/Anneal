@@ -58,7 +58,7 @@ TODO: The parts it is built from - path and one-line role each - and how they me
  assumption that is disproved is a re-cut trigger, not a bug. Remove this block. -->
 
 - **TODO: the belief, in a bold lead-in** — TODO: what rests on it, and what would follow if it
- turned out to be false.
+  turned out to be false.
 
 ## Installation
 

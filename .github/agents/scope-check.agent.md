@@ -54,11 +54,11 @@ issue. Note it as advisory rather than failing the change on it.
 Then judge what the check cannot, for each system whose boundary was touched:
 
 - No consumer-observable behavior was added at the boundary without a clause. Read the boundary
- diff, not the whole change. Undeclared boundary behavior is a FAIL — it will get depended on and
- then cannot be removed.
+  diff, not the whole change. Undeclared boundary behavior is a FAIL — it will get depended on and
+  then cannot be removed.
 - No clause was narrowed or removed without being declared breaking. FAIL if so.
 - Contract tests exercise only the public boundary. A contract test reaching into internals is a
- FAIL — it will block future refactoring.
+  FAIL — it will block future refactoring.
 - Clause prose still describes WHAT rather than HOW.
 
 When a finding requires a claim to be narrowed or removed — whether it is stated in a clause or in
@@ -71,20 +71,20 @@ search for that one claim, not a general duplication audit.
 # Step 4 — Scope Honesty
 
 - **Small Fix**: all pre-existing contract tests must pass **and be unmodified**. A modified contract
- test on a Small Fix change is a FAIL — the change was Contract Change.
+  test on a Small Fix change is a FAIL — the change was Contract Change.
 - **Contract Change and Structural Change**: the contract must have been updated **before**
- implementation. Evidence is that every changed boundary behavior has a matching clause, not the
- reverse. Clauses that merely describe what the code now does are a FAIL.
+  implementation. Evidence is that every changed boundary behavior has a matching clause, not the
+  reverse. Clauses that merely describe what the code now does are a FAIL.
 - **Split changes**: if the change appears to be one half of a contract change landed as two Small
- Fix pieces, FAIL and say so.
+  Fix pieces, FAIL and say so.
 
 # Step 5 — Tree Accuracy
 
 - Documents whose `covers` paths were modified: confirm the document is still true. If it is stale,
- FAIL. If source changed and the document is still accurate, that is a PASS — not every source
- change implies a documentation change.
+  FAIL. If source changed and the document is still accurate, that is a PASS — not every source
+  change implies a documentation change.
 - **Level ownership**: confirm the change landed at one level and no ancestor was edited merely to
- restate it. Editing a parent to mirror a child is a FAIL.
+  restate it. Editing a parent to mirror a child is a FAIL.
 - **Orphans**: section documents describing a removed subject are a FAIL.
 - **Links**: parent-to-child links resolve; new documents are reachable from `overview.md`.
 - **Length**: a document that grew for a reason belonging at another level is ADVISORY, never a FAIL.
@@ -94,12 +94,12 @@ search for that one claim, not a general duplication audit.
 Do not check for, and do not fail on:
 
 - Per-unit or per-subsystem requirements, design documents, or verification documents — these do not
- exist in this process
+  exist in this process
 - Missing documentation for interior changes
 - Deleted interior tests
 - Interior test coverage percentages
 - Formatting, spelling, and lint issues — the `dotnet anneal lint-fix` operation owns these before
- pull request
+  pull request
 - Pre-existing issues in files that were read but not modified — note them, do not fail on them
 
 # Result Rule

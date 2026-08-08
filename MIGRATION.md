@@ -47,18 +47,18 @@ gone.
 These hold after **every** commit, not merely at a stage boundary.
 
 - **Self-hosting** — every commit leaves Anneal able to develop Anneal. Each generation of the
- process builds the next one, so a change that breaks the agents currently doing the work stops the
- migration rather than advancing it. This is the constraint that decides what a stage may contain,
- and it is registered in [CONSTRAINTS.md](CONSTRAINTS.md) rather than owned here.
+  process builds the next one, so a change that breaks the agents currently doing the work stops the
+  migration rather than advancing it. This is the constraint that decides what a stage may contain,
+  and it is registered in [CONSTRAINTS.md](CONSTRAINTS.md) rather than owned here.
 - **One-way** — a responsibility that has moved from prose into code does not move back. The ratchet
- is what makes an unscheduled migration safe: with no plan to measure against, monotonic direction
- is the only guarantee that a day's work is progress.
+  is what makes an unscheduled migration safe: with no plan to measure against, monotonic direction
+  is the only guarantee that a day's work is progress.
 - **No silent loss** — behavior a prose agent had that its replacement does not carry is written to
- the log below in the same commit that drops it. Deliberately narrowing scope is legitimate;
- discovering months later that something was quietly lost is not.
+  the log below in the same commit that drops it. Deliberately narrowing scope is legitimate;
+  discovering months later that something was quietly lost is not.
 - **Suspensions are named** — a promise the migration is not keeping appears in the register below,
- with the condition that restores or retires it. There is no unrecorded relaxation, because a
- silently weakened check is worse than no check.
+  with the condition that restores or retires it. There is no unrecorded relaxation, because a
+  silently weakened check is worse than no check.
 
 ## Suspension register
 
@@ -76,21 +76,21 @@ needed.
 
 - *Cannot hold because* a process that writes code cannot be granted read-only tools.
 - *What holds instead*: grants stay an explicit allowlist, never absent, and read-only holds for
- every operation that does not write.
+  every operation that does not write.
 - *Retired* the day the first writing process lands, replaced by a clause that keeps the allowlist
- requirement without the read-only one.
+  requirement without the read-only one.
 
 **`TOOLKIT-I3`** — a verdict is reproducible from repository inputs.
 
 - *Cannot hold because* model-backed judgement is not a pure function of the repository.
 - *What holds instead*: it holds unchanged for every deterministic operation, which is all that
- gates today.
+  gates today.
 - *Restored, scoped* to deterministic operations when the first model-backed operation gates.
 
 **[overview.md](docs/architecture/overview.md)** — every edge is a file, never a call.
 
 - *Cannot hold because* prose agents invoke `dotnet anneal`, and the catalog is reached by calling
- it.
+  it.
 - *What holds instead*: the edge is recorded as a call and confined to the Toolkit boundary.
 - *Rewritten, not restored*, when Process is dissolved and the rule has nothing left to describe.
 
@@ -143,14 +143,14 @@ changed file, not merely a passing build. Two defects were found and fixed by ha
 worker's own new test rather than in the implementation:
 
 1. The new contract test under-sized its queued model replies, assuming a zero repair budget where
- `SmallFixWorker`'s actual default is one — `Developer.DevelopAsync` consumes two replies per
- authoring turn, so the second (repair) call ran out of queued replies and hit
- `ModelUnavailableException` instead of exercising the intended budget-exhaustion path. Fixed by
- queuing two more replies for the second round.
+   `SmallFixWorker`'s actual default is one — `Developer.DevelopAsync` consumes two replies per
+   authoring turn, so the second (repair) call ran out of queued replies and hit
+   `ModelUnavailableException` instead of exercising the intended budget-exhaustion path. Fixed by
+   queuing two more replies for the second round.
 2. The test asserted the exit code would be non-zero on a Failed outcome, which `AnnealTool.cs`
- already deliberately treats as always-`ExitSuccess` for an `Authoring`-category operation — a
- pre-existing, unrelated behavior the worker's own test writer had not accounted for. Fixed to
- assert `ExitSuccess` and check the "route: failed" text instead.
+   already deliberately treats as always-`ExitSuccess` for an `Authoring`-category operation — a
+   pre-existing, unrelated behavior the worker's own test writer had not accounted for. Fixed to
+   assert `ExitSuccess` and check the "route: failed" text instead.
 
 **A further, independent defect was found during review, in the clause itself rather than the code.**
 The worker's own `*Verified by:*` line named two test references on two separate markdown lines. That
@@ -317,28 +317,28 @@ whether the oracle *recognizes* work that needs it and routes there correctly.
 **This stage, in order:**
 
 1. **One live trial of `route` aimed at Structural Change** — a work item requiring
- coordinated changes across more than one document or system, the same shape S9's own smoke test
- used, given to `route` rather than to `StructuralChangeWorker` directly. Independently verify the
- outcome the same way every prior trial did: read the changed files by hand, re-run the fixture's
- own checks fresh, confirm `git diff`/`git status` show only the expected files. If this surfaces a
- defect, fix it following the same discipline as `216368d` — root-caused, smallest correct fix,
- re-verified, committed and pushed separately before continuing. **Landed**: commits `8b04351`
- (`StructuralChangeWorker`'s `Planner` step budget defect, found live and fixed) and `81259ed`
- (discovery-log entry).
+   coordinated changes across more than one document or system, the same shape S9's own smoke test
+   used, given to `route` rather than to `StructuralChangeWorker` directly. Independently verify the
+   outcome the same way every prior trial did: read the changed files by hand, re-run the fixture's
+   own checks fresh, confirm `git diff`/`git status` show only the expected files. If this surfaces a
+   defect, fix it following the same discipline as `216368d` — root-caused, smallest correct fix,
+   re-verified, committed and pushed separately before continuing. **Landed**: commits `8b04351`
+   (`StructuralChangeWorker`'s `Planner` step budget defect, found live and fixed) and `81259ed`
+   (discovery-log entry).
 
 2. **Was blocked on S12 landing and being validated; S12 landed and was validated (see its own entry
- above), unblocking this step.** `.github/agents/dispatch.agent.md` is rewritten: Step 1 (Classify)
- still determines Mode itself, but for Change mode no longer resolves Small Fix vs. Contract Change
- vs. Structural Change — that question is handed whole to `route`'s own routing oracle. A new Step 2
- runs `dotnet anneal route "<work item>" [<changed-file-hint>...]` as a real shell command and
- interprets its exit code (0 Succeeded, 4 Escalated, 1/3 Failed/Refused, 2 UsageError) to decide the
- report. Step 3 (Implement via `apply`) is now reached only for Maintenance mode; the old Step 2
- (Architecture Update) and Step 4 (Verify via `scope-check`, with its two-repair budget) are removed
- entirely from `dispatch`'s own flow, since `route`'s selected worker already owns authoring and
- verification internally. The Report Template is updated to match: `Scope` reads as whatever `route`
- reported rather than something `dispatch` decided, `Repairs Used` is dropped (there is no repair
- budget left for `dispatch` to spend), and `Residual` now distinguishes `escalated` from `gate`.
- **Landed**, `pwsh ./build.ps1`/`pwsh ./lint.ps1` both clean (273 C# tests, 72/72 clauses).
+   above), unblocking this step.** `.github/agents/dispatch.agent.md` is rewritten: Step 1 (Classify)
+   still determines Mode itself, but for Change mode no longer resolves Small Fix vs. Contract Change
+   vs. Structural Change — that question is handed whole to `route`'s own routing oracle. A new Step 2
+   runs `dotnet anneal route "<work item>" [<changed-file-hint>...]` as a real shell command and
+   interprets its exit code (0 Succeeded, 4 Escalated, 1/3 Failed/Refused, 2 UsageError) to decide the
+   report. Step 3 (Implement via `apply`) is now reached only for Maintenance mode; the old Step 2
+   (Architecture Update) and Step 4 (Verify via `scope-check`, with its two-repair budget) are removed
+   entirely from `dispatch`'s own flow, since `route`'s selected worker already owns authoring and
+   verification internally. The Report Template is updated to match: `Scope` reads as whatever `route`
+   reported rather than something `dispatch` decided, `Repairs Used` is dropped (there is no repair
+   budget left for `dispatch` to spend), and `Residual` now distinguishes `escalated` from `gate`.
+   **Landed**, `pwsh ./build.ps1`/`pwsh ./lint.ps1` both clean (273 C# tests, 72/72 clauses).
 
 **What this stage does not do:** it does not delete `apply.agent.md`, `architecture-update.agent.md`,
 or `scope-check.agent.md`. Each keeps a live job `route` does not cover: `apply` still does
@@ -487,13 +487,13 @@ anything the plan declares, so no `architecture-update`/`tier-check` hop is need
 
 - Rename: `.github/agents/tier-check.agent.md` → `.github/agents/scope-check.agent.md`
 - Update: `.github/standards/change-classification.md`, `.github/standards/architecture-documentation.md`,
- `.github/standards/system-contracts.md`, `.github/agents/apply.agent.md`,
- `.github/agents/architecture-update.agent.md`, `.github/agents/dispatch.agent.md`,
- `.github/agents/helper.agent.md`, `.github/skills/check-contracts/SKILL.md`,
- `docs/architecture/process.md`, `docs/architecture/toolkit.md`,
- `docs/architecture/toolkit/contract-check.md`, `AGENTS.md`, `.github/template/AGENTS.pristine.md`
- (must remain identical to `AGENTS.md` per its own rule), `MIGRATION.md`, `CONSTRAINTS.md`,
- `README.md`
+  `.github/standards/system-contracts.md`, `.github/agents/apply.agent.md`,
+  `.github/agents/architecture-update.agent.md`, `.github/agents/dispatch.agent.md`,
+  `.github/agents/helper.agent.md`, `.github/skills/check-contracts/SKILL.md`,
+  `docs/architecture/process.md`, `docs/architecture/toolkit.md`,
+  `docs/architecture/toolkit/contract-check.md`, `AGENTS.md`, `.github/template/AGENTS.pristine.md`
+  (must remain identical to `AGENTS.md` per its own rule), `MIGRATION.md`, `CONSTRAINTS.md`,
+  `README.md`
 
 **Part A exit conditions:** no file in the repository contains the word "tier" (case-insensitive,
 excluding this discovery-log entry and S8/S9's own landed entries above, which are history and are
@@ -506,13 +506,13 @@ nothing in the shipped tool ever constructs a `Router`. Every worker proven so f
 Contract Change, Structural Change) has only ever run inside a throwaway test harness. This part:
 
 - Adds a new `AnnealTool` action that accepts a work item (and optional changed-file hints, mirroring
- `Router.RunAsync`'s own parameters) and runs it through a real `Router`.
+  `Router.RunAsync`'s own parameters) and runs it through a real `Router`.
 - Assembles a production `WorkerCatalogEntry` list wiring in all three landed workers, replacing the
- single-entry catalog every prior worker's own tests used in isolation.
+  single-entry catalog every prior worker's own tests used in isolation.
 - The exact action name, its argument shape, and how repository configuration reaches `ModelRoles`
- are implementation judgment calls for `apply` to make and document, the same way file-count budgets
- and instruction phrasing were left to `apply` in S9 — there is no existing convention elsewhere in
- `AnnealTool` this must match beyond the pattern the other five actions already establish.
+  are implementation judgment calls for `apply` to make and document, the same way file-count budgets
+  and instruction phrasing were left to `apply` in S9 — there is no existing convention elsewhere in
+  `AnnealTool` this must match beyond the pattern the other five actions already establish.
 
 **Part B exit conditions:** the new action exists, is covered by interior tests against the fake
 endpoint the same way every prior worker was, `pwsh ./build.ps1` and `pwsh ./lint.ps1` both pass, and

@@ -67,38 +67,38 @@ the code is the implementation. Editing the promise to match what got built sile
 contract and defeats the entire check.
 
 - **`has no '## Contract' section`** — the system document is missing its contract, or the heading
- was renamed. The heading must be exactly `## Contract`. Restore it; do not rename the check.
+  was renamed. The heading must be exactly `## Contract`. Restore it; do not rename the check.
 - **`is not a well-formed clause ID`** — a bolded item under `Provides` or `Invariants` does not
- parse as `{SYSTEM}-nn` or `{SYSTEM}-In`. Usually an unresolved template placeholder or a stray
- bolded bullet. Give it a real ID, or move it out of those subsections.
+  parse as `{SYSTEM}-nn` or `{SYSTEM}-In`. Usually an unresolved template placeholder or a stray
+  bolded bullet. Give it a real ID, or move it out of those subsections.
 - **`names no verifying test`** — the clause has no `*Verified by:*` line. Write the contract test,
- then name it in the clause.
+  then name it in the clause.
 - **`No test declarations found in...`** — discovery matched no test file, or matched files in
- which nothing looked like a declaration, while clauses named real tests. The tests are almost
- certainly there: the patterns point somewhere else. Fix `-TestRoots`, `-TestFilePatterns` or
- `-TestDeclarationPattern` at the call site. **Do not write the tests again**, and do not resolve it
- by marking the clauses as planned obligations — that silences the check permanently. A tree whose
- clauses are all planned obligations is exempt, so bootstrapping never trips this.
+  which nothing looked like a declaration, while clauses named real tests. The tests are almost
+  certainly there: the patterns point somewhere else. Fix `-TestRoots`, `-TestFilePatterns` or
+  `-TestDeclarationPattern` at the call site. **Do not write the tests again**, and do not resolve it
+  by marking the clauses as planned obligations — that silences the check permanently. A tree whose
+  clauses are all planned obligations is exempt, so bootstrapping never trips this.
 - **`is not declared as a test method`** — the name does not resolve to a declared test. It may have
- been renamed or deleted, or the clause may be pointing at a helper. Restore or write the test under
- the name the clause gives. A deliberate rename is a contract change; route it to
- `architecture-update`. If *every* clause reports this, look for the message above instead.
+  been renamed or deleted, or the clause may be pointing at a helper. Restore or write the test under
+  the name the clause gives. A deliberate rename is a contract change; route it to
+  `architecture-update`. If *every* clause reports this, look for the message above instead.
 - **`is not in a 'Contract' folder`** — the test exists but is an interior test. Interior tests are
- disposable, so they cannot carry a durable promise. Move it to `test/{System}.Tests/Contract/` and
- rewrite it to use only the public boundary.
+  disposable, so they cannot carry a durable promise. Move it to `test/{System}.Tests/Contract/` and
+  rewrite it to use only the public boundary.
 - **`whose most recent result is '...'`** — the test ran and did not pass. Fix the code so the
- promise holds; a failing contract test means the system does not do what it claims.
+  promise holds; a failing contract test means the system does not do what it claims.
 - **`has no result - it did not run`** — the test is declared but was not executed. Usually a
- filtered or skipped run, or a test project missing from the solution.
+  filtered or skipped run, or a test project missing from the solution.
 - **`Duplicate clause ID`** — the same ID appears in two system documents. Assign the next unused
- number and never reuse a retired one.
+  number and never reuse a retired one.
 - **`unfulfilled test obligation`** — the clause's verifier opens with the planned-obligation
- placeholder. Write the test and replace the placeholder. Expected during bootstrap; a real gap under
- `-Strict`. `system-contracts.md` defines the form and owns the rule.
+  placeholder. Write the test and replace the placeholder. Expected during bootstrap; a real gap under
+  `-Strict`. `system-contracts.md` defines the form and owns the rule.
 - **`Test results are stale`** — sources changed after the last test run. Re-run `pwsh ./build.ps1`.
- Never delete results to silence this.
+  Never delete results to silence this.
 - **`No test results matching...`** — `build.ps1` has not run in this working tree. Run it; the
- pass check cannot verify anything without results, and under `-Strict` this is an error.
+  pass check cannot verify anything without results, and under `-Strict` this is an error.
 
 Nothing outside that placeholder form is exempted, so a genuine test named `TodoItemsAreReturned`, and
 a case named `suite.ps1: "TODO obligation is an error"`, are checked normally rather than quietly

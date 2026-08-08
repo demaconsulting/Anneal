@@ -32,13 +32,13 @@ under `docs/architecture/`.
 # Core Principles
 
 - **Written to be read partially.** Assume the reader stops after the first screen. Front-load the
- answer, and apply the stop test below.
+  answer, and apply the stop test below.
 - **Current state only.** Documentation describes how things are, not how they came to be. History
- lives in git.
+  lives in git.
 - **Concrete over abstract.** Real names, real commands, real output. Placeholders in prose are a
- defect.
+  defect.
 - **Agent-legible.** Consistent heading hierarchy and fenced blocks with language identifiers, so
- documentation can be parsed as reliably as it is read.
+  documentation can be parsed as reliably as it is read.
 
 # Progressive Disclosure Within a Document
 
@@ -68,38 +68,38 @@ for no answer.
 ## Rules
 
 - **The first chunk carries a fuzzy but complete picture.** What it is, what it gives, and *how it
- works*, in outline. An opening carrying only benefits produces a reader who can advocate for the
- thing but can neither use it nor evaluate it.
+  works*, in outline. An opening carrying only benefits produces a reader who can advocate for the
+  thing but can neither use it nor evaluate it.
 - **The first chunk carries the map.** What lies below must be visible from the top — as headings
- reached within that budget, or as an explicit contents list when they are not. If the map cannot
- fit, the document is too long or too flat: split it, or give it sections.
+  reached within that budget, or as an explicit contents list when they are not. If the map cannot
+  fit, the document is too long or too flat: split it, or give it sections.
 - **Headings are routing signals, not decoration.** A heading is read out of context, in a contents
- list or a search result, by someone who has not read the section above it. Name the content, not
- the theme.
+  list or a search result, by someone who has not read the section above it. Name the content, not
+  the theme.
 - **Later sections refine; they never revise.** Reading further sharpens the same picture. Nothing
- below may contradict or reframe what came above. If a later section changes what the opening
- meant, the opening is the defect.
+  below may contradict or reframe what came above. If a later section changes what the opening
+  meant, the opening is the defect.
 - **Define a term where it is first used.** A word carrying a special meaning is defined at first
- use — not in a later section, and never by implication.
+  use — not in a later section, and never by implication.
 - **Every claim carries its mechanism.** A claim stated without what makes it true reads as
- marketing, and is discounted by exactly the readers worth convincing.
+  marketing, and is discounted by exactly the readers worth convincing.
 - **Separate what is enforced from what is asked.** Where a document describes both, say plainly
- which is which. Blurring them costs more credibility than the unenforced half was worth.
+  which is which. Blurring them costs more credibility than the unenforced half was worth.
 - **State the cost early.** A document advocating an approach names its cost and its limits near the
- top. A document that only sells is read as a sales document, and discounted accordingly.
+  top. A document that only sells is read as a sales document, and discounted accordingly.
 - **Sections are entered cold.** Detail lives in named sections a reader can jump straight into.
- Assume each is reached from a link or a search, not from the section above it.
+  Assume each is reached from a link or a search, not from the section above it.
 
 ## Anti-Patterns
 
 - **Benefits before mechanism.** Every advantage listed, with the explanation deferred to a later
- section the reader may never reach.
+  section the reader may never reach.
 - **A first chunk with no map.** The opening explains the subject well and gives no indication of
- what else the document holds, so the only way to route is to read all of it.
+  what else the document holds, so the only way to route is to read all of it.
 - **Slogans in place of information.** A memorable phrase that carries no content — it survives
- editing because it sounds good, and teaches nothing.
+  editing because it sounds good, and teaches nothing.
 - **Terms of art used before they are defined**, on the assumption the reader shares the author's
- vocabulary.
+  vocabulary.
 - **Limitations at the end.** Costs and exclusions placed after the reader has already decided.
 
 # Markdown Format Requirements
@@ -107,7 +107,7 @@ for no answer.
 Follow `.markdownlint-cli2.yaml`:
 
 - **120-character line limit** — break at punctuation or logical boundaries, never mid-code-span or
- mid-URL.
+  mid-URL.
 - **No trailing whitespace.**
 - **Blank lines** around headings, lists, and fenced code blocks.
 - **ATX headings** (`#`), never underline style.
@@ -120,13 +120,13 @@ Documentation is read three ways — on disk, on the repository host, and as the
 ordinary markdown links work and are encouraged:
 
 - **Relative links** for anything inside the repository — including from `README.md`. They resolve
- both on disk and on the repository host, they are how a reader descends the documentation tree, and
- `docs/template/collection-links.lua` turns a link to another document in the same collection into a
- cross-reference when that collection is compiled.
+  both on disk and on the repository host, they are how a reader descends the documentation tree, and
+  `docs/template/collection-links.lua` turns a link to another document in the same collection into a
+  cross-reference when that collection is compiled.
 - **Absolute URLs** for external resources, and for anything that must survive being rendered
- outside repository context (a package registry description, for example).
+  outside repository context (a package registry description, for example).
 - **Verify link targets exist** when creating or moving files. A broken descent path defeats
- progressive disclosure.
+  progressive disclosure.
 
 # Document Collections
 

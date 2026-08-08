@@ -33,7 +33,7 @@ for a model rather than encoded judgement.
 ## Systems
 
 - [Process](./process.md) — the agents, standards and skills that instruct an AI coding agent; a
- bootstrap harness with a scheduled end, being dismantled into Toolkit operations
+  bootstrap harness with a scheduled end, being dismantled into Toolkit operations
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
 - [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents will call

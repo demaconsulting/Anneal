@@ -136,10 +136,10 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
 
 - **Solid — invocation.** One agent calls another as a sub-agent and consumes its report.
 - **Thick — artifact.** No call occurs. `architecture-design` writes the tree, and other agents read it
- later, possibly in a different session.
+  later, possibly in a different session.
 - **Dotted — hand-off by name.** `helper` tells the developer to invoke `architecture-design` themselves.
- It must not call it, because that agent's method is a live interview and a headless invocation would
- invent the answers.
+  It must not call it, because that agent's method is a live interview and a headless invocation would
+  invent the answers.
 
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
 instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
@@ -286,4 +286,4 @@ invariant.
 ## Details
 
 - [Prompt Authoring](./process/prompt-authoring.md) — how a prompt earns the tokens it costs, and
- what every prompt and standard in the payload must do to participate
+  what every prompt and standard in the payload must do to participate

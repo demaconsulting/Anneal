@@ -14,10 +14,10 @@ than described by this map. They are deliberately absent from it and out of scop
 already has one. Two things about it are unlike every other mapped file:
 
 - It is stored here as `AGENTS.pristine.md`. A second file literally named `AGENTS.md` inside a
- repository can be picked up as instructions for that repository, which is exactly wrong for a
- template artifact full of placeholders. It installs to the root under its real name.
+  repository can be picked up as instructions for that repository, which is exactly wrong for a
+  template artifact full of placeholders. It installs to the root under its real name.
 - It carries **no per-repository customization** — project facts live in `README.md` — so unlike
- every other mapped file it is safe to overwrite wholesale, and `install.ps1 -Force` does.
+  every other mapped file it is safe to overwrite wholesale, and `install.ps1 -Force` does.
 
 That last point matters, because the Patch operation only inserts **missing sections**: it cannot
 update content that changed inside a section which already exists. For most mapped files that is

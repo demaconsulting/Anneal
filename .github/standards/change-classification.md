@@ -18,7 +18,7 @@ Work is classified twice before it starts, along two independent axes:
 
 - **Mode** — what kind of work this is. Decides what an agent may touch and what "done" means.
 - **Scope** — how far the change reaches into published contracts. Decides how much documentation
- moves.
+  moves.
 
 They are orthogonal. Mode is answered first, because three of the four modes fix the scope
 automatically.
@@ -112,12 +112,12 @@ Improving what is already there without changing what it promises: renaming for 
 helpers, deleting dead code, tidying interior tests, bumping a dependency.
 
 - **Maintenance is Small Fix by definition.** If the work would change a contract, it has left
- maintenance and must be re-classified as Change and re-approved.
+  maintenance and must be re-classified as Change and re-approved.
 - **Maintenance may never edit the architecture tree**, `CONSTRAINTS.md`, or `BACKLOG.md`.
- Discovering an architectural problem during maintenance is a *finding to report*, never a license
- to act on it.
+  Discovering an architectural problem during maintenance is a *finding to report*, never a license
+  to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
- stopping point. Open-ended "improve the code" work with no bound is not a task.
+  stopping point. Open-ended "improve the code" work with no bound is not a task.
 
 ## Migration
 
@@ -126,20 +126,20 @@ differs in kind, not degree, because it is the only mode permitted to span multi
 design.
 
 - Requires an **approved proposal** before any file changes. The proposal is the output of a
- `architecture-design` session — the target decomposition, the stages, and what each stage leaves
- working — and the user approves it.
+  `architecture-design` session — the target decomposition, the stages, and what each stage leaves
+  working — and the user approves it.
 - The approved proposal lives in **`MIGRATION.md`** at the repository root. It must be tracked,
- because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
- the stages and their exit conditions only; the target tree it approves lives in
- `docs/architecture/` and is not restated here.
+  because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
+  the stages and their exit conditions only; the target tree it approves lives in
+  `docs/architecture/` and is not restated here.
 - Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
- here, not forbidden.
+  here, not forbidden.
 - Contract clauses describing systems not yet built are **planned**: written now, and verified by a
- placeholder that `dotnet anneal check-contracts` reports as an unfulfilled obligation until the stage that
- builds them (see `system-contracts.md`). `MIGRATION.md` carries the exit condition for each.
+  placeholder that `dotnet anneal check-contracts` reports as an unfulfilled obligation until the stage that
+  builds them (see `system-contracts.md`). `MIGRATION.md` carries the exit condition for each.
 - Ends when every planned clause is satisfied and the exit conditions are met. **Delete
- `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
- one left behind claims a migration that never ends.
+  `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
+  one left behind claims a migration that never ends.
 
 # The Classifying Question (Change Mode)
 
@@ -163,14 +163,14 @@ The contract is unchanged. Refactors, performance work, internal restructuring, 
 restore already-promised behavior, dependency bumps, and test additions.
 
 - **Documentation**: none — unless the change invalidates an existing section document, in which
- case update or delete that one file. A narrow exception: correcting a sentence in
- `docs/architecture/overview.md` that is factually stale but states or implies no contract-relevant
- fact — one whose correction does not add, remove, or rename a system, or change a system's stated
- relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
- list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
+  case update or delete that one file. A narrow exception: correcting a sentence in
+  `docs/architecture/overview.md` that is factually stale but states or implies no contract-relevant
+  fact — one whose correction does not add, remove, or rename a system, or change a system's stated
+  relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
+  list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
 - **Agents**: `apply` alone.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
- untouched — that is the proof the scope is correct.
+  untouched — that is the proof the scope is correct.
 
 This should be the large majority of changes. A process where Small Fix is rare has a contract
 pitched at the wrong altitude.
@@ -182,10 +182,10 @@ decomposition changes enough that the rationale in its architecture document is 
 
 - **Documentation**: `docs/architecture/{system}.md` only.
 - **Agents**: `architecture-update` updates the contract **first**, then `apply` implements against
- it, then `scope-check` verifies.
+  it, then `scope-check` verifies.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
 - **Pruning**: `architecture-update` performs the section-document prune check for the affected
- system.
+  system.
 
 # Structural Change
 
@@ -193,29 +193,29 @@ A system is added, removed, renamed, split, or merged; or the interaction, data 
 boundary between systems changes.
 
 - **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
- `README.md` only if the product's purpose or audience changed — usually it has not.
+  `README.md` only if the product's purpose or audience changed — usually it has not.
 - **Agents**: `architecture-update` updates `overview.md` and the affected system documents, then
- `apply`, then `scope-check`.
+  `apply`, then `scope-check`.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
- deleted entirely.
+  deleted entirely.
 
 # Discipline (MANDATORY)
 
 - **Classify before working.** Mode and scope decide the workflow; discovering either afterwards
- means the contract was edited to match the code.
+  means the contract was edited to match the code.
 - **Modes may be raised mid-flight, never silently lowered.** Maintenance that turns out to need a
- contract change stops and becomes Change. Change that turns out to need a re-cut stops and becomes
- a proposal — an agent never promotes itself into Migration.
+  contract change stops and becomes Change. Change that turns out to need a re-cut stops and becomes
+  a proposal — an agent never promotes itself into Migration.
 - **Scope may be raised mid-flight, never silently lowered.** If implementation reveals that the
- contract must move, stop, raise the scope, and update the contract before continuing.
+  contract must move, stop, raise the scope, and update the contract before continuing.
 - **Never split a change to stay at a lower scope.** Landing a contract change as two Small Fix
- commits produces an undocumented breaking change. This prohibits *evasion*, not staging: an approved
- Migration is required to land in stages, and every one of its commits declares Migration mode.
+  commits produces an undocumented breaking change. This prohibits *evasion*, not staging: an approved
+  Migration is required to land in stages, and every one of its commits declares Migration mode.
 - **When uncertain between two scopes, choose the higher one** — but do not reflexively
- round up. Habitually treating Small Fix work as Contract Change rebuilds exactly the inertia this
- process removes.
+  round up. Habitually treating Small Fix work as Contract Change rebuilds exactly the inertia this
+  process removes.
 - **An agent never widens its own authority.** Hitting a boundary that forbids the work is a stop
- condition and a report, never an invitation to edit the boundary.
+  condition and a report, never an invitation to edit the boundary.
 
 # Worked Examples
 

@@ -56,18 +56,18 @@ rather than the system root.
 # Clause Rules
 
 - **Boundary-observable only.** If a clause can only be checked by reading the system's internals,
- it is not a contract clause — delete it. The test: could a consumer with no source access detect a
- violation?
+  it is not a contract clause — delete it. The test: could a consumer with no source access detect a
+  violation?
 - **WHAT, not HOW.** A clause states observable behavior. It never names an internal class, method,
- algorithm, or data structure. The system's own name is identity, not implementation.
+  algorithm, or data structure. The system's own name is identity, not implementation.
 - **Every clause names at least one test.** A clause without verification is an aspiration. Use the
- test's real name so the link is greppable and breaks loudly when the test is renamed.
+  test's real name so the link is greppable and breaks loudly when the test is renamed.
 - **Stated once.** The clause is the only place its claim is asserted. Architecture prose and code
- comments may cite the clause by ID, explain why it exists, or describe how it is met — they must not
- restate it as a general assertion. A copy carries no authority of its own and can only drift; when the
- clause is later narrowed, every copy becomes a defect somebody has to find.
+  comments may cite the clause by ID, explain why it exists, or describe how it is met — they must not
+  restate it as a general assertion. A copy carries no authority of its own and can only drift; when the
+  clause is later narrowed, every copy becomes a defect somebody has to find.
 - **Invariants** capture properties no single call can demonstrate: ordering, idempotency,
- thread-safety, resource bounds, and version-compatibility guarantees.
+  thread-safety, resource bounds, and version-compatibility guarantees.
 - **Requires** lists what this system depends on, by advertised behavior — never by internal design.
 
 # Enforcement
@@ -86,9 +86,9 @@ dotnet anneal check-contracts
 - A clause ID is duplicated
 - A clause names no verifying test
 - Discovery finds no test declaration anywhere, while some clause names a verifier that is not a
- planned obligation
+  planned obligation
 - A clause names a test that is not declared as a test in a contract test location — by default a
- test method under `test/**/Contract/`
+  test method under `test/**/Contract/`
 - A clause names a test whose most recent result is not `Passed`
 - The test results are older than the test sources they describe
 
@@ -135,15 +135,15 @@ the contract change deliberately.
 
 - Format: `{SYSTEM}-{nn}` for provided behavior, `{SYSTEM}-I{n}` for invariants.
 - The `{SYSTEM}` prefix is alphanumeric, and may be hyphenated for a multi-word system
- (`DATA-STORE-01`). It must not contain spaces, underscores, or a trailing placeholder such as
- `{SYSTEM}` — the check rejects anything it cannot parse rather than skipping it.
+  (`DATA-STORE-01`). It must not contain spaces, underscores, or a trailing placeholder such as
+  `{SYSTEM}` — the check rejects anything it cannot parse rather than skipping it.
 - IDs are **stable for the life of the clause**. Never renumber to close gaps.
 - **Never reuse a retired number.** Gaps in the sequence are correct and expected, so a new clause
- takes the next number **above the highest ever used** in that system rather than filling a gap.
+  takes the next number **above the highest ever used** in that system rather than filling a gap.
 - When a system is renamed, split, or merged, a surviving clause keeps its wording but takes the new
- owning system's prefix and the next unused number there. Its verifying test is renamed to match,
- and the old identifier is recorded in the changing agent's report. A promise does not lapse because
- the system holding it was renamed, and the numbers it vacates are not reused.
+  owning system's prefix and the next unused number there. Its verifying test is renamed to match,
+  and the old identifier is recorded in the changing agent's report. A promise does not lapse because
+  the system holding it was renamed, and the numbers it vacates are not reused.
 - Deleted clauses are removed; git holds the history. Do not maintain a graveyard section.
 
 # Sizing
@@ -155,8 +155,8 @@ or an intermediate machinery node they reach through `Requires`. Interpret the e
 
 - **Fewer than 3** — the node probably is not a boundary; it may be interior detail of another.
 - **More than 40 at one node** — either the decomposition is wrong, or the contract has drifted into
- restating the public API. Distributing clauses down to child nodes is the relief valve, not a
- smell; method-level enumeration belongs in doc comments, not here.
+  restating the public API. Distributing clauses down to child nodes is the relief valve, not a
+  smell; method-level enumeration belongs in doc comments, not here.
 
 # Changing a Contract
 
@@ -165,9 +165,9 @@ the project's breaking-change signal:
 
 - **Adding** a clause is additive; consumers are unaffected.
 - **Narrowing or removing** a clause is breaking; it must be called out in the change summary, which
- is the durable record of it and what any release note is drawn from.
+  is the durable record of it and what any release note is drawn from.
 - **Rewording without semantic change** is free — but confirm it is free before treating
- it as such.
+  it as such.
 
 Update the contract **before** implementing, not after. A contract edited to match code already
 written is a description, not a promise, and it provides no design pressure.

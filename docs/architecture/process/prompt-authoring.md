@@ -72,12 +72,12 @@ it either applies the rule where it does not fit or abandons it entirely.
 A justification earns its place when it does one of these:
 
 - **Names the rejected alternative.** "Do not call `architecture-design`" is a rule an agent will bend
- when calling seems efficient. "Called headless it would have nobody to ask and would invent the answers
- — worse than producing none" is a rule it can apply to a case nobody wrote down.
+  when calling seems efficient. "Called headless it would have nobody to ask and would invent the answers
+  — worse than producing none" is a rule it can apply to a case nobody wrote down.
 - **Explains a counter-intuitive instruction.** Any rule that looks like unnecessary friction will be
- optimized away unless the friction is explained.
+  optimized away unless the friction is explained.
 - **Marks a boundary that must not be crossed under pressure.** Stop conditions are exactly where an
- agent is most motivated to reason its way past.
+  agent is most motivated to reason its way past.
 
 A justification does **not** earn its place when it restates the rule in other words, motivates something
 obvious, or explains a subject that has its own owning standard — in that last case, link and stop.
@@ -94,7 +94,7 @@ An instruction is actionable when an agent can tell, without judgement, whether 
 - **Imperative and concrete.** Name the file, the command, the exact section to edit.
 - **A stated outcome.** What must be true when the step is done.
 - **An explicit failure branch.** What to do when it is not — every result an agent can emit must be
- something its caller handles, which is why `PROCESS-05` exists.
+  something its caller handles, which is why `PROCESS-05` exists.
 
 Avoid hedging inside a mandatory instruction. "Consider", "if appropriate" and "try to" convert a rule
 into a preference, and an agent under pressure will read them exactly that way. If the instruction is
@@ -147,16 +147,16 @@ demand, so an ambiguity it cannot resolve is reported as advisory, never as fail
 A developer or agent editing anything under `.github/agents/` or `.github/standards/` must:
 
 - **Place the rule at exactly one level**, and link rather than restate it from anywhere else. Duplication
- is the failure `PROCESS-I2` targets; a rule stated twice drifts, and the copy read first wins.
+  is the failure `PROCESS-I2` targets; a rule stated twice drifts, and the copy read first wins.
 - **Add the reason when the rule is a boundary, a stop condition, or counter-intuitive** — and leave it
- out when the rule is mechanical.
+  out when the rule is mechanical.
 - **Demand the basis wherever the prompt asks the agent to judge**, per "What a Judging Prompt Must
- Demand" above. A verdict the prompt never obliged the agent to derive is the defect that passes every
- mechanical gate and reaches the reader intact.
+  Demand" above. A verdict the prompt never obliged the agent to derive is the defect that passes every
+  mechanical gate and reaches the reader intact.
 - **Check the result values.** Adding a new outcome to an agent obliges every caller to handle it. This
- is the defect class that has survived manual review here before.
+  is the defect class that has survived manual review here before.
 - **Not trim prose that carries a rejected alternative.** A short prompt missing the *why* is the more
- expensive failure, because the reasoning cannot be recovered from anywhere else.
+  expensive failure, because the reasoning cannot be recovered from anywhere else.
 
 Editing a prompt also invalidates any behavioral verification recorded against that agent. Structural
 clauses are re-checked by script; behavioral claims must be re-established by inspection or a sandbox run,
@@ -194,19 +194,19 @@ and because each obligation flows from the structural contract in [process.md](.
 ### New Agent
 
 - Front matter: `name` (matching filename), `description`, `user-invocable` or
- `disable-model-invocation`
+  `disable-model-invocation`
 - Named for what it owns or does — `{artifact}-{verb}` for an artifact owner, bare verb for a general
- actor. Check the name against modes, other agents, scripts, and host built-in agent names
+  actor. Check the name against modes, other agents, scripts, and host built-in agent names
 - A stated purpose narrow enough that "when not to use this" is obvious
 - Explicit standards to load, by name
 - A report template with `**Result**` as the first metadata field
 - When the agent judges: a report template ordering basis before verdict, demanding the check behind any
- universal negative, and declared in the prompt as the closed set of body sections with one non-blocking
- advisory section for anything else — see
- [What a Judging Prompt Must Demand](#what-a-judging-prompt-must-demand)
+  universal negative, and declared in the prompt as the closed set of body sections with one non-blocking
+  advisory section for anything else — see
+  [What a Judging Prompt Must Demand](#what-a-judging-prompt-must-demand)
 - Listed in `AGENTS.md` under **Agent Delegation Guidelines**
 - `AGENTS.md` is kept in sync with `.github/template/AGENTS.pristine.md` — any edit to it must be made
- in both copies, because `lint.ps1` enforces the match and `PROCESS-08` contracts it
+  in both copies, because `lint.ps1` enforces the match and `PROCESS-08` contracts it
 
 ### New Standard
 
