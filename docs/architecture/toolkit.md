@@ -84,34 +84,34 @@ The system decomposes into the operations callers invoke and the two machinery l
 from.
 
 - **Operations** are the contract surface: one per action, each declaring its category and, where
-  applicable, its capability role. This is the only layer the contract describes at the operation
-  level, which is deliberate — an operation invoked by a downstream agent *is* a promise, so adding one
-  is a contract change and is meant to feel like one. [VerifyEvidence](./toolkit/verify-evidence.md),
-  [ContractCheck](./toolkit/contract-check.md) and [Stats](./toolkit/stats.md) are deterministic and
-  built on the Runtime alone; [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds
-  the Model Seam, and [LintFix](./toolkit/lint-fix.md) is model-backed and also writes to the
-  repository. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
-  operation built on Process rather than the Model Seam alone: it constructs a real Router over the
-  production worker catalog and runs whichever compiled worker the routing oracle selects.
+ applicable, its capability role. This is the only layer the contract describes at the operation
+ level, which is deliberate — an operation invoked by a downstream agent *is* a promise, so adding one
+ is a contract change and is meant to feel like one. [VerifyEvidence](./toolkit/verify-evidence.md),
+ [ContractCheck](./toolkit/contract-check.md) and [Stats](./toolkit/stats.md) are deterministic and
+ built on the Runtime alone; [ProbeRuleOwner](./toolkit/probe-rule-owner.md) is model-backed and adds
+ the Model Seam, and [LintFix](./toolkit/lint-fix.md) is model-backed and also writes to the
+ repository. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
+ operation built on Process rather than the Model Seam alone: it constructs a real Router over the
+ production worker catalog and runs whichever compiled worker the routing oracle selects.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
-  and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
-  operation returns beside its outcome, and the asynchronous boundary carrying the caller's
-  cancellation. Everything above it is dispatch and argument parsing; a gate must not depend on a
-  network, which is why a deterministic operation reaches for nothing below this layer.
+ and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
+ operation returns beside its outcome, and the asynchronous boundary carrying the caller's
+ cancellation. Everything above it is dispatch and argument parsing; a gate must not depend on a
+ network, which is why a deterministic operation reaches for nothing below this layer.
 - **[Model Seam](./toolkit/model-seam.md)** is the machinery only a model-backed operation touches: a
-  provider resolving a capability role to an endpoint, the *run* and *probe* verbs over it, and the
-  prompt assembly that owns the schema so a caller cannot place it early. If operations built their own
-  prompts, the schema-last ordering that justifies the system would be re-implemented per operation and
-  decay unevenly.
+ provider resolving a capability role to an endpoint, the *run* and *probe* verbs over it, and the
+ prompt assembly that owns the schema so a caller cannot place it early. If operations built their own
+ prompts, the schema-last ordering that justifies the system would be re-implemented per operation and
+ decay unevenly.
 - **Primitives** (`DemaConsulting.Anneal.Toolkit.Primitives`) are reusable composed steps built on the
-  Model Seam and Runtime: `Oracle<T>` asks a narrow typed question, `Research` performs bounded
-  look-around and returns structured findings, `Planner` produces an implementation plan only when a
-  worker asks for one, `DocumentAuthor` and `Developer` author documentation and code against a
-  declared scope, `DeterministicCheck` runs a deterministic build/test/check step, `Verifier` judges
-  produced work against staged deterministic evidence first, and `RepairLoop<T>` bounds a repair to
-  the primitive that owns the finding. None of these is a contract-level operation in its own right —
-  they are the vocabulary a compiled process in [Process](./process.md) composes into a worker, the
-  same way an operation composes the Model Seam today.
+ Model Seam and Runtime: `Oracle<T>` asks a narrow typed question, `Research` performs bounded
+ look-around and returns structured findings, `Planner` produces an implementation plan only when a
+ worker asks for one, `DocumentAuthor` and `Developer` author documentation and code against a
+ declared scope, `DeterministicCheck` runs a deterministic build/test/check step, `Verifier` judges
+ produced work against staged deterministic evidence first, and `RepairLoop<T>` bounds a repair to
+ the primitive that owns the finding. None of these is a contract-level operation in its own right —
+ they are the vocabulary a compiled process in [Process](./process.md) composes into a worker, the
+ same way an operation composes the Model Seam today.
 
 This tree records only two things about an action, and both stay bounded as the set grows: the
 **inventory** — each action named once with its one-line role — and the **participation rules** every
@@ -132,11 +132,11 @@ prompt and document that names the invocation false where it is written, it reac
 going through packaging, so a manifest or packaging fault would first appear at somebody else's install,
 and an override introduced as temporary outlives the condition that produced it.
 
-**Operations are listed individually in the contract** — the alternative was contracting the shape of an
-operation once and leaving the set open. That was rejected because the set is what consumers actually
+**Operations are listed individually in the contract** — the alternative was contracting the shape of
+an operation once and leaving the set open. That was rejected because the set is what consumers
 depend on: an agent that invokes an action by name is relying on that name. Listing them costs a
-Contract Change per operation and buys one clause and one boundary test per operation, which the existing
-contract check already enforces. The cost is accepted for the visibility.
+Contract Change per operation and buys one clause and one boundary test per operation, which the
+existing contract check already enforces. The cost is accepted for the visibility.
 
 **Judgement stays in the model; code owns control flow** — sequencing, gating and evidence handling move
 into the Toolkit because they are deterministic and were unreliable when expressed as prose for an agent
@@ -205,7 +205,7 @@ values every operation does today.
 
 **A second, additive evidence stream measures composition, because the top-level one cannot** —
 `InvocationRecord` (`TOOLKIT-08`) answers "did this action succeed," but cannot answer how often a
-router needed research, how often a worker rerouted, or how often a planner was actually used, and
+router needed research, how often a worker rerouted, or how often a planner was used, and
 those are exactly the rates that keep a compiled catalog honest rather than optimistic. `ProcessStepRecord`
 carries per-primitive outcome, the worker or router step it belongs to, and the budget state at that
 step, correlated to its parent `InvocationRecord` rather than replacing it. The rejected alternative
@@ -235,16 +235,16 @@ target.
 ## Details
 
 - [Runtime](./toolkit/runtime.md) — the shared execution every operation is built from: category and
-  gating, outcomes and exit codes, the invocation record, findings-as-data, and cancellation
+ gating, outcomes and exit codes, the invocation record, findings-as-data, and cancellation
 - [Model Seam](./toolkit/model-seam.md) — the machinery only a model-backed operation touches: role
-  resolution, the run and probe verbs, refusal, offline failure, and transcription
+ resolution, the run and probe verbs, refusal, offline failure, and transcription
 - [VerifyEvidence](./toolkit/verify-evidence.md) — how `verify-evidence` checks each cited locator's
-  quoted text against the file and line it names, reaching no verdict on the report's conclusion
+ quoted text against the file and line it names, reaching no verdict on the report's conclusion
 - [ProbeRuleOwner](./toolkit/probe-rule-owner.md) — how `probe-rule-owner` names the single file that
-  owns a rule, and why it refuses when ownership is split or absent
+ owns a rule, and why it refuses when ownership is split or absent
 - [LintFix](./toolkit/lint-fix.md) — how `lint-fix` drives the repository to a clean lint, and why a
-  repair that needs a protected file escalates rather than failing
+ repair that needs a protected file escalates rather than failing
 - [ContractCheck](./toolkit/contract-check.md) — how the `check-contracts` action reads a repository's
-  architecture tree, and what each way it can reject one means
+ architecture tree, and what each way it can reject one means
 - [Stats](./toolkit/stats.md) — how `stats` reads a repository's invocation records and reports each
-  action's pass rate across five cumulative time windows
+ action's pass rate across five cumulative time windows

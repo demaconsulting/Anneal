@@ -24,7 +24,7 @@ control flow and never tools: the worker is granted the read and edit groups and
 cannot run a command and then report plausibly that it did not.
 
 Four outcomes, not two. A clean lint succeeds and an exhausted budget fails, but a repair that
-genuinely requires a protected configuration file *escalates* — the worker is refused the write, the
+requires a protected configuration file *escalates* — the worker is refused the write, the
 refusal is a recorded fact rather than a self-report, and the operation says so rather than grinding
 its budget editing sources to work around a misconfigured linter. A contract-check failure is the
 fourth case and is not a lint issue at all, so it is identified structurally in the lint output and

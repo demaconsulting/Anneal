@@ -40,7 +40,7 @@ For each entry in the map, classify:
 - **Present with missing sections** — exists, but a template section is absent
 - **Missing** — does not exist
 - **Extra** — exists in the repository, not in the map. This is **not** a deviation. Repositories
-  are expected to have content the template does not.
+ are expected to have content the template does not.
 
 Placeholder substitution: template paths use `{system-name}` in kebab-case for documentation and
 `{SystemName}` in the source language's casing for code. Match repository names at the equivalent
@@ -50,27 +50,27 @@ path depth.
 
 - **Audit**: report only.
 - **Scaffold**: fetch each missing file's template, resolve every `TODO` and `TEMPLATE-DIRECTIVE`
-  from repository context, and write it. Never leave a directive or placeholder in the output.
+ from repository context, and write it. Never leave a directive or placeholder in the output.
 - **Patch**: insert missing sections in template order, leaving existing content untouched.
 
 For Scaffold and Patch, run `pwsh ./fix.ps1` afterwards.
 
 # Directives and Placeholders
 
-- `<!-- TEMPLATE-DIRECTIVE: ... -->` blocks are instructions to you. Execute them, then **remove the
-  block entirely** from the written file.
+- `<!-- TEMPLATE-DIRECTIVE:... -->` blocks are instructions to you. Execute them, then **remove the
+ block entirely** from the written file.
 - Inline `TODO:` values are content placeholders. Resolve them from `README.md`, the architecture
-  tree, sibling files, and the path itself.
-- If a value is genuinely ambiguous, ask the user rather than guessing. Never leave a `TODO` behind.
+ tree, sibling files, and the path itself.
+- If a value is ambiguous, ask the user rather than guessing. Never leave a `TODO` behind.
 
 # Rules
 
 - Never delete repository content that has no template counterpart.
 - Never overwrite hand-written architectural reasoning with template prose.
 - If the template root cannot be resolved at all, report INCOMPLETE — the user must vendor a copy or
-  make the URL reachable.
+ make the URL reachable.
 - If an individual mapped template file cannot be fetched from a resolved root, report FAILED and
-  name the affected files.
+ name the affected files.
 - Files not in the map are out of scope entirely.
 
 # Report Template

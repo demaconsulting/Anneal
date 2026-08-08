@@ -25,23 +25,23 @@ before doing anything else.
 Determine the **mode** first, because three of the four fix the scope automatically:
 
 - **Intake** — apply the admission test and act on what it selects. For `BACKLOG.md` or the
-  **Assumptions** section of `README.md`, append one bullet; this stays as cheap as it is today. For
-  a **constraint**, do not append: propose it per *Only the User Admits a Constraint* in
-  `change-classification.md` — state the bullet in its intended wording and section — and report
-  INCOMPLETE. If a register you must append to does not exist yet, create it from its template
-  counterpart (resolved per the `# Reference Template` section of `AGENTS.md`); if the template
-  cannot be resolved, report INCOMPLETE rather than inventing a format. `README.md` always exists —
-  append to it, and never recreate it. Say which file the admission test chose and why. Do not
-  proceed to Step 2; there is nothing to implement.
+ **Assumptions** section of `README.md`, append one bullet; this stays as cheap as it is today. For
+ a **constraint**, do not append: propose it per *Only the User Admits a Constraint* in
+ `change-classification.md` — state the bullet in its intended wording and section — and report
+ INCOMPLETE. If a register you must append to does not exist yet, create it from its template
+ counterpart (resolved per the `# Reference Template` section of `AGENTS.md`); if the template
+ cannot be resolved, report INCOMPLETE rather than inventing a format. `README.md` always exists —
+ append to it, and never recreate it. Say which file the admission test chose and why. Do not
+ proceed to Step 2; there is nothing to implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
-  passing that bound to `apply` as a hard limit. If the request has no bound, ask for one instead
-  of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
-  Maintenance is defined by touching nothing a consumer can observe.
+ passing that bound to `apply` as a hard limit. If the request has no bound, ask for one instead
+ of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
+ Maintenance is defined by touching nothing a consumer can observe.
 - **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
-  INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
-  it does exist, the tree is already written and each stage is bounded implementation work: report
-  INCOMPLETE naming the stage and directing the user to `apply`, which is what lands a stage.
-  Either way you stop here.
+ INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
+ it does exist, the tree is already written and each stage is bounded implementation work: report
+ INCOMPLETE naming the stage and directing the user to `apply`, which is what lands a stage.
+ Either way you stop here.
 - **Change** — continue to Step 2.
 
 For Change mode, do **not** resolve Small Fix vs. Contract Change vs. Structural Change yourself —
@@ -77,16 +77,16 @@ budget for you to spend. Read the exit code, which is the authoritative signal (
 to read, not for you to parse):
 
 - **Exit 0 (Succeeded)** — a worker completed the work. Go to Step 4 and report SUCCEEDED, using the
-  reported files changed and summary.
+ reported files changed and summary.
 - **Exit 4 (Escalated)** — the routing oracle or the selected worker named a step only a person can
-  take (for example, an unapproved Migration, or a genuinely unclassifiable request). Go to Step 4 and
-  report INCOMPLETE, quoting the recommended next step verbatim.
+ take (for example, an unapproved Migration, or a unclassifiable request). Go to Step 4 and
+ report INCOMPLETE, quoting the recommended next step verbatim.
 - **Exit 1 (Failed) or Exit 3 (Refused)** — no worker completed the work: the routing budget was
-  exhausted, no route existed, or the selected worker could not finish. Go to Step 4 and report
-  FAILED, including what was tried, what was learned, and the recommended next step from the output.
+ exhausted, no route existed, or the selected worker could not finish. Go to Step 4 and report
+ FAILED, including what was tried, what was learned, and the recommended next step from the output.
 - **Exit 2 (UsageError)** — the work item was empty or missing. This means your own invocation was
-  malformed, not that the user's request was bad; correct the command and retry once before treating
-  a repeat failure as your own defect to report.
+ malformed, not that the user's request was bad; correct the command and retry once before treating
+ a repeat failure as your own defect to report.
 
 Never retry a Failed or Escalated outcome by rephrasing the work item and calling `route` again —
 that is `apply`'s old re-plan behavior, and `route`'s own worker already spent its repair budget
@@ -99,7 +99,7 @@ Reached only for Maintenance; Change is fully handled by Step 2 and never reache
 Call the **apply** agent as a sub-agent with:
 
 - **bound**: the declared file set, the permitted categories of edit, and the stopping point. Editing
-  outside the bound is a scope violation to report, not a judgement call
+ outside the bound is a scope violation to report, not a judgement call
 - **goal**: implement the bounded tidy-up
 
 **Always** delegate. Never implement the change yourself, however small or however fully specified it

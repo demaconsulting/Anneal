@@ -173,7 +173,7 @@ tool is pinned `0.1.0-dev`, and there is no installed base to protect, so carryi
 forever would buy nobody anything.
 
 **Availability is asked lazily, and a failed enquiry is not a gate** — the enquiry happens only when
-a role is actually being resolved for use, so a run that consults no model makes no such call and a
+a role is being resolved for use, so a run that consults no model makes no such call and a
 deterministic check acquires no network dependency; that separation is the whole reason a
 deterministic operation stays apart from model-backed work. When the enquiry itself fails, resolution
 falls back to the first configured candidate and the call succeeds or fails on its own terms.

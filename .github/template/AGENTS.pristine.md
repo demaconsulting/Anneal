@@ -42,13 +42,13 @@ contents. Any change should require editing exactly one documentation file.
 ├── CONSTRAINTS.md
 ├── BACKLOG.md
 ├── docs/
-│   └── architecture/
-│       ├── overview.md
-│       ├── {system}.md
-│       └── {system}/
-│           └── {section}.md
+│ └── architecture/
+│ ├── overview.md
+│ ├── {system}.md
+│ └── {system}/
+│ └── {section}.md
 ├── src/
-│   └── {System}/
+│ └── {System}/
 └── test/
     └── {System}.Tests/
         └── Contract/
@@ -62,7 +62,7 @@ and routes; it never restates what they mean.
 
 - **Mode** — `Intake`, `Change`, `Maintenance`, or `Migration`. Decides what you may touch.
 - **Scope** — `Small Fix`, `Contract Change`, or `Structural Change`, within Change mode. Decides how
-  much documentation moves.
+ much documentation moves.
 
 Routing once classified:
 
@@ -81,9 +81,9 @@ report.
 # Test Lifecycles (ALL Agents)
 
 - **Contract tests** are durable. They exercise a system only through its public boundary, are named
-  in the clause they verify, and must survive Small Fix changes untouched.
+ in the clause they verify, and must survive Small Fix changes untouched.
 - **Interior tests** are disposable. Delete or rewrite them freely when the code they cover is
-  restructured. They need no clause and no justification.
+ restructured. They need no clause and no justification.
 
 `testing-principles.md` owns the detail. The clause-to-test link is the **only** mechanically
 enforced relationship in this process: `dotnet anneal check-contracts`, run by `lint.ps1`, fails CI
@@ -118,7 +118,7 @@ Skills in `.github/skills/` are loaded on demand, when the situation they descri
 the skill over reconstructing a procedure from memory.
 
 - **check-contracts** — running and interpreting `dotnet anneal check-contracts`: which invocation to use for
-  each scope, and how to resolve each failure
+ each scope, and how to resolve each failure
 
 # Agent Delegation Guidelines
 
@@ -132,7 +132,7 @@ conversation on the user's behalf, and do not attempt the work instead.
 Delegate only for:
 
 - **Any non-trivial change** → `dispatch` (classifies the mode and scope, then routes to the minimum
-  process)
+ process)
 - **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its scope** → `scope-check`
@@ -143,7 +143,7 @@ Delegate only for:
 Specialized agents MUST generate a completion report:
 
 1. Save to `.agent-logs/{agent-name}-{subject}-{unique-id}.md` where `{subject}` is a kebab-case
-   task summary (max 5 words) and `{unique-id}` is a short unique suffix
+ task summary (max 5 words) and `{unique-id}` is a short unique suffix
 2. Start with `**Result**: (SUCCEEDED|FAILED|INCOMPLETE)` as the first metadata field
 3. Include the agent-specific report sections defined in each agent's prompt
 4. Return the summary to the caller
@@ -165,7 +165,7 @@ Result semantics:
 # Documentation Discipline (ALL Agents Must Follow)
 
 - **Do not write documentation an agent was not obliged to write.** Documentation nobody asked for is
-  future maintenance debt paid by every subsequent change.
+ future maintenance debt paid by every subsequent change.
 - **Never create a requirement below system level.** There is no such artifact in this process.
 
 `architecture-documentation.md` owns the rest — level ownership, and deleting in the same change that
@@ -180,7 +180,7 @@ Always use **US English** spelling in all output.
 Resolve the template in this order, and use the first that is available:
 
 1. **`.github/template/`** in this repository — a vendored copy, if present. Prefer it; it needs no
-   network and is guaranteed to match the agents installed alongside it.
+ network and is guaranteed to match the agents installed alongside it.
 2. **`template-url`**: `https://github.com/demaconsulting/Anneal/raw/refs/heads/main/.github/template`
 
 - **Repository map**: `{template-root}/repository-map.md`

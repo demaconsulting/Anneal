@@ -5,13 +5,13 @@ covers:
 ---
 
 <!-- TEMPLATE-DIRECTIVE: This is level 2 - the 10,000 foot view, one file per system.
-     Read architecture-documentation.md and system-contracts.md before writing it.
-     This file owns the system's CONTRACT, its dependencies, its internal decomposition
-     and the RATIONALE for it, and decisions local to this system. It does NOT restate
-     the interactions described in overview.md, and it does NOT document individual
-     classes - that intent lives in doc comments on the members themselves. If this file is
-     getting long, the cause is decomposition detail that a section document should own, or a
-     system that is too large. Remove this block. -->
+ Read architecture-documentation.md and system-contracts.md before writing it.
+ This file owns the system's CONTRACT, its dependencies, its internal decomposition
+ and the RATIONALE for it, and decisions local to this system. It does NOT restate
+ the interactions described in overview.md, and it does NOT document individual
+ classes - that intent lives in doc comments on the members themselves. If this file is
+ getting long, the cause is decomposition detail that a section document should own, or a
+ system that is too large. Remove this block. -->
 
 [← Architecture Overview](./overview.md)
 
@@ -58,9 +58,9 @@ The second half matters most: what would a consumer notice if this were rewritte
 ## Composition
 
 <!-- TEMPLATE-DIRECTIVE: How the system is put together internally and - more importantly -
-     WHY it is cut that way. Name the internal parts and the seam between them. Do not
-     enumerate classes; if the list starts reading like a directory listing, cut it back to
-     the seams that carry the reasoning. Remove this block. -->
+ WHY it is cut that way. Name the internal parts and the seam between them. Do not
+ enumerate classes; if the list starts reading like a directory listing, cut it back to
+ the seams that carry the reasoning. Remove this block. -->
 
 TODO: The internal decomposition and the reasoning behind those seams. What was grouped together
 and what was deliberately kept apart, and what would break if the seams moved.
@@ -68,17 +68,17 @@ and what was deliberately kept apart, and what would break if the seams moved.
 ## Decisions
 
 <!-- TEMPLATE-DIRECTIVE: Decisions local to this system. State the decision, the reason, and
-     the rejected alternative. Omit anything already covered by the repository-wide decisions
-     in overview.md. Remove this block. -->
+ the rejected alternative. Omit anything already covered by the repository-wide decisions
+ in overview.md. Remove this block. -->
 
 **TODO: Decision name** — TODO: what was decided, why, and what was rejected.
 
 ## Details
 
 <!-- TEMPLATE-DIRECTIVE: Links to child section documents at any depth, if any exist. A node
-     earns children only when subdividing benefits the organization - delete this whole section
-     rather than inventing entries for it. Create a section document only when subdividing earns
-     its place through clarity of structure, conformity, or size, per architecture-documentation.md.
-     Remove this block. -->
+ earns children only when subdividing benefits the organization - delete this whole section
+ rather than inventing entries for it. Create a section document only when subdividing earns
+ its place through clarity of structure, conformity, or size, per architecture-documentation.md.
+ Remove this block. -->
 
 - [{Section Name}](./{system-name}/{section-name}.md) — TODO: one-line subject

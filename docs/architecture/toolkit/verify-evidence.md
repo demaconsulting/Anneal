@@ -11,7 +11,7 @@ covers:
 
 `verify-evidence` takes the evidence locators an agent report cites — each a claim that a particular
 quotation appears at a named file and line — and reports, locator by locator, whether the quoted text
-is actually present where the report says it is. It is deterministic: it reaches no verdict about
+is present where the report says it is. It is deterministic: it reaches no verdict about
 whether the report's conclusion follows from its evidence, and it consults no model. A locator is
 checked as a textual and positional fact about the repository, nothing more, which is why the operation
 is built on the [Runtime](./runtime.md) alone and touches none of the model seam.

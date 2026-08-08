@@ -60,16 +60,16 @@ Use the selection matrix in `AGENTS.md` to load only the standards relevant to t
 # Step 5 — Implement
 
 - **Small Fix**: implement freely. Interior tests may be rewritten or deleted without ceremony.
-  Contract tests must not be touched.
+ Contract tests must not be touched.
 - **Contract Change and Structural Change**: implement against the updated contract, and create a
-  contract test for every new or changed clause **using the exact test name the clause names**. The
-  clause and the test must agree; if the name in the contract is wrong, fix the contract rather than
-  silently diverging.
+ contract test for every new or changed clause **using the exact test name the clause names**. The
+ clause and the test must agree; if the name in the contract is wrong, fix the contract rather than
+ silently diverging.
 - **Migration stage**: implement the named stage against the contract as `architecture-design`
-  already wrote it in the tree, and create a contract test **using the exact test name the clause
-  names** for every planned clause the stage lands. Never invent, widen, or narrow a clause while
-  landing a stage — a stage that needs one changed has outrun its approved proposal; stop and report
-  INCOMPLETE.
+ already wrote it in the tree, and create a contract test **using the exact test name the clause
+ names** for every planned clause the stage lands. Never invent, widen, or narrow a clause while
+ landing a stage — a stage that needs one changed has outrun its approved proposal; stop and report
+ INCOMPLETE.
 
 Delete interior tests whose subject no longer exists. Leaving them behind accumulates the drag this
 process is designed to avoid.
@@ -77,12 +77,12 @@ process is designed to avoid.
 # Step 6 — Update Documentation Only If Obliged
 
 - **Small Fix**: no documentation update, unless the change invalidates a specific section document —
-  then update or delete that one file.
+ then update or delete that one file.
 - **Contract Change and Structural Change**: the `architecture-update` agent has already updated the
-  tree. Do not edit `docs/architecture/` further; if it is wrong, report it rather than patching it.
+ tree. Do not edit `docs/architecture/` further; if it is wrong, report it rather than patching it.
 - **Migration stage**: the approved tree was written when the migration was approved. Do not edit
-  `docs/architecture/` further; if it is wrong, report it rather than patching it.
-- Update `README.md` or the user guide only when user-facing behavior actually changed.
+ `docs/architecture/` further; if it is wrong, report it rather than patching it.
+- Update `README.md` or the user guide only when user-facing behavior changed.
 
 Not updating documentation on an interior change is the correct outcome, not an omission.
 
@@ -91,8 +91,8 @@ Not updating documentation on an interior change is the correct outcome, not an 
 1. `pwsh ./fix.ps1` — applies all auto-fixers silently; always exits 0, so no response is needed
 2. `pwsh ./build.ps1` — builds and runs all tests; report FAILED if the build or any test fails
 3. For Contract Change and Structural Change, and for every Migration stage, use the
-   **check-contracts** skill to confirm every clause names a test that exists and passed; report
-   FAILED if it does not exit clean
+ **check-contracts** skill to confirm every clause names a test that exists and passed; report
+ FAILED if it does not exit clean
 
 # Step 8 — Report
 

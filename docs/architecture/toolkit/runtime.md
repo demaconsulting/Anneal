@@ -90,7 +90,7 @@ reports with regular expressions. The evidence that the channel is wrong rather 
 that `probe-rule-owner` already computes a typed answer and flattens it to lines at the boundary: the
 structure exists and is being thrown away one layer before the caller. Two alternatives were rejected. A
 generic operation interface parameterized by its result type was rejected because the dispatcher — which
-is the surface consumers actually hold — must keep a heterogeneous set of actions, so it can only hold
+is the surface consumers hold — must keep a heterogeneous set of actions, so it can only hold
 the non-generic form, and the type parameter buys nothing at the one boundary that matters while
 splitting the public surface into two shapes that must be kept aligned and forcing every operation with
 nothing structured to say to either pick the other shape or invent a payload. Keeping the writer as the

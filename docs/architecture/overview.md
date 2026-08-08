@@ -25,7 +25,7 @@ happen against rather than encoding the judgement itself.
 
 The consequence runs through every decision recorded here. Instructions cannot be executed to see whether
 they work, so verification splits in two: properties of the files themselves are checked by script, and
-properties of what agents actually do are established by inspection or by a sandbox run against a
+properties of what agents do are established by inspection or by a sandbox run against a
 throw-away repository. The split is load-bearing here because the majority of what Anneal ships is
 instructions rather than behavior — the Toolkit is executed, but what it executes is context assembly
 for a model rather than encoded judgement.
@@ -33,7 +33,7 @@ for a model rather than encoded judgement.
 ## Systems
 
 - [Process](./process.md) — the agents, standards and skills that instruct an AI coding agent; a
-  bootstrap harness with a scheduled end, being dismantled into Toolkit operations
+ bootstrap harness with a scheduled end, being dismantled into Toolkit operations
 - [Installer](./installer.md) — delivery of the payload into a target repository
 - [Template](./template.md) — the canonical repository layout a product repository receives
 - [Toolkit](./toolkit.md) — the executed operations, deterministic and model-backed, that agents will call
@@ -114,7 +114,7 @@ build, turning every omission into a full retry), and multi-retry orchestration 
 → QUALITY with three retries, multiplying everything). Each was removed because its cost is paid on
 every subsequent change, and that cost — not the shape — is the admission test a new mechanism has to
 fail. Reproducing one of those cost patterns is a redesign, not an incremental regression. Automation
-that mechanizes work in order to remove per-change cost is the direction Anneal is moving in and is not
+that mechanizes work to remove per-change cost is the direction Anneal is moving in and is not
 caught by this rule; the [Direction](../../README.md#direction) section of the README states what does
 and does not qualify.
 

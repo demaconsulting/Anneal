@@ -42,7 +42,7 @@ process rejects everywhere else.
 A node gives birth to children only when the organization benefits, and the benefit test is exactly
 three triggers: **clarity of structure, conformity, or size.** There is no fixed depth cap and no
 child-count cap; a node descends further whenever subdivision keeps earning its place, and a node
-with no children is simply one that has not earned them yet.
+with no children is one that has not earned them yet.
 
 # Descending the Tree
 
@@ -69,10 +69,10 @@ talks to what. A reader must be able to locate the piece they came for and know 
 holds the next level of detail about it. A narrative — a story of a request moving through the
 system — fails this even when every sentence is true: it gives the reader nothing to locate
 themselves *on*. Structure therefore appears at more than one level by design, sharpening as it
-descends, and that is not duplication — it is the handle a reader grabs in order to descend at all.
+descends, and that is not duplication — it is the handle a reader grabs to descend at all.
 
 **A node with no children has no parts to name**, so it carries no decomposition list — not as an
-exception, but because a leaf is simply a node that has not earned children yet. A document covering
+exception, but because a leaf is a node that has not earned children yet. A document covering
 one specific in depth — an invariant, a compatibility surface, a settled debate — is such a leaf, and
 imposing the shape on it would invent structure that is not there. When it later earns children it
 decomposes like any other node; it is exempt from the shape only while it stays a leaf, never from
@@ -165,7 +165,7 @@ into cross-references when the tree is compiled.
 - Every level MUST link to each of its direct children.
 - A child MUST link back to its parent in a single line at the top.
 - Never link sideways across systems in body prose; route through `overview.md` so that
-  cross-system coupling stays visible in exactly one place.
+ cross-system coupling stays visible in exactly one place.
 
 Downward links carry a brief **scope-and-purpose signpost** — what the child covers and why you would
 descend, never the child's conclusions — in the shape shown under `Decomposition and
@@ -205,7 +205,7 @@ Do **not** create a section document to:
 - Restate the public API — that belongs in doc comments on the members themselves.
 - Describe what the tests cover — the tests do this.
 - Record history or migration narrative — history belongs in git, and a migration in flight is
-  described by `MIGRATION.md`.
+ described by `MIGRATION.md`.
 - Satisfy a sense that a system "ought to have" documentation.
 
 # When to Delete a Section Document (MANDATORY)
@@ -255,7 +255,7 @@ that earns its place. A short document missing the *why* is the more expensive f
 
 - **State the why.** Facts recoverable by reading the code do not belong here; reasons do.
 - **Prefer prose to bullets** for *rationale*; bullets fragment reasoning into assertions. A
-  structural map is the exception — parts, roles and relationships read best as a list.
+ structural map is the exception — parts, roles and relationships read best as a list.
 - **Name concrete things.** Real system names, real paths, real formats — never placeholders.
 - **Write for a reader who will stop here.** Each level must be coherent alone.
 - **Present tense, current state.** No changelog voice, no "we will", no "recently changed".
@@ -268,9 +268,9 @@ that earns its place. A short document missing the *why* is the more expensive f
 # Quality Gates
 
 - [ ] Every level with parts names them, their roles, and their barest relationships; no level
-      restates a child's detail
+ restates a child's detail
 - [ ] A reader stopping at a level can locate the part they came for and name the document
-      holding the next level of detail about it
+ holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
 - [ ] Every system document and section document, at any depth, carries `level` and `covers` front matter

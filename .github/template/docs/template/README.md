@@ -22,10 +22,10 @@ The anchor is the file name, because `ingest.md` carries the heading `# Ingest`,
 as `#ingest`. Two cases are deliberately left alone:
 
 - **A link whose target is not in this collection** — `overview.md` links up to `README.md`, which is
-  level 0 and never compiled into the architecture document. Rewriting it would produce an anchor
-  that resolves nowhere, so the link is left exactly as written.
+ level 0 and never compiled into the architecture document. Rewriting it would produce an anchor
+ that resolves nowhere, so the link is left exactly as written.
 - **A link that already carries a fragment** — `./store.md#retention` becomes `#retention`, because
-  the fragment names a section and is more specific than the file.
+ the fragment names a section and is more specific than the file.
 
-The filter only rewrites a link when the anchor genuinely exists in the compiled document, so a
+The filter only rewrites a link when the anchor exists in the compiled document, so a
 mistyped or outbound link is passed through untouched rather than silently redirected.

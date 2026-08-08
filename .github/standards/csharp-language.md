@@ -42,10 +42,10 @@ it is. Both of the following are correct:
 private static string NormalizeKey(string key) => key.Trim().ToLowerInvariant();
 
 /// <remarks>
-///     Retries only on 429 and 503. A 500 is deliberately not retried: this API returns
-///     500 for malformed payloads, so retrying one is guaranteed to fail again and costs
-///     the caller their whole timeout budget. The backoff is jittered because the three
-///     ingest workers otherwise retry in lockstep and re-create the burst that failed.
+/// Retries only on 429 and 503. A 500 is deliberately not retried: this API returns
+/// 500 for malformed payloads, so retrying one is guaranteed to fail again and costs
+/// the caller their whole timeout budget. The backoff is jittered because the three
+/// ingest workers otherwise retry in lockstep and re-create the burst that failed.
 /// </remarks>
 private async Task<HttpResponseMessage> SendWithRetryAsync(HttpRequestMessage request)
 ```

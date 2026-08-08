@@ -1,9 +1,9 @@
 <!-- TEMPLATE-DIRECTIVE: Durable conditions the architecture must satisfy. One bullet per
-     user-admitted constraint. Agents may propose entries, but only the user admits one. Entries
-     state the condition, not the mechanism that currently satisfies it. Entries move between the
-     two sections; they are removed only when the condition stops being required. A new repository
-     usually has nothing to record here yet: leave both sections empty rather than inventing an
-     entry, and delete the example bullets. Remove this block. -->
+ user-admitted constraint. Agents may propose entries, but only the user admits one. Entries
+ state the condition, not the mechanism that currently satisfies it. Entries move between the
+ two sections; they are removed only when the condition stops being required. A new repository
+ usually has nothing to record here yet: leave both sections empty rather than inventing an
+ entry, and delete the example bullets. Remove this block. -->
 
 # Constraints
 
