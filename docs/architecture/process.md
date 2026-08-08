@@ -74,6 +74,12 @@ is written.
   re-labelled by a single file.
   *Verified by:* `ScopeVocabularyIsClosed`
 
+- **PROCESS-10** — Every Effort value the payload names is one that `change-classification.md`
+  defines, so the magnitude vocabulary a decomposition check routes on cannot be extended or
+  re-labelled by a single file — the same closure PROCESS-09 already gives Scope, extended to the
+  axis alongside it.
+  *Verified by:* `TODO.EffortVocabularyIsClosed`
+
 ### Requires
 
 - **[ContractCheck](./toolkit/contract-check.md)** — mechanical verification of clause-to-test links, and a
@@ -281,8 +287,26 @@ Change worker spends at most two `Planner` calls: an initial plan, and — only 
 `VerificationVerdict.StrategyRevisionRequired` finding, never a documentation or code repair finding —
 one re-plan from its own independent, non-resetting budget, counted and exhausted separately from the
 documentation and code repair budgets. Only Template Sync now remains deferred; Small Fix, Contract
-Change, and Structural Change all ship, and no prose agent retires until Template Sync exists too and
-is proven, per the migration's one-way invariant.
+Change, and Structural Change all ship. (An earlier draft of this entry claimed no prose agent could
+retire until Template Sync existed too, citing the one-way invariant as authority — the invariant says
+nothing about sequencing unrelated work, and later migration stages retired individual prose agents
+as their own proven conditions were met. Corrected here rather than left standing as an unchecked
+decree.)
+
+**Effort joins Scope as a second classification axis, and Migration is preserved rather than
+dissolved into it** — `change-classification.md` now classifies Change-mode work along Scope
+(contract reach) and Effort (magnitude) independently, because neither implies the other: a
+mechanical rename touching hundreds of files crosses no contract, and a one-line change to a public
+signature crosses one. A Massive Effort item decomposes into phases only under a mandatory
+cumulative-Scope check evaluated across the whole phase set — never phase by phase alone — plus a
+deterministic tripwire on `README.md`, `docs/architecture/**`, `CONSTRAINTS.md`, and `BACKLOG.md`,
+because a set of individually-innocent phases can still cross a boundary none of them crosses alone.
+Dissolving Migration into ordinary Scope×Effort routing was considered and rejected: Migration's step
+invariants (self-hosting, one-way, no-silent-loss, named suspensions) are cross-phase monotonicity
+properties that a per-request classification cannot express, and folding it away would mechanically
+break `PROCESS-07`'s closed mode vocabulary. Migration is kept exactly as it already exists; the only
+new integration point is that a single stage's own implementation, once a human has written the stage
+and its exit condition, classifies by Scope and Effort like any other Change-mode work.
 
 ## Details
 

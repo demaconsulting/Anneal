@@ -12,16 +12,21 @@ the correct outcome, not a gap.
 **This document is the single definition of classification.** No other file restates the modes or
 the scopes; they link here.
 
-# Classification Has Two Dimensions
+# Classification Has Three Dimensions
 
-Work is classified twice before it starts, along two independent axes:
+Work is classified along three independent axes:
 
 - **Mode** — what kind of work this is. Decides what an agent may touch and what "done" means.
 - **Scope** — how far the change reaches into published contracts. Decides how much documentation
   moves.
+- **Effort** — how much work this takes: lines, files, modules touched. Decides planning and
+  verification rigor, and whether the work must be decomposed into phases before it executes.
 
-They are orthogonal. Mode is answered first, because three of the four modes fix the scope
-automatically.
+Mode is answered first, because three of the four modes fix Scope automatically. Scope is answered
+before Effort, because Scope depends only on what a change promises, never on how large it turns out
+to be. **Effort never substitutes for Scope**: a large mechanical rename can be Massive Effort at
+Small Fix scope, and a one-line edit to a public signature can be Small Effort at Contract Change
+scope.
 
 # Work Modes
 
@@ -128,6 +133,12 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
   to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
   stopping point. Open-ended "improve the code" work with no bound is not a task.
+- **A periodic, eventually self-triggered structural-cohesion sweep is ordinary Maintenance**, bounded
+  as: whole repository, read-only, stopping at a findings report. A sweep that writes nothing has no
+  unbounded scope to forbid. Its report states only what was observed, never a proposed remediation —
+  any fix is separately-bounded work. This is a second, complementary defense against drift
+  accumulating across separate requests over time, a gap the Massive Effort cumulative check (below)
+  cannot see because it only evaluates one request's own phase set. Neither layer replaces the other.
 
 ## Migration
 
@@ -150,6 +161,50 @@ design.
 - Ends when every planned clause is satisfied and the exit conditions are met. **Delete
   `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
   one left behind claims a migration that never ends.
+- A single stage's own implementation still classifies Scope and Effort like any other work, once a
+  human has written the stage and its exit condition. A stage whose implementation turns out Massive
+  Effort follows the Massive Effort rules below, with one addition: because a stage's exit condition
+  is normally an outcome claim, not a file-scope declaration, its author additionally declares an
+  explicit file-scope bound at the point decomposition is first needed — the same declaration
+  Maintenance already makes, asked for only when actually needed.
+
+# Effort
+
+Effort is pure magnitude — lines, files, modules touched — independent of what the change promises.
+It sets verification rigor, never what documentation moves (Scope, below, sets that). Classify
+Effort within Change mode, once Scope is known:
+
+| Effort | Rough size | Rigor |
+| --- | --- | --- |
+| Small | A few lines; obviously correct | No plan. |
+| Medium | Multiple files, one system; ~50-200 lines | Lightweight plan. |
+| Large | Interiors of multiple systems | Full plan plus a Tenet Check against `CONSTRAINTS.md` and affected contracts. |
+| Massive | Cannot execute as one unit | Decompose into phases first — see below. |
+
+Effort and Scope never imply one another. A 300-file mechanical rename is Massive Effort at Small
+Fix scope and needs no human — it crosses no contract. A one-line public signature change is Small
+Effort at Contract Change scope and still moves `{system}.md`.
+
+## Massive Effort Must Be Decomposed
+
+Split into phases, each classified by Scope and Effort, before any phase executes, bounded by two
+checks that apply together:
+
+- **A mandatory cumulative check** — the whole proposed phase set, evaluated together: does the
+  union cross a boundary no single phase crosses alone? Individually low-scope phases that together
+  move a boundary are a higher-scope change hiding in the decomposition. The periodic Maintenance
+  sweep above is a second, complementary layer for drift across separate requests over time; it does
+  not substitute for this per-request check, which sees phases the sweep cannot yet.
+- **A deterministic tripwire** — any phase touching `README.md`, `docs/architecture/**`,
+  `CONSTRAINTS.md`, or `BACKLOG.md` escalates to the highest scope and a human, unconditionally,
+  regardless of the cumulative check's verdict — the same files Maintenance is forbidden from
+  touching. The `overview.md` stale-sentence exception below still applies.
+
+Generated phases are a **strict subset of already-cleared scope** — file set and edit category
+contained within what classification already cleared, never larger; needing more means stop and
+re-classify. Decomposition recurses **at most once** (depth cap two): a phase may be decomposed
+again only if it too proves Massive, and the result of that second pass may not be decomposed
+further — it stops for a human instead.
 
 # The Classifying Question (Change Mode)
 
@@ -226,6 +281,12 @@ boundary between systems changes.
   process removes.
 - **An agent never widens its own authority.** Hitting a boundary that forbids the work is a stop
   condition and a report, never an invitation to edit the boundary.
+- **Effort never substitutes for Scope, either direction.** A large Effort is not evidence Scope
+  must be higher, and a Massive item's own phase-level Small Fix classifications never license
+  skipping the cumulative check across the whole phase set.
+- **Never decompose to dodge the mandatory cumulative check.** Splitting a Massive item into phases
+  that individually dodge the tripwire while collectively crossing it is the same evasion the
+  split-to-stay-at-a-lower-scope rule already forbids, applied across phases instead of commits.
 
 # Worked Examples
 
@@ -246,6 +307,8 @@ boundary between systems changes.
 | Spend spare capacity tidying a package | Maintenance | Small Fix | Bounded, interior, no promise moves |
 | Rename an unclear private method | Maintenance | Small Fix | Interior only |
 | Re-cut four systems into six for cross-platform | Migration | n/a | Approved restructure, staged |
+| Rename a symbol across 300 files, mechanically | Change | Small Fix | Massive Effort, but crosses no contract |
+| Add one optional field, touching one file | Change | Contract Change | Small Effort, but moves a promise |
 
 # Quality Gates
 
@@ -258,3 +321,6 @@ boundary between systems changes.
 - [ ] Every Migration commit declared Migration mode and referenced `MIGRATION.md`
 - [ ] A completed Migration deleted `MIGRATION.md`
 - [ ] Prune check was performed for every Contract Change and Structural Change
+- [ ] Effort was classified independently of Scope, neither inferred from the other
+- [ ] Massive Effort was decomposed only after the cumulative check cleared the whole phase set, and
+      no phase touched a tripwire path without escalating
