@@ -207,11 +207,10 @@ succeeded and proposed a dedicated README phase; `route` escalated immediately n
 all. That proves `ProtectedPathTripwire` fired before the cumulative-check oracle could run, exactly as
 `TOOLKIT-27` requires.
 
-The fixture and its harness were deleted afterward. A fresh `pwsh ./build.ps1` and `pwsh ./lint.ps1`
-were also attempted after `bf47c32`; both surfaced unrelated pre-existing worktree issues outside this
-fix (`test/DemaConsulting.Anneal.Toolkit.Tests/LiveTrial/*` compile / spelling problems), so the live
-trial's own re-verification rests on the passing targeted `RouterTests` run plus the direct fixture
-inspection above, not on claiming those repository-wide scripts were clean when they were not.
+The fixture and its harness were deleted afterward. `pwsh ./build.ps1` and `pwsh ./lint.ps1` were
+re-run fresh once all of this stage's commits had landed (including the new in-repo live-trial harness
+landed in parallel — see below): 350 passed / 1 correctly skipped / 351 total, 10/10 process-contract
+cases, 81/81 clauses linked, lint exit 0.
 
 ### S13 — Closing the RouteReport gap S11 found, live and self-hosted — landed
 
