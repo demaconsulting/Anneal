@@ -93,6 +93,9 @@ from.
   repository. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
   operation built on Process rather than the Model Seam alone: it constructs a real Router over the
   production worker catalog and runs whichever compiled worker the routing oracle selects.
+  [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, but runs
+  a declared-bound Maintenance work item directly against `SmallFixWorker`, with no routing oracle and
+  no Router of its own.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
@@ -260,3 +263,6 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
   architecture tree, and what each way it can reject one means
 - [Stats](./toolkit/stats.md) — how `stats` reads a repository's invocation records and reports each
   action's pass rate across five cumulative time windows
+- [Maintain](./toolkit/maintain.md) — how `maintain` runs a declared-bound Maintenance work item
+  directly against `SmallFixWorker`, and how the containment and protected-path checks escalate a run
+  whose actual changes exceeded the bound it declared
