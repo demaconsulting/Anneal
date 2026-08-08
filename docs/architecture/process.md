@@ -275,21 +275,14 @@ a person can take. The rejected alternative, considered directly against a compa
 planner-developer-quality implementation agent elsewhere, was a universal three-phase loop with fixed
 retries on every change — rejected for the same reason **Bounded repairs, no planning phase** above
 already rejected it once: the multiplier is paid on every subsequent change regardless of whether the
-change needed it. What differs this time is that Planner and Verifier are **route-selected per
-worker**, not universal — a Small Fix worker (`Developer` → `DeterministicCheck`, one local repair
-pass) pays for neither, while a Structural Change worker spends at most two `Planner` calls: an
-initial plan, and — only against a `VerificationVerdict.StrategyRevisionRequired` finding, never a
-documentation or code repair finding — one further re-plan from its own independent, non-resetting
-budget. **This revises, visibly, the sentence this Decisions section previously committed** — "a
-Structural Change worker uses a single-shot Planner outside any repair loop" — which S9's
-implementation superseded: the worker's re-plan pass is no longer strictly outside the loop (a
-`StrategyRevisionRequired` verdict re-enters `DocumentAuthor` → `Developer` → checks → `Verifier` the
-same way a documentation or code repair does), only outside the *documentation/code repair budgets*
-specifically — the re-plan budget is counted, spent, and exhausted independently of those two, and
-exhausting either kind reports `Failed` on its own rather than borrowing headroom from the other. Only
-Template Sync now remains deferred; Small Fix, Contract Change, and Structural Change all ship, and no
-prose agent retires until Template Sync exists too and is proven, per the migration's one-way
-invariant.
+change needed it. Planner and Verifier are **route-selected per worker**, not universal — a Small Fix
+worker (`Developer` → `DeterministicCheck`, one local repair pass) pays for neither, while a Structural
+Change worker spends at most two `Planner` calls: an initial plan, and — only against a
+`VerificationVerdict.StrategyRevisionRequired` finding, never a documentation or code repair finding —
+one re-plan from its own independent, non-resetting budget, counted and exhausted separately from the
+documentation and code repair budgets. Only Template Sync now remains deferred; Small Fix, Contract
+Change, and Structural Change all ship, and no prose agent retires until Template Sync exists too and
+is proven, per the migration's one-way invariant.
 
 ## Details
 

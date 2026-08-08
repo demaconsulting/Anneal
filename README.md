@@ -175,54 +175,34 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 - **Correlated error is the residual risk.** Separate invocations of the same model can share a blind
   spot; independence of incentive is not independence of judgement. A judging agent is therefore
   given first-hand facts rather than the working agent's summary of them.
-- **An agent that must justify its answer is more reliable than one that merely states it.** Separating
-  incentives removes the motive to approve, but it does not oblige a judging agent to derive its verdict,
-  and an unobliged judge can ratify a plausible impression it never checked. If agents required to show
-  their reasoning proved no more accurate than agents asked only for a conclusion, the judging layer would
-  be ceremony and reliability would have to be sought outside the prompts.
-- **The prompt files are the reliability mechanism.** Because reliability follows from the quality of
-  the facts and the clarity of the question, a defect in an agent prompt degrades the facts every
-  downstream agent works from. Prompt changes are the highest-risk changes in this repository.
+- **An agent that must justify its answer is more reliable than one that merely states it.**
+  Separating incentives removes the motive to approve but does not oblige a judge to derive its
+  verdict. If reasoning-required agents proved no more accurate than agents asked only for a
+  conclusion, the judging layer would be ceremony.
+- **The prompt files are the reliability mechanism.** Reliability follows from the quality of the
+  facts and the clarity of the question, so a defect in an agent prompt degrades every downstream
+  agent's facts. Prompt changes are the highest-risk changes in this repository.
 - **Products adopting this process are .NET and C#.** The shipped layout defaults to `*.cs` sources,
-  xUnit attributes and TRX results, and the template's build and lint scripts assume a solution. The
-  process itself is language-neutral, but the repository it hands you is not. Adoption for another
-  ecosystem would not be a defect to patch — it would mean the template is the wrong shape. The
-  [Toolkit](docs/architecture/toolkit.md) hardens this from a default into a dependency: it ships as a
-  .NET tool, so a repository outside that ecosystem can still read the process but cannot run its
-  operations.
-- **Structural properties of a prompt predict how an agent behaves.** Checking that references resolve,
-  that every result value is handled, and that the context budget holds is worth doing because those
-  properties correlate with reliable behavior. If they turn out not to, a mechanical contract over the
-  payload is theater: it would pass while agents still misbehaved, and verification would have to move
-  wholesale to inspection and sandbox runs.
-- **Where a response schema appears in a conversation changes how reliably it is followed.** A schema
-  presented after the reasoning is done is followed more closely than the same schema given at the
-  outset, because an instruction at the start is far behind by the time the answer is produced. This is
-  the assumption the [Toolkit](docs/architecture/toolkit.md) exists to exploit — it is why controlling
-  the conversation programmatically buys something no prompt file can. If a schema stated up front
-  proved just as reliable, the tool would still be useful for deterministic checks but would have lost
-  its main justification.
-- **A described schema is enough without constrained decoding.** The Copilot session API offers no
-  response-format facility, so a typed answer rests on a schema described in the prompt, tolerant
-  extraction of the JSON object, and a retry that shows the model its own parse error. The falsifier is
-  measurable and stage S1b of [MIGRATION.md](MIGRATION.md) records it: if parse failures survive the
-  retry budget often enough to matter, typed probes need a provider that enforces the shape on the
+  xUnit attributes and TRX results, and the template's scripts assume a solution. The process itself
+  is language-neutral; the repository it hands you is not. Adoption for another ecosystem would mean
+  the template is the wrong shape, not a defect to patch. The
+  [Toolkit](docs/architecture/toolkit.md) hardens this into a dependency: it ships as a .NET tool, so
+  a repository outside that ecosystem can read the process but not run its operations.
+- **Structural properties of a prompt predict how an agent behaves.** Checking references resolve,
+  every result value is handled, and the context budget holds is worth doing because those
+  properties correlate with reliable behavior. If they don't, the mechanical contract is theater, and
+  verification would have to move wholesale to inspection and sandbox runs.
+- **Where a response schema appears in a conversation changes how reliably it is followed** — a
+  schema given after the reasoning is done is followed more closely than one given at the outset.
+  This is the belief the [Toolkit](docs/architecture/toolkit.md) exists to exploit; see there for why.
+- **A described schema is enough without constrained decoding.** The Copilot session API has no
+  response-format facility, so a typed answer rests on a schema described in the prompt and a retry
+  on parse failure. If failures survive the retry budget often enough to matter — measured at stage
+  S1b of [MIGRATION.md](MIGRATION.md) — typed probes need a provider that enforces the shape on the
   wire.
-- **Consulting a model adds no new exposure of repository content.** Operations run under the ambient
-  Copilot account of the calling session — the same account the agents already run under — so content
-  reaches no party that was not already receiving it. This stops holding the moment an operation
-  authenticates as anything else, which is why the Toolkit supplies no token of its own.
 - **The build now requires network access**, to fetch the Copilot CLI the SDK depends on. Build-time
   only — no enforcement operation's runtime determinism is affected. See
   [Toolkit](docs/architecture/toolkit.md) for the mechanism.
-- **Two experimental-SDK suppressions back real guarantees.** The Copilot SDK flags both
-  `ModelCapabilitiesOverride` (used to enforce `MaxOutputTokens`, the output-token ceiling) and
-  `PermissionHandler`/`OnPermissionRequest` (used to auto-approve the Toolkit's own read-only tool
-  grants) as GHCP001 — "for evaluation purposes only and is subject to change or removal". A contract
-  guarantee and an operational simplification both rest on an API the vendor reserves the right to
-  withdraw; the `#pragma warning disable GHCP001` blocks around each are narrow so a withdrawal breaks
-  the build loudly, as a compile error, rather than the bound silently evaporating. The falsifier: the
-  SDK withdraws the `ModelCapabilitiesOverride` or `PermissionHandler` types.
 
 ## The Architecture Tree
 

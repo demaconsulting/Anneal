@@ -237,6 +237,12 @@ invocations structurally — the figures above were themselves recovered by rege
 had already produced one plausible wrong answer. They are a baseline to re-measure against, not a
 target.
 
+**Two experimental-SDK suppressions back real guarantees** — the Copilot SDK flags both
+`ModelCapabilitiesOverride` (enforces `MaxOutputTokens`) and `PermissionHandler`/`OnPermissionRequest`
+(auto-approves the Toolkit's own read-only tool grants) as GHCP001, "for evaluation purposes only and
+subject to change or removal." The `#pragma warning disable GHCP001` blocks around each are narrow, so a
+withdrawal breaks the build as a compile error rather than the bound silently evaporating.
+
 ## Details
 
 - [Runtime](./toolkit/runtime.md) — the shared execution every operation is built from: category and

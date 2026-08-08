@@ -81,3 +81,11 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   be fixed once: a vendor retiring a name breaks that repository's Toolkit invocations with nothing in
   the process noticing or repairing it, independently of whether Anneal's own compiled defaults (the
   entry above) have been addressed.
+- **A prose claim about current behavior is not checked by either verification path** — the split in
+  [overview.md](docs/architecture/overview.md) covers structural properties of files (checked by
+  script) and behavioral properties of agents (established by inspection or a sandbox run), but a
+  sentence describing what another file currently does — a routing table row, a diagram edge — falls
+  in neither: no script parses it against the behavior it names, and inspection only catches it if the
+  change under review happens to touch that sentence. Found twice in one session (a routing table and
+  a diagram both went stale when `dispatch` was rewritten at S11, undetected by `scope-check` at the
+  time) before a later, unrelated review caught both by hand.
