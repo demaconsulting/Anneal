@@ -69,8 +69,7 @@ Routing once classified:
 | Mode / Scope | Route |
 | --- | --- |
 | Intake | `dispatch` appends to `BACKLOG.md` or README assumptions, or proposes a constraint; no other agent runs |
-| Change, Small Fix | `apply` |
-| Change, Contract Change or Structural Change | `architecture-update` → `apply` → `scope-check` |
+| Change | `dispatch` runs the compiled `route` action, which classifies scope and authors and verifies the work |
 | Maintenance | `apply`, within a declared bound |
 | Migration | `architecture-design` → approved `MIGRATION.md` → staged `apply` work |
 

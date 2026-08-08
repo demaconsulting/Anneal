@@ -120,16 +120,14 @@ flowchart TD
     User --> ArchDesign
     Helper --> Dispatch
     Helper --> TemplateSync
-    Dispatch --> ArchUpdate
     Dispatch --> Apply
-    Dispatch --> ScopeCheck
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
     Tree ==> ArchUpdate
     Tree ==> Apply
 
-    linkStyle 7 stroke-dasharray: 3 3
+    linkStyle 5 stroke-dasharray: 3 3
 ```
 
 Three kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
@@ -141,6 +139,10 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   It must not call it, because that agent's method is a live interview and a headless invocation would
   invent the answers.
 
+`architecture-update` and `scope-check` stay in the mechanical zone as directly invocable agents —
+`helper` still calls `scope-check` to verify a finished change, and both apply to Migration-mode work —
+but `dispatch` no longer calls either for Change mode; see Decisions below.
+
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
 instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
 mechanical zone is therefore where the structural contract above earns its place, and the interactive
@@ -149,11 +151,10 @@ zone is where behavioral verification is spent.
 For the span of the migration [MIGRATION.md](../../MIGRATION.md) carries, a third shape coexists with
 these two rather than replacing either: a compiled Router selects one of a small worker catalog
 (`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
-[Toolkit](./toolkit.md) owns. No node in the diagram above changes meaning while that is true — the
-mechanical zone's prose agents keep running exactly as drawn until their compiled replacement is built
-and proven, per the migration's one-way and no-silent-loss invariants — so the compiled catalog is
-recorded in Decisions below rather than added to the diagram itself, which describes the prose payload
-this document's own contract governs.
+[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for every Change-mode request (see Decisions
+below); `architecture-update` and `scope-check` keep their edges to `Tree` above for the jobs the Router
+does not cover — Maintenance, Migration, and any Change-mode invocation run through the prose path
+directly rather than through `dispatch`.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
@@ -255,6 +256,13 @@ agent. Redrawing it as a direct-invocation node was rejected: this diagram's sol
 reserved for sub-agent invocation with a consumed report, and a fourth edge kind for "developer runs
 a compiled command" would document machinery this system does not decide, since Toolkit already owns
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
+
+**`dispatch`'s edges to `architecture-update` and `scope-check` were removed, not redrawn** — at
+Migration stage S11, `dispatch` began calling `route` directly for every Change-mode request instead of
+chaining `architecture-update` → `apply` → `scope-check`; the diagram above reflects that. Both agents
+keep their edges from `Tree`, because `architecture-update` still writes it and `scope-check` still
+reads it for the jobs `route` does not cover: Maintenance, Migration, and any Change-mode invocation run
+through the prose path directly.
 
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or

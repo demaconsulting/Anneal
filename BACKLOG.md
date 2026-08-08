@@ -40,11 +40,11 @@ where `architecture-design` will read them. See the Intake admission test in
   and is the recommended route; a `template-sync` mode that refreshes an uncustomized mapped file
   wholesale would remove the need to know that.
 - **Reconcile the paired root and template files once** — moving to a self-hosted layout made the
-  pairing visible but did not audit it. Ten root files differ from their template counterparts and
-  only `.cspell.yaml` has been examined, where the divergence turned out to be real drift rather than
-  an intended difference. `lint.ps1`, `fix.ps1`, `.markdownlint-cli2.yaml`, `.yamllint.yaml`,
-  `.yamlfix.toml` and `.gitignore` have not been looked at. Classify each as flows-to-template,
-  adopt-from-template, or deliberately divergent, and fix the first two.
+  pairing visible but did not audit it. `.cspell.yaml` and `.markdownlint-cli2.yaml` have been examined;
+  the former's divergence was real drift, the latter's was the template already ahead (`MD013: false`),
+  now adopted. `lint.ps1`, `fix.ps1`, `.yamllint.yaml`, `.yamlfix.toml` and `.gitignore` remain
+  unexamined. Classify each as flows-to-template, adopt-from-template, or deliberately divergent, and fix
+  the first two.
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
@@ -74,10 +74,9 @@ where `architecture-design` will read them. See the Intake admission test in
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
-- **Wire an agent to invoke a Toolkit operation** — no agent prompt calls a Toolkit operation, so
-  every operation the Toolkit ships is reachable only by hand. This is the wiring the Toolkit's
-  absorption of agent work depends on, so until it exists the Toolkit is built but unused by the
-  process it was built for.
+- **Wire an agent to `probe-rule-owner`, `verify-evidence`, or `stats`** — `dispatch` now calls `route`,
+  but these three operations are still reachable only by hand. Each is fully specified and tested; what's
+  missing is an agent prompt that calls it.
 - **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
   list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:

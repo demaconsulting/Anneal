@@ -132,6 +132,11 @@ prompt and document that names the invocation false where it is written, it reac
 going through packaging, so a manifest or packaging fault would first appear at somebody else's install,
 and an override introduced as temporary outlives the condition that produced it.
 
+**The build downloads the Copilot CLI at build time** — the Copilot SDK (`GitHub.Copilot.SDK`) fetches
+an npm tarball into `obj/` (`src/DemaConsulting.Anneal.Toolkit/obj/{Debug,Release}/net10.0/copilot-cli/`),
+so `.markdownlint-cli2.yaml` and `.yamllint.yaml` exclude `**/bin/**` and `**/obj/**`. Build-time only —
+no runtime dependency, no effect on deterministic operations.
+
 **Operations are listed individually in the contract** — the alternative was contracting the shape of
 an operation once and leaving the set open. That was rejected because the set is what consumers
 depend on: an agent that invokes an action by name is relying on that name. Listing them costs a
