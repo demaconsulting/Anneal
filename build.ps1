@@ -30,26 +30,6 @@ Write-Host "Building..."
 dotnet build --no-restore --configuration Release
 if ($LASTEXITCODE -ne 0) { $buildError = $true }
 
-Write-Host "Running tests..."
-if (Test-Path "artifacts/tests") { Remove-Item "artifacts/tests" -Recurse -Force }
-dotnet test --no-build --configuration Release --logger trx --results-directory artifacts/tests
-if ($LASTEXITCODE -ne 0) { $buildError = $true }
-
-# [PROJECT-SPECIFIC] Anneal's PowerShell suites.
-# Most of what Anneal ships is prose and scripts rather than compiled code, so
-# two of its three contracts are verified by suites written in PowerShell. They
-# run here rather than anywhere else because "all tests" is what this script
-# promises, and because both write their results into artifacts/tests alongside
-# the TRX files - which is cleared above, so they must run after that point and
-# not before.
-#
-# test-check-contracts.ps1 is the exception: it now drives the check as the
-# "dotnet anneal check-contracts" operation, so it runs after the Toolkit tool is
-# refreshed below rather than here.
-Write-Host "Running the PowerShell suites..."
-pwsh -NoProfile -File ./test-process-contract.ps1
-if ($LASTEXITCODE -ne 0) { $buildError = $true }
-
 # [PROJECT-SPECIFIC] Make the Toolkit invocable as "dotnet anneal".
 # The Toolkit is acquired here the same way a downstream repository acquires it:
 # packed, then restored through the tool manifest. A packaging or manifest fault
@@ -179,13 +159,27 @@ else
 
 }
 
-# [PROJECT-SPECIFIC] The contract-check suite, driven against the Toolkit.
-# test-check-contracts.ps1 exercises the CONTRACT-CHECK-* fixtures against the
-# "dotnet anneal check-contracts" operation, so it can only run once the tool is
-# installed - which the refresh above has just done. Like the other suites it
-# writes its tally into artifacts/tests, which was cleared earlier in this script.
-Write-Host "Running the contract-check suite..."
-pwsh -NoProfile -File ./test-check-contracts.ps1
+Write-Host "Running tests..."
+if (Test-Path "artifacts/tests") { Remove-Item "artifacts/tests" -Recurse -Force }
+dotnet test --no-build --configuration Release --logger trx --results-directory artifacts/tests
+if ($LASTEXITCODE -ne 0) { $buildError = $true }
+
+# [PROJECT-SPECIFIC] Anneal's PowerShell suite.
+# Most of what Anneal ships is prose and scripts rather than compiled code, so
+# one of its three contracts is verified by a suite written in PowerShell. It
+# runs here rather than anywhere else because "all tests" is what this script
+# promises, and because it writes its results into artifacts/tests alongside
+# the TRX files - which is cleared above, so it must run after that point and
+# not before.
+#
+# The ContractCheck contract no longer needs a separate step here:
+# CheckContractsSubprocessTests spawns "dotnet anneal check-contracts" as a real
+# subprocess against throw-away fixtures the same way test-check-contracts.ps1
+# used to, but it is compiled into the ordinary test project and runs inside
+# "dotnet test" above - which is why the Toolkit tool refresh now happens
+# before that step instead of after it.
+Write-Host "Running the PowerShell suite..."
+pwsh -NoProfile -File ./test-process-contract.ps1
 if ($LASTEXITCODE -ne 0) { $buildError = $true }
 
 exit ($buildError ? 1 : 0)

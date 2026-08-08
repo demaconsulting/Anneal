@@ -109,9 +109,11 @@ if (-not $skipNpm) {
 # It is checked against two profiles at once, because Anneal holds two kinds of
 # test and no single set of parameters describes both: the Toolkit's clauses are
 # verified by C# boundary tests under a Contract/ folder recorded in TRX, while
-# the ContractCheck and Process clauses are verified by named cases in flat
-# root-level PowerShell suites, declared by a quoted name rather than an
-# attribute-marked method, recorded as the text tally those suites write.
+# the Process clauses are verified by named cases in a flat root-level
+# PowerShell suite, declared by a quoted name rather than an attribute-marked
+# method, recorded as the text tally that suite writes. The ContractCheck
+# clauses moved into the C# profile: their verifier, CheckContractsSubprocessTests,
+# is a compiled boundary test recorded in TRX like any other.
 # -ContractTestFolder alone would have to be both 'Contract' and empty. Every one
 # of those differences is a profile field.
 #
@@ -126,7 +128,7 @@ if (-not $skipNpm) {
 # field comma-separated, which the operation splits itself.
 Write-Host "Linting: system contracts..."
 $csharpProfile = "TestRoots=test;TestFilePatterns=*.cs;ContractTestFolder=Contract;TestResults=artifacts/tests/*.trx;TestResultFormat=trx"
-$scriptProfile = 'TestRoots=.;TestFilePatterns=test-check-contracts.ps1,test-process-contract.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=artifacts/tests/*.txt;TestResultFormat=text'
+$scriptProfile = 'TestRoots=.;TestFilePatterns=test-process-contract.ps1;TestDeclarationPattern=^\s*Test-Case\s+-Name\s+"(?<name>[^"]+)";ContractTestFolder=;TestResults=artifacts/tests/*.txt;TestResultFormat=text'
 
 dotnet anneal check-contracts -TestProfiles $csharpProfile -TestProfiles $scriptProfile
 if ($LASTEXITCODE -ne 0) { $lintError = $true }

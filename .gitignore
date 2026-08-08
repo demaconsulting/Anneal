@@ -10,7 +10,7 @@ obj/
 .vs/
 *.slnx.user
 
-# Test results written by test-check-contracts.ps1 and read by the contract check
+# Test results written by the contract-check fixture tests and read by the contract check
 artifacts/
 
 # Generated build outputs, including compiled documents (never committed)

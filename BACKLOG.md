@@ -52,7 +52,9 @@ where `architecture-design` will read them. See the Intake admission test in
   carries real logic: a payload table that renames `AGENTS.pristine.md` on the way in, collision
   detection before any write, `-Prune` with the retired-payload list, and a claim that the installed
   layout matches this repository's own. All of that is currently verified by hand. Model it on
-  `test-check-contracts.ps1`, which exists for the same reason.
+  `CheckContractsSubprocessTests` (`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`), which
+  exists for the same reason: a compiled suite that builds throw-away fixtures and spawns the real
+  entry point as a subprocess.
 - **Decide whether a narrow class of trivial edits may run inline in `dispatch`** — Step 3 is now
   unconditional: `dispatch` always calls `apply` and never edits directly. That is the safe default,
   because `dispatch` cannot know *in advance* that a sub-agent would add nothing — `apply` selects

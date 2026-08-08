@@ -236,8 +236,10 @@ maintained using its own agents.
   deterministic checks with model-backed judgement
 - **`.anneal/`** — repository-local runtime configuration the Toolkit resolves: role-to-model
   mapping, and the arguments a self-hosted run's contract check is invoked with
-- **`test-check-contracts.ps1`**, **`test-process-contract.ps1`** — fixture suites holding
-  `dotnet anneal check-contracts` and the payload itself to their documented behavior
+- **`test-process-contract.ps1`** — a fixture suite holding the payload itself to its documented
+  behavior; `dotnet anneal check-contracts` is held to its own contract by
+  `CheckContractsSubprocessTests` under `test/`, a compiled C# suite that spawns the tool as a
+  real subprocess
 - **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
   every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
   into a bounded behavioral summary

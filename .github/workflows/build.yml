@@ -2,8 +2,10 @@
 # Continuous integration for the Anneal payload itself.
 #
 # Most of what Anneal ships is prose and scripts, plus one mechanically enforced
-# check - "dotnet anneal check-contracts" - and test-check-contracts.ps1 is what
-# proves that check still fails in every way its skill file documents.
+# check - "dotnet anneal check-contracts" - and CheckContractsSubprocessTests
+# (test/DemaConsulting.Anneal.Toolkit.Tests/Contract/CheckContractsSubprocessTests.cs)
+# is what proves that check still fails in every way its skill file documents,
+# by spawning the real, installed tool against throw-away fixture repositories.
 # Since the Toolkit landed there is also a .NET solution to build, so this
 # repository now runs build.ps1 like any product repository does.
 name: Build

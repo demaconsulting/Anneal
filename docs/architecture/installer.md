@@ -83,8 +83,10 @@ skipping it leaves a superseded file installed and selectable, which is worse th
 rename at all.
 
 The system has no fixture suite, and that is its most significant gap. Every promise above is currently
-verified by hand, on the entry point every adopter runs first. `test-check-contracts.ps1` is the model to
-copy, and the work is recorded in [BACKLOG.md](../../BACKLOG.md).
+verified by hand, on the entry point every adopter runs first. `CheckContractsSubprocessTests`
+(`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`) is the model to copy — a compiled suite that
+builds throw-away fixtures and spawns the real entry point as a subprocess — and the work is recorded
+in [BACKLOG.md](../../BACKLOG.md).
 
 ## Decisions
 
