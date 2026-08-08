@@ -20,10 +20,18 @@ internal abstract record RouterOutcome
     {
     }
 
-    /// <summary>A selected worker completed the work.</summary>
-    /// <param name="Summary">What was changed.</param>
+    /// <summary>A selected worker completed the work, or every phase of a decomposed Massive item did.</summary>
+    /// <param name="Summary">What was changed. On a decomposed run, the aggregated files and summaries of every phase.</param>
     /// <param name="Effort">The classified Effort — Small, Medium, Large, or Massive — the route oracle reached alongside selecting this worker.</param>
-    internal sealed record Completed(ChangeSetSummary Summary, Effort Effort) : RouterOutcome;
+    /// <param name="PhaseOutcomes">
+    ///     Each decomposed phase's own outcome, in the order the phases were routed, when this item was Massive and
+    ///     was decomposed. Never null; empty when this item was not decomposed.
+    /// </param>
+    internal sealed record Completed(ChangeSetSummary Summary, Effort Effort, IReadOnlyList<PhaseOutcome>? PhaseOutcomes = null) : RouterOutcome
+    {
+        /// <summary>Each decomposed phase's own outcome. Never null; empty when this item was not decomposed.</summary>
+        public IReadOnlyList<PhaseOutcome> PhaseOutcomes { get; init; } = PhaseOutcomes ?? [];
+    }
 
     /// <summary>The run could not route or complete the work; see the failure report for why.</summary>
     /// <param name="FailureReport">What was tried, what was learned, and a recommended next step.</param>
@@ -54,14 +62,21 @@ internal abstract record RouterOutcome
 /// </remarks>
 internal sealed class Router
 {
+    /// <summary>The most decompositions any single Massive item may recurse through before it must escalate instead — the depth cap of two <c>change-classification.md</c> § Massive Effort Must Be Decomposed sets.</summary>
+    private const int MaxDecompositionDepth = 2;
+
     private readonly string _repositoryRoot;
     private readonly string _routeCharter;
     private readonly string _researchCharter;
+    private readonly string _decompositionCharter;
+    private readonly string _cumulativeCheckCharter;
     private readonly IReadOnlyList<WorkerCatalogEntry> _catalog;
     private readonly RecordStore _recordStore;
     private readonly int _maxResearchIterations;
     private readonly int _maxWorkerReroutes;
     private readonly Oracle<RouteDecisionEnvelope> _routeOracle;
+    private readonly Oracle<PhaseDecompositionEnvelope> _decompositionOracle;
+    private readonly Oracle<CumulativeCheckEnvelope> _cumulativeCheckOracle;
     private readonly Research _research;
 
     /// <summary>
@@ -76,6 +91,14 @@ internal sealed class Router
     ///     a correct answer. Must not be null.
     /// </param>
     /// <param name="researchCharter">The system message a bounded research pass carries. Must not be null.</param>
+    /// <param name="decompositionCharter">
+    ///     The system message a decomposition pass carries when a Massive item must be split into phases before
+    ///     any of them is routed. Must not be null.
+    /// </param>
+    /// <param name="cumulativeCheckCharter">
+    ///     The system message the mandatory cumulative-check pass carries, asked once over a whole proposed phase
+    ///     set before any phase is routed. Must not be null.
+    /// </param>
     /// <param name="catalog">
     ///     The worker catalog this router selects from. Must not be null or empty; for this pass, exactly one
     ///     entry — Small Fix.
@@ -97,8 +120,9 @@ internal sealed class Router
     ///     Thrown when <paramref name="repositoryRoot" /> is null, empty or blank, or when <paramref name="catalog" /> is empty.
     /// </exception>
     /// <exception cref="ArgumentNullException">
-    ///     Thrown when <paramref name="routeCharter" />, <paramref name="researchCharter" />, <paramref name="catalog" />,
-    ///     or <paramref name="recordStore" /> is null.
+    ///     Thrown when <paramref name="routeCharter" />, <paramref name="researchCharter" />,
+    ///     <paramref name="decompositionCharter" />, <paramref name="cumulativeCheckCharter" />,
+    ///     <paramref name="catalog" />, or <paramref name="recordStore" /> is null.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     ///     Thrown when <paramref name="maxResearchIterations" /> or <paramref name="maxWorkerReroutes" /> is negative.
@@ -107,6 +131,8 @@ internal sealed class Router
         string repositoryRoot,
         string routeCharter,
         string researchCharter,
+        string decompositionCharter,
+        string cumulativeCheckCharter,
         IReadOnlyList<WorkerCatalogEntry> catalog,
         RecordStore recordStore,
         int maxResearchIterations = 3,
@@ -116,6 +142,8 @@ internal sealed class Router
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(routeCharter);
         ArgumentNullException.ThrowIfNull(researchCharter);
+        ArgumentNullException.ThrowIfNull(decompositionCharter);
+        ArgumentNullException.ThrowIfNull(cumulativeCheckCharter);
         ArgumentNullException.ThrowIfNull(catalog);
         if (catalog.Count == 0)
             throw new ArgumentException("A router needs at least one worker in its catalog.", nameof(catalog));
@@ -126,11 +154,17 @@ internal sealed class Router
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _routeCharter = routeCharter;
         _researchCharter = researchCharter;
+        _decompositionCharter = decompositionCharter;
+        _cumulativeCheckCharter = cumulativeCheckCharter;
         _catalog = catalog;
         _recordStore = recordStore;
         _maxResearchIterations = maxResearchIterations;
         _maxWorkerReroutes = maxWorkerReroutes;
         _routeOracle = new Oracle<RouteDecisionEnvelope>(_repositoryRoot, routeCharter, endpointFor: endpointFor);
+        _decompositionOracle =
+            new Oracle<PhaseDecompositionEnvelope>(_repositoryRoot, decompositionCharter, endpointFor: endpointFor);
+        _cumulativeCheckOracle =
+            new Oracle<CumulativeCheckEnvelope>(_repositoryRoot, cumulativeCheckCharter, endpointFor: endpointFor);
         _research = new Research(_repositoryRoot, researchCharter, endpointFor: endpointFor);
     }
 
@@ -140,19 +174,28 @@ internal sealed class Router
     /// <param name="workItem">The work item to route. Must not be null or blank.</param>
     /// <param name="changedFileHints">Changed-file hints to fold into the gathered repository facts, or null.</param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
+    /// <param name="depth">
+    ///     How many decompositions already produced this call's own work item: 0 for a top-level call, threaded one
+    ///     deeper on every recursive re-route of a decomposed <see cref="Phase" /> rather than remembered as state
+    ///     the router itself tracks — see <c>docs/architecture/toolkit/route.md</c> § Decisions ("The depth cap of
+    ///     two is carried the same way the existing budgets already are — as a bound threaded on the call"). At
+    ///     <c>2</c>, a Massive classification escalates instead of decomposing further.
+    /// </param>
     /// <returns>
     ///     <see cref="OperationOutcome.Succeeded" /> with the completed change when a selected worker finished the
-    ///     work; <see cref="OperationOutcome.Failed" /> with a <see cref="RouteFailureReport" /> when no route
-    ///     exists, a budget was exhausted, or a worker itself failed, and no human-only next step was named;
+    ///     work, or when every phase of a decomposed Massive item completed; <see cref="OperationOutcome.Failed" />
+    ///     with a <see cref="RouteFailureReport" /> when no route exists, a budget was exhausted, a worker itself
+    ///     failed, or a decomposed phase did not complete, and no human-only next step was named;
     ///     <see cref="OperationOutcome.Escalated" /> with a <see cref="RouteFailureReport" /> when the route oracle
-    ///     named a specific step only a person can take. In both failure cases,
-    ///     <see cref="RouteFailureReport.ChangeBeforeStopping" /> is non-null when the selected worker wrote files
-    ///     to disk before its interrupted outcome.
+    ///     named a specific step only a person can take, when a phase's declared file scope touches a protected
+    ///     path, when the cumulative check finds the phase set's union crosses a hidden boundary, or when the
+    ///     depth cap was reached. In both failure cases, <see cref="RouteFailureReport.ChangeBeforeStopping" /> is
+    ///     non-null when the selected worker wrote files to disk before its interrupted outcome.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="workItem" /> is null, empty or blank.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
     public async Task<StepResult<RouterOutcome>> RunAsync(
-        string workItem, IReadOnlyList<string>? changedFileHints, CancellationToken cancellationToken)
+        string workItem, IReadOnlyList<string>? changedFileHints, CancellationToken cancellationToken, int depth = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workItem);
 
@@ -239,6 +282,13 @@ internal sealed class Router
                     ledger.ClassificationHypothesis = selectWorker.Why;
                     ledger.EffortHypothesis = selectWorker.Effort;
 
+                    // TOOLKIT-26: a Massive item is never handed to a worker directly - it is decomposed into
+                    // phases and re-routed through this same method, one depth deeper, rather than run here.
+                    if (selectWorker.Effort == Effort.Massive)
+                        return await DecomposeAsync(
+                                ledger, parentInvocationId, depth, researchBudget, rerouteBudget, cancellationToken)
+                            .ConfigureAwait(false);
+
                     if (!TryFindWorker(selectWorker.WorkerKey, out var entry))
                         return Fail(
                             ledger,
@@ -287,6 +337,175 @@ internal sealed class Router
                     throw new ArgumentOutOfRangeException(nameof(decision), decision, "Unknown route decision.");
             }
         }
+    }
+
+    /// <summary>
+    ///     Decomposes a Massive item into phases and re-routes each one through this same method, one depth
+    ///     deeper - see <c>docs/architecture/toolkit/route.md</c> §§ TOOLKIT-26 through TOOLKIT-28.
+    /// </summary>
+    /// <remarks>
+    ///     Order matters here and follows the contract's own order: the depth cap is checked before anything else
+    ///     is spent, the mechanical strict-subset containment check and the deterministic tripwire both run before
+    ///     the cumulative-check oracle is asked at all, and the phase set is only ever routed once every one of
+    ///     those has cleared - never decomposed to dodge the mandatory cumulative check, per
+    ///     <c>change-classification.md</c> § Discipline.
+    /// </remarks>
+    private async Task<StepResult<RouterOutcome>> DecomposeAsync(
+        RoutingLedger ledger,
+        string parentInvocationId,
+        int depth,
+        int researchBudget,
+        int rerouteBudget,
+        CancellationToken cancellationToken)
+    {
+        // TOOLKIT-28: a phase produced by a second decomposition may not decompose again - reaching depth 2
+        // means this item is itself the result of two prior decompositions, so it escalates instead.
+        if (depth >= MaxDecompositionDepth)
+            return Fail(
+                ledger,
+                "this Massive item was reached by decomposing a Massive item's own phase a second time; the depth cap of two forbids decomposing it further",
+                "a person must split this work item manually - the automatic decomposition depth cap of two was reached");
+
+        var decompositionResult = await _decompositionOracle
+            .AskAsync(
+                "Decompose this Massive work item into phases, each a strict subset of the file scope already cleared for it.",
+                BuildOracleContext(ledger), cancellationToken)
+            .ConfigureAwait(false);
+
+        RecordStep(parentInvocationId, "Decomposition", decompositionResult.Outcome, researchBudget, rerouteBudget);
+
+        if (decompositionResult.Outcome != OperationOutcome.Succeeded)
+            return Fail(ledger, "the decomposition pass could not be completed for this Massive item");
+
+        var envelope = decompositionResult.Finding!;
+        if (envelope.Kind == PhaseDecompositionKind.CannotDecompose)
+            return Fail(ledger, envelope.Why);
+
+        if (envelope.PhaseWorkItems.Count == 0 ||
+            envelope.PhaseWorkItems.Count != envelope.PhaseFileScopes.Count ||
+            envelope.PhaseWorkItems.Count != envelope.PhaseEditCategories.Count)
+            return Fail(
+                ledger,
+                "the decomposition pass returned a malformed phase set (empty, or its phase arrays disagree in length)");
+
+        List<Phase> phases = [];
+        for (var i = 0; i < envelope.PhaseWorkItems.Count; i++)
+        {
+            if (!Enum.TryParse<EditCategory>(envelope.PhaseEditCategories[i], ignoreCase: true, out var category))
+                return Fail(
+                    ledger,
+                    $"the decomposition pass named an unknown edit category '{envelope.PhaseEditCategories[i]}' for phase '{envelope.PhaseWorkItems[i]}'");
+
+            IReadOnlyList<string> scope =
+                [.. envelope.PhaseFileScopes[i].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
+            phases.Add(new Phase(envelope.PhaseWorkItems[i], scope, category, depth));
+        }
+
+        // TOOLKIT-26: every generated phase's declared file scope is a strict subset of the file scope the
+        // original item's own classification already cleared - a mechanical containment check, no oracle
+        // needed. When the original item cleared no explicit file scope of its own (no changed-file hints were
+        // given), there is nothing declared to be a strict subset of, so this check is vacuously satisfied -
+        // a judgement call, see route.md apply report.
+        var clearedScope = ledger.Facts.ChangedFileHints;
+        if (clearedScope.Count > 0)
+        {
+            foreach (var phase in phases)
+            {
+                var isStrictSubset = phase.FileScope.Count > 0 &&
+                                      phase.FileScope.Count < clearedScope.Count &&
+                                      phase.FileScope.All(entry => clearedScope.Contains(entry, StringComparer.OrdinalIgnoreCase));
+
+                if (!isStrictSubset)
+                    return Fail(
+                        ledger,
+                        $"phase '{phase.WorkItem}' declares a file scope that is not a strict subset of the file scope already cleared for this item");
+            }
+        }
+
+        // TOOLKIT-27: any phase touching a protected path forces escalation unconditionally, regardless of
+        // what the cumulative check below concludes - checked, and acted on, before that oracle is even asked.
+        foreach (var phase in phases)
+        {
+            var trippedPath = ProtectedPathTripwire.FindTrippedPath(phase.FileScope);
+            if (trippedPath is not null)
+                return Fail(
+                    ledger,
+                    $"phase '{phase.WorkItem}' declares a file scope touching the protected path '{trippedPath}'",
+                    $"a person must review phase '{phase.WorkItem}': its declared file scope touches '{trippedPath}', which no decomposition may touch automatically");
+        }
+
+        // TOOLKIT-26: the whole proposed phase set is cleared by a mandatory cumulative check before any
+        // phase is routed.
+        var cumulativeResult = await _cumulativeCheckOracle
+            .AskAsync(
+                "Does this whole proposed phase set's union cross a boundary no single phase crosses alone?",
+                BuildPhaseSetContext(ledger, phases), cancellationToken)
+            .ConfigureAwait(false);
+
+        RecordStep(parentInvocationId, "CumulativeCheck", cumulativeResult.Outcome, researchBudget, rerouteBudget);
+
+        if (cumulativeResult.Outcome != OperationOutcome.Succeeded)
+            return Fail(ledger, "the mandatory cumulative check could not be completed for this phase set");
+
+        var cumulativeEnvelope = cumulativeResult.Finding!;
+        if (cumulativeEnvelope.Kind == CumulativeCheckKind.Escalate)
+            return Fail(
+                ledger,
+                $"the cumulative check found this phase set's union crosses a boundary no single phase crosses alone: {cumulativeEnvelope.Why}",
+                string.IsNullOrWhiteSpace(cumulativeEnvelope.HumanOnlyNextStep)
+                    ? "a person should re-evaluate this decomposition; the cumulative check found a hidden boundary crossing across the phase set"
+                    : cumulativeEnvelope.HumanOnlyNextStep);
+
+        // Cleared: re-route each phase through this same method, one depth deeper, and aggregate the
+        // per-phase outcomes into one overall outcome for the original Massive item - successful only if
+        // every phase completes.
+        List<PhaseOutcome> phaseOutcomes = [];
+        List<string> aggregatedFiles = [];
+        List<string> aggregatedSummaries = [];
+
+        foreach (var phase in phases)
+        {
+            var phaseResult = await RunAsync(phase.WorkItem, phase.FileScope, cancellationToken, depth + 1)
+                .ConfigureAwait(false);
+
+            switch (phaseResult.Finding)
+            {
+                case RouterOutcome.Completed phaseCompleted when phaseResult.Outcome == OperationOutcome.Succeeded:
+                    phaseOutcomes.Add(
+                        new PhaseOutcome(phase.WorkItem, phaseResult.Outcome.ToString(), phaseCompleted.Summary.Summary));
+                    aggregatedFiles.AddRange(phaseCompleted.Summary.FilesChanged);
+                    aggregatedSummaries.Add($"{phase.WorkItem}: {phaseCompleted.Summary.Summary}");
+                    continue;
+
+                case RouterOutcome.Report phaseReport:
+                    phaseOutcomes.Add(
+                        new PhaseOutcome(
+                            phase.WorkItem, phaseResult.Outcome.ToString(), phaseReport.FailureReport.RecommendedNextStep));
+
+                    return new StepResult<RouterOutcome>(
+                        phaseResult.Outcome,
+                        new RouterOutcome.Report(
+                            phaseReport.FailureReport with
+                            {
+                                WhatWasLearned =
+                                    $"phase '{phase.WorkItem}' did not complete: {phaseReport.FailureReport.WhatWasLearned}",
+                                PhaseOutcomes = phaseOutcomes
+                            }),
+                        []);
+
+                default:
+                    return Fail(ledger, $"phase '{phase.WorkItem}' reached an unexpected outcome");
+            }
+        }
+
+        return new StepResult<RouterOutcome>(
+            OperationOutcome.Succeeded,
+            new RouterOutcome.Completed(
+                new ChangeSetSummary(aggregatedFiles, string.Join(" ", aggregatedSummaries)),
+                Effort.Massive,
+                phaseOutcomes),
+            []);
     }
 
     private void RecordStep(
@@ -340,6 +559,23 @@ internal sealed class Router
         context.AddRange(
             ledger.WorkerReroutes.Select(
                 reroute => $"Reroute from '{reroute.WorkerKey}': {reroute.Why}"));
+
+        return context;
+    }
+
+    private static IReadOnlyList<string> BuildPhaseSetContext(RoutingLedger ledger, IReadOnlyList<Phase> phases)
+    {
+        List<string> context =
+        [
+            $"Original Massive work item: {ledger.OriginalWorkItem}",
+            $"Original cleared file scope: {(ledger.Facts.ChangedFileHints.Count == 0 ? "none declared" : string.Join(", ", ledger.Facts.ChangedFileHints))}",
+            $"Proposed phase count: {phases.Count}"
+        ];
+
+        context.AddRange(
+            phases.Select(
+                (phase, index) =>
+                    $"Phase {index + 1}: {phase.WorkItem} — scope: {string.Join(", ", phase.FileScope)} — category: {phase.EditCategory}"));
 
         return context;
     }

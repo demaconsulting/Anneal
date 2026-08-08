@@ -490,6 +490,8 @@ public class RouterTests
                 root,
                 "route charter",
                 "research charter",
+                "decomposition charter",
+                "cumulative check charter",
                 [smallFix, contractChange],
                 recordStore,
                 maxResearchIterations: 3,
@@ -626,6 +628,159 @@ public class RouterTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_MassiveDecomposesToEmptyPhaseSet_FailsClosed()
+    {
+        // Arrange: the decomposition oracle returns an empty phase set - a malformed answer that must not be
+        // treated as "nothing to do", but as a failure to decompose at all.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                DecomposedJson([], [], []));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding),
+                () => Assert.Contains(
+                    "malformed phase set", ((RouterOutcome.Report)result.Finding!).FailureReport.RecommendedNextStep));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MassiveDecomposesToSinglePhase_RoutesAndCompletesThatOnePhase()
+    {
+        // Arrange: a single-phase decomposition is the smallest non-trivial case - it still clears the
+        // cumulative check and is still routed recursively, at depth 1.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                DecomposedJson(["do the one part"], ["a.cs"], ["Code"]),
+                ClearJson("no boundary crossed"),
+                SelectWorkerJson("small-fix", "this is the one phase"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            var runnerCalls = 0;
+            WorkerRunner runner = (_, _) =>
+            {
+                runnerCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "did the one part")),
+                    null,
+                    []));
+            };
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
+                () => Assert.Equal(1, runnerCalls),
+                () => Assert.Single(((RouterOutcome.Completed)result.Finding!).PhaseOutcomes));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MassiveCumulativeCheckEscalatesAlone_NoPhaseIsEverRouted()
+    {
+        // Arrange: the cumulative check alone (with no protected path involved) is what stops the run - proving
+        // it gates routing even when every individual phase would otherwise look clean.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                DecomposedJson(["do part A", "do part B"], ["a.cs", "b.cs"], ["Code", "Code"]),
+                EscalateJson("the union quietly moves a system boundary", "a person should review this decomposition"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no phase should ever be routed");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Report>(result.Finding),
+                () => Assert.Contains(
+                    "a person should review this decomposition",
+                    ((RouterOutcome.Report)result.Finding!).FailureReport.RecommendedNextStep));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MassiveTripwireCatchesOnePhaseAmongSeveralClean_EscalatesWithoutAskingCumulativeCheck()
+    {
+        // Arrange: three phases, only the middle one touches a protected path - the tripwire must catch it
+        // and escalate without ever asking the cumulative check, even though the other two phases are clean.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                DecomposedJson(
+                    ["do part A", "update the constraints", "do part C"],
+                    ["a.cs", "CONSTRAINTS.md", "c.cs"],
+                    ["Code", "Documentation", "Code"]));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no phase should ever be routed");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert: only the two queued replies above were consumed (proven implicitly - a third read from
+            // an empty QueuedEndpoint would throw), and the escalation names the protected path and the phase
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
+                () => Assert.Contains("CONSTRAINTS.md", report.RecommendedNextStep),
+                () => Assert.Contains("update the constraints", report.RecommendedNextStep));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static Router BuildRouter(
         string root,
         RecordStore recordStore,
@@ -641,6 +796,8 @@ public class RouterTests
             root,
             "route charter",
             "research charter",
+            "decomposition charter",
+            "cumulative check charter",
             [entry],
             recordStore,
             maxResearchIterations,
@@ -661,6 +818,22 @@ public class RouterTests
     private static string NoRouteJson(string why, string humanOnlyNextStep, string effort = "Small") =>
         $$"""
           {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","effort":"{{effort}}","hasSufficientEvidence":true}
+          """;
+
+    private static string DecomposedJson(
+        IReadOnlyList<string> workItems, IReadOnlyList<string> fileScopes, IReadOnlyList<string> editCategories) =>
+        $$"""
+          {"kind":"Decomposed","why":"split into narrower phases","phaseWorkItems":[{{string.Join(",", workItems.Select(item => $"\"{item}\""))}}],"phaseFileScopes":[{{string.Join(",", fileScopes.Select(scope => $"\"{scope}\""))}}],"phaseEditCategories":[{{string.Join(",", editCategories.Select(category => $"\"{category}\""))}}],"hasSufficientEvidence":true}
+          """;
+
+    private static string ClearJson(string why) =>
+        $$"""
+          {"kind":"Clear","why":"{{why}}","humanOnlyNextStep":"","hasSufficientEvidence":true}
+          """;
+
+    private static string EscalateJson(string why, string humanOnlyNextStep) =>
+        $$"""
+          {"kind":"Escalate","why":"{{why}}","humanOnlyNextStep":"{{humanOnlyNextStep}}","hasSufficientEvidence":true}
           """;
 
     private static string ResearchFindingJson(string question, string answer, bool sufficientForNextDecision) =>

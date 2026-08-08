@@ -32,10 +32,20 @@ internal sealed record RejectedWorker(string WorkerKey, string Why);
 ///     or <see cref="RouteDecision.NoRoute" /> pass classified, or null when the run never reached either case (for
 ///     example, the research budget was exhausted or the oracle could not be asked at all).
 /// </param>
+/// <param name="PhaseOutcomesOrNull">
+///     Each decomposed phase's own outcome, in the order the phases were routed, when this Massive item was
+///     decomposed and at least one phase was routed before the run stopped short of completing every one, or null
+///     when this item was never decomposed. Exposed as the never-null <see cref="PhaseOutcomes" /> property.
+/// </param>
 internal sealed record RouteFailureReport(
     IReadOnlyList<string> WhatWasTried,
     string WhatWasLearned,
     IReadOnlyList<RejectedWorker> RejectedWorkers,
     string RecommendedNextStep,
     Effort? Effort = null,
-    ChangeSetBeforeStopping? ChangeBeforeStopping = null);
+    ChangeSetBeforeStopping? ChangeBeforeStopping = null,
+    IReadOnlyList<PhaseOutcome>? PhaseOutcomesOrNull = null)
+{
+    /// <summary>Each decomposed phase's own outcome. Never null; empty when this item was never decomposed.</summary>
+    public IReadOnlyList<PhaseOutcome> PhaseOutcomes { get; init; } = PhaseOutcomesOrNull ?? [];
+}

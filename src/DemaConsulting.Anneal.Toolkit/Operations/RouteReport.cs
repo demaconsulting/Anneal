@@ -51,6 +51,14 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     either of those (for example, it failed before the route oracle could be asked at all, or the research
 ///     budget was exhausted first).
 /// </param>
+/// <param name="PhaseCount">
+///     How many phases a Massive classification was decomposed into, when this item was decomposed. Zero when it
+///     was not.
+/// </param>
+/// <param name="Phases">
+///     Each decomposed phase's own work item, outcome, and summary, rendered as one line per phase in the order
+///     the phases were routed, when this item was decomposed. Never null; empty when it was not.
+/// </param>
 public sealed record RouteReport(
     IReadOnlyList<string> FilesChanged,
     string Summary,
@@ -60,4 +68,10 @@ public sealed record RouteReport(
     string RecommendedNextStep,
     IReadOnlyList<string> FilesChangedBeforeStopping,
     string SummaryBeforeStopping,
-    string Effort);
+    string Effort,
+    int PhaseCount = 0,
+    IReadOnlyList<string>? Phases = null)
+{
+    /// <summary>Each decomposed phase's own summary line. Never null; empty when this item was not decomposed.</summary>
+    public IReadOnlyList<string> Phases { get; init; } = Phases ?? [];
+}

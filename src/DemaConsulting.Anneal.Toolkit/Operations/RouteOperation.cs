@@ -93,6 +93,44 @@ public sealed class RouteOperation : IOperation
         """;
 
     /// <summary>
+    ///     The system message a decomposition pass carries when a Massive-Effort work item must be split into
+    ///     phases before any of them is routed.
+    /// </summary>
+    private const string DecompositionCharter =
+        """
+        You are decomposing a work item whose Effort was classified Massive - too large to execute as one unit -
+        into a set of narrower phases, each one small enough to route and execute on its own.
+
+        Every phase you propose must declare a file scope that is a strict subset of the file scope already
+        cleared for the original item - never equal to it, never larger. If you cannot honestly propose phases
+        whose file scopes stay within what was already cleared, say so and report that this item cannot be
+        decomposed rather than inventing a wider scope.
+
+        For each phase, name: what it does, in one sentence; the file or path patterns it touches, as a
+        semicolon-separated list; and which edit category it belongs to - "Documentation", "Code", "Tests", or
+        "Config".
+
+        Refusing to decompose honestly is a correct answer when the evidence does not support one.
+        """;
+
+    /// <summary>
+    ///     The system message the mandatory cumulative-check pass carries, asked once over a whole proposed phase
+    ///     set before any phase is routed.
+    /// </summary>
+    private const string CumulativeCheckCharter =
+        """
+        You are running the mandatory cumulative check a Massive-Effort item's proposed phase set must clear
+        before any phase is routed: does the union of every phase's own declared file scope and edit category
+        cross a boundary that no single phase crosses alone? Individually narrow phases that together move a
+        contract, a system boundary, or another higher-scope line are a higher-scope change hiding in the
+        decomposition, and must escalate rather than be allowed to route.
+
+        Answer "Clear" when the union crosses no such boundary, or "Escalate" when it does, naming the specific
+        step only a person can take when you know one. Refusing to conclude on insufficient evidence is a
+        correct answer.
+        """;
+
+    /// <summary>
     ///     The system message a single-shot <see cref="Planner" /> question carries, used only by the Structural
     ///     Change worker.
     /// </summary>
@@ -251,6 +289,8 @@ public sealed class RouteOperation : IOperation
             _repositoryRoot,
             RouteCharter,
             ResearchCharter,
+            DecompositionCharter,
+            CumulativeCheckCharter,
             BuildCatalog(recordStore),
             recordStore,
             endpointFor: _endpointFor);
@@ -323,11 +363,19 @@ public sealed class RouteOperation : IOperation
             output.WriteLine($"  {file}");
         output.WriteLine($"route: effort classified as {completed.Effort}");
 
+        if (completed.PhaseOutcomes.Count > 0)
+        {
+            output.WriteLine($"route: decomposed into {completed.PhaseOutcomes.Count} phase(s):");
+            foreach (var phase in completed.PhaseOutcomes)
+                output.WriteLine($"  {phase.WorkItem}: {phase.Outcome} - {phase.Summary}");
+        }
+
         return new OperationResult(
             OperationOutcome.Succeeded,
             new RouteReport(
                 completed.Summary.FilesChanged, completed.Summary.Summary, [], string.Empty, [], string.Empty, [],
-                string.Empty, completed.Effort.ToString()));
+                string.Empty, completed.Effort.ToString(), completed.PhaseOutcomes.Count,
+                [.. completed.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
     }
 
     private static OperationResult Reported(TextWriter output, OperationOutcome outcome, RouterOutcome.Report report)
@@ -344,6 +392,13 @@ public sealed class RouteOperation : IOperation
 
         if (report.FailureReport.Effort is { } effort)
             output.WriteLine($"route: effort classified as {effort}");
+
+        if (report.FailureReport.PhaseOutcomes.Count > 0)
+        {
+            output.WriteLine($"route: decomposed into {report.FailureReport.PhaseOutcomes.Count} phase(s):");
+            foreach (var phase in report.FailureReport.PhaseOutcomes)
+                output.WriteLine($"  {phase.WorkItem}: {phase.Outcome} - {phase.Summary}");
+        }
 
         var interrupted = report.FailureReport.ChangeBeforeStopping;
         if (interrupted is not null && interrupted.FilesChanged.Count > 0)
@@ -368,6 +423,8 @@ public sealed class RouteOperation : IOperation
                 report.FailureReport.RecommendedNextStep,
                 filesBeforeStopping,
                 summaryBeforeStopping,
-                report.FailureReport.Effort?.ToString() ?? string.Empty));
+                report.FailureReport.Effort?.ToString() ?? string.Empty,
+                report.FailureReport.PhaseOutcomes.Count,
+                [.. report.FailureReport.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
     }
 }

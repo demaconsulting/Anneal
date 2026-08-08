@@ -48,21 +48,21 @@ the report separately from the completion fields.
   does `route` re-route each phase through the same Router. Every generated phase's declared file scope
   is a strict subset of the file scope the original item's own classification already cleared — never
   equal to it or larger.
-  *Verified by:* `TODO.CumulativeCheckClearsBeforeAnyPhaseIsRouted`,
-  `TODO.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
+  *Verified by:* `Toolkit262728DecompositionContractTests.CumulativeCheckClearsBeforeAnyPhaseIsRouted`,
+  `Toolkit262728DecompositionContractTests.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
 
 - **TOOLKIT-27** — Any phase whose declared file scope touches `README.md`, anything under
   `docs/architecture/`, `CONSTRAINTS.md`, or `BACKLOG.md` forces the same escalation outcome `TOOLKIT-23`
   already defines, with a recommended next step naming the file, regardless of what the cumulative check
   `TOOLKIT-26` runs concludes for the phase set as a whole.
-  *Verified by:* `TODO.PhaseTouchingProtectedFileForcesEscalation`
+  *Verified by:* `Toolkit262728DecompositionContractTests.PhaseTouchingProtectedFileForcesEscalation`
 
 - **TOOLKIT-28** — Decomposition recurses through the same Router at most once beyond a Massive item's
   own first decomposition: a phase produced by decomposing a Massive item may itself be decomposed again
   only if it too classifies as Massive, and the phases produced by that second decomposition are never
   decomposed further — routing one of them as Massive again reaches the same escalation outcome
   `TOOLKIT-23` defines, with a recommended next step, instead of decomposing it.
-  *Verified by:* `TODO.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
+  *Verified by:* `Toolkit262728DecompositionContractTests.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
 
 ### Requires
 
