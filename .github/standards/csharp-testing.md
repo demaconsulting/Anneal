@@ -79,6 +79,21 @@ These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 - **`[Collection]` without `[CollectionDefinition]`**: Silently disables parallelism
   without providing any shared fixture - always pair them or remove `[Collection]`
 
+# Live Trial Tests
+
+A live trial is an expensive, real-model, real-boundary interior test: a real temp-folder git
+repository, a real in-process invocation of the compiled tool against it, and a real model-backed
+grading oracle over the outcome - the pattern this repository's own migration built by hand, over and
+over, before `test/DemaConsulting.Anneal.Toolkit.Tests/LiveTrial/LiveTrialFixture.cs` made it reusable.
+
+- Must be gated behind an explicit opt-in environment variable (`ANNEAL_LIVE_TRIALS=1` for this
+  repository's own harness) and skip by default, using xUnit v3's runtime `Assert.SkipUnless` - never
+  a compile-time `[Fact(Skip = ...)]`, which cannot read an environment variable. A plain
+  `dotnet test`, `pwsh ./build.ps1`, or CI run must never make a real model call.
+- Are interior tests: disposable, carry no contract clause, and are never linked by
+  `check-contracts`.
+- See `LiveTrialFixture` for the harness a new live trial builds on rather than re-implementing.
+
 # Quality Checks
 
 - [ ] All tests follow AAA pattern with clear section comments
