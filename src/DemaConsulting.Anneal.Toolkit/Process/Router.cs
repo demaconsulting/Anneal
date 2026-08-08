@@ -368,8 +368,8 @@ internal sealed class Router
 
         var decompositionResult = await _decompositionOracle
             .AskAsync(
-                "Decompose this Massive work item into phases, each a strict subset of the file scope already cleared for it.",
-                BuildOracleContext(ledger), cancellationToken)
+                BuildDecompositionInstruction(ledger),
+                BuildDecompositionContext(ledger), cancellationToken)
             .ConfigureAwait(false);
 
         RecordStep(parentInvocationId, "Decomposition", decompositionResult.Outcome, researchBudget, rerouteBudget);
@@ -548,6 +548,37 @@ internal sealed class Router
             $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             $"Changed-file hints: {(ledger.Facts.ChangedFileHints.Count == 0 ? "none" : string.Join(", ", ledger.Facts.ChangedFileHints))}",
+            $"Requests template sync: {ledger.Facts.RequestsTemplateSync}",
+            $"Keyword implication: {ledger.Facts.Implication}"
+        ];
+
+        context.AddRange(
+            ledger.ResearchHistory.Select(
+                finding => $"Research — {finding.Question}: {finding.Answer} ({finding.Implications})"));
+
+        context.AddRange(
+            ledger.WorkerReroutes.Select(
+                reroute => $"Reroute from '{reroute.WorkerKey}': {reroute.Why}"));
+
+        return context;
+    }
+
+    private static string BuildDecompositionInstruction(RoutingLedger ledger) =>
+        ledger.Facts.ChangedFileHints.Count == 0
+            ? "Decompose this Massive work item into phases. No explicit changed-file scope was declared for the original item, so propose narrow repository-relative phase scopes and do not refuse solely because there is no prior scope to be a strict subset of."
+            : "Decompose this Massive work item into phases, each a strict subset of the authoritative changed-file scope already cleared for it.";
+
+    private static IReadOnlyList<string> BuildDecompositionContext(RoutingLedger ledger)
+    {
+        List<string> context =
+        [
+            $"Work item: {ledger.OriginalWorkItem}",
+            $"README Direction facts: {(ledger.Facts.ReadmeDirectionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.ReadmeDirectionFacts))}",
+            $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
+            $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
+            ledger.Facts.ChangedFileHints.Count == 0
+                ? "Cleared file scope boundary: none was explicitly declared for the original item. You may still decompose it by naming narrow repository-relative phase scopes; the router will not require a strict-subset comparison against a missing boundary."
+                : $"Cleared file scope boundary: treat this exact changed-file-hint list as the authoritative already-cleared scope for the original item, and make every phase's declared file scope a strict subset of it: {string.Join(", ", ledger.Facts.ChangedFileHints)}",
             $"Requests template sync: {ledger.Facts.RequestsTemplateSync}",
             $"Keyword implication: {ledger.Facts.Implication}"
         ];

@@ -629,6 +629,99 @@ public class RouterTests
     }
 
     [Fact]
+    public async Task RunAsync_MassiveWithoutChangedFileHints_TellsDecompositionPassToProceedWithoutPriorBoundary()
+    {
+        // Arrange: a live run found that the decomposition pass refused solely because no changed-file hints
+        // had been declared, even though Router's own no-hints branch treats the mechanical subset check as
+        // vacuously satisfied. The prompt must make that no-hints rule explicit.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                CannotDecomposeJson("still cannot split this honestly"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert
+            var decompositionText = string.Join("\n", oracleEndpoint.Requests[1].Messages.Select(message => message.Text));
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Contains(
+                    "No explicit changed-file scope was declared for the original item",
+                    decompositionText,
+                    StringComparison.Ordinal),
+                () => Assert.Contains(
+                    "do not refuse solely because there is no prior scope to be a strict subset of",
+                    decompositionText,
+                    StringComparison.Ordinal),
+                () => Assert.Contains(
+                    "Cleared file scope boundary: none was explicitly declared for the original item",
+                    decompositionText,
+                    StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MassiveWithChangedFileHints_TellsDecompositionPassHintsAreAuthoritativeBoundary()
+    {
+        // Arrange: a second live run found that merely calling them "changed-file hints" left the decomposition
+        // pass unconvinced they were the already-cleared boundary it had to stay within. The prompt must state
+        // that, for decomposition, this exact list is authoritative.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                CannotDecomposeJson("still cannot split this honestly"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+            var changedFileHints = new[]
+            {
+                "BatchFlow.slnx",
+                "src/BatchFlow.Context",
+                "src/BatchFlow.Gateway"
+            };
+
+            // Act
+            var result = await router.RunAsync("a massive item", changedFileHints, TestContext.Current.CancellationToken);
+
+            // Assert
+            var decompositionText = string.Join("\n", oracleEndpoint.Requests[1].Messages.Select(message => message.Text));
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Contains(
+                    "each a strict subset of the authoritative changed-file scope already cleared for it",
+                    decompositionText,
+                    StringComparison.Ordinal),
+                () => Assert.Contains(
+                    "Cleared file scope boundary: treat this exact changed-file-hint list as the authoritative already-cleared scope for the original item",
+                    decompositionText,
+                    StringComparison.Ordinal),
+                () => Assert.Contains("BatchFlow.slnx, src/BatchFlow.Context, src/BatchFlow.Gateway", decompositionText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_MassiveDecomposesToEmptyPhaseSet_FailsClosed()
     {
         // Arrange: the decomposition oracle returns an empty phase set - a malformed answer that must not be
@@ -818,6 +911,11 @@ public class RouterTests
     private static string NoRouteJson(string why, string humanOnlyNextStep, string effort = "Small") =>
         $$"""
           {"kind":"NoRoute","why":"{{why}}","workerKey":"","question":"","researchScope":"Narrow","humanOnlyNextStep":"{{humanOnlyNextStep}}","effort":"{{effort}}","hasSufficientEvidence":true}
+          """;
+
+    private static string CannotDecomposeJson(string why) =>
+        $$"""
+          {"kind":"CannotDecompose","why":"{{why}}","phaseWorkItems":[],"phaseFileScopes":[],"phaseEditCategories":[],"hasSufficientEvidence":true}
           """;
 
     private static string DecomposedJson(
