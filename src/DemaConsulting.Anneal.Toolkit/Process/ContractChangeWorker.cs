@@ -19,7 +19,8 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 ///     against its own one-shot budget, documentation first when a verdict names both. <see cref="RepairLoop{TState}" />
 ///     itself is not instantiated here: its shape closes over exactly one <c>execute</c> step bounded by one
 ///     counter, and this worker needs its <c>execute</c> step to be chosen dynamically, per pass, from the
-///     <see cref="VerificationVerdict" /> a <see cref="Verifier" /> just reached — a shape the generic primitive
+///     <see cref="VerificationOwner" /> a <see cref="Verifier" />'s <see cref="VerificationConcern" />s just
+///     named — a shape the generic primitive
 ///     does not parametrize. The state machine below reproduces its exact contract by hand instead: a repair is
 ///     spent only from the budget the finding names, an escalation or evidence-insufficient verdict stops
 ///     immediately without spending a budget, and a budget spent with the same repair type still failing reports
@@ -79,11 +80,12 @@ internal sealed class ContractChangeWorker
         """
         Judge whether this change conforms to every contract clause it touches, is honestly scoped as Contract
         Change rather than Structural Change, and leaves docs/architecture/ accurate for what was
-        actually built. Report the verdict 'RerouteRequired', with your reasoning in the required fixes, when
+        actually built. Report the verdict 'RerouteRequired', with your reasoning in the advisory notes, when
         either: (1) the change actually needed a system-boundary move and should have been classified Structural
         Change instead of Contract Change; or (2) your reasoning surfaces a contradiction with a stated
         README Assumption that implies the repository needs a re-cut of its boundaries or Migration-scale work,
-        not a routine contract change.
+        not a routine contract change. Otherwise, report 'RepairRequired' with one concern per fix needed, each
+        owned by Documentation or Code, or 'Passed' when nothing needs fixing.
         """;
 
     private readonly string _repositoryRoot;
@@ -112,15 +114,14 @@ internal sealed class ContractChangeWorker
     ///     The system message the model-backed <see cref="Verifier" /> pass carries. Must not be null.
     /// </param>
     /// <param name="maxDocumentationRepairAttempts">
-    ///     The most documentation-repair attempts spent when a verdict names
-    ///     <see cref="VerificationVerdict.DocumentationRepairRequired" /> or
-    ///     <see cref="VerificationVerdict.BothRepairsRequired" />, independent of
+    ///     The most documentation-repair attempts spent when a verdict's concerns name
+    ///     <see cref="VerificationOwner.Documentation" />, independent of
     ///     <paramref name="maxCodeRepairAttempts" />. Must be zero or greater; defaults to 1, per this worker's
     ///     bound to one documentation repair.
     /// </param>
     /// <param name="maxCodeRepairAttempts">
-    ///     The most code-repair attempts spent when a verdict names <see cref="VerificationVerdict.CodeRepairRequired" />
-    ///     or <see cref="VerificationVerdict.BothRepairsRequired" />, independent of
+    ///     The most code-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Code" />,
+    ///     independent of
     ///     <paramref name="maxDocumentationRepairAttempts" />. Must be zero or greater; defaults to 1, per this
     ///     worker's bound to one code repair.
     /// </param>
@@ -269,7 +270,7 @@ internal sealed class ContractChangeWorker
             if (verified.Outcome == OperationOutcome.Escalated)
                 return new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
-                    new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.RequiredFixes ?? []], null),
+                    new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.AdvisoryNotes ?? []], null),
                     null,
                     []);
 
@@ -281,12 +282,20 @@ internal sealed class ContractChangeWorker
                     verified.Notes);
 
             var verdict = verified.Finding?.Verdict;
-            var fixes = verified.Finding?.RequiredFixes ?? [];
+            var concerns = verified.Finding?.Concerns ?? [];
+            var documentationFixes = concerns
+                .Where(concern => concern.Owner == VerificationOwner.Documentation)
+                .Select(concern => concern.FixText)
+                .ToList();
+            var codeFixes = concerns
+                .Where(concern => concern.Owner == VerificationOwner.Code)
+                .Select(concern => concern.FixText)
+                .ToList();
 
             var needsDocumentationRepair =
-                verdict is VerificationVerdict.DocumentationRepairRequired or VerificationVerdict.BothRepairsRequired;
+                verdict == VerificationVerdict.RepairRequired && documentationFixes.Count > 0;
             var needsCodeRepair =
-                verdict is VerificationVerdict.CodeRepairRequired or VerificationVerdict.BothRepairsRequired;
+                verdict == VerificationVerdict.RepairRequired && codeFixes.Count > 0;
 
             if (needsDocumentationRepair)
             {
@@ -301,7 +310,7 @@ internal sealed class ContractChangeWorker
                 documentationRepairBudget--;
 
                 var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
-                        ComposeRepairInstruction(ComposeDocumentInstruction(brief), fixes),
+                        ComposeRepairInstruction(ComposeDocumentInstruction(brief), documentationFixes),
                         parentInvocationId,
                         "DocumentAuthor:repair",
                         cancellationToken)
@@ -347,7 +356,7 @@ internal sealed class ContractChangeWorker
                 codeRepairBudget--;
 
                 var (codeRepairTerminal, repairedCode) = await RunDeveloperAsync(
-                        ComposeRepairInstruction(ComposeCodeInstruction(brief, documentation), fixes),
+                        ComposeRepairInstruction(ComposeCodeInstruction(brief, documentation), codeFixes),
                         parentInvocationId,
                         "Developer:repair",
                         cancellationToken,
@@ -451,9 +460,9 @@ internal sealed class ContractChangeWorker
     }
 
     private static string RerouteReason(VerificationFinding? finding) =>
-        finding is null || finding.RequiredFixes.Count == 0
+        finding is null || finding.AdvisoryNotes.Count == 0
             ? "the verifier concluded this change needs to be rerouted, with no further reason recorded"
-            : string.Join("; ", finding.RequiredFixes);
+            : string.Join("; ", finding.AdvisoryNotes);
 
     private string ComposeDocumentInstruction(WorkerBrief brief) =>
         $"""

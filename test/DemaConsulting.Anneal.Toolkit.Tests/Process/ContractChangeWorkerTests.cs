@@ -26,7 +26,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var buildCalls = 0;
             var contractCalls = 0;
@@ -86,7 +86,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -131,7 +131,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -252,7 +252,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 "I repaired the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var buildCalls = 0;
             var worker = new ContractChangeWorker(
@@ -297,12 +297,12 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var recordStore = new RecordStore(root);
             var worker = new ContractChangeWorker(
@@ -347,10 +347,10 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the null check.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -389,15 +389,15 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"BothRepairsRequired","requiredFixes":["clause wording is ambiguous","null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"},{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the null check.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -436,12 +436,12 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"tried again"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["still ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"still ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -479,10 +479,10 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix it.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"tried again"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["still missing"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"still missing"}],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -519,7 +519,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"RerouteRequired","requiredFixes":["this actually moves a system boundary; it needed Structural Change"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this actually moves a system boundary; it needed Structural Change"],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -560,7 +560,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"RerouteRequired","requiredFixes":["this contradicts the README Assumption about build-time network access; the repository needs a re-cut"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this contradicts the README Assumption about build-time network access; the repository needs a re-cut"],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -599,7 +599,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":false}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":false}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -665,7 +665,7 @@ public class ContractChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,

@@ -27,7 +27,7 @@ public class VerifierTests
             // Assert: Failed, deterministic-first, no model asked at all
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
-                () => Assert.Equal(VerificationVerdict.CodeRepairRequired, result.Finding?.Verdict),
+                () => Assert.Equal(VerificationVerdict.RepairRequired, result.Finding?.Verdict),
                 () => Assert.Equal(0, endpoint.Calls));
         }
         finally
@@ -44,7 +44,7 @@ public class VerifierTests
         try
         {
             var endpoint = new QueuedEndpoint(
-                """{"verdict": "Passed", "requiredFixes": [], "advisoryNotes": [], "evidenceSufficient": true}""");
+                """{"verdict": "Passed", "concerns": [], "advisoryNotes": [], "evidenceSufficient": true}""");
             var verifier = new Verifier(root, "a charter", endpointFor: _ => endpoint);
             var evidence = new[] { new CheckFinding("build", true, 0, "all good", ["build.ps1"]) };
 
@@ -69,7 +69,7 @@ public class VerifierTests
         try
         {
             var endpoint = new QueuedEndpoint(
-                """{"verdict": "Passed", "requiredFixes": [], "advisoryNotes": [], "evidenceSufficient": false}""");
+                """{"verdict": "Passed", "concerns": [], "advisoryNotes": [], "evidenceSufficient": false}""");
             var verifier = new Verifier(root, "a charter", endpointFor: _ => endpoint);
 
             // Act
@@ -96,8 +96,8 @@ public class VerifierTests
                 """
                 {
                     "verdict": "RerouteRequired",
-                    "requiredFixes": ["reclassify this change"],
-                    "advisoryNotes": [],
+                    "concerns": [],
+                    "advisoryNotes": ["reclassify this change"],
                     "evidenceSufficient": true
                 }
                 """);
@@ -117,7 +117,7 @@ public class VerifierTests
     }
 
     [Fact]
-    public async Task VerifyAsync_CodeRepairRequiredFromModel_Fails()
+    public async Task VerifyAsync_RepairRequiredFromModel_Fails()
     {
         // Arrange: no deterministic evidence at all, but the model itself finds a blocking issue
         var root = CreateTemporaryDirectory();
@@ -126,8 +126,8 @@ public class VerifierTests
             var endpoint = new QueuedEndpoint(
                 """
                 {
-                    "verdict": "CodeRepairRequired",
-                    "requiredFixes": ["fix the null check"],
+                    "verdict": "RepairRequired",
+                    "concerns": [{"owner": "Code", "fixText": "fix the null check"}],
                     "advisoryNotes": [],
                     "evidenceSufficient": true
                 }

@@ -33,7 +33,7 @@ public class RepairLoopTests
                     new VerificationFinding
                     {
                         Verdict = VerificationVerdict.Passed,
-                        RequiredFixes = [],
+                        Concerns = [],
                         AdvisoryNotes = [],
                         EvidenceSufficient = true
                     },
@@ -68,7 +68,7 @@ public class RepairLoopTests
                     new VerificationFinding
                     {
                         Verdict = VerificationVerdict.Passed,
-                        RequiredFixes = [],
+                        Concerns = [],
                         AdvisoryNotes = [],
                         EvidenceSufficient = true
                     },
@@ -126,8 +126,8 @@ public class RepairLoopTests
                 OperationOutcome.Succeeded,
                 new VerificationFinding
                 {
-                    Verdict = VerificationVerdict.CodeRepairRequired,
-                    RequiredFixes = ["fix the thing"],
+                    Verdict = VerificationVerdict.RepairRequired,
+                    Concerns = [new VerificationConcern { Owner = VerificationOwner.Code, FixText = "fix the thing" }],
                     AdvisoryNotes = [],
                     EvidenceSufficient = true
                 },
@@ -163,8 +163,10 @@ public class RepairLoopTests
                     OperationOutcome.Succeeded,
                     new VerificationFinding
                     {
-                        Verdict = passed ? VerificationVerdict.Passed : VerificationVerdict.CodeRepairRequired,
-                        RequiredFixes = passed ? [] : ["repair it"],
+                        Verdict = passed ? VerificationVerdict.Passed : VerificationVerdict.RepairRequired,
+                        Concerns = passed
+                            ? []
+                            : [new VerificationConcern { Owner = VerificationOwner.Code, FixText = "repair it" }],
                         AdvisoryNotes = [],
                         EvidenceSufficient = true
                     },

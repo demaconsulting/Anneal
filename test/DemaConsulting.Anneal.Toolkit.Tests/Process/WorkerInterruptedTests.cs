@@ -84,10 +84,10 @@ public class WorkerInterruptedTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["null check is missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix it.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"tried again"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["still missing"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"still missing"}],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new ContractChangeWorker(
                 root,
@@ -154,10 +154,10 @@ public class WorkerInterruptedTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated docs"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["null check missing"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix it.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"tried again"}""",
-                """{"verdict":"CodeRepairRequired","requiredFixes":["still missing"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"still missing"}],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,

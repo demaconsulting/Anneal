@@ -26,6 +26,32 @@ internal enum VerificationIntent
     Other
 }
 
+/// <summary>
+///     The closed vocabulary of who owns clearing a <see cref="VerificationConcern" />.
+/// </summary>
+/// <remarks>
+///     A third owner here is exactly why <see cref="VerificationVerdict" /> no longer encodes owner combinations
+///     itself: adding <see cref="Tenet" /> to a two-owner enum would have doubled it again, to eight verdict
+///     values for 2^3 combinations, the same growth <see cref="VerificationConcern" />'s remarks describe.
+/// </remarks>
+internal enum VerificationOwner
+{
+    /// <summary>A fix is owned by <see cref="DocumentAuthor" /> updating documentation.</summary>
+    [Description("a documentation fix is owned by DocumentAuthor")]
+    Documentation,
+
+    /// <summary>A fix is owned by <see cref="Developer" /> changing code.</summary>
+    [Description("a code fix is owned by Developer")]
+    Code,
+
+    /// <summary>
+    ///     A fix is owned by checking the work against <c>CONSTRAINTS.md</c> and the affected system contracts — a
+    ///     "Tenet Check" — distinct from a documentation fix or a code fix.
+    /// </summary>
+    [Description("a tenet-check fix is owned by checking the work against CONSTRAINTS.md and the affected system contracts")]
+    Tenet
+}
+
 /// <summary>The closed vocabulary of what a <see cref="Verifier" /> concludes about the work it judged.</summary>
 internal enum VerificationVerdict
 {
@@ -33,48 +59,57 @@ internal enum VerificationVerdict
     [Description("the work passed; no repair is needed")]
     Passed,
 
-    /// <summary>A documentation repair is needed.</summary>
-    [Description("a documentation repair is needed")]
-    DocumentationRepairRequired,
-
-    /// <summary>A code repair is needed.</summary>
-    [Description("a code repair is needed")]
-    CodeRepairRequired,
-
-    /// <summary>Both a documentation repair and a code repair are needed.</summary>
-    [Description("both a documentation repair and a code repair are needed")]
-    BothRepairsRequired,
+    /// <summary>One or more owners have a concern that needs fixing; see <see cref="VerificationFinding.Concerns" />.</summary>
+    [Description("one or more owners have a concern that needs fixing")]
+    RepairRequired,
 
     /// <summary>The classification underneath this work was wrong and needs rerouting.</summary>
     [Description("the classification underneath this work was wrong and needs rerouting")]
     RerouteRequired,
 
-    /// <summary>
-    ///     The plan's decomposition itself was wrong, not its execution. A different failure class than a repair:
-    ///     a documentation or code finding names an owner whose work needs fixing, while this verdict names the
-    ///     plan those owners executed correctly against.
-    /// </summary>
-    [Description("the plan's decomposition itself was wrong, not its execution; a different failure than a repair")]
-    StrategyRevisionRequired
+    /// <summary>The router can name a specific step only a human can take.</summary>
+    [Description("the router can name a specific step only a human can take")]
+    Escalated,
+
+    /// <summary>The evidence supplied was insufficient to reach an honest verdict.</summary>
+    [Description("the evidence supplied was insufficient to reach an honest verdict")]
+    Refused
 }
 
 /// <summary>
-///     What a verification pass concluded: the verdict, the fixes required to clear it, and anything worth noting
-///     that does not block.
+///     A single fix a <see cref="Verifier" /> found, and which owner is responsible for clearing it.
 /// </summary>
 /// <remarks>
-///     <see cref="RequiredFixes" /> is exactly what a <see cref="RepairLoop{TState}" /> sends back to the
-///     primitive that owns the repair — a documentation finding to <see cref="DocumentAuthor" />, a code finding
-///     to <see cref="Developer" /> — so it is carried as data a caller composes on rather than prose a caller
-///     re-parses.
+///     Replaces the old enum-encoded verdict combinations (a value for documentation alone, code alone, and both
+///     together) with an explicit typed list: a third owner — or a fourth — is one more list entry, not one more
+///     enum value for every combination it can appear in.
+/// </remarks>
+internal sealed record VerificationConcern
+{
+    /// <summary>Who owns clearing this concern.</summary>
+    public required VerificationOwner Owner { get; init; }
+
+    /// <summary>The specific fix required for <see cref="Owner" /> to clear. Must not be null, empty or blank.</summary>
+    public required string FixText { get; init; }
+}
+
+/// <summary>
+///     What a verification pass concluded: the verdict, the concerns to clear it, and anything worth noting that
+///     does not block.
+/// </summary>
+/// <remarks>
+///     A caller reads <see cref="Concerns" /> and dispatches each to its owner — <see cref="VerificationOwner.Documentation" />
+///     to <see cref="DocumentAuthor" />, <see cref="VerificationOwner.Code" /> to <see cref="Developer" />, and
+///     <see cref="VerificationOwner.Tenet" /> to a tenet-check repair — rather than the old
+///     <c>RequiredFixes</c> string list needing a separate interpretation per <see cref="Verdict" /> value.
 /// </remarks>
 internal sealed record VerificationFinding
 {
     /// <summary>What was concluded.</summary>
     public required VerificationVerdict Verdict { get; init; }
 
-    /// <summary>The fixes required to clear the verdict. Empty when <see cref="Verdict" /> is <see cref="VerificationVerdict.Passed" />.</summary>
-    public required IReadOnlyList<string> RequiredFixes { get; init; }
+    /// <summary>The concerns to clear the verdict. Empty when <see cref="Verdict" /> is <see cref="VerificationVerdict.Passed" />.</summary>
+    public required IReadOnlyList<VerificationConcern> Concerns { get; init; }
 
     /// <summary>Advisory notes nobody is obliged to act on. Never null; empty when there are none.</summary>
     public required IReadOnlyList<string> AdvisoryNotes { get; init; }

@@ -8,7 +8,8 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 /// </summary>
 /// <remarks>
 ///     "Deterministic-first" is not a hint here, it is the control flow: any failing <see cref="CheckFinding" />
-///     in the evidence handed in decides <see cref="VerificationVerdict.CodeRepairRequired" /> without a model
+///     in the evidence handed in decides <see cref="VerificationVerdict.RepairRequired" /> (with every concern
+///     owned by <see cref="VerificationOwner.Code" />) without a model
 ///     call at all, per <c>docs/architecture/process.md</c> § Decisions, "Verification is staged
 ///     deterministic-first, model-second, so most failures never reach a model-backed <c>Verifier</c> at all." A
 ///     model is consulted only once every supplied check has passed, to judge the narrower question deterministic
@@ -86,8 +87,9 @@ internal sealed class Verifier
     /// </param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
     /// <returns>
-    ///     <see cref="OperationOutcome.Failed" /> with a <see cref="VerificationVerdict.CodeRepairRequired" />
-    ///     finding, with no model consulted, when any supplied deterministic check failed;
+    ///     <see cref="OperationOutcome.Failed" /> with a <see cref="VerificationVerdict.RepairRequired" />
+    ///     finding (every concern owned by <see cref="VerificationOwner.Code" />), with no model consulted, when
+    ///     any supplied deterministic check failed;
     ///     <see cref="OperationOutcome.Refused" /> with the decoded finding when the model judged its evidence
     ///     insufficient; <see cref="OperationOutcome.Succeeded" /> when the verdict is
     ///     <see cref="VerificationVerdict.Passed" />; <see cref="OperationOutcome.Escalated" /> when the verdict is
@@ -115,8 +117,13 @@ internal sealed class Verifier
         {
             var finding = new VerificationFinding
             {
-                Verdict = VerificationVerdict.CodeRepairRequired,
-                RequiredFixes = [.. failing.Select(check => $"{check.Name}: {check.Summary}")],
+                Verdict = VerificationVerdict.RepairRequired,
+                Concerns =
+                    [.. failing.Select(check => new VerificationConcern
+                    {
+                        Owner = VerificationOwner.Code,
+                        FixText = $"{check.Name}: {check.Summary}"
+                    })],
                 AdvisoryNotes = [],
                 EvidenceSufficient = true
             };

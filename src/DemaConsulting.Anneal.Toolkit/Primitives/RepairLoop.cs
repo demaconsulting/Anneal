@@ -32,8 +32,8 @@ internal delegate Task<StepResult<VerificationFinding>> RepairLoopVerify<TState>
 ///     through the same <see cref="Developer" /> call, each spending the one shared budget this loop enforces.
 ///     What makes that possible without this type knowing anything about <see cref="DocumentAuthor" /> or
 ///     <see cref="Developer" /> is that <c>execute</c> already <em>is</em> that call, closed over by
-///     the caller composing the loop — this type only counts attempts and reads
-///     <see cref="VerificationFinding.RequiredFixes" /> back into the next attempt.
+///     the caller composing the loop — this type only counts attempts and reads the fixes this delegate's own
+///     caller extracts from <see cref="VerificationFinding.Concerns" /> back into the next attempt.
 ///     <para>
 ///         Execution failing outright — <see cref="OperationOutcome.Failed" />,
 ///         <see cref="OperationOutcome.UsageError" />, or <see cref="OperationOutcome.Escalated" /> — ends the loop
@@ -116,7 +116,7 @@ internal sealed class RepairLoop<TState>
                     state,
                     [new ProcessNote($"repair budget of {_maxRepairAttempts} attempt(s) exhausted")]);
 
-            fixes = verified.Finding?.RequiredFixes ?? [];
+            fixes = [.. (verified.Finding?.Concerns ?? []).Select(concern => concern.FixText)];
         }
     }
 }

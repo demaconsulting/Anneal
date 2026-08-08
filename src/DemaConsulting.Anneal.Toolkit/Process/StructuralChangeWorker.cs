@@ -20,9 +20,11 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 ///     already found: the repair step is chosen dynamically per verdict among three owners now
 ///     (<see cref="Planner" />, <see cref="DocumentAuthor" />, <see cref="Developer" />), not fixed at
 ///     construction. A documentation or a code finding repairs through the owner the verdict names, spending
-///     that owner's own one-shot budget, exactly as Contract Change already does. A
-///     <see cref="VerificationVerdict.StrategyRevisionRequired" /> finding is different in kind — the plan's own
-///     decomposition was wrong, not its execution — and spends a third, independent one-shot budget: a second
+///     that owner's own one-shot budget, exactly as Contract Change already does. A verifier finding whose
+///     verdict is <see cref="VerificationVerdict.RepairRequired" /> but whose <see cref="VerificationFinding.Concerns" />
+///     names neither <see cref="VerificationOwner.Documentation" /> nor <see cref="VerificationOwner.Code" /> is
+///     different in kind — the plan's own decomposition was wrong, not its execution — and spends a third,
+///     independent one-shot budget: a second
 ///     and final <see cref="Planner" /> call, informed by what the first attempt got wrong, after which
 ///     <see cref="DocumentAuthor" /> → <see cref="Developer" /> → checks → <see cref="Verifier" /> restart from
 ///     the top. The documentation and code repair budgets are <b>not</b> reset when this happens — they are
@@ -60,20 +62,22 @@ internal sealed class StructuralChangeWorker
 
     /// <summary>
     ///     The narrower question a <see cref="Verifier" /> answers once its deterministic evidence has passed.
-    ///     Names both the repair verdicts and the two failure classes this worker distinguishes —
-    ///     <see cref="VerificationVerdict.StrategyRevisionRequired" /> against a documentation or code repair, and
+    ///     Names both the repair verdicts and the two failure classes this worker distinguishes — a
+    ///     <see cref="VerificationVerdict.RepairRequired" /> finding with no <see cref="VerificationOwner.Documentation" />
+    ///     or <see cref="VerificationOwner.Code" /> concern, against a documentation or code repair, and
     ///     <see cref="VerificationVerdict.RerouteRequired" /> against either repair path — rather than this worker
     ///     trying to infer which applies from prose.
     /// </summary>
     private const string VerifierQuestion =
         """
         Judge whether this structural change conforms to every contract clause it touches and leaves
-        docs/architecture/ accurate for what was actually built. Report 'StrategyRevisionRequired', with your
-        reasoning in the required fixes, when the plan's own decomposition was wrong - the wrong systems were
-        touched, a needed split, merge, or new node was missed, or the steps taken do not add up to the change
-        asked for - as distinct from a documentation or code defect in an otherwise-correctly-decomposed change,
-        which is a documentation or code repair instead. Report 'RerouteRequired', with your reasoning in the
-        required fixes, when this change does not belong to a structural worker at all.
+        docs/architecture/ accurate for what was actually built. Report the verdict 'RepairRequired' with an
+        empty list of concerns, and your reasoning in the advisory notes, when the plan's own decomposition was
+        wrong - the wrong systems were touched, a needed split, merge, or new node was missed, or the steps taken
+        do not add up to the change asked for - as distinct from a documentation or code defect in an
+        otherwise-correctly-decomposed change, which is a documentation or code concern instead. Report the
+        verdict 'RerouteRequired', with your reasoning in the advisory notes, when this change does not belong to
+        a structural worker at all.
         """;
 
     /// <summary>
@@ -131,18 +135,18 @@ internal sealed class StructuralChangeWorker
     ///     The system message the model-backed <see cref="Verifier" /> pass carries. Must not be null.
     /// </param>
     /// <param name="maxDocumentationRepairAttempts">
-    ///     The most documentation-repair attempts spent when a verdict names
-    ///     <see cref="VerificationVerdict.DocumentationRepairRequired" /> or
-    ///     <see cref="VerificationVerdict.BothRepairsRequired" />, independent of the other two budgets. Must be
+    ///     The most documentation-repair attempts spent when a verdict's concerns name
+    ///     <see cref="VerificationOwner.Documentation" />, independent of the other two budgets. Must be
     ///     zero or greater; defaults to 1, kept equal to Contract Change's precedent pending live evidence.
     /// </param>
     /// <param name="maxCodeRepairAttempts">
-    ///     The most code-repair attempts spent when a verdict names <see cref="VerificationVerdict.CodeRepairRequired" />
-    ///     or <see cref="VerificationVerdict.BothRepairsRequired" />, independent of the other two budgets. Must be
+    ///     The most code-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Code" />,
+    ///     independent of the other two budgets. Must be
     ///     zero or greater; defaults to 1, kept equal to Contract Change's precedent pending live evidence.
     /// </param>
     /// <param name="maxReplanAttempts">
-    ///     The most times a <see cref="VerificationVerdict.StrategyRevisionRequired" /> verdict spends a second
+    ///     The most times a <see cref="VerificationVerdict.RepairRequired" /> verdict with no documentation or
+    ///     code concern spends a second
     ///     <see cref="Planner" /> call, independent of the other two budgets. Must be zero or greater; defaults to
     ///     1, per this stage's one re-plan budget.
     /// </param>
@@ -333,7 +337,7 @@ internal sealed class StructuralChangeWorker
                 if (verified.Outcome == OperationOutcome.Escalated)
                     return new WorkerExecutionResult(
                         OperationOutcome.Succeeded,
-                        new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.RequiredFixes ?? []], null),
+                        new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.AdvisoryNotes ?? []], null),
                         null,
                         []);
 
@@ -342,12 +346,20 @@ internal sealed class StructuralChangeWorker
                         OperationOutcome.Failed, null, MergeInterrupted(documentation, code), verified.Notes);
 
                 var verdict = verified.Finding?.Verdict;
-                var fixes = verified.Finding?.RequiredFixes ?? [];
+                var concerns = verified.Finding?.Concerns ?? [];
+                var documentationFixes = concerns
+                    .Where(concern => concern.Owner == VerificationOwner.Documentation)
+                    .Select(concern => concern.FixText)
+                    .ToList();
+                var codeFixes = concerns
+                    .Where(concern => concern.Owner == VerificationOwner.Code)
+                    .Select(concern => concern.FixText)
+                    .ToList();
 
                 var needsDocumentationRepair =
-                    verdict is VerificationVerdict.DocumentationRepairRequired or VerificationVerdict.BothRepairsRequired;
+                    verdict == VerificationVerdict.RepairRequired && documentationFixes.Count > 0;
                 var needsCodeRepair =
-                    verdict is VerificationVerdict.CodeRepairRequired or VerificationVerdict.BothRepairsRequired;
+                    verdict == VerificationVerdict.RepairRequired && codeFixes.Count > 0;
 
                 if (needsDocumentationRepair)
                 {
@@ -362,7 +374,7 @@ internal sealed class StructuralChangeWorker
                     documentationRepairBudget--;
 
                     var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
-                            ComposeRepairInstruction(ComposeDocumentInstruction(brief, plan), fixes),
+                            ComposeRepairInstruction(ComposeDocumentInstruction(brief, plan), documentationFixes),
                             parentInvocationId,
                             "DocumentAuthor:repair",
                             cancellationToken)
@@ -409,7 +421,7 @@ internal sealed class StructuralChangeWorker
                     codeRepairBudget--;
 
                     var (codeRepairTerminal, repairedCode) = await RunDeveloperAsync(
-                            ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), fixes),
+                            ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), codeFixes),
                             parentInvocationId,
                             "Developer:repair",
                             cancellationToken,
@@ -425,10 +437,15 @@ internal sealed class StructuralChangeWorker
                     continue;
                 }
 
-                if (verdict == VerificationVerdict.StrategyRevisionRequired)
+                // Judgment call (see the Apply Report): a `RepairRequired` verdict whose concerns name neither
+                // Documentation nor Code stands in for the old `StrategyRevisionRequired` verdict - the plan's
+                // own decomposition was wrong, not its execution - since the verifier was instructed to report
+                // this with an empty concerns list and its reasoning in the advisory notes instead of a concern
+                // owned by one of the three owners.
+                if (verdict == VerificationVerdict.RepairRequired && concerns.Count == 0)
                 {
                     needsReplan = true;
-                    replanFixes = fixes;
+                    replanFixes = verified.Finding?.AdvisoryNotes ?? [];
                     break;
                 }
 
@@ -438,8 +455,8 @@ internal sealed class StructuralChangeWorker
                     OperationOutcome.Failed, null, MergeInterrupted(documentation, code), verified.Notes);
             }
 
-            // The inner loop above only falls through to here via the StrategyRevisionRequired break - every
-            // other path returns directly.
+            // The inner loop above only falls through to here via the replan break above - every other path
+            // returns directly.
             if (!needsReplan)
                 return new WorkerExecutionResult(OperationOutcome.Failed, null, null, []);
 
@@ -567,9 +584,9 @@ internal sealed class StructuralChangeWorker
     }
 
     private static string RerouteReason(VerificationFinding? finding) =>
-        finding is null || finding.RequiredFixes.Count == 0
+        finding is null || finding.AdvisoryNotes.Count == 0
             ? "the verifier concluded this change needs to be rerouted, with no further reason recorded"
-            : string.Join("; ", finding.RequiredFixes);
+            : string.Join("; ", finding.AdvisoryNotes);
 
     private string ComposePlanningQuestion(WorkerBrief brief, IReadOnlyList<string>? priorFindings) =>
         priorFindings is null or []

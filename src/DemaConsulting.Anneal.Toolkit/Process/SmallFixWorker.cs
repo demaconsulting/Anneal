@@ -199,7 +199,7 @@ internal sealed class SmallFixWorker
                 new VerificationFinding
                 {
                     Verdict = VerificationVerdict.Passed,
-                    RequiredFixes = [],
+                    Concerns = [],
                     AdvisoryNotes = [],
                     EvidenceSufficient = true
                 },
@@ -208,8 +208,15 @@ internal sealed class SmallFixWorker
                 OperationOutcome.Failed,
                 new VerificationFinding
                 {
-                    Verdict = VerificationVerdict.CodeRepairRequired,
-                    RequiredFixes = [check.Finding?.Summary ?? "build.ps1 failed"],
+                    Verdict = VerificationVerdict.RepairRequired,
+                    Concerns =
+                    [
+                        new VerificationConcern
+                        {
+                            Owner = VerificationOwner.Code,
+                            FixText = check.Finding?.Summary ?? "build.ps1 failed"
+                        }
+                    ],
                     AdvisoryNotes = [],
                     EvidenceSufficient = true
                 },

@@ -28,7 +28,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var buildCalls = 0;
             var contractCalls = 0;
@@ -92,7 +92,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -142,7 +142,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -185,7 +185,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root, "planner charter", "document charter", "developer charter", "verifier charter",
@@ -291,7 +291,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -331,12 +331,12 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var recordStore = new RecordStore(root);
             var worker = new StructuralChangeWorker(
@@ -385,13 +385,13 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"StrategyRevisionRequired","requiredFixes":["the wrong system was split"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["the wrong system was split"],"evidenceSufficient":true}""",
                 """{"kind":"Plan","why":"","planSummary":"split the correct system","planSteps":["step one revised"]}""",
                 "I updated the contract document again.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"revised draft"}""",
                 "I implemented the change again.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"revised attempt"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var recordStore = new RecordStore(root);
             var worker = new StructuralChangeWorker(
@@ -439,13 +439,13 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"StrategyRevisionRequired","requiredFixes":["the wrong system was split"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["the wrong system was split"],"evidenceSufficient":true}""",
                 """{"kind":"Plan","why":"","planSummary":"split a different system","planSteps":["step one revised"]}""",
                 "I updated the contract document again.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"revised draft"}""",
                 "I implemented the change again.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"revised attempt"}""",
-                """{"verdict":"StrategyRevisionRequired","requiredFixes":["still the wrong system"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["still the wrong system"],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -486,12 +486,12 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["clause wording is ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix the wording.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"tried again"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
-                """{"verdict":"DocumentationRepairRequired","requiredFixes":["still ambiguous"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"still ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -530,7 +530,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"RerouteRequired","requiredFixes":["this is actually a narrow interior fix"],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this is actually a narrow interior fix"],"evidenceSufficient":true}""");
 
             var worker = new StructuralChangeWorker(
                 root,
@@ -571,7 +571,7 @@ public class StructuralChangeWorkerTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":false}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":false}""");
 
             var worker = new StructuralChangeWorker(
                 root,

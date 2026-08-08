@@ -63,7 +63,7 @@ public class RouteOperationTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var operation = new RouteOperation(
                 root,
@@ -99,7 +99,7 @@ public class RouteOperationTests
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
-                """{"verdict":"Passed","requiredFixes":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var operation = new RouteOperation(
                 root,
