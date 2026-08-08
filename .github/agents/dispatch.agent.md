@@ -1,7 +1,7 @@
 ---
 name: dispatch
 description: Entry point for any non-trivial change. Classifies the work by mode, then routes Change
-  mode to the compiled toolkit's router and Maintenance to the minimum set of agents needed.
+  mode to the compiled toolkit's router and Maintenance mode to its compiled maintain action.
 user-invocable: false
 ---
 
@@ -11,9 +11,11 @@ Route a change through the least process that is correct for it. Determining the
 agent's own job; once the mode is Change, the compiled toolkit's `route` action does the rest —
 classifying scope, authoring, and verifying in one call — because a compiled worker's own composition
 already is its classification, and duplicating that classification here would only let the two drift.
-Maintenance still goes through the `apply` agent directly, since `route`'s worker catalog is
-Change-mode only. If a request needs more than either path offers, it is not a change at all — it is
-a Migration, and this agent stops.
+Maintenance now goes through the compiled toolkit's `maintain` action the same way: it runs
+`SmallFixWorker` directly (Maintenance is Small Fix by definition, so there is no scope left to
+classify) and mechanically enforces the declared bound and the architecture-tree prohibition itself,
+rather than trusting a sub-agent's own good behavior. If a request needs more than either path offers,
+it is not a change at all — it is a Migration, and this agent stops.
 
 # Step 1 — Classify
 
@@ -34,9 +36,9 @@ Determine the **mode** first, because three of the four fix the scope automatica
   append to it, and never recreate it. Say which file the admission test chose and why. Do not
   proceed to Step 2; there is nothing to implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
-  passing that bound to `apply` as a hard limit. If the request has no bound, ask for one instead
-  of inventing it. If the work turns out to need a contract change, stop and re-classify as a Change:
-  Maintenance is defined by touching nothing a consumer can observe.
+  passing that bound to `maintain` as its file-scope hints. If the request has no bound, ask for one
+  instead of inventing it. If the work turns out to need a contract change, stop and re-classify as a
+  Change: Maintenance is defined by touching nothing a consumer can observe.
 - **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
   INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
   it does exist, the tree is already written and each stage is bounded implementation work: report
@@ -96,18 +98,41 @@ before returning. A second attempt belongs to the user's next request, not to th
 
 Reached only for Maintenance; Change is fully handled by Step 2 and never reaches here.
 
-Call the **apply** agent as a sub-agent with:
+Run the bounded tidy-up through the compiled toolkit, in the repository root, as a real shell command —
+never a sub-agent call:
 
-- **bound**: the declared file set, the permitted categories of edit, and the stopping point. Editing
-  outside the bound is a scope violation to report, not a judgement call
-- **goal**: implement the bounded tidy-up
+```text
+dotnet anneal maintain "<work item, in plain text, describing the bounded tidy-up>" <file-scope-hint> [<file-scope-hint> ...]
+```
 
-**Always** delegate. Never implement the change yourself, however small or however fully specified it
-appears. `apply` loads the standards and descends the tree, and whether that added anything is only
-knowable afterwards.
+The work item is the declared bound's goal, restated plainly. File-scope hints are **not optional**
+here, unlike `route`'s: `maintain` mechanically checks every changed file against this exact hint
+list, so pass the declared bound through as the hint list verbatim, never summarized or widened.
+`maintain` runs `SmallFixWorker` directly — no routing oracle, no scope left to classify, since
+Maintenance is Small Fix by definition — then checks the worker's actual changes against both the
+declared bound and the architecture-tree/`CONSTRAINTS.md`/`BACKLOG.md` prohibition, escalating if
+either trips even when the worker itself reported success. Read the exit code, the authoritative
+signal (stdout is for a human to read, not for you to parse):
 
-If `apply` returns INCOMPLETE, stop and report INCOMPLETE with its questions. Otherwise go to Step 4
-and report whatever `apply` returned.
+- **Exit 0 (Succeeded)** — the bounded tidy-up completed within the declared bound. Go to Step 4 and
+  report SUCCEEDED, using the reported files changed and summary.
+- **Exit 4 (Escalated)** — the actual changes fell outside the declared bound, tripped the
+  architecture-tree prohibition, or named a step only a person can take. Go to Step 4 and report
+  INCOMPLETE, quoting the escalation reason verbatim — the mechanical bound check working, not a
+  defect to route around.
+- **Exit 1 (Failed) or Exit 3 (Refused)** — the worker could not complete the bounded tidy-up. Go to
+  Step 4 and report FAILED, including what was tried, what was learned, and the recommended next step
+  from the output.
+- **Exit 2 (UsageError)** — the work item or file-scope hints were empty or missing. This means your
+  own invocation was malformed, not that the user's request was bad; correct the command (at least one
+  hint is required) and retry once before treating a repeat failure as your own defect to report.
+
+Never retry a Failed or Escalated outcome by rephrasing and calling `maintain` again — its worker
+already spent its repair budget before returning. A second attempt belongs to the user's next
+request, not to this one.
+
+If `maintain` reports something you cannot resolve yourself, stop and report INCOMPLETE with its
+questions.
 
 # Step 4 — Report
 
@@ -127,8 +152,9 @@ summary to the caller.
 **Rationale**: {one sentence giving the mode and, for Change, the scope `route` reported}
 **Breaking**: (yes|no) — yes only if `route`'s selected worker reported a clause narrowed or removed;
 always no for Intake, Maintenance and Small Fix
-**Residual**: (none | escalated | gate) — `escalated` when `route` exited 4 and named a step only the
-user can take; `gate` when it exited 1 or 3 and nothing further can be spent on this request
+**Residual**: (none | escalated | gate) — `escalated` when `route` or `maintain` exited 4 and named a
+step only the user can take; `gate` when either exited 1 or 3 and nothing further can be spent on this
+request
 
 ## Contract Impact
 
@@ -141,10 +167,11 @@ contract is unchanged (Small Fix), nothing was implemented (Intake), the bound f
 - **Route** (Change only): {the exit code, the work item text sent, files changed and summary on
   success, or what was tried/learned/recommended on escalation or failure; "not run — Maintenance" or
   "not run — nothing ran (Intake / Migration)"}
-- **Apply** (Maintenance only): {report path, files changed, or "not run — Change / Intake /
-  Migration"}
-- **Bound** (Maintenance only): {the declared file set, the permitted categories of edit, the
-  stopping point, and whether `apply` stayed inside it}
+- **Maintain** (Maintenance only): {the exit code, the work item and file-scope hints sent, files
+  changed and summary on success, or what was tried/learned/recommended on escalation or failure;
+  "not run — Change / Intake / Migration"}
+- **Bound** (Maintenance only): {the declared file set passed as `maintain`'s file-scope hints, the
+  permitted categories of edit, the stopping point, and whether `maintain` reported staying inside it}
 
 ## Documentation and Register Changes
 
