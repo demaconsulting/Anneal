@@ -8,37 +8,45 @@ description: Run and interpret the system contract check. Use when implementing 
 
 # Check Contracts
 
-`check-contracts.ps1` verifies that every contract clause in `docs/architecture/` names a real
-boundary test that exists and passed. It is the **only** mechanically enforced relationship in this
-process; everything else is judgement. Treat its output as authoritative and do not re-verify by
-hand what it proved.
+`dotnet anneal check-contracts` verifies that every contract clause in `docs/architecture/` names a
+real boundary test that exists and passed. It is the **only** mechanically enforced relationship in
+this process; everything else is judgement. Treat its output as authoritative and do not re-verify
+by hand what it proved.
 
-It **fails closed**: a clause it cannot parse, or a system document with no `## Contract` section, is
-an error rather than a silent skip. A check that quietly stops looking is worse than no check.
+It **fails closed**: a clause it cannot parse, or a system document with no `## Contract` section,
+is an error rather than a silent skip. A check that quietly stops looking is worse than no check.
 
-The script lives at the repository root and is run by `lint.ps1`, so CI gates on it whether or not
-an agent is involved. Anneal itself is the exception: it holds the only copy at
-`.github/template/check-contracts.ps1` and runs it from there, with its own discovery patterns.
+The operation is invoked as `dotnet anneal check-contracts` and is run by `lint.ps1`, so CI gates
+on it whether or not an agent is involved.
 
 # Discovery Is Configurable
 
 The defaults describe a C# xUnit repository: `*.cs` files under `test/` and `tests/`,
-attribute-marked methods, a `Contract/` folder, and TRX results. Four parameters cover everything
-that varies between frameworks — `-TestFilePatterns` (which files are searched),
-`-TestDeclarationPattern` (what a declaration looks like, with a named capture `name`),
-`-ContractTestFolder` (what marks a boundary test; empty means the layout has no interior/boundary
-split), and `-TestResultFormat` (`trx` or `text`). Configure them at the call site. Editing the
-script to teach it a new shape is the wrong repair — it ships to every repository.
+attribute-marked methods, a `Contract/` folder, and TRX results. Four dimensions cover everything
+that varies between frameworks:
+
+| CLI flag | What it controls |
+| --- | --- |
+| `-TestFilePatterns` | Which files are searched for test declarations |
+| `-TestDeclarationPattern` | What a declaration looks like (regex with named capture `name`) |
+| `-ContractTestFolder` | What marks a declaration as a boundary test; empty means no interior/boundary split |
+| `-TestResultFormat` | Result format: `trx` or `text` |
+
+Supply them through `-TestProfiles` to configure several discovery shapes in one run (one
+`-TestProfiles` argument per shape, fields semicolon-separated, list values comma-separated), or as
+flat arguments when configuring a single shape. Supplying both for the same run is rejected.
+Configure them at the call site. Editing defaults to teach the operation a new shape is the wrong
+repair — it would change behavior for every caller.
 
 # Which Invocation to Use
 
 | Situation | Command |
 | --- | --- |
 | Small Fix change | Not required — no clause changed |
-| Contract Change or Structural Change, implementing | `pwsh ./check-contracts.ps1` |
-| Contract Change or Structural Change, verifying a completed change | `pwsh ./check-contracts.ps1 -Strict` |
-| Bootstrapping a tree, tests not yet written | `pwsh ./check-contracts.ps1` |
-| Landing a migration stage with later stages outstanding | `pwsh ./check-contracts.ps1` |
+| Contract Change or Structural Change, implementing | `dotnet anneal check-contracts` |
+| Contract Change or Structural Change, verifying a completed change | `dotnet anneal check-contracts -Strict` |
+| Bootstrapping a tree, tests not yet written | `dotnet anneal check-contracts` |
+| Landing a migration stage with later stages outstanding | `dotnet anneal check-contracts` |
 
 `-Strict` promotes unfulfilled planned obligations, and absent test results, from warnings to errors.
 Use it once implementation is complete — before that, a planned obligation is a deliberate placeholder
@@ -48,9 +56,9 @@ written by `architecture-design`, not a defect.
 it verifies nothing and says so. `build.ps1` clears `artifacts/tests` before each run, so results
 cannot accumulate — an outcome is always the most recent one for that test.
 
-If the script is not present, the repository has not been scaffolded from the template. Say so and
-stop — do not hand-verify the clause-to-test links as a substitute, and do not write your own
-checker.
+If `dotnet anneal` is not available, the repository's `.config/dotnet-tools.json` has not been
+restored. Run `dotnet tool restore` or `build.ps1`, which does it. Do not hand-verify the
+clause-to-test links as a substitute, and do not write your own checker.
 
 # Resolving Failures
 

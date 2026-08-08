@@ -86,8 +86,8 @@ report.
   restructured. They need no clause and no justification.
 
 `testing-principles.md` owns the detail. The clause-to-test link is the **only** mechanically
-enforced relationship in this process: `check-contracts.ps1`, run by `lint.ps1`, fails CI when a
-clause is not backed by a boundary test that exists and passed, and it fails closed. Run
+enforced relationship in this process: `dotnet anneal check-contracts`, run by `lint.ps1`, fails CI
+when a clause is not backed by a boundary test that exists and passed, and it fails closed. Run
 `pwsh ./build.ps1` before it, or the pass verification has no results to read. `system-contracts.md`
 lists what it rejects; the **check-contracts** skill says how to fix each one. Everything else here
 is judgement, deliberately.
@@ -117,7 +117,7 @@ to report — not a choice to make.
 Skills in `.github/skills/` are loaded on demand, when the situation they describe arises. Prefer
 the skill over reconstructing a procedure from memory.
 
-- **check-contracts** — running and interpreting `check-contracts.ps1`: which invocation to use for
+- **check-contracts** — running and interpreting `dotnet anneal check-contracts`: which invocation to use for
   each scope, and how to resolve each failure
 
 # Agent Delegation Guidelines
@@ -195,11 +195,9 @@ Scripts, all at the repository root:
 - **`fix.ps1`** — applies all auto-fixers silently; always exits 0
 - **`lint.ps1`** — runs all lint checks; exits 1 on failure
 - **`build.ps1`** — builds the solution, clears `artifacts/tests`, and runs all tests
-- **`check-contracts.ps1`** — verifies every contract clause names a boundary test that exists and
-  passed
 
 **Protected — do not modify** unless the task explicitly requires it and the change preserves the
-documented intent. These carry deliberate configuration, and the four scripts above are protected
+documented intent. These carry deliberate configuration, and the three scripts above are protected
 too:
 
 - **`.editorconfig`** — code formatting rules

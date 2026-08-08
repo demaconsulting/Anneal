@@ -2,9 +2,10 @@
 # Continuous integration.
 #
 # ORDERING MATTERS: build.ps1 runs before lint.ps1 because lint.ps1 invokes
-# check-contracts.ps1, and the clause-to-test pass verification reads the TRX
-# results that build.ps1 produces. Linting first would leave no results to read,
-# and the pass check would be skipped while CI still reported success.
+# "dotnet anneal check-contracts", and the clause-to-test pass verification
+# reads the TRX results that build.ps1 produces. Linting first would leave no
+# results to read, and the pass check would be skipped while CI still
+# reported success.
 #
 # TODO: Adjust the runner, .NET version, and triggers for your repository.
 name: Build
@@ -42,8 +43,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Produces artifacts/tests/*.trx, which check-contracts.ps1 reads to
-      # confirm every contract clause names a test that actually passed.
+      # Produces artifacts/tests/*.trx, which "dotnet anneal check-contracts"
+      # reads to confirm every contract clause names a test that actually
+      # passed. lint.ps1 runs it with -Strict, which promotes unfulfilled TODO
+      # obligations, and absent test results, from warnings to errors - a merge
+      # candidate has no excuse for either.
       - name: Build and test
         shell: pwsh
         run: ./build.ps1
@@ -51,12 +55,6 @@ jobs:
       - name: Lint
         shell: pwsh
         run: ./lint.ps1
-
-      # -Strict promotes unfulfilled TODO obligations, and absent test results,
-      # from warnings to errors. A merge candidate has no excuse for either.
-      - name: Verify contracts
-        shell: pwsh
-        run: ./check-contracts.ps1 -Strict
 
       - name: Upload test results
         if: always()

@@ -12,7 +12,7 @@
 #   installed into, which is the failure mode furthest from its cause.
 #
 #   Each case is named exactly as the clause that names it, so that
-#   check-contracts.ps1 links the two. The tally this suite writes into
+#   "dotnet anneal check-contracts" links the two. The tally this suite writes into
 #   artifacts/tests/ is what that check reads for outcomes.
 #
 # USAGE:

@@ -57,7 +57,7 @@ For Contract Change and Structural Change, write the contract before any impleme
 - When no implementation will follow — you were invoked directly rather than by `dispatch` — write the
   verifier in the **placeholder form**: an uppercase `TODO.` or `TODO_` opening the verifier string,
   followed by the name the test will take, as in `TODO.InstallCopiesPayloadOnly`. Only that exact form
-  is reported by `check-contracts.ps1` as an unfulfilled obligation; anything else naming a test that
+  is reported by `dotnet anneal check-contracts` as an unfulfilled obligation; anything else naming a test that
   does not exist is a hard error, so the prefix is what leaves the repository green until the test is
   written. `system-contracts.md` owns this rule — consult it before deviating.
 - Mark narrowing or removal explicitly as breaking in your report.

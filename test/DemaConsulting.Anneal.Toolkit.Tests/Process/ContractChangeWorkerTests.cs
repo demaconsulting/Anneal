@@ -650,20 +650,16 @@ public class ContractChangeWorkerTests
     }
 
     [Fact]
-    public async Task RunAsync_DefaultContractCheckRunner_InvokesCheckContractsWithStrictArgument()
+    public async Task RunAsync_DefaultContractCheckRunner_CallsCheckContractsOperationInProcess()
     {
-        // Arrange: no contractCheckRunScript supplied, so the default should shell out to check-contracts.ps1
-        // with a -Strict argument; a fake build script is still supplied so this test never spawns pwsh
+        // Arrange: no contractCheckRunScript supplied, so the default must run CheckContractsOperation in
+        // process against this repository rather than shelling out to a check-contracts.ps1 file - this
+        // repository, like every downstream repository once template-installed, carries no such file at its
+        // root, and the defect this default replaced always false-failed this step here for exactly that
+        // reason. A fake build script is still supplied so this test never spawns a real build.
         var root = CreateTemporaryDirectory();
         try
         {
-            File.WriteAllText(
-                Path.Combine(root, "check-contracts.ps1"),
-                """
-                param([switch] $Strict)
-                if ($Strict) { exit 0 } else { exit 1 }
-                """);
-
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
@@ -682,7 +678,8 @@ public class ContractChangeWorkerTests
             // Act
             var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
 
-            // Assert: the default runner passed -Strict, so the fixture script exited zero and verification passed
+            // Assert: the temporary repository has no docs/architecture tree, so the in-process check reports
+            // "nothing to check" and passes - a real verdict, not a pwsh usage banner or a missing-file failure
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<WorkerRunResult.Completed>(result.Finding));

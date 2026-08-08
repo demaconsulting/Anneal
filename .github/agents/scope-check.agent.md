@@ -43,15 +43,15 @@ check first produces a failure that says nothing about the change.
 
 Use the **check-contracts** skill, with `-Strict` — implementation is complete by the time
 this agent runs, so an unfulfilled planned obligation is a real gap rather than a bootstrap
-placeholder. **Do not re-verify by hand what the script already proved** — that is wasted effort and
-less reliable than the script.
+placeholder. **Do not re-verify by hand what the check already proved** — that is wasted effort and
+less reliable than the check.
 
 A non-zero exit is a FAIL. Report its output verbatim in the required fixes.
 
 One exception: a `-Strict` obligation in a system this change did not touch is a **pre-existing**
 issue. Note it as advisory rather than failing the change on it.
 
-Then judge what the script cannot, for each system whose boundary was touched:
+Then judge what the check cannot, for each system whose boundary was touched:
 
 - No consumer-observable behavior was added at the boundary without a clause. Read the boundary
   diff, not the whole change. Undeclared boundary behavior is a FAIL — it will get depended on and
@@ -139,7 +139,7 @@ asserts conformance to a rule the caller cannot read.
 
 ## Contract Conformance: (PASS|FAIL|N/A)
 
-- `check-contracts.ps1` exit code and output
+- `dotnet anneal check-contracts` exit code and output
 - No undeclared consumer-observable boundary behavior
 - Narrowing and removal declared breaking
 - Contract tests use only the public boundary

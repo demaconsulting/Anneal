@@ -88,4 +88,4 @@ These are non-obvious v3 behaviors that differ from v2 or common assumptions:
 - [ ] Both success and failure scenarios covered including edge cases
 - [ ] External dependencies mocked with NSubstitute in interior tests
 - [ ] Test results generated in TRX format (`dotnet test --logger trx`) so
-      `check-contracts.ps1` can verify clause-to-test links passed
+      `dotnet anneal check-contracts` can verify clause-to-test links passed

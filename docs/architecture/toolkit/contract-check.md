@@ -5,7 +5,6 @@ covers:
   - src/DemaConsulting.Anneal.Toolkit/Enforcement/**
   - src/DemaConsulting.Anneal.Toolkit/Architecture/**
   - .github/skills/check-contracts/**
-  - .github/template/check-contracts.ps1
   - test-check-contracts.ps1
 ---
 
@@ -110,11 +109,10 @@ something deterministic enough to run in CI.
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every Toolkit operation is
   built from; `check-contracts` is deterministic and reaches for nothing in the model seam.
-- **PowerShell 7** — file globbing, XML parsing, and exit-code propagation.
 
 ### Invariants
 
-- **CONTRACT-CHECK-I1** — Parsing fails closed: input the script cannot understand is an error, never a
+- **CONTRACT-CHECK-I1** — Parsing fails closed: input the operation cannot understand is an error, never a
   silent skip.
   *Verified by:* `test-check-contracts.ps1: "unresolved placeholder is not a well-formed ID"`
 
@@ -123,13 +121,14 @@ something deterministic enough to run in CI.
 
 ## Composition
 
-The script runs in three passes that are kept separate on purpose: collect clauses from the tree, collect
-declared tests from the test sources, then reconcile both against recorded results. Merging them would be
-shorter and would lose the distinction between *a clause naming nothing*, *a clause naming something that
-does not exist*, and *a clause naming something that failed* — three failures with three different
-repairs, which the skill has to be able to tell apart. `CONTRACT-CHECK-13` is the same distinction applied
-to the second pass itself: *discovery found nothing anywhere* is a fourth failure with a fourth repair, and
-collapsing it into the third would send a reader off to write tests that already exist.
+The operation runs in three passes that are kept separate on purpose: collect clauses from the tree,
+collect declared tests from the test sources, then reconcile both against recorded results. Merging them
+would be shorter and would lose the distinction between *a clause naming nothing*, *a clause naming
+something that does not exist*, and *a clause naming something that failed* — three failures with three
+different repairs, which the skill has to be able to tell apart. `CONTRACT-CHECK-13` is the same
+distinction applied to the second pass itself: *discovery found nothing anywhere* is a fourth failure with
+a fourth repair, and collapsing it into the third would send a reader off to write tests that already
+exist.
 
 The fixture suite is the other half of the system. `test-check-contracts.ps1` constructs a complete
 throw-away repository per case rather than asserting against strings, because the failures being tested
@@ -151,8 +150,8 @@ Adding a fixture case follows a fixed shape: build a throw-away repository with 
 `Set-SystemDoc`, `Set-ContractTests`, and `Set-Trx`, then assert with `Test-Case` on the exit code and
 message substrings. Assert with `-Reject` as well as `-Expect` where a case is about something *not*
 firing — both must agree for the case to mean anything. A new case earns its place by failing when the
-behavior it protects is removed: comment out the implementing line in `check-contracts.ps1`, watch the
-case fail, then restore it. A case that passes either way is documentation, not a test.
+behavior it protects is removed: delete the implementing clause from the operation, watch the case fail,
+then restore it. A case that passes either way is documentation, not a test.
 
 ## Decisions
 

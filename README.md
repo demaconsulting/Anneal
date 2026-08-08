@@ -70,8 +70,8 @@ and the documents describing it in agreement.
   loads the two or three relevant to the files in front of it, not all of them.
 - **Skills** (`.github/skills/`) — procedures loaded only when the situation arises, so a rarely
   needed recipe costs nothing the rest of the time.
-- **Scripts** (repository root) — `build.ps1`, `lint.ps1`, `fix.ps1` and `check-contracts.ps1`. These
-  are what CI runs, so the checks apply whether a human or an agent made the change.
+- **Scripts** (repository root) — `build.ps1`, `lint.ps1`, `fix.ps1`. These are what CI runs, so the
+  checks apply whether a human or an agent made the change.
 - **A command-line tool** (`dotnet anneal`) — the checks that need real analysis rather than pattern
   matching, packaged so they run identically on a laptop and in CI.
 
@@ -255,9 +255,10 @@ maintained using its own agents.
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`src/`, `test/`, `Anneal.slnx`** — the Toolkit, a .NET tool hosting operations that combine
   deterministic checks with model-backed judgement
-- **`.anneal/`** — the role-to-model configuration the Toolkit resolves
+- **`.anneal/`** — repository-local runtime configuration the Toolkit resolves: role-to-model
+  mapping, and the arguments a self-hosted run's contract check is invoked with
 - **`test-check-contracts.ps1`**, **`test-process-contract.ps1`** — fixture suites holding
-  `check-contracts.ps1` and the payload itself to their documented behavior
+  `dotnet anneal check-contracts` and the payload itself to their documented behavior
 - **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
   every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
   into a bounded behavioral summary

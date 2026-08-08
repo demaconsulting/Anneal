@@ -2,15 +2,15 @@
 #
 # PURPOSE:
 #   Builds the solution and runs all tests, emitting TRX results that
-#   check-contracts.ps1 reads to verify every contract clause is backed by a
-#   test that actually passed.
+#   `dotnet anneal check-contracts` reads to verify every contract clause is
+#   backed by a test that actually passed.
 #
 #   Results are written to artifacts/tests so they match the default
-#   -TestResults glob in check-contracts.ps1. Changing that path means changing
-#   both, or the pass check silently stops verifying anything.
+#   -TestResults glob. Changing that path means changing both, or the pass
+#   check silently stops verifying anything.
 #
 #   The results directory is cleared first. Results accumulate otherwise, and
-#   check-contracts.ps1 would be reading an outcome from a previous run
+#   the contract check would be reading an outcome from a previous run
 #   alongside the current one.
 #
 # EXTENSION POINTS:

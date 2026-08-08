@@ -34,7 +34,6 @@ public static class ProtectedPaths
         "fix.ps1",
         "lint.ps1",
         "build.ps1",
-        "check-contracts.ps1",
         ".editorconfig",
         ".cspell.yaml",
         ".markdownlint-cli2.yaml",

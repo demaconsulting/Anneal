@@ -81,7 +81,7 @@ if (-not $skipNpm) {
 # and passed. This is the one link in the process that is mechanically enforced;
 # without it, clause-to-test references are unenforced prose that rot silently.
 Write-Host "Linting: system contracts..."
-pwsh ./check-contracts.ps1
+dotnet anneal check-contracts -Strict
 if ($LASTEXITCODE -ne 0) { $lintError = $true }
 
 # [PROJECT-SPECIFIC] Add additional repository checks here.

@@ -147,7 +147,7 @@ Each line is a result, or `not run — {reason}`. A script the repository does n
 
 - **fix.ps1**: {ran}
 - **build.ps1**: {pass/fail, test counts}
-- **check-contracts.ps1**: {pass/fail, or "not run — no clause in scope (Small Fix / Maintenance)"}
+- **check-contracts**: {pass/fail, or "not run — no clause in scope (Small Fix / Maintenance)"}
 
 ## Scope Deviations
 

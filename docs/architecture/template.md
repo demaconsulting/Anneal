@@ -12,7 +12,7 @@ covers:
 
 Template defines the repository a product gets, as opposed to the process it follows. It owns the
 canonical layout — which files exist, where they sit, and what shape each has when empty — together with
-the scripts that layout ships with: `lint.ps1`, `fix.ps1`, `build.ps1`, `check-contracts.ps1`, and the
+the scripts that layout ships with: `lint.ps1`, `fix.ps1`, `build.ps1`, and the
 document pipeline that compiles a folder of markdown into HTML and PDF.
 
 It is a system rather than inert content because it has a consumer that never installs anything. The
@@ -24,10 +24,6 @@ The boundary against [Process](./process.md) is worth stating precisely, because
 touch `AGENTS.pristine.md`: **Process owns what that file says; Template owns that a correct, unmodified
 copy of it is present in the layout.** Content versus placement. A wording change edits Process, a layout
 change edits Template, and neither dirties the other.
-
-The same split applies to `.github/template/check-contracts.ps1`: **[ContractCheck](./toolkit/contract-check.md)
-owns the script's behavior and failure taxonomy; Template owns its presence in the shipped layout.** A
-behavioral change edits ContractCheck, a placement change edits Template.
 
 ## Contract
 
@@ -98,8 +94,5 @@ example that is merely edited leaves its own assumptions behind, and nothing mar
 
 **One pipeline, many collections** — `build-doc.ps1` is generic over any folder with a
 `definition.yaml`, so the user guide and the architecture tree compile through the same path. A per-
-collection script was rejected as guaranteed drift.
-
-**The template is vendored, not fetched** — `install.ps1` copies the template into `.github/template/`
-of the target rather than leaving agents to fetch it over the network. This pins the layout to the agent
-versions installed beside it and removes a network dependency from routine agent work.
+collection script was rejected because it would drift between collections in exactly the way the
+template drifts from Anneal when maintenance is applied asymmetrically.

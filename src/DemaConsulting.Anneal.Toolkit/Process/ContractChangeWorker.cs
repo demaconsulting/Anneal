@@ -46,8 +46,12 @@ internal sealed class ContractChangeWorker
     /// <summary>The repository-relative build/test script this worker's first deterministic check runs.</summary>
     private const string BuildScript = "build.ps1";
 
-    /// <summary>The repository-relative contract-check script this worker's second deterministic check runs.</summary>
-    private const string ContractCheckScript = "check-contracts.ps1";
+    /// <summary>
+    ///     The evidence label recorded for this worker's second deterministic check. Not a file on disk: the
+    ///     default runner calls <see cref="ContractCheckRunner" /> in process, so this names what ran rather
+    ///     than a script path.
+    /// </summary>
+    private const string ContractCheckScript = "check-contracts";
 
     /// <summary>
     ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call, mirroring <c>AGENTS.md</c>'s
@@ -129,11 +133,12 @@ internal sealed class ContractChangeWorker
     ///     deterministic check is exercisable without a real build.
     /// </param>
     /// <param name="contractCheckRunScript">
-    ///     Runs the repository's strict contract check, or null to run <c>check-contracts.ps1 -Strict</c> through
-    ///     the PowerShell host. <see cref="DeterministicCheck" />'s own <c>selector</c> parameter is evidence
-    ///     metadata only and is never forwarded to the script it runs, so a fixed <c>-Strict</c> argument is baked
-    ///     into the default delegate here rather than threaded through that parameter. Injected so the check is
-    ///     exercisable without a real script.
+    ///     Runs the repository's strict contract check, or null to run it through <see cref="ContractCheckRunner" />
+    ///     — <see cref="Operations.CheckContractsOperation" /> called in process, with arguments read from
+    ///     <see cref="ContractCheckConfiguration" />. <see cref="DeterministicCheck" />'s own <c>selector</c>
+    ///     parameter is evidence metadata only and is never forwarded to the script it runs, so the default
+    ///     arguments are resolved inside the default delegate rather than threaded through that parameter.
+    ///     Injected so the check is exercisable without a real script.
     /// </param>
     /// <param name="recordStore">
     ///     Where this worker's own <see cref="ProcessStepRecord" />s are appended, correlated by the
@@ -178,8 +183,7 @@ internal sealed class ContractChangeWorker
         _buildCheck = new DeterministicCheck(root, runScript: buildRunScript);
         _contractCheck = new DeterministicCheck(
             root,
-            runScript: contractCheckRunScript ??
-                       ((script, ct) => new PowerShellScripts(root).RunAsync(script, ["-Strict"], ct)));
+            runScript: contractCheckRunScript ?? ((_, ct) => ContractCheckRunner.RunAsync(root, ct)));
         _verifier = new Verifier(root, verifierCharter, endpointFor: endpointFor);
         _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
         _maxCodeRepairAttempts = maxCodeRepairAttempts;

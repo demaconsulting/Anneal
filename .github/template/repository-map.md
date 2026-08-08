@@ -53,7 +53,6 @@ way to update it and Patch as a fallback.
 | `.config/dotnet-tools.json` | .NET local tools: Pandoc and WeasyPrint, used to compile documents |
 | `fix.ps1` | Applies all auto-fixers; always exits 0 |
 | `lint.ps1` | Runs all lint checks; exits 1 on failure |
-| `check-contracts.ps1` | Verifies every contract clause names a test that exists and passed |
 | `build.ps1` | Builds the solution and runs all tests |
 | `.github/workflows/build.yml` | CI gate; runs `build.ps1` **before** `lint.ps1` so the pass check has results |
 | `{ProjectName}.slnx` | Solution file (.NET repositories) |
@@ -127,7 +126,7 @@ Level 3+ documents are created only when subdividing benefits the organization (
 | `test/{SystemName}.Tests/Contract/` | Contract tests — durable, boundary-only, named in clauses |
 | `test/{SystemName}.Tests/` | Interior tests — disposable, free to use internals |
 
-`check-contracts.ps1` requires that every test named by a clause is declared as a test method
+`dotnet anneal check-contracts` requires that every test named by a clause is declared as a test method
 **inside a `Contract/` folder**. A clause pointing at an interior test is an error, not a style
 preference — an interior test can be rewritten freely, so it cannot carry a durable promise.
 

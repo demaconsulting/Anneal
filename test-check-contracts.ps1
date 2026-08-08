@@ -11,11 +11,10 @@
 #   failures; this proves each one actually fires, and that the passing case still
 #   passes.
 #
-#   By default the check is the ported Toolkit operation, invoked as
-#   "dotnet anneal check-contracts" - the same gate lint.ps1 runs - so these
-#   fixtures verify the operation that now guards the build. -CheckerTarget script
-#   drives the shipped script instead, which still ships to downstream
-#   repositories, so the script-driving capability is not lost.
+#   The check is the ported Toolkit operation, invoked as "dotnet anneal
+#   check-contracts" - the same gate lint.ps1 runs, and the same gate every
+#   repository runs once it installs the tool. The template no longer ships a
+#   standalone script: every repository, Anneal included, runs the operation.
 #
 #   Fixtures are written under artifacts/ (git-ignored) rather than the system
 #   temp directory, so that "dotnet anneal" resolves the repository's tool
@@ -27,22 +26,15 @@
 # USAGE:
 #   pwsh ./test-check-contracts.ps1
 #   pwsh ./test-check-contracts.ps1 -Filter stale
-#   pwsh ./test-check-contracts.ps1 -CheckerTarget script
 
 [CmdletBinding()]
 param(
     # Run only cases whose name contains this substring.
-    [string] $Filter = "",
-
-    # Which implementation of the check to drive: the ported Toolkit operation
-    # (the gate) or the shipped script (still installed downstream).
-    [ValidateSet("operation", "script")]
-    [string] $CheckerTarget = "operation"
+    [string] $Filter = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-$script:Checker = Join-Path $PSScriptRoot ".github/template/check-contracts.ps1"
 $script:Passed = 0
 $script:Failed = 0
 $script:Failures = [System.Collections.Generic.List[string]]::new()
@@ -61,19 +53,12 @@ if (Test-Path $script:FixtureRoot) { Remove-Item $script:FixtureRoot -Recurse -F
 $script:Results = Join-Path $PSScriptRoot "artifacts/tests/check-contracts.txt"
 $script:Outcomes = [System.Collections.Generic.List[string]]::new()
 
-if ($CheckerTarget -eq "script") {
-    if (-not (Test-Path $script:Checker)) {
-        Write-Host "check-contracts.ps1 not found at $script:Checker" -ForegroundColor Red
-        exit 1
-    }
+& dotnet anneal version *> $null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "dotnet anneal is not available - run build.ps1 first to install the Toolkit tool." -ForegroundColor Red
+    exit 1
 }
-else {
-    & dotnet anneal version *> $null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "dotnet anneal is not available - run build.ps1 first to install the Toolkit tool." -ForegroundColor Red
-        exit 1
-    }
-}
+
 
 # ==============================================================================
 # FIXTURE CONSTRUCTION
@@ -284,20 +269,12 @@ function Invoke-Checker {
     try {
         $extra = if ($Strict) { @("-Strict") } else { @() }
 
-        if ($CheckerTarget -eq "script") {
-            $invocation = @("-NoProfile", "-File", $script:Checker) + $Arguments + $extra
-            $output = & pwsh @invocation 2>&1 | Out-String
-        }
-        else {
-            # The operation reads the working directory as the repository root and
-            # "docs/architecture" beneath it as the tree, exactly as the script did
-            # from the same directory, so the fixtures need no reshaping to move
-            # from one to the other. Repeated -TestProfiles are collected, and a
-            # newline-joined pair in one argument is split, so the profile cases
-            # pass either way.
-            $invocation = @("check-contracts") + $Arguments + $extra
-            $output = & dotnet anneal @invocation 2>&1 | Out-String
-        }
+        # The operation reads the working directory as the repository root and
+        # "docs/architecture" beneath it as the tree. Repeated -TestProfiles are
+        # collected, and a newline-joined pair in one argument is split, so the
+        # profile cases pass through unchanged.
+        $invocation = @("check-contracts") + $Arguments + $extra
+        $output = & dotnet anneal @invocation 2>&1 | Out-String
 
         return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
     }
@@ -360,7 +337,7 @@ function Test-Case {
 # CASES
 # ==============================================================================
 
-Write-Host "Testing: contract check ($CheckerTarget)"
+Write-Host "Testing: contract check"
 
 # --- The passing case -------------------------------------------------------
 # Everything else in this file asserts that a failure fires. This asserts that a

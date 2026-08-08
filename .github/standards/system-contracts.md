@@ -76,7 +76,7 @@ The clause-to-test link is the **only** mechanically enforced relationship in th
 checked deterministically rather than by an agent reading files:
 
 ```pwsh
-pwsh ./check-contracts.ps1
+dotnet anneal check-contracts
 ```
 
 `lint.ps1` runs it, so CI fails when:
@@ -116,7 +116,7 @@ verifier string, followed by the name the test will take:
 *Verified by:* `TODO.AcceptedRecordIsDurable`
 ```
 
-`check-contracts.ps1` reports exactly that form as an **unfulfilled obligation** — a warning, not an
+`dotnet anneal check-contracts` reports exactly that form as an **unfulfilled obligation** — a warning, not an
 error. The match is case-sensitive and anchored at the start of the verifier as written, so nothing else
 is exempt: a real test named `TodoItemsAreReturned`, a fixture case whose title mentions TODO, and a
 suite file named `TODO-suite.ps1` are all checked normally. Any verifier that is not in the placeholder
@@ -186,7 +186,7 @@ written is a description, not a promise, and it provides no design pressure.
 - [ ] Every clause is observable from outside the system
 - [ ] Every clause describes WHAT, never HOW
 - [ ] Every clause and invariant names at least one existing, passing test
-- [ ] `pwsh ./check-contracts.ps1` exits clean
+- [ ] `dotnet anneal check-contracts` exits clean
 - [ ] Clause IDs are stable and no retired number has been reused
 - [ ] `Requires` entries name advertised behavior, not internal design
 - [ ] Contract clause count is within the healthy range, or the deviation is understood

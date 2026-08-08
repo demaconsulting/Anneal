@@ -1,9 +1,9 @@
 ---
 # Continuous integration for the Anneal payload itself.
 #
-# Most of what Anneal ships is prose and scripts, plus one script that is
-# genuinely enforced - check-contracts.ps1 - and test-check-contracts.ps1 is
-# what proves that script still fails in every way its skill file documents.
+# Most of what Anneal ships is prose and scripts, plus one mechanically enforced
+# check - "dotnet anneal check-contracts" - and test-check-contracts.ps1 is what
+# proves that check still fails in every way its skill file documents.
 # Since the Toolkit landed there is also a .NET solution to build, so this
 # repository now runs build.ps1 like any product repository does.
 name: Build
@@ -42,11 +42,11 @@ jobs:
           python-version: '3.12'
 
       # ORDERING MATTERS: build.ps1 runs before lint.ps1 because lint.ps1
-      # invokes check-contracts.ps1, and the clause-to-test pass verification
-      # reads the results build.ps1 produces - the TRX from the Toolkit tests
-      # and the text results of the two PowerShell suites alike. Linting first
-      # would leave no results to read, and the pass check would be skipped
-      # while CI still reported success.
+      # invokes "dotnet anneal check-contracts", and the clause-to-test pass
+      # verification reads the results build.ps1 produces - the TRX from the
+      # Toolkit tests and the text results of the two PowerShell suites alike.
+      # Linting first would leave no results to read, and the pass check would
+      # be skipped while CI still reported success.
       - name: Build and test
         shell: pwsh
         run: ./build.ps1
