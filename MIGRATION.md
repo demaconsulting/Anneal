@@ -141,11 +141,77 @@ classifies by Scope × Effort and routes normally once its exit condition is set
 covers it; what remains prose is declaring a stage itself, an interactive job `architecture-design`
 does deliberately and is not a gap this stage closes.
 
-**Exit conditions:** the Massive-decomposition live trial runs against a real endpoint on both the
-empty-hints and populated-hints paths, independently verified by hand, with any real defect found
-fixed and re-verified — not yet met; a compiled Maintenance path lands with its own live validation
+**Exit conditions:** the Massive-decomposition live trial ran against a real endpoint on both the
+empty-hints and populated-hints paths, was independently verified by hand, and a real defect found
+during the first pair of runs was fixed and re-verified — **done**; a compiled Maintenance path lands with its own live validation
 trial, mirroring S12's "prove it, don't assume it" discipline — not yet met; `pwsh ./build.ps1` and
 `pwsh ./lint.ps1` both pass after each landed step.
+
+**Step 1 is done: the Massive-decomposition live trial ran live, found a real defect in the
+decomposition boundary prompt, fixed it, and then re-ran both containment branches plus a protected-path
+probe.** The throwaway fixture was `BatchFlow`, outside this repository, using the same harness pattern as
+S12: a standalone console project referencing this repository's Toolkit project directly and calling
+`AnnealTool.RunAsync(["route", workItem, ...], ..., [new RouteOperation(repositoryRoot)], ...)` against a
+real Copilot endpoint. The fixture was a small multi-project `.NET` solution (`BatchFlow.Gateway`,
+`BatchFlow.Inventory`, `BatchFlow.Pricing`, `BatchFlow.Fulfillment`, `BatchFlow.Notifications`) with a
+real cross-solution work item: introduce an internal shared `BatchFlow.Context` helper library with
+`WorkflowContext`/clocking, thread it through every system, rewire project references and solution wiring,
+and replace the old smoke coverage with focused regression/propagation tests. That is an interior-only
+change, but across enough systems and files that it cannot honestly execute as one unit.
+
+*Pre-fix run 1 — empty hints.* The routing oracle selected a worker and classified the work as
+`Massive`, but the decomposition pass itself refused: with no changed-file hints declared, the prompt
+still told it every phase had to be a strict subset of an already-cleared scope while never stating what
+that meant when no scope existed. Independently verified by hand: `process-steps.jsonl` recorded only
+`RouteOracle` then `Decomposition`, and the captured decomposition transcript explicitly said it could not
+honestly prove a strict subset against a missing boundary.
+
+*Pre-fix run 2 — populated hints.* The same live work item was re-run with changed-file hints naming the
+expected scope. This surfaced the second half of the same defect: the decomposition pass still refused,
+now because the prompt presented those entries only as "changed-file hints," not as the authoritative
+already-cleared boundary it was supposed to stay within. Again independently verified by direct record and
+transcript inspection: `RouteOracle` then `Decomposition`, no cumulative check, no phase routing, and no
+tracked-file edits in the fixture's own `git status --short` / `git diff --stat`.
+
+**A real defect was found and fixed.** `Router.DecomposeAsync` always built the decomposition probe from
+the generic route-facts context (`Changed-file hints: ...`) plus a one-size-fits-all ask string
+("strict subset of the file scope already cleared"), which is enough for fake-endpoint tests that
+hard-code the reply but not for a real model asked to reason about the boundary honestly. The prompt gave
+the model no truthful way to distinguish the two live cases Anneal needed to prove: when no hints were
+declared, that the strict-subset check is vacuously skipped; when hints were declared, that this exact
+list is the authoritative already-cleared scope for decomposition. **Fix:** `Router` now composes a
+decomposition-specific instruction/context pair that states those two cases explicitly, and two new
+interior tests in `RouterTests` lock both prompt shapes in place. Commit `bf47c32`.
+
+*Post-fix run 1 — empty hints, re-verified live.* The same work item now reached the intended path:
+`RouteOracle` selected `structural-change` at `Massive`, `Decomposition` succeeded with four proposed
+phases, and `CumulativeCheck` then ran and escalated because the combined Gateway/downstream threading
+crossed a higher-scope boundary no single phase crossed alone. Independent verification was again by hand,
+not from the tool's own summary: `process-steps.jsonl` showed `RouteOracle`, `Decomposition`, then
+`CumulativeCheck`; the model transcript contained the four proposed phases; and fixture
+`git status --short` / `git diff --stat` showed no tracked-file edits, consistent with an escalation
+before any phase worker ran.
+
+*Post-fix run 2 — populated hints, re-verified live.* Re-running with explicit changed-file hints now
+exercised the populated containment branch correctly. `Decomposition` again succeeded, this time with
+phase scopes named as strict subsets of the exact hint list (`src/BatchFlow.Context` + `BatchFlow.slnx`,
+`src/BatchFlow.Gateway`, the four downstream `src/` directories, and `test/BatchFlow.Workflow.Tests`);
+`CumulativeCheck` ran and again escalated on the combined boundary shift before any phase worker ran.
+Independent verification was by direct transcript reading of the proposed phase scopes against the hint
+list, plus fixture `git status --short` / `git diff --stat` confirming no tracked-file edits.
+
+**A third, targeted protected-path probe confirmed the tripwire itself ran live, not just the cumulative
+check.** An auxiliary re-run added `README.md` to the same work item and hint set. `Decomposition`
+succeeded and proposed a dedicated README phase; `route` escalated immediately naming `README.md`; and
+`process-steps.jsonl` stopped at `RouteOracle` and `Decomposition`, with no `CumulativeCheck` record at
+all. That proves `ProtectedPathTripwire` fired before the cumulative-check oracle could run, exactly as
+`TOOLKIT-27` requires.
+
+The fixture and its harness were deleted afterward. A fresh `pwsh ./build.ps1` and `pwsh ./lint.ps1`
+were also attempted after `bf47c32`; both surfaced unrelated pre-existing worktree issues outside this
+fix (`test/DemaConsulting.Anneal.Toolkit.Tests/LiveTrial/*` compile / spelling problems), so the live
+trial's own re-verification rests on the passing targeted `RouterTests` run plus the direct fixture
+inspection above, not on claiming those repository-wide scripts were clean when they were not.
 
 ### S13 — Closing the RouteReport gap S11 found, live and self-hosted — landed
 
