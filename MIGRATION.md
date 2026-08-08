@@ -101,39 +101,49 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S15 — Dispatch hands Maintenance-mode work to `maintain` — in flight
+No stage is currently in flight. S15 landed and was validated this session.
 
-**Why now.** S14 closed both of its steps: the Massive-decomposition mechanism was proven live against
-a real model (finding and fixing a real defect), and a compiled Maintenance path (`maintain`, backed by
-`TOOLKIT-29/30/31`) now exists and was itself live-validated. The one piece still standing between
-today's shape and retiring `apply.agent.md` is that `dispatch.agent.md`'s own Step 3 still hands
+### S15 — Dispatch hands Maintenance-mode work to `maintain` — landed
+
+**Why:** S14 closed both of its steps: the Massive-decomposition mechanism was proven live against a
+real model (finding and fixing a real defect), and a compiled Maintenance path (`maintain`, backed by
+`TOOLKIT-29/30/31`) landed and was itself live-validated. The one piece still standing between that
+shape and retiring `apply.agent.md` was that `dispatch.agent.md`'s own Step 3 still handed
 Maintenance-mode work to prose `apply` directly — exactly the shape S10 → S11 already closed once for
-Change mode (`route` existed before `dispatch` was rewired to call it). This stage is that same rewiring,
-one mode later.
+Change mode. This stage was that same rewiring, one mode later.
 
-**Step 1 — rewire `dispatch.agent.md`'s Maintenance path.** Its Step 3 (`# Step 3 — Implement
-(Maintenance only)`) currently calls `apply` as a sub-agent with a declared bound. Rewrite it to run
-`dotnet anneal maintain "<work item>" <file-scope-hint>...` as a real shell command instead — passing the
-declared bound's file scope as the hint list — and interpret the exit code the same way Step 2 already
-interprets `route`'s. Update the Report Template to match (mirroring how S11 updated it for Change mode).
+**Step 1 — rewired `dispatch.agent.md`'s Maintenance path.** Its Step 3 now runs
+`dotnet anneal maintain "<work item>" <file-scope-hint>...` as a real shell command instead of calling
+`apply` as a sub-agent, passing the declared bound's file scope through as the required hint list and
+interpreting the exit code the same way Step 2 already interprets `route`'s. The Report Template's
+`Work Performed` section now names `Maintain` in place of `Apply`. Landed in `fda7e1e`, with a small
+prose trim to keep `WorstCaseInvocationWithinBudget` under its 20000-token ceiling (19980/20000 after).
 
-**Step 2 — live-validate the rewritten agent**, the same way S11 validated `dispatch`'s Change-mode
-rewiring: invoke the real `dispatch` agent (via this environment's own custom-agent mechanism) against a
-throwaway fixture repository outside this one, with a genuine, bounded Maintenance-mode request (e.g.
-"tidy up an unclear private method name, nothing else"), and independently verify the outcome by hand —
-`git status`/`git diff` in the fixture, a fresh build. Fix and re-verify any real defect found, following
-this Migration's usual discipline.
+**Step 2 — live-validated the rewritten agent.** The real `dispatch` custom agent (invoked through
+this environment's own agent mechanism, not a nested CLI process) was given a genuine bounded
+Maintenance request against a throwaway `Fixture.Lib`/`Fixture.Lib.Tests` fixture outside this
+repository (its own local `dotnet-tools.json` installing this repository's current locally-built
+Toolkit package, plus a `build.ps1`, mirroring S11's own fixture pattern): rename an unclear private
+method (`DoTheThing`) to a name describing what it does, update its one call site, touch nothing else
+— bound declared as `Fixture.Lib/Calculator.cs` only. `dispatch` classified Maintenance mode correctly,
+ran `dotnet anneal maintain` as a real shell command, and reported `SUCCEEDED` on exit 0. Independent
+verification by hand: `git status --short` and `git diff --stat` in the fixture (filtered to source,
+ignoring `bin`/`obj` build-artifact churn from `maintain`'s own build/verify pass) showed exactly one
+source file changed, `Fixture.Lib/Calculator.cs`, containing exactly the declared rename
+(`DoTheThing` → `AddThenDouble`) and its one call-site update — `AddAndDouble`'s public signature and
+XML doc comment untouched, matching the declared bound precisely. No defect was found; the rewiring
+worked correctly on the first live trial.
 
-**What this stage does not do.** It does not delete any prose agent file yet — `apply` keeps a live job
-this stage does not remove (Migration-mode work, and any Change/Maintenance invocation run through the
-prose path directly rather than through `dispatch`). Retiring `apply.agent.md`,
-`architecture-update.agent.md`, and `scope-check.agent.md` is the stage after this one, once every mode
-they still serve has a validated compiled equivalent or is deliberately decided to stay prose — see the
-Suspension register above for what would need to be true first.
+**What this stage did not do.** It did not delete any prose agent file — `apply` keeps a live job this
+stage did not remove (Migration-mode work, and any Change/Maintenance invocation run through the prose
+path directly rather than through `dispatch`). Retiring `apply.agent.md`, `architecture-update.agent.md`,
+and `scope-check.agent.md` is the next stage, now that every mode `dispatch` reaches has a validated
+compiled equivalent.
 
-**Exit conditions:** `dispatch.agent.md`'s Maintenance path calls `maintain` instead of `apply` — not
-yet met; the rewritten agent is live-validated against a real fixture — not yet met; `pwsh ./build.ps1`
-and `pwsh ./lint.ps1` both pass.
+**Exit conditions met in full:** `dispatch.agent.md`'s Maintenance path calls `maintain` instead of
+`apply` — done; the rewritten agent was live-validated against a real fixture with no defect found —
+done; `pwsh ./build.ps1` (353 passed, 2 correctly skipped) and `pwsh ./lint.ps1` (81/81 clauses, exit
+0) both pass.
 
 ### S14 — Live trial of Massive-Effort decomposition, then a compiled Maintenance path — landed
 
