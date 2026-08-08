@@ -101,51 +101,77 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S14 — Live trial of Massive-Effort decomposition, then a compiled Maintenance path — in flight
+### S15 — Dispatch hands Maintenance-mode work to `maintain` — in flight
 
-**Why now.** `TOOLKIT-25` through `TOOLKIT-28` (Effort classification and Massive decomposition —
-`PhaseDecomposition`, `CumulativeCheckDecision`, `ProtectedPathTripwire`, the depth-capped recursion
-through `Router.RunAsync` itself) landed with real contract tests, but every one of those tests runs
-against a fake endpoint. No live trial has ever handed `route` a genuinely Massive work item against a
-real model, the same gap S11 named and closed for Structural Change. Until that trial runs, "solid"
-is unproven the same way Structural Change routing was unproven before S11's own live trial found and
-fixed a real defect. This stage closes that gap, then opens the next named one: a compiled path for
-Maintenance mode, the last piece standing between today's shape and retiring `apply.agent.md`,
-`architecture-update.agent.md`, and `scope-check.agent.md` in favor of routing everything through
-`route`.
+**Why now.** S14 closed both of its steps: the Massive-decomposition mechanism was proven live against
+a real model (finding and fixing a real defect), and a compiled Maintenance path (`maintain`, backed by
+`TOOLKIT-29/30/31`) now exists and was itself live-validated. The one piece still standing between
+today's shape and retiring `apply.agent.md` is that `dispatch.agent.md`'s own Step 3 still hands
+Maintenance-mode work to prose `apply` directly — exactly the shape S10 → S11 already closed once for
+Change mode (`route` existed before `dispatch` was rewired to call it). This stage is that same rewiring,
+one mode later.
 
-**Step 1 — live trial of Massive decomposition.** A throwaway fixture (outside this repository,
-same harness pattern as every prior trial) modeling a work item too large to execute as one unit —
-touching the interiors of several systems at once — handed to `route` with no changed-file hints
-(so the containment check's "already-cleared scope" is genuinely empty, the untested path named in
-this Migration's own prior notes) and, separately, with hints, to exercise both containment
-branches. Independently verify: the phases proposed are a strict subset of cleared scope where hints
-were supplied; the tripwire and cumulative check both actually ran (not merely available); any
-defect found is root-caused, fixed at the smallest correct scope, and re-verified — the same
-discipline every prior live trial in this file used, never a silent patch.
+**Step 1 — rewire `dispatch.agent.md`'s Maintenance path.** Its Step 3 (`# Step 3 — Implement
+(Maintenance only)`) currently calls `apply` as a sub-agent with a declared bound. Rewrite it to run
+`dotnet anneal maintain "<work item>" <file-scope-hint>...` as a real shell command instead — passing the
+declared bound's file scope as the hint list — and interpret the exit code the same way Step 2 already
+interprets `route`'s. Update the Report Template to match (mirroring how S11 updated it for Change mode).
 
-**Step 2 — compiled Maintenance path.** `change-classification.md` already defines Maintenance
-precisely: available capacity, no requested outcome, Small Fix by definition, forbidden from
-touching the architecture tree, `CONSTRAINTS.md`, or `BACKLOG.md`, and explicitly including a
-periodic self-triggered structural-cohesion sweep. Today that is entirely prose: `dispatch`'s Step 3
-hands Maintenance-mode work to `apply` directly, with no compiled equivalent. This step designs and
-lands a compiled Maintenance path — the shape (a sweep that proposes its own work item, then routes
-it exactly as Small Fix through the existing `Router`/`SmallFixWorker`, never a new worker) is a
-starting hypothesis, not a foregone conclusion; the step may find a better one, per this file's own
-"discovered better route reads as a finding" principle.
+**Step 2 — live-validate the rewritten agent**, the same way S11 validated `dispatch`'s Change-mode
+rewiring: invoke the real `dispatch` agent (via this environment's own custom-agent mechanism) against a
+throwaway fixture repository outside this one, with a genuine, bounded Maintenance-mode request (e.g.
+"tidy up an unclear private method name, nothing else"), and independently verify the outcome by hand —
+`git status`/`git diff` in the fixture, a fresh build. Fix and re-verify any real defect found, following
+this Migration's usual discipline.
 
-**What this stage does not do.** It does not retire any prose agent file yet — that is blocked on
-Step 2 landing and being validated, exactly as S11 was blocked on S12. It does not touch Migration
-mode's own compiled surface, because none is missing: a Migration stage's implementation already
-classifies by Scope × Effort and routes normally once its exit condition is set, so `route` already
-covers it; what remains prose is declaring a stage itself, an interactive job `architecture-design`
-does deliberately and is not a gap this stage closes.
+**What this stage does not do.** It does not delete any prose agent file yet — `apply` keeps a live job
+this stage does not remove (Migration-mode work, and any Change/Maintenance invocation run through the
+prose path directly rather than through `dispatch`). Retiring `apply.agent.md`,
+`architecture-update.agent.md`, and `scope-check.agent.md` is the stage after this one, once every mode
+they still serve has a validated compiled equivalent or is deliberately decided to stay prose — see the
+Suspension register above for what would need to be true first.
 
-**Exit conditions:** the Massive-decomposition live trial ran against a real endpoint on both the
-empty-hints and populated-hints paths, was independently verified by hand, and a real defect found
-during the first pair of runs was fixed and re-verified — **done**; a compiled Maintenance path lands with its own live validation
-trial, mirroring S12's "prove it, don't assume it" discipline — not yet met; `pwsh ./build.ps1` and
-`pwsh ./lint.ps1` both pass after each landed step.
+**Exit conditions:** `dispatch.agent.md`'s Maintenance path calls `maintain` instead of `apply` — not
+yet met; the rewritten agent is live-validated against a real fixture — not yet met; `pwsh ./build.ps1`
+and `pwsh ./lint.ps1` both pass.
+
+### S14 — Live trial of Massive-Effort decomposition, then a compiled Maintenance path — landed
+
+Both steps landed and were independently live-validated this session.
+
+**Step 1 (live Massive-decomposition trial):** a throwaway `BatchFlow` fixture (five-project .NET
+solution) was handed a genuine cross-system work item real enough to force Massive Effort. Two defect
+-finding pre-fix runs (empty hints, then populated hints) both found the same real bug: `Router.DecomposeAsync`
+built its decomposition probe from generic route-facts context with no honest way for the model to
+distinguish "no scope declared, containment vacuously clears" from "these hints are the authoritative
+already-cleared boundary." **Fixed in `bf47c32`**: `Router` now composes a decomposition-specific
+instruction stating both cases explicitly, locked in by two new `RouterTests`. Post-fix, both containment
+branches ran correctly and escalated on a genuine cross-phase boundary crossing, and a dedicated
+protected-path probe (adding `README.md` to the work item) independently confirmed the tripwire fires
+before the cumulative check even runs — `process-steps.jsonl` showed `RouteOracle` → `Decomposition`
+with no `CumulativeCheck` record. Logged in `1e05b56`.
+
+**A reusable live-trial harness landed in parallel** (`11ca533`): `test/DemaConsulting.Anneal.Toolkit.Tests/LiveTrial/LiveTrialFixture.cs`
+replaces this Migration's own repeated "build a throwaway fixture by hand, delete it after" pattern with
+an in-repo, `InternalsVisibleTo`-backed harness — a real temp-folder git repository, an in-process
+`AnnealTool.RunAsync` call against a real Copilot endpoint, and a model-backed grading oracle mirroring
+`Router`'s own `Oracle<T>` shape — gated behind `ANNEAL_LIVE_TRIALS=1` and skipped by default so it never
+runs in ordinary CI. Documented in a new "Live Trial Tests" section of `csharp-testing.md`.
+
+**Step 2 (compiled Maintenance path)** landed as `MaintainOperation`/`MaintainReport`
+(`e432a56`), implementing `TOOLKIT-29/30/31` exactly as `maintain.md`'s Decisions entry designed: no new
+worker type (`SmallFixWorker` reused directly, no routing-oracle reclassification since Maintenance's
+Scope is already fixed), with `ProtectedPathTripwire` and a strict-subset containment check enforced
+mechanically, in that order, after the worker runs — overriding its outcome to Escalated if either trips,
+regardless of what the worker itself reported. Validated live with the new `LiveTrialFixture` harness:
+the first two live runs genuinely failed (the model misjudged a seeded file as nonexistent because it used
+a content-search tool instead of reading the path directly), root-caused to an ambiguous charter, fixed by
+rewording it, then re-verified passing twice.
+
+**Exit conditions met in full:** both live trials ran against a real endpoint and were independently
+verified; both real defects found were root-caused, fixed at the smallest correct scope, and re-verified;
+`pwsh ./build.ps1` (353 passed, 2 correctly skipped live-trial tests, 355 total) and `pwsh ./lint.ps1`
+(81/81 clauses, exit 0) both pass.
 
 **Step 1 is done: the Massive-decomposition live trial ran live, found a real defect in the
 decomposition boundary prompt, fixed it, and then re-ran both containment branches plus a protected-path
