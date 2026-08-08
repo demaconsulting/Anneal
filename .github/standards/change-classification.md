@@ -85,6 +85,16 @@ decision rather than bookkeeping — *entries are never deleted for being met* �
 writes there is close to permanent. Requiring the user to admit it buys back the only exit the
 ratchet does not otherwise provide.
 
+### A Citation Is Not a Derivation
+
+A sentence that binds future work must carry its own reasoning inline. Naming another rule or
+invariant as the reason is not the same as showing that the named rule actually implies the claim —
+a citation can be wrong, and once written it reads with that rule's full authority whether or not
+anyone checked. This applies wherever a binding-sounding claim is written, not only inside
+`CONSTRAINTS.md` — a `MIGRATION.md` stage entry, a Decisions paragraph, a routing table row. Before
+writing "per the X invariant," reread X and confirm the claim actually follows; if it doesn't
+obviously follow, that is evidence the claim doesn't belong, not that it needs a better citation.
+
 ### A Constraint Says What, Not How
 
 **A constraint states what the architecture is held to, never the mechanism that achieves it.** A

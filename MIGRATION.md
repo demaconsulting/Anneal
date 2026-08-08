@@ -821,9 +821,10 @@ endpoint (exact call counts, budget isolation, no-third-attempt exhaustion); it 
 fire against a real model's own judgement, and this entry records why that is a harder, rarer condition
 to reach than a first reading of the design would assume, not an open defect.
 
-**Leaves working:** every existing prose agent; Template Sync is now the only remaining deferred
-worker, and no prose agent retires until it exists and is proven, per the migration's one-way
-invariant.
+**Leaves working:** every existing prose agent, unchanged. (This entry originally claimed no prose
+agent could retire until Template Sync existed, citing the one-way invariant as authority — the
+invariant says nothing about sequencing unrelated work, and S10 Part B, landed after this entry, said
+so explicitly. Corrected here rather than left standing as an unchecked decree.)
 
 **Exit conditions met:** `StructuralChangeWorker` is landed, covered by 9 interior tests spanning the
 happy path, both `PlanningDecision` non-`Plan` cases, single and exhausted documentation repair, single
