@@ -229,6 +229,38 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         return (exitCode, writer.ToString());
     }
 
+    /// <summary>
+    ///     Runs a real, in-process <c>verify-change</c> invocation against this fixture's working tree.
+    /// </summary>
+    /// <param name="baseRef">
+    ///     The base reference to diff against, or null to diff uncommitted work against <c>HEAD</c>, carried
+    ///     unchanged into the run.
+    /// </param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the run.</param>
+    /// <returns>The exit code <see cref="AnnealTool" /> reached, and everything it wrote to its output.</returns>
+    /// <remarks>
+    ///     Same build/contract-check stubbing as <see cref="RunRouteAsync" /> and <see cref="RunMaintainAsync" />
+    ///     — this throwaway fixture ships no real <c>build.ps1</c> or lint tooling — but no <c>runGit</c>
+    ///     override: <see cref="Primitives.DiffCheck" /> is the one part of this operation that reads the
+    ///     repository directly rather than composing an existing worker primitive, so a live trial is the first
+    ///     place it runs against a real <c>git</c> process over a real working tree rather than a substituted one.
+    /// </remarks>
+    public async Task<(int ExitCode, string Output)> RunVerifyChangeAsync(
+        string? baseRef, CancellationToken cancellationToken)
+    {
+        var operation = new VerifyChangeOperation(
+            RepositoryRoot, buildRunScript: StubScriptRunner, contractCheckRunScript: StubScriptRunner);
+        var writer = new StringWriter();
+
+        IReadOnlyList<string> arguments = baseRef is null ? [operation.Name] : [operation.Name, baseRef];
+
+        var exitCode = await AnnealTool
+            .RunAsync(arguments, writer, [operation], RepositoryRoot, cancellationToken)
+            .ConfigureAwait(false);
+
+        return (exitCode, writer.ToString());
+    }
+
     private static Task<ScriptRun> StubScriptRunner(string script, CancellationToken cancellationToken) =>
         Task.FromResult(new ScriptRun(0, $"live trial stub: '{script}' was not run against this throwaway fixture"));
 
