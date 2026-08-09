@@ -7,12 +7,6 @@ always satisfy hold rather than complete, so they go in [CONSTRAINTS.md](CONSTRA
 where `architecture-design` will read them. See the Intake admission test in
 `change-classification.md`.
 
-- **Write a version marker on install** — record the Anneal version into the target repository so an
-  upgrade knows what it is upgrading from, so `template-sync` can report drift against a known
-  baseline, and so `-Prune` can match an installed manifest rather than a list of retired names.
-- **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
-  standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
-  per-repository values, so replacing it outright is the intended upgrade path.
 - **Rename the level-3 "section document" concept** — "section" also means a markdown heading block,
   and the two meanings collide throughout the standards and the template.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
@@ -119,3 +113,18 @@ where `architecture-design` will read them. See the Intake admission test in
   shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
   a check folded into an existing review pass is undecided; needs its own `architecture-design` pass
   once real entries accumulate.
+
+## Lower priority: `install.ps1`'s own payload is being retired
+
+`install.ps1`'s entire payload — `.github/agents`, `.github/skills` (the prose CLI-harness kind, not
+`.anneal/skills`), `.github/template`, and `AGENTS.md` — is infrastructure for the prose-agent system
+the Toolkit is absorbing. Investing further in the installer polishes a shrinking surface rather than
+growing the compiled one. These stay recorded, but sit last on purpose; do not schedule ahead of
+Toolkit-facing work without asking first.
+
+- **Write a version marker on install** — record the Anneal version into the target repository so an
+  upgrade knows what it is upgrading from, so `template-sync` can report drift against a known
+  baseline, and so `-Prune` can match an installed manifest rather than a list of retired names.
+- **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
+  standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
+  per-repository values, so replacing it outright is the intended upgrade path.
