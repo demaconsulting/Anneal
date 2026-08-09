@@ -102,7 +102,12 @@ where `architecture-design` will read them. See the Intake admission test in
   architectural review, or documentation pass the catalog proposes on its own needs a cadence guard,
   so noticing does not become scheduled busywork, and a merge gate — branch, review, and test before
   reaching `main` — since reversibility, not origin, is what makes autonomous initiative safe. Not
-  scheduled; the router/catalog work lands first.
+  scheduled; the router/catalog work lands first. **A candidate shape for the oracle's input, to weigh
+  when this is picked up**: recent invocation outcomes (`dotnet anneal stats`), the last 10-20 commit
+  subjects (trajectory, not just current state), and the standing constraints/product purpose
+  (`CONSTRAINTS.md` and README's purpose section serve the role a dedicated Tenets file would) —
+  grounding a proposed next step in what actually happened and what must keep holding, rather than in
+  aspiration alone. Not a design; a seed to start from.
 - **Design a way to periodically re-validate filed skills, not just accumulate them** — `skills.md`
   has a filing path (`file-skill`) and a search path (`search-skills`) but no re-validation path: once
   a lesson is filed, nothing ever checks whether it still holds, or whether several narrow skills filed
