@@ -101,6 +101,45 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
+### S17 — Compile a design-only path, giving `architecture-update` a retirable equivalent — landed
+
+**Why now.** S16 named this as the next stage, not a permanent exception: `architecture-update.agent.md`'s
+one remaining job — staging a contract clause ahead of implementation, in the `TODO.` placeholder form,
+as a deliberate planned obligation — was framed as buildable from `DocumentAuthor` alone, the exact
+primitive `ContractChangeWorker`/`StructuralChangeWorker` already use for their own documentation half.
+Before implementing, an independent reviewer agent (background, separate context) was asked to vet the
+plan against `MIGRATION.md`'s own destination and to search hard for whether this capability already
+existed under a different name — the prior discipline of "check ground truth, not stale prose" this
+Migration's own S16 entry records having briefly forgotten. Verdict: PROCEED WITH CHANGES — the primitive
+was standalone and already unit-tested but never invoked outside the two atomic workers; no CLI action
+or worker attempted this before; reuse the primitive and its standards list exactly; require `TODO.`
+placeholders explicitly; convert a `DocumentAuthor` reroute into `Escalated` the same way `maintain`
+does (no `Router` exists here to hand a reroute onward to); do not expect `route`'s three-worker catalog
+to auto-select this action; and avoid the name `design`, which collides with the interview-only
+`architecture-design` agent.
+
+**What landed.** A new operation, `stage-contract` (`StageContractOperation`/`StageContractReport`),
+runs a work item directly against `DocumentAuthor` alone — no `Router`, no `Developer`, no `Verifier` —
+composed the same "Scope already fixed before this action is reached" way `maintain` composes
+`SmallFixWorker`. Two mechanical, post-run checks enforce what `change-classification.md` and
+`system-contracts.md` require, against `DocumentAuthor`'s actual output rather than its self-report:
+every changed file must fall under `docs/architecture/` (the mirror image of `ProtectedPathTripwire`'s
+rule for Maintenance — `TOOLKIT-33`), and a non-strict `check-contracts` run must find the staged clause
+well-formed (`TOOLKIT-34`) — non-strict because the unfulfilled obligation this action deliberately
+produces is exactly what `-Strict` would otherwise promote to an error.
+`Process.ContractCheckRunner` gained an optional `strict` parameter (defaulting to its existing
+behavior) rather than a second implementation, so both callers still share one "run the repository's
+configured contract check" seam. Documented in `docs/architecture/toolkit/stage-contract.md`
+(`TOOLKIT-32`/`33`/`34`) and listed in `docs/architecture/toolkit.md`. Three boundary tests cover the
+new clauses; the whole suite and `lint.ps1` pass.
+
+**What does not retire yet.** `architecture-update.agent.md` itself is not deleted this stage — a
+compiled path existing is not the same claim as it being proven against a live model, which is the same
+bar S14/S15 held before retiring `apply.agent.md`. The prose agent retires once `stage-contract` is
+live-validated the same way `maintain` was, and `dispatch`/`helper` are wired to call it. `scope-check`'s
+standalone-verify path (`Verifier` + `DeterministicCheck`, no preceding authoring pass) remains the one
+stage after that.
+
 ### S16 — Retire `apply.agent.md` — landed
 
 **Why now.** Every caller `apply.agent.md` used to have is gone: S11 moved `dispatch`'s Change-mode

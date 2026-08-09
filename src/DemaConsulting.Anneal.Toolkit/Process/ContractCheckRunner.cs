@@ -27,18 +27,31 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 internal static class ContractCheckRunner
 {
     /// <summary>
-    ///     Runs the repository's strict contract check in process and reports it the same shape a shelled-out
-    ///     script would have.
+    ///     Runs the repository's contract check in process and reports it the same shape a shelled-out script
+    ///     would have.
     /// </summary>
     /// <param name="repositoryRoot">The repository to check. Must not be null or blank.</param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
+    /// <param name="strict">
+    ///     Whether to run the repository's configured arguments as-is (the default, used by
+    ///     <see cref="ContractChangeWorker" /> and <see cref="StructuralChangeWorker" />, whose checks always run
+    ///     after implementation is complete), or with any <c>-Strict</c> entry filtered out first. Pass
+    ///     <see langword="false" /> only when implementation is deliberately not yet complete — a staged, not-yet-
+    ///     implemented clause is exactly what <c>-Strict</c> would otherwise promote from a warning to an error —
+    ///     per <c>system-contracts.md</c>'s own "use <c>-Strict</c> once implementation is complete" rule.
+    /// </param>
     /// <returns>
     ///     A <see cref="ScriptRun" /> whose exit code is zero when the check succeeded and non-zero otherwise,
     ///     and whose output is everything <see cref="CheckContractsOperation" /> rendered.
     /// </returns>
-    public static async Task<ScriptRun> RunAsync(string repositoryRoot, CancellationToken cancellationToken)
+    public static async Task<ScriptRun> RunAsync(
+        string repositoryRoot, CancellationToken cancellationToken, bool strict = true)
     {
-        var arguments = ContractCheckConfiguration.Load(repositoryRoot).Arguments;
+        var configured = ContractCheckConfiguration.Load(repositoryRoot).Arguments;
+        var arguments = strict
+            ? configured
+            : configured.Where(argument => !string.Equals(argument, "-Strict", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
 
         var writer = new StringWriter();
         var result = await new CheckContractsOperation(repositoryRoot)

@@ -78,7 +78,8 @@ public static class AnnealTool
         new LintFixOperation(),
         new StatsOperation(),
         new RouteOperation(),
-        new MaintainOperation()
+        new MaintainOperation(),
+        new StageContractOperation()
     ];
 
     /// <summary>

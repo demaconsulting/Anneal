@@ -283,6 +283,14 @@ target once a compiled equivalent for its remaining job exists (a design-only pa
 `DocumentAuthor` alone, and a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
+**A compiled design-only path (`stage-contract`) landed at Migration stage S17, but `architecture-update`
+was not retired alongside it** — the Toolkit gained `StageContractOperation`, running `DocumentAuthor`
+alone to stage a contract clause ahead of implementation, exactly the compiled equivalent S16 named as
+the next stage. It is not yet wired into `dispatch`/`helper`'s routing and not yet live-validated against
+a real model the way `maintain` was before `apply.agent.md` retired — a compiled path existing is not the
+same claim as it holding up in practice. `architecture-update.agent.md` therefore keeps its edge to
+`Tree` for now; its retirement is the next milestone on this same node, not a new stage.
+
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or
 report no route) against two independent counters, a research budget and a worker-reroute budget,

@@ -95,7 +95,9 @@ from.
   production worker catalog and runs whichever compiled worker the routing oracle selects.
   [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, but runs
   a declared-bound Maintenance work item directly against `SmallFixWorker`, with no routing oracle and
-  no Router of its own.
+  no Router of its own. [StageContract](./toolkit/stage-contract.md) is model-backed and writes to the
+  repository, but runs `DocumentAuthor` alone — no `Developer`, no `Verifier`, and no Router — to stage
+  a contract clause ahead of implementation.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
@@ -266,3 +268,7 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
 - [Maintain](./toolkit/maintain.md) — how `maintain` runs a declared-bound Maintenance work item
   directly against `SmallFixWorker`, and how the containment and protected-path checks escalate a run
   whose actual changes exceeded the bound it declared
+- [StageContract](./toolkit/stage-contract.md) — how `stage-contract` runs `DocumentAuthor` alone to
+  stage a contract clause ahead of implementation, and how the architecture-tree check and the
+  well-formed-clause check escalate or fail a run that reached outside its bound or left the clause
+  malformed
