@@ -13,7 +13,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Operations;
 ///     particular that cancelling a run stops the script rather than merely stopping the wait for it,
 ///     since <c>fix.ps1</c> edits files and one that survived its caller would keep changing the repository
 ///     after the caller withdrew. <c>TOOLKIT-24</c> is the one exception, and its own boundary test lives in
-///     <c>Contract/Toolkit24ScriptEnvironmentContractTests.cs</c> rather than here, because a clause needs a
+///     <c>Contract/ScriptEnvironmentContractTests.cs</c> rather than here, because a clause needs a
 ///     test in the folder <c>check-contracts</c> looks for.
 /// </remarks>
 public class PowerShellScriptsTests

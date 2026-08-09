@@ -43,7 +43,7 @@ contract and a suite, and a worker told to fix lint would resolve it by renaming
   environment, so a repository script can tell it is running as this process's own child rather than
   from a person's direct invocation, and change its own behavior accordingly (for example, skipping a
   step that would collide with the Toolkit package currently running it).
-  *Verified by:* `Toolkit24ScriptEnvironmentContractTests.ScriptsRunUnderTheToolkitSeeTheAnnealToolkitVariable`
+  *Verified by:* `ScriptEnvironmentContractTests.ScriptsRunUnderTheToolkitSeeTheAnnealToolkitVariable`
 
 ### Requires
 

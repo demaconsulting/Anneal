@@ -16,7 +16,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     are on the exit code and the written output. Nothing here reaches inside <see cref="RouteOperation" />
 ///     or any worker.
 /// </remarks>
-public class Toolkit23InterruptedRouteContractTests
+public class InterruptedRouteContractTests
 {
     /// <summary>
     ///     TOOLKIT-23 (interrupted-change promise) — when the selected worker stops on Failed after writing files,

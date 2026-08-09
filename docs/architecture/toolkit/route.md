@@ -35,7 +35,7 @@ the report separately from the completion fields.
   short of completion, `route` reports those files and a summary in
   `RouteReport.FilesChangedBeforeStopping` and `RouteReport.SummaryBeforeStopping`; both fields are
   never null and are empty when no files were written before the worker stopped.
-  *Verified by:* `Toolkit23InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`
+  *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`
 
 - **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
   the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and

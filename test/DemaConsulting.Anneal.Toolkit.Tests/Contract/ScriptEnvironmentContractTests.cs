@@ -14,7 +14,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     class instead of through <see cref="Toolkit.AnnealTool" /> - there is no CLI action whose whole
 ///     contract is "a script it happens to run sees a particular environment variable".
 /// </remarks>
-public class Toolkit24ScriptEnvironmentContractTests
+public class ScriptEnvironmentContractTests
 {
     /// <summary>
     ///     TOOLKIT-24 (script environment promise) — a real script, run through <see cref="PowerShellScripts" />,

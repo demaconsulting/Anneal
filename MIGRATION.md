@@ -473,7 +473,7 @@ change and works for any repository's own scripts, not only this one's.
 
 **Exit conditions:** `RouteReport` carries the interrupted-change fields, correctly populated on both
 Escalated and Failed across all three workers — **done**, verified by a dedicated boundary test
-(`Toolkit23InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`) and five new interior
+(`InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`) and five new interior
 tests covering each worker's discard points directly. `pwsh ./build.ps1` (284 C# tests, 9
 process-contract, 43 check-contracts, 0 failed) and `pwsh ./lint.ps1` (73/73 clauses) both pass.
 
