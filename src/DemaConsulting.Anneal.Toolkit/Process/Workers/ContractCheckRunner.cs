@@ -1,7 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Operations;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     The default way <see cref="ContractChangeWorker" /> and <see cref="StructuralChangeWorker" /> run their

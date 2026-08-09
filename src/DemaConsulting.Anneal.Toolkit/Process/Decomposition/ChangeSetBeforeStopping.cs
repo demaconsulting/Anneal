@@ -1,4 +1,6 @@
-namespace DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
+
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     Files a worker already wrote to disk before an <see cref="OperationOutcome.Escalated" /> or

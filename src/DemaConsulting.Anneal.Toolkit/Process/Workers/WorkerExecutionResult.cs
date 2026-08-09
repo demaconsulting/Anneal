@@ -1,6 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     The full result of running a compiled worker: its outcome, the typed finding when the worker reached a

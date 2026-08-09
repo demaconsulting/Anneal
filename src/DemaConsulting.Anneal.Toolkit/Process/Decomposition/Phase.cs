@@ -1,6 +1,7 @@
 using System.ComponentModel;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     The kind of edit a <see cref="Phase" /> is declared to make, the closed vocabulary mirroring the

@@ -1,4 +1,6 @@
-namespace DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     What one decomposed <see cref="Phase" /> concluded once re-routed through <see cref="Router.RunAsync" />: its

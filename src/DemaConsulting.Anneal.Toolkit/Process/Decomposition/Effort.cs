@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     How much work a routed item takes — lines, files, modules touched — independent of what it promises. The

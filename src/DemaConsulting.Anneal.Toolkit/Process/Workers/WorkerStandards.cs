@@ -1,6 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     Reads a worker's own small, fixed list of standards documents from <c>.github/standards/</c> verbatim, for
@@ -17,7 +18,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process;
 ///         that has not installed Anneal's standards (or has renamed one) still gets a worker that runs, just
 ///         without that one piece of optional guidance. A compiled worker should not hard-fail an entire run
 ///         because advisory content is absent, the same "best effort over an optional read" posture
-///         <see cref="Process.RepositoryFacts" /> already takes for <c>README.md</c> and <c>MIGRATION.md</c>.
+///         <see cref="Process.Routing.RepositoryFacts" /> already takes for <c>README.md</c> and <c>MIGRATION.md</c>.
 ///     </para>
 /// </remarks>
 internal static class WorkerStandards

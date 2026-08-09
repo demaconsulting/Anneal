@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
 
 /// <summary>
 ///     A coarse, deterministic hint about what kind of process a work item's own text is likely to need, decided

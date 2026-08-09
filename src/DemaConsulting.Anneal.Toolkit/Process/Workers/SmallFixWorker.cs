@@ -1,8 +1,10 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     The cheap-path worker: <see cref="Developer" /> authors the change, <see cref="DeterministicCheck" /> runs

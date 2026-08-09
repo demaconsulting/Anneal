@@ -1,6 +1,8 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
-using DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 using DemaConsulting.Anneal.Toolkit.Recording;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
@@ -216,7 +218,7 @@ public sealed class RouteOperation : IOperation
     /// </param>
     /// <param name="contractCheckRunScript">
     ///     Runs the repository's strict contract check for a worker's deterministic check, or null to run it
-    ///     through <see cref="Process.ContractCheckRunner" /> — <see cref="CheckContractsOperation" /> called in
+    ///     through <see cref="Process.Workers.ContractCheckRunner" /> — <see cref="CheckContractsOperation" /> called in
     ///     process, with arguments read from <see cref="Model.ContractCheckConfiguration" />. Injected so the
     ///     whole run is exercisable without a real check.
     /// </param>

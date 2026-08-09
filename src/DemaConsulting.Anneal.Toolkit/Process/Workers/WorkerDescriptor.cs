@@ -1,4 +1,6 @@
-namespace DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>Names one worker in the catalog a <see cref="Router" /> selects from: its key and its one-line role.</summary>
 /// <remarks>

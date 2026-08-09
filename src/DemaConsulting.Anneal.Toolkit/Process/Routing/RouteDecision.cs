@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
 
 /// <summary>How broad a bounded research pass a <see cref="RouteDecision.NeedResearch" /> is asking for.</summary>
 internal enum RouteResearchScope

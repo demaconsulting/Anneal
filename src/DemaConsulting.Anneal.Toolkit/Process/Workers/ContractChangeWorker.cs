@@ -1,9 +1,11 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 using DemaConsulting.Anneal.Toolkit.Recording;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     The Contract Change path: <see cref="DocumentAuthor" /> updates the affected system contract document(s)

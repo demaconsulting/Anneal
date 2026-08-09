@@ -1,4 +1,6 @@
-namespace DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+
+namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
 
 /// <summary>One worker a <see cref="Router" /> considered and did not select, and why.</summary>
 /// <param name="WorkerKey">The rejected worker's catalog key.</param>

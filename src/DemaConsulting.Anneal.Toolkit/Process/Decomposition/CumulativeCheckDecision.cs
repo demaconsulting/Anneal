@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     What a mandatory cumulative-check pass concluded over a whole proposed phase set: the union crosses no

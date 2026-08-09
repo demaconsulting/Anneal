@@ -1,7 +1,8 @@
 using System.Text.RegularExpressions;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
-using DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -12,7 +13,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// <remarks>
 ///     <c>docs/architecture/toolkit/verify-change.md</c> is the contract this implements. It gives
 ///     <c>scope-check.agent.md</c>'s standalone review job a compiled equivalent, composed from the same
-///     primitives <see cref="Process.ContractChangeWorker" /> and <see cref="Process.StructuralChangeWorker" />
+///     primitives <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" />
 ///     already use for their own verification half — <see cref="DiffCheck" />, <see cref="DeterministicCheck" />,
 ///     and <see cref="Verifier" /> — run here alone, for a change a worker did not itself just make, instead of
 ///     composed with <see cref="DocumentAuthor" /> and <see cref="Developer" />. <c>scope-check.agent.md</c>
@@ -20,7 +21,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     <para>
 ///         <b>Why this needed one genuinely new primitive.</b> <see cref="Verifier" /> hard-fails on any failing
 ///         deterministic <see cref="CheckFinding" /> before a model is ever consulted — exactly right for
-///         <see cref="Process.ContractChangeWorker" /> and <see cref="Process.StructuralChangeWorker" />, which
+///         <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" />, which
 ///         only ever run their strict contract check against a change they just authored themselves. A standalone
 ///         review is different: <c>scope-check.agent.md</c> treats an unfulfilled test obligation in a system the
 ///         change did not touch as a pre-existing, advisory issue rather than a failure of this change. Judging
@@ -29,7 +30,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///         severity concept every other caller would have to reason about and never use.
 ///         <see cref="Primitives.DiffCheck" /> supplies the fact this filtering needs — and the ground truth for
 ///         scope honesty itself — since every existing "changed file" signal in this Toolkit
-///         (<c>DevelopmentEnvelope.FilesChanged</c>, <see cref="Process.RepositoryFacts.ChangedFileHints" />) is a
+///         (<c>DevelopmentEnvelope.FilesChanged</c>, <see cref="Process.Routing.RepositoryFacts.ChangedFileHints" />) is a
 ///         caller- or model-supplied hint, never one read from the repository.
 ///     </para>
 ///     <para>

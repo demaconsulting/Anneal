@@ -1,8 +1,10 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 using DemaConsulting.Anneal.Toolkit.Recording;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
 
 /// <summary>
 ///     What a routing run concluded: the work was completed by a selected worker, or the run reports why it could

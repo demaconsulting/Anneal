@@ -1,6 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
 
 /// <summary>
 ///     One pass of asking the route oracle a question and reading back the kind of answer it gave.

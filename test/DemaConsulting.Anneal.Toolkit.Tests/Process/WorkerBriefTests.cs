@@ -1,5 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Primitives;
-using DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 using Xunit;
 
 namespace DemaConsulting.Anneal.Toolkit.Tests.Process;

@@ -1,6 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
-using DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -16,11 +17,11 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     equivalent, mirroring how <see cref="MaintainOperation" /> gave <c>apply.agent.md</c>'s old Maintenance
 ///     job one; <c>architecture-update.agent.md</c> itself retired once this action was live-validated. No new
 ///     worker type is introduced: <see cref="DocumentAuthor" /> is the exact primitive
-///     <see cref="Process.ContractChangeWorker" /> and <see cref="Process.StructuralChangeWorker" /> already use
+///     <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" /> already use
 ///     for their own documentation half, run here alone instead of composed with <see cref="Developer" /> and
 ///     <see cref="Verifier" />, and instructed to stop before either would run.
 ///     <para>
-///         This operation constructs no <see cref="Process.Router" /> and asks no routing oracle: a caller
+///         This operation constructs no <see cref="Process.Routing.Router" /> and asks no routing oracle: a caller
 ///         invoking <c>stage-contract</c> has already decided the work is a staged, not-yet-implemented contract
 ///         clause, the same "Scope already fixed before this action is reached" reasoning
 ///         <see cref="MaintainOperation" /> already applies to Maintenance mode.

@@ -1,4 +1,6 @@
-namespace DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     A mechanical, deterministic check for whether a <see cref="Phase" />'s declared file scope touches one of

@@ -1,7 +1,9 @@
 using DemaConsulting.Anneal.Toolkit.Files;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
-using DemaConsulting.Anneal.Toolkit.Process;
+using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 

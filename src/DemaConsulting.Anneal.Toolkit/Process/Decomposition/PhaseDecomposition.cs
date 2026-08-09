@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Routing;
 
-namespace DemaConsulting.Anneal.Toolkit.Process;
+namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 
 /// <summary>
 ///     What a decomposition pass concluded for a Massive-Effort work item: the phase set to route in its place, or
