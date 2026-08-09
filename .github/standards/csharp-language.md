@@ -32,9 +32,10 @@ public double ProcessReading(double reading, CalibrationProfile calibration)
 
 ## Interior Members (BY REASON, not by rule)
 
-CS1591 does not cover `private` or `internal` members, and neither does this standard. Document an
-interior member when its intent is **not recoverable from the code**, and leave it undocumented when
-it is. Both of the following are correct:
+CS1591 does not cover `private` or `internal` members, and neither does this standard. This applies
+`coding-principles.md`'s Interior Documentation rule: document an interior member when its intent is
+**not recoverable from the code** (per `coding-principles.md`), and leave it undocumented when it is.
+Both of the following are correct:
 
 ```csharp
 // No doc comment. The name and the single expression say everything a reader

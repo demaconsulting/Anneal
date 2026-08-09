@@ -53,7 +53,7 @@ is written.
   *Verified by:* `ReportTemplateShapeIsUniform`
 
 - **PROCESS-05** — Every agent handles each result value that any agent it invokes is able to emit.
-  *Verified by:* `TODO.HandoffCoverageIsComplete`
+  *Verified by:* `HandoffCoverageIsComplete`
 
 - **PROCESS-06** — The worst-case single invocation — `AGENTS.md`, the largest agent prompt, and the four
   largest standards — stays within the context budget declared in
@@ -96,7 +96,7 @@ is written.
 
 - **PROCESS-I2** — No normative rule is stated in more than one payload file; other files reference the
   owning file rather than restating it.
-  *Verified by:* `TODO.NormativeRulesHaveOneOwner`
+  *Verified by:* `NormativeRulesHaveOneOwner`
 
 ## Composition
 

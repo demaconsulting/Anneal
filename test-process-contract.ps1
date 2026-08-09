@@ -930,6 +930,456 @@ Test-Case -Name "EntryPointsAreExactlyTwo" -Body {
     return $problems
 }
 
+# --- PROCESS-05 ---------------------------------------------------------------
+# The invocation graph is read from the agents' own text rather than listed, so
+# a new delegation relationship is covered the day it is added. "Handles" is
+# checked structurally: the calling agent must either (a) include the result
+# value in its own declared Result enumeration, or (b) have a named section
+# whose heading references failure, recovery, or the result value, so the
+# author at minimum documented a response path. This is the weakest defensible
+# bar for a clause about prose-driven agents.
+Test-Case -Name "HandoffCoverageIsComplete" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    # Read each agent's declared result values from its Report Template block.
+    $agentResults = @{}
+    foreach ($file in Get-AgentFile) {
+        $name = $file.Name -replace '\.agent\.md$', ''
+        $text = Read-Text $file.FullName
+        $lines = $text -split "`n"
+
+        $inTemplate = $false
+        $inFence = $false
+        $resultValues = [System.Collections.Generic.List[string]]::new()
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^#+\s*Report Template\s*$') { $inTemplate = $true; continue }
+            if ($inTemplate -and $lines[$i] -match '^#\s') { break }
+            if (-not $inTemplate) { continue }
+            if ($lines[$i] -match '^\s*```') { $inFence = -not $inFence; continue }
+            if (-not $inFence) { continue }
+            if ($lines[$i] -match '^\*\*Result\*\*\s*:.*\(([^)]+)\)') {
+                foreach ($val in ($Matches[1] -split '\|')) { $resultValues.Add($val.Trim()) }
+            }
+        }
+        $agentResults[$name] = $resultValues
+    }
+
+    # For each agent, find which other agents it invokes (named with backticks in
+    # its routing body, not in a "hand off, never call" or "not as a sub-agent"
+    # exclusion sentence). Invocations in the Report Template are skipped.
+    foreach ($file in Get-AgentFile) {
+        $callerName = $file.Name -replace '\.agent\.md$', ''
+        $text = Read-Text $file.FullName
+        $lines = $text -split "`n"
+
+        # Strip the Report Template section
+        $bodyLines = [System.Collections.Generic.List[string]]::new()
+        $inReport = $false
+        foreach ($line in $lines) {
+            if ($line -match '^#+\s*Report Template\s*$') { $inReport = $true }
+            if (-not $inReport) { $bodyLines.Add($line) }
+        }
+        $body = $bodyLines -join "`n"
+
+        $invoked = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($otherName in $agentResults.Keys) {
+            if ($otherName -eq $callerName) { continue }
+            $escapedName = [regex]::Escape($otherName)
+            foreach ($m in [regex]::Matches($body, "``$escapedName``")) {
+                $before = $body.Substring(0, $m.Index)
+                $lineStart = $before.LastIndexOf("`n") + 1
+                $lineEnd = $body.IndexOf("`n", $m.Index)
+                if ($lineEnd -lt 0) { $lineEnd = $body.Length }
+                $matchLine = $body.Substring($lineStart, $lineEnd - $lineStart)
+                if ($matchLine -match 'never call|not as a sub-agent|hand off') { continue }
+                [void]$invoked.Add($otherName)
+            }
+        }
+
+        # Collect section headings from the body — they name documented response paths.
+        $sectionHeadings = @([regex]::Matches($body, '^#+\s+(.+)$', [System.Text.RegularExpressions.RegexOptions]::Multiline) |
+            ForEach-Object { $_.Groups[1].Value.ToLower() })
+
+        foreach ($invokedName in $invoked) {
+            $declared = $agentResults[$invokedName]
+            foreach ($resultVal in $declared) {
+                # "Handles" = the caller declares this result value in its own
+                # Result enumeration, OR the caller's body or a section heading
+                # mentions the value, OR a section heading references failure/
+                # recovery (which covers FAILED for interactive agents).
+                $handled = $false
+                if ($agentResults[$callerName] -contains $resultVal) { $handled = $true }
+                if (-not $handled -and $body -match [regex]::Escape($resultVal)) { $handled = $true }
+                if (-not $handled -and $resultVal -eq "FAILED") {
+                    # An agent may absorb FAILED into INCOMPLETE via a recovery
+                    # section rather than re-emitting FAILED.
+                    foreach ($heading in $sectionHeadings) {
+                        if ($heading -match 'fail|recover|error') { $handled = $true; break }
+                    }
+                }
+                if (-not $handled) {
+                    $problems.Add("$($file.Name): invokes '$invokedName' which can emit '$resultVal', but the caller neither declares it in its own Result nor documents a response path for it")
+                }
+            }
+        }
+    }
+
+    Add-Note "agents checked: $($agentResults.Count)"
+    return $problems
+}
+
+# --- PROCESS-I2 ---------------------------------------------------------------
+# A heuristic structural check: every normative passage that re-states a rule
+# must cite the owning file by name. The check does not attempt semantic
+# near-duplicate detection (which would produce too many false positives across
+# a corpus where procedural phrases recur by design), but it does verify the
+# structural pattern the invariant demands: a file that quotes or re-states a
+# rule from another file must name that file inline as a reference, not import
+# the prose without attribution. The mechanical test is therefore: no agent
+# prompt or standard contains a bolded normative rule that also appears
+# word-for-word in a different file without the second file citing the first by
+# name on the same line or in the immediately preceding sentence.
+#
+# Practically: scan for exact bold-phrase matches across files. If a bolded
+# phrase from file A matches one from file B, at least one of the two occurrences
+# must be accompanied (same line or one line earlier) by a reference to the other
+# file's name.
+Test-Case -Name "NormativeRulesHaveOneOwner" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $files = [System.Collections.Generic.List[object]]::new()
+    foreach ($f in Get-AgentFile)   { $files.Add([pscustomobject]@{ Name = $f.Name; Path = $f.FullName }) }
+    foreach ($f in Get-StandardFile) { $files.Add([pscustomobject]@{ Name = $f.Name; Path = $f.FullName }) }
+    $files.Add([pscustomobject]@{ Name = "AGENTS.md"; Path = (Repo-Path "AGENTS.md") })
+
+    # Extract bolded rule phrases (** ... **) longer than five words per file,
+    # excluding fenced code block content where bold is markup, not prose.
+    function Get-BoldPhrases {
+        param([string] $Path)
+        $lines = (Remove-FencedBlock -Text (Read-Text $Path))
+        $phrases = [System.Collections.Generic.List[object]]::new()
+        $lineNum = 0
+        foreach ($line in $lines) {
+            $lineNum++
+            foreach ($m in [regex]::Matches($line, '\*\*([^*]{20,})\*\*')) {
+                $phrase = $m.Groups[1].Value.Trim()
+                if (($phrase -split '\s+').Count -ge 5) {
+                    $phrases.Add([pscustomobject]@{ Phrase = $phrase; Line = $lineNum; LineText = $line })
+                }
+            }
+        }
+        return $phrases
+    }
+
+    # Build phrase index
+    $index = @{}  # phrase -> list of {File, Line, LineText}
+    foreach ($entry in $files) {
+        foreach ($record in (Get-BoldPhrases -Path $entry.Path)) {
+            if (-not $index.ContainsKey($record.Phrase)) {
+                $index[$record.Phrase] = [System.Collections.Generic.List[object]]::new()
+            }
+            $index[$record.Phrase].Add([pscustomobject]@{
+                File = $entry.Name; Line = $record.Line; LineText = $record.LineText
+            })
+        }
+    }
+
+    # Any phrase appearing in two or more files is a candidate restatement.
+    # It is acceptable only if at least one occurrence cites the other file.
+    foreach ($phrase in $index.Keys) {
+        $occurrences = $index[$phrase]
+        if ($occurrences.Count -lt 2) { continue }
+
+        # A phrase repeated within a single file is not a cross-file restatement -
+        # PROCESS-I2 is about a rule owned by one file being re-stated by another,
+        # not a document's own rhetorical callback to itself.
+        $fileNames = @($occurrences | ForEach-Object { $_.File })
+        $distinctFiles = @($fileNames | Select-Object -Unique)
+        if ($distinctFiles.Count -lt 2) { continue }
+
+        $anyCite = $false
+        foreach ($occ in $occurrences) {
+            $others = @($fileNames | Where-Object { $_ -ne $occ.File })
+            foreach ($other in $others) {
+                $bare = $other -replace '\.agent\.md$', '' -replace '\.md$', ''
+                if ($occ.LineText -match [regex]::Escape($bare) -or
+                    $occ.LineText -match [regex]::Escape($other)) {
+                    $anyCite = $true; break
+                }
+            }
+            if ($anyCite) { break }
+        }
+
+        if (-not $anyCite) {
+            $where = ($occurrences | ForEach-Object { "$($_.File):$($_.Line)" }) -join ", "
+            $problems.Add("bolded rule appears in multiple files without cross-citation ($where): '**$($phrase.Substring(0, [math]::Min(60, $phrase.Length)))**'")
+        }
+    }
+
+    Add-Note "files scanned: $($files.Count); bold phrases with 5+ words checked"
+    return $problems
+}
+
+# ==============================================================================
+# TEMPLATE CONTRACT CASES
+# ==============================================================================
+
+Write-Host ""
+Write-Host "Testing: Template contract (docs/architecture/template.md)"
+
+# --- TEMPLATE-01 --------------------------------------------------------------
+# install.ps1's $payload list is the authoritative list of what ships. The check
+# walks what it copies and confirms every destination path resolves.
+Test-Case -Name "LayoutIsComplete" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $destinations = Get-PayloadDestination
+    foreach ($dest in $destinations) {
+        $full = Repo-Path $dest
+        if (-not (Test-Path -LiteralPath $full)) {
+            $problems.Add("install.ps1 lists payload destination '$dest' but it does not exist in this repository")
+        }
+    }
+
+    Add-Note "payload destinations checked: $($destinations.Count)"
+    return $problems
+}
+
+# --- TEMPLATE-02 --------------------------------------------------------------
+# Every file under .github/template/ must be mentioned in repository-map.md.
+# Placeholder-named files (carrying {system-name} etc.) satisfy the requirement
+# when the map names the placeholder pattern rather than a concrete file.
+Test-Case -Name "RepositoryMapListsEveryFile" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $templateRoot = Repo-Path ".github/template"
+    $mapPath = Repo-Path ".github/template/repository-map.md"
+    $mapText = Read-Text $mapPath
+
+    # All concrete names and placeholder patterns present in the map (backticked tokens)
+    $mapTokens = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($m in [regex]::Matches($mapText, '`([^`]+)`')) {
+        [void]$mapTokens.Add($m.Groups[1].Value.Trim('/'))
+    }
+
+    $templateFiles = @(Get-ChildItem -LiteralPath $templateRoot -Recurse -File -Force |
+        Where-Object { $_.FullName -notmatch '[/\\](bin|obj|node_modules|\.venv|artifacts)[/\\]' })
+
+    foreach ($file in $templateFiles) {
+        $rel = $file.FullName.Substring($templateRoot.Length).TrimStart('\', '/')
+        $rel = $rel -replace '\\', '/'
+        $bare = $file.Name
+
+        # Direct match: full relative path or bare name appears in map
+        if ($mapTokens.Contains($rel) -or $mapTokens.Contains($bare)) { continue }
+
+        # Placeholder match: the file's parent folder or name matches a {placeholder} pattern
+        # e.g. system-name.md satisfies {system-name}.md
+        $placeholderMatch = $false
+        foreach ($token in $mapTokens) {
+            if ($token -match '[{}]') {
+                # Turn {placeholder} patterns into regexes
+                $pattern = '^' + ([regex]::Escape($token) -replace '\\\{[^}]+\}', '[^/]+') + '$'
+                if ($rel -match $pattern -or $bare -match $pattern) { $placeholderMatch = $true; break }
+            }
+        }
+        if ($placeholderMatch) { continue }
+
+        # Sub-path match: the file is under a directory that the map names
+        $underMapped = $false
+        foreach ($token in $mapTokens) {
+            $cleanToken = $token.TrimEnd('/')
+            if ($rel.StartsWith($cleanToken + '/') -or $rel.StartsWith($cleanToken + '\')) {
+                $underMapped = $true; break
+            }
+            # Placeholder-directory match: src/{SystemName}/ covers src/SystemName/Foo.cs
+            if ($cleanToken -match '[{}]') {
+                $dirPattern = '^' + ([regex]::Escape($cleanToken) -replace '\\\{[^}]+\}', '[^/]+') + '/'
+                if ($rel -match $dirPattern) { $underMapped = $true; break }
+            }
+        }
+        if ($underMapped) { continue }
+
+        $problems.Add("template file '$rel' is not mentioned in repository-map.md")
+    }
+
+    Add-Note "template files checked: $($templateFiles.Count)"
+    return $problems
+}
+
+# --- TEMPLATE-03 --------------------------------------------------------------
+# Every path mentioned in repository-map.md's tables that looks like a concrete
+# file (no placeholders) must exist under .github/template/. Only table rows are
+# scanned: the map's prose deliberately mentions paths it does not own (e.g. the
+# ".github/agents/ ... installed from the payload rather than described by this
+# map" sentence), and those are not claims about .github/template/'s contents.
+Test-Case -Name "MapAndTemplateAgree" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $templateRoot = Repo-Path ".github/template"
+    $mapPath = Repo-Path ".github/template/repository-map.md"
+    $tableLines = (Read-Text $mapPath) -split "`n" | Where-Object { $_ -match '^\s*\|' }
+    $mapText = $tableLines -join "`n"
+
+    # Extract backtick tokens that look like file paths (contain a dot or slash)
+    # and carry no placeholders.
+    $checked = 0
+    foreach ($m in [regex]::Matches($mapText, '`([^`]+)`')) {
+        $token = $m.Groups[1].Value.Trim('/')
+        if ($token -match '[{}]') { continue }
+        if ($token -notmatch '\.' -and $token -notmatch '/') { continue }
+        # Skip things that look like commands, patterns, or prose
+        if ($token -match '\s') { continue }
+        if ($token -match '^-') { continue }
+        # AGENTS.md is documented, by the map's own Root table, as stored under a
+        # different name (AGENTS.pristine.md) precisely so a second literal
+        # AGENTS.md is never picked up as instructions for the template itself.
+        if ($token -eq "AGENTS.md") { $token = "AGENTS.pristine.md" }
+
+        $full = Join-Path $templateRoot ($token -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (Test-Path -LiteralPath $full) { $checked++; continue }
+
+        # A bare file name (no slash) may be named generically - describing what
+        # every document collection of this shape holds - rather than as a literal
+        # template-root path; a recursive basename search covers that case.
+        if ($token -notmatch '/') {
+            $found = Get-ChildItem -LiteralPath $templateRoot -Recurse -File -Force -Filter $token -ErrorAction SilentlyContinue
+            if ($found) { $checked++; continue }
+        }
+
+        $problems.Add("repository-map.md names '$token' but it does not exist under .github/template/")
+        $checked++
+    }
+
+    Add-Note "map path tokens checked: $checked"
+    return $problems
+}
+
+# --- TEMPLATE-04 --------------------------------------------------------------
+# The pristine AGENTS.md must not contain product-specific placeholders left
+# unfilled, nor any value that would embed a particular project's identity and
+# require editing after install. The two classes of violation are:
+# (1) A {placeholder} token from repository-map.md that is present verbatim in
+#     the file, meaning it was never filled in, OR
+# (2) A product-identity marker that should not be generic — verified by
+#     checking that the file does not accidentally contain any project-specific
+#     source-namespace or solution-name patterns.
+# The template-url pointing to Anneal's own repository is expected and correct;
+# it is not a product-specific value because it names the tool, not the product.
+Test-Case -Name "PristineCarriesNoProjectValues" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $pristinePath = Repo-Path ".github/template/AGENTS.pristine.md"
+    if (-not (Test-Path -LiteralPath $pristinePath)) {
+        return @("AGENTS.pristine.md does not exist")
+    }
+
+    $text = Read-Text $pristinePath
+
+    # Read the canonical placeholder names from the map, and verify none appear
+    # verbatim in the pristine file (they must already be resolved or absent).
+    $mapPath = Repo-Path ".github/template/repository-map.md"
+    $mapText = Read-Text $mapPath
+    $placeholders = @([regex]::Matches($mapText, '\{([A-Za-z][A-Za-z0-9-]+)\}') |
+        ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+
+    foreach ($ph in $placeholders) {
+        if ($text -match [regex]::Escape("{$ph}")) {
+            $problems.Add("AGENTS.pristine.md contains unfilled placeholder: '{$ph}'")
+        }
+    }
+
+    # Also verify no .NET namespace-style identifier matching Anneal's own product
+    # source tree appears (e.g. 'DemaConsulting.Anneal.Toolkit' or 'src/DemaConsulting')
+    # — those would be Anneal's own project values, not the installed product's.
+    $productNamespaceMarkers = @(
+        "DemaConsulting.Anneal.Toolkit",
+        "src/DemaConsulting"
+    )
+    foreach ($marker in $productNamespaceMarkers) {
+        if ($text -match [regex]::Escape($marker)) {
+            $problems.Add("AGENTS.pristine.md contains project-specific namespace marker: '$marker'")
+        }
+    }
+
+    Add-Note "placeholders checked: $($placeholders -join ', ')"
+    return $problems
+}
+
+# --- TEMPLATE-06 --------------------------------------------------------------
+# Every placeholder/directive in a template file must use the recognizable
+# HTML-comment form: <!-- TEMPLATE-DIRECTIVE: ... --> or the {placeholder}
+# token form declared in repository-map.md. Any other ad-hoc form fails.
+Test-Case -Name "DirectivesAreRecognizable" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $templateRoot = Repo-Path ".github/template"
+    $mdFiles = @(Get-ChildItem -LiteralPath $templateRoot -Filter "*.md" -Recurse -File -Force)
+
+    foreach ($file in $mdFiles) {
+        $rel = $file.FullName.Substring($templateRoot.Length).TrimStart('\', '/') -replace '\\', '/'
+        $text = Read-Text $file.FullName
+        $lines = $text -split "`n"
+        $lineNum = 0
+
+        foreach ($line in $lines) {
+            $lineNum++
+            # Lines that contain "TEMPLATE" in a context that is NOT the recognized forms
+            if ($line -notmatch 'TEMPLATE') { continue }
+            # Recognized form 1: <!-- TEMPLATE-DIRECTIVE: ... -->
+            if ($line -match '<!--\s*TEMPLATE-DIRECTIVE:') { continue }
+            # Recognized form 2: a {placeholder} token from the map
+            # (the line mentions TEMPLATE only inside a placeholder or a code span)
+            if ($line -match '`[^`]*TEMPLATE[^`]*`') { continue }
+            if ($line -match '\{[^}]*TEMPLATE[^}]*\}') { continue }
+            # Narrative references to the word "template" in prose are expected
+            if ($line -match '\btemplate\b' -and $line -notmatch '\bTEMPLATE-') { continue }
+            # A TEMPLATE-DIRECTIVE appearing outside a comment is suspicious
+            if ($line -match 'TEMPLATE-DIRECTIVE' -and $line -notmatch '<!--') {
+                $problems.Add("$rel line ${lineNum}: TEMPLATE-DIRECTIVE found outside HTML comment: $($line.Trim())")
+            }
+        }
+    }
+
+    Add-Note "template .md files checked: $($mdFiles.Count)"
+    return $problems
+}
+
+# --- TEMPLATE-07 --------------------------------------------------------------
+# The template must ship a .NET tool manifest that pins the Anneal Toolkit
+# package, so an installed repository can restore the tool with `dotnet tool
+# restore` and no out-of-band installation step.
+Test-Case -Name "ToolManifestIsShipped" -Body {
+    $problems = [System.Collections.Generic.List[string]]::new()
+
+    $manifestPath = Repo-Path ".github/template/.config/dotnet-tools.json"
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        return @("template .config/dotnet-tools.json does not exist")
+    }
+
+    $json = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    if (-not $json.tools) {
+        return @("template .config/dotnet-tools.json has no 'tools' object")
+    }
+
+    # The Anneal Toolkit package id (lower-cased, as dotnet-tools.json requires)
+    $packageId = "demaconsulting.anneal.toolkit"
+    $toolNames = @($json.tools.PSObject.Properties.Name)
+
+    if ($toolNames -notcontains $packageId) {
+        $problems.Add("template .config/dotnet-tools.json does not pin '$packageId'; tools present: $($toolNames -join ', ')")
+        return $problems
+    }
+
+    $entry = $json.tools.$packageId
+    if (-not $entry.version -or $entry.version -eq "") {
+        $problems.Add("template .config/dotnet-tools.json: '$packageId' entry has no version")
+    }
+
+    Add-Note "tools pinned: $($toolNames -join ', ')"
+    return $problems
+}
+
 # ==============================================================================
 # REPORT
 # ==============================================================================

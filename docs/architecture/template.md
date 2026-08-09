@@ -31,19 +31,19 @@ change edits Template, and neither dirties the other.
 
 - **TEMPLATE-01** — Provides a complete repository layout: every file a repository following this
   process requires, in its canonical location.
-  *Verified by:* `TODO.LayoutIsComplete`
+  *Verified by:* `LayoutIsComplete`
 
 - **TEMPLATE-02** — Provides `repository-map.md` listing every file in the layout with its role, so an
   audit can be performed against the map alone.
-  *Verified by:* `TODO.RepositoryMapListsEveryFile`
+  *Verified by:* `RepositoryMapListsEveryFile`
 
 - **TEMPLATE-03** — Ships every file it describes, so no map entry names a file the template does not
   contain and no template file is absent from the map.
-  *Verified by:* `TODO.MapAndTemplateAgree`
+  *Verified by:* `MapAndTemplateAgree`
 
 - **TEMPLATE-04** — Ships `AGENTS.pristine.md` containing no project-specific values, so a target
   repository needs no post-install editing and an upgrade may replace it outright.
-  *Verified by:* `TODO.PristineCarriesNoProjectValues`
+  *Verified by:* `PristineCarriesNoProjectValues`
 
 - **TEMPLATE-05** — Compiles any folder containing a `definition.yaml` collection into HTML and then PDF,
   resolving relative links between documents in that collection into cross-references.
@@ -51,11 +51,11 @@ change edits Template, and neither dirties the other.
 
 - **TEMPLATE-06** — Ships template documents whose placeholders and directives are machine-recognizable,
   so an agent filling one in can confirm none remain.
-  *Verified by:* `TODO.DirectivesAreRecognizable`
+  *Verified by:* `DirectivesAreRecognizable`
 
 - **TEMPLATE-07** — Ships a .NET tool manifest pinning the [Toolkit](./toolkit.md) version, so a
   repository can restore the tool.
-  *Verified by:* `TODO.ToolManifestIsShipped`
+  *Verified by:* `ToolManifestIsShipped`
 
 ### Requires
 
@@ -87,6 +87,15 @@ should not inherit. Reconciling them by making the template mirror Anneal would 
 repositories while looking like cleanup. The rule is directional and recorded as `TEMPLATE-I1`.
 
 ## Decisions
+
+**`TEMPLATE-I1` has no mechanical verifier** — the invariant is a directional property: Anneal's own
+root files may diverge from their template counterparts, but the template must remain valid for a C#
+product repository. Verifying "valid for a C# product repository" requires compiling a downstream
+project, running its tests, and judging that nothing Anneal-specific leaked into the generic
+skeleton — a judgement call that depends on what a product repository looks like and is therefore
+owned by `architecture-design` review rather than a script. The `TODO.TemplateRemainsProductShaped`
+verifier placeholder stands as an obligation reminder, not a gap — if a future constraint makes
+the property mechanical, the placeholder resolves then.
 
 **Skeletons carry directives, not prose** — template documents contain explicit `TEMPLATE-DIRECTIVE`
 blocks that instruct an agent and are then deleted. Shipping prose examples was rejected because an
