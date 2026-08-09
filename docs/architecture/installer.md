@@ -27,28 +27,28 @@ likely to damage somebody's repository.
 
 - **INSTALLER-01** — Installs the payload into a target repository by file copy alone, adding no build
   step, package manager, or runtime dependency to that repository.
-  *Verified by:* `TODO.InstalledLayoutMatchesRepository`
+  *Verified by:* `InstallSubprocessTests.InstalledLayoutMatchesRepository`
 
 - **INSTALLER-02** — Vendors the template to `.github/template/` in the target repository, so the
   template resolves locally and is pinned to the agents installed beside it.
-  *Verified by:* `TODO.TemplateIsVendoredLocally`
+  *Verified by:* `InstallSubprocessTests.TemplateIsVendoredLocally`
 
 - **INSTALLER-03** — Installs `AGENTS.pristine.md` as `AGENTS.md`, so the target receives a file
   carrying no project-specific values.
-  *Verified by:* `TODO.PristineIsInstalledAsAgentsFile`
+  *Verified by:* `InstallSubprocessTests.PristineIsInstalledAsAgentsFile`
 
 - **INSTALLER-04** — Detects collisions with existing files and reports them before writing anything, so
   a partial install cannot leave a repository half-converted.
-  *Verified by:* `TODO.CollisionsAreDetectedBeforeAnyWrite`
+  *Verified by:* `InstallSubprocessTests.CollisionsAreDetectedBeforeAnyWrite`
 
 - **INSTALLER-05** — Replaces payload-owned files when `-Force` is given, and refuses to overwrite
   without it.
-  *Verified by:* `TODO.ForceIsRequiredToOverwrite`
+  *Verified by:* `InstallSubprocessTests.ForceIsRequiredToOverwrite`
 
 - **INSTALLER-06** — Lists payload-directory files the payload no longer provides when `-Prune` is
   given, separates those `retired-payload.txt` names as formerly ours from those the repository added
   itself, and deletes only what the user confirms.
-  *Verified by:* `TODO.PruneListsRetiredPayloadFiles`
+  *Verified by:* `InstallSubprocessTests.PruneListsRetiredPayloadFiles`
 
 ### Requires
 
@@ -60,11 +60,11 @@ likely to damage somebody's repository.
 
 - **INSTALLER-I1** — No file outside the payload directories and the vendored template is created,
   modified, or deleted in the target repository.
-  *Verified by:* `TODO.WritesAreConfinedToPayloadPaths`
+  *Verified by:* `InstallSubprocessTests.WritesAreConfinedToPayloadPaths`
 
 - **INSTALLER-I2** — A run that fails partway leaves the target repository in a state the same command
   can be re-run against.
-  *Verified by:* `TODO.InterruptedInstallIsRecoverable`
+  *Verified by:* `InstallSubprocessTests.InterruptedInstallIsRecoverable`
 
 ## Composition
 
