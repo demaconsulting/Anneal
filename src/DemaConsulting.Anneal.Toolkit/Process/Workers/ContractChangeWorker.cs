@@ -547,6 +547,10 @@ internal sealed class ContractChangeWorker
          <standards>
          {WorkerStandards.Render(_repositoryRoot, DocumentAuthorStandards)}
          </standards>
+
+         <skills>
+         {WorkerSkills.Render(_repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
+         </skills>
          """;
 
     private string ComposeCodeInstruction(WorkerBrief brief, DocumentChangeSet documentChanges) =>
@@ -567,6 +571,10 @@ internal sealed class ContractChangeWorker
          <standards>
          {WorkerStandards.Render(_repositoryRoot, DeveloperStandards)}
          </standards>
+
+         <skills>
+         {WorkerSkills.Render(_repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
+         </skills>
          """;
 
     private static string ComposeRepairInstruction(string originalInstruction, IReadOnlyList<string> requiredFixes) =>

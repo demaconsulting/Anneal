@@ -64,7 +64,7 @@ are queried through one search surface, so a caller never needs to know which ti
   own `search-skills` query mid-task for anything the automatic pass did not surface; both paths share
   the one ranking `TOOLKIT-39` defines, so a caller never reasons about two different notions of
   "relevant."
-  *Verified by:* `TODO.ContextAssemblyAutoLoadsSkillsMatchingTheCurrentFileScope`
+  *Verified by:* `ContextAssemblyAutoLoadsSkillsMatchingTheCurrentFileScope`
 
 ### Requires
 

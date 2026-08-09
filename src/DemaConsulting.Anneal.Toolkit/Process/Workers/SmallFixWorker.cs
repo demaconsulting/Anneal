@@ -242,5 +242,9 @@ internal sealed class SmallFixWorker
          <standards>
          {WorkerStandards.Render(repositoryRoot, DeveloperStandards)}
          </standards>
+
+         <skills>
+         {WorkerSkills.Render(repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
+         </skills>
          """;
 }

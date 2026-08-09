@@ -27,6 +27,10 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     The architecture documents the router judged relevant to this work item, so a worker knows what to read
 ///     before it starts, not what it must obey — obeying them is the worker's own standards-loading job.
 /// </param>
+/// <param name="ChangedFileHints">
+///     The changed-file hints gathered for the work item, reused for automatic skill lookup so the worker reads
+///     the same coarse file-scope signal the router already gathered.
+/// </param>
 internal sealed record WorkerBrief(
     string ParentInvocationId,
     string OriginalWorkItem,
@@ -34,7 +38,8 @@ internal sealed record WorkerBrief(
     IReadOnlyList<ResearchFinding> RelevantResearchFindings,
     IReadOnlyList<WorkerReroute> PriorReroutes,
     string ScopeHint,
-    IReadOnlyList<string> ConstraintRefs)
+    IReadOnlyList<string> ConstraintRefs,
+    IReadOnlyList<string> ChangedFileHints)
 {
     /// <summary>
     ///     Projects a <see cref="WorkerBrief" /> from a <see cref="RoutingLedger" /> deterministically — no oracle
@@ -59,7 +64,8 @@ internal sealed record WorkerBrief(
             [.. ledger.ResearchHistory],
             [.. ledger.WorkerReroutes],
             scopeHint,
-            [.. ledger.Facts.RelevantArchitectureNodes]);
+            [.. ledger.Facts.RelevantArchitectureNodes],
+            [.. ledger.Facts.ChangedFileHints]);
     }
 
     /// <summary>

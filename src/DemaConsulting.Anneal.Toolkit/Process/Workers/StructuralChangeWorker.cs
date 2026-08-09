@@ -709,6 +709,10 @@ internal sealed class StructuralChangeWorker
          <standards>
          {WorkerStandards.Render(_repositoryRoot, DocumentAuthorStandards)}
          </standards>
+
+         <skills>
+         {WorkerSkills.Render(_repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
+         </skills>
          """;
 
     private string ComposeCodeInstruction(WorkerBrief brief, ImplementationPlan? plan, DocumentChangeSet documentChanges) =>
@@ -731,6 +735,10 @@ internal sealed class StructuralChangeWorker
          <standards>
          {WorkerStandards.Render(_repositoryRoot, DeveloperStandards)}
          </standards>
+
+         <skills>
+         {WorkerSkills.Render(_repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
+         </skills>
          """;
 
     private static string ComposeRepairInstruction(string originalInstruction, IReadOnlyList<string> requiredFixes) =>

@@ -57,7 +57,8 @@ public class WorkerBriefTests
             () => Assert.Equal([finding], brief.RelevantResearchFindings),
             () => Assert.Equal([reroute], brief.PriorReroutes),
             () => Assert.Equal("this looks like a small fix", brief.ScopeHint),
-            () => Assert.Equal(["toolkit.md"], brief.ConstraintRefs));
+            () => Assert.Equal(["toolkit.md"], brief.ConstraintRefs),
+            () => Assert.Equal(["src/Foo.cs"], brief.ChangedFileHints));
     }
 
     [Fact]

@@ -219,13 +219,13 @@ public class WorkerInterruptedTests
     }
 
     private static WorkerBrief MakeBrief() =>
-        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", []);
+        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], []);
 
     private static WorkerBrief MakeContractBrief() =>
-        new("parent-1", "add a contract clause", "contract change", [], [], "this touches a contract", []);
+        new("parent-1", "add a contract clause", "contract change", [], [], "this touches a contract", [], []);
 
     private static WorkerBrief MakeStructuralBrief() =>
-        new("parent-1", "move a system boundary", "structural change", [], [], "this moves a boundary", []);
+        new("parent-1", "move a system boundary", "structural change", [], [], "this moves a boundary", [], []);
 
     private static string CreateTemporaryDirectory()
     {

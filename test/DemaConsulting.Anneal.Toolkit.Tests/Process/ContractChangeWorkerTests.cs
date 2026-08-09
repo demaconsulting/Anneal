@@ -825,7 +825,7 @@ public class ContractChangeWorkerTests
     }
 
     private static WorkerBrief MakeBrief() =>
-        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", []);
+        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], []);
 
     private static string CreateTemporaryDirectory()
     {

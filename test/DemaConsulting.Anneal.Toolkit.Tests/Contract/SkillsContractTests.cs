@@ -1,6 +1,7 @@
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Skills;
 using DemaConsulting.Anneal.Toolkit.Tests.ContractChecking;
+using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
 namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
@@ -163,5 +164,58 @@ public class SkillsContractTests
             () => Assert.Equal(AnnealTool.ExitSuccess, emptyQueryExit),
             () => Assert.Contains("0 match(es)", emptyQueryOutput.ToString(), StringComparison.Ordinal),
             () => Assert.Equal(AnnealTool.ExitUsageError, missingQueryExit));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-40 — a worker prompt assembled for a model-backed operation automatically includes matching
+    ///     skills, driven by the same work-item text and changed-file hints the routing facts already gathered,
+    ///     before the model asks for anything. Verified by
+    ///     <c>ContextAssemblyAutoLoadsSkillsMatchingTheCurrentFileScope</c>.
+    /// </summary>
+    [Fact]
+    public async Task ContextAssemblyAutoLoadsSkillsMatchingTheCurrentFileScope()
+    {
+        // Arrange: a repository-local skill whose summary and body only match through the changed-file hint.
+        using var repository = new TemporaryRepository();
+        Directory.CreateDirectory(Path.Combine(repository.Root, ".anneal", "skills"));
+        File.WriteAllText(
+            Path.Combine(repository.Root, ".anneal", "skills", "foo-scope-normalization.md"),
+            """
+            ---
+            id: foo-scope-normalization
+            tags:
+              - foo
+              - paths
+            summary: When touching Foo.cs, normalize repository-relative paths before comparing file scope.
+            ---
+
+            AUTO-SKILL-MARKER: Normalize Foo.cs-related paths before comparing scope boundaries.
+            """);
+
+        var endpoint = new QueuedEndpoint(
+            """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+            "I made the change.",
+            """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""");
+
+        var operation = new RouteOperation(
+            repository.Root,
+            endpointFor: _ => endpoint,
+            buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+
+        // Act: route a generic work item whose only file-scope clue is the changed-file hint.
+        var exitCode = await AnnealTool.RunAsync(
+            ["route", "fix the regression", "src/Foo.cs"],
+            new StringWriter(),
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+        var developerPrompt = string.Join("\n", endpoint.Requests[1].Messages.Select(message => message.Text));
+
+        // Assert: the run completed and the developer prompt already carried the matched skill summary and body.
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.Contains("foo-scope-normalization", developerPrompt, StringComparison.Ordinal),
+            () => Assert.Contains("normalize repository-relative paths before comparing file scope", developerPrompt, StringComparison.Ordinal),
+            () => Assert.Contains("AUTO-SKILL-MARKER", developerPrompt, StringComparison.Ordinal));
     }
 }

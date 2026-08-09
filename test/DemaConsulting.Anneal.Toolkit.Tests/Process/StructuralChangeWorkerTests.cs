@@ -774,7 +774,7 @@ public class StructuralChangeWorkerTests
     }
 
     private static WorkerBrief MakeBrief() =>
-        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", []);
+        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], []);
 
     private static string CreateTemporaryDirectory()
     {

@@ -256,7 +256,7 @@ public class SmallFixWorkerTests
     }
 
     private static WorkerBrief MakeBrief() =>
-        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", []);
+        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], []);
 
     private static string CreateTemporaryDirectory()
     {
