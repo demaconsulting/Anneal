@@ -11,8 +11,8 @@ namespace DemaConsulting.Anneal.Toolkit.Skills;
 ///     <para>Thread safety: immutable and safe to share.</para>
 /// </remarks>
 /// <exception cref="ArgumentException">
-///     Thrown when the id, summary, or body is null, empty, or blank, or when the tag list is empty or contains
-///     a null, empty, or blank entry.
+///     Thrown when the id, summary, or body is null, empty, or blank; when the id contains a path separator or is
+///     <c>.</c> or <c>..</c>; or when the tag list is empty or contains a null, empty, or blank entry.
 /// </exception>
 public sealed record Skill
 {
@@ -29,13 +29,21 @@ public sealed record Skill
         if (tags.Count == 0)
             throw new ArgumentException("A skill must carry at least one tag.", nameof(tags));
 
+        var trimmedId = id.Trim();
+        if (trimmedId.IndexOfAny(['/', '\\']) >= 0 || trimmedId is "." or "..")
+        {
+            throw new ArgumentException(
+                "A skill id must be a single path segment: it must not contain '/' or '\\' and must not be '.' or '..'.",
+                nameof(id));
+        }
+
         var cleaned = tags
             .Select(tag => string.IsNullOrWhiteSpace(tag)
                 ? throw new ArgumentException("Skill tags must not contain blank entries.", nameof(tags))
                 : tag.Trim())
             .ToArray();
 
-        Id = id.Trim();
+        Id = trimmedId;
         Tags = cleaned;
         Summary = summary.Trim();
         Body = body;

@@ -19,8 +19,8 @@ public class SkillsContractTests
     /// <summary>
     ///     TOOLKIT-38 — <c>file-skill</c> takes an id, a summary, at least one tag, and a body, and writes one
     ///     repository-local skill file under <c>.anneal/skills/</c> in the shared front-matter shape. A missing
-    ///     required field is a usage error, a colliding id fails without overwriting the file, and a successful
-    ///     write round-trips through the shared reader. Verified by
+    ///     required field, or an id that is not a single path segment, is a usage error, a colliding id fails
+    ///     without overwriting the file, and a successful write round-trips through the shared reader. Verified by
     ///     <c>FileSkillWritesAWellFormedRepositoryLocalSkill</c>.
     /// </summary>
     [Fact]
@@ -76,8 +76,22 @@ public class SkillsContractTests
             repository.Root,
             TestContext.Current.CancellationToken);
 
-        // Assert: the file was written in the shared shape, the collision failed without overwriting, and the
-        // missing field was turned away as a usage error.
+        // Act: try to file a skill whose id would resolve to a nested or escaping path.
+        var nestedIdExit = await AnnealTool.RunAsync(
+            [
+                "file-skill",
+                "--id", "sub/nested",
+                "--tags", "contracts",
+                "--summary", "A nested id.",
+                "--body", "Should never be reachable."
+            ],
+            new StringWriter(),
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+
+        // Assert: the file was written in the shared shape, the collision failed without overwriting, the
+        // missing field was turned away as a usage error, and a nested/escaping id never reached the disk.
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitSuccess, successExit),
             () => Assert.Contains("file-skill: wrote .anneal/skills/check-contracts-placeholder-form.md", successOutput.ToString(), StringComparison.Ordinal),
@@ -89,7 +103,11 @@ public class SkillsContractTests
             () => Assert.Contains("file-skill: failed", collisionOutput.ToString(), StringComparison.Ordinal),
             () => Assert.Contains("already exists", collisionOutput.ToString(), StringComparison.Ordinal),
             () => Assert.Equal(writtenText, File.ReadAllText(writtenPath)),
-            () => Assert.Equal(AnnealTool.ExitUsageError, misuseExit));
+            () => Assert.Equal(AnnealTool.ExitUsageError, misuseExit),
+            () => Assert.Equal(AnnealTool.ExitUsageError, nestedIdExit),
+            () => Assert.False(
+                Directory.Exists(Path.Combine(repository.Root, ".anneal", "skills", "sub")),
+                "a nested id must not create any subdirectory under .anneal/skills/"));
     }
 
     /// <summary>

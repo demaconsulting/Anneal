@@ -45,9 +45,10 @@ are queried through one search surface, so a caller never needs to know which ti
 - **TOOLKIT-38** — `file-skill` takes an id, a summary, at least one tag, and a body, and writes a
   repository-local skill file under `.anneal/skills/` in the front-matter shape this document defines.
   It succeeds once the file is written; fails when the id collides with an existing skill file, or the
-  target path falls outside `.anneal/skills/`. A missing id, summary, or body, or an empty tag list, is
-  a usage error under `TOOLKIT-10`. There is no embedded-tier equivalent: a toolkit-wide skill is
-  authored as Toolkit source, never through this action.
+  target path falls outside `.anneal/skills/`. A missing id, summary, or body, an empty tag list, or an
+  id that is not a single path segment (containing `/` or `\`, or equal to `.` or `..`), is a usage
+  error under `TOOLKIT-10`. There is no embedded-tier equivalent: a toolkit-wide skill is authored as
+  Toolkit source, never through this action.
   *Verified by:* `FileSkillWritesAWellFormedRepositoryLocalSkill`
 
 - **TOOLKIT-39** — `search-skills` takes a query and performs lexical search — no embeddings — over
@@ -106,7 +107,10 @@ signal, and this document does not claim otherwise. `TOOLKIT-40` reuses the same
 `RepositoryFacts` already resolves, so skill relevance and routing relevance are read from one source,
 but a skill match is not a standard, and this clause draws no equivalence between them.
 
-All three clauses above are staged in the `TODO.` placeholder form: `search-skills`'s ranking behavior,
-`file-skill`'s collision handling, and context assembly's injection point are implementation decisions
-for whoever builds this, not decided here. This document fixes the boundary and the contract; it does
-not fix the algorithm.
+**Automatic injection renders every match, uncapped, for now** — `TOOLKIT-40` renders every match the
+shared ranking returns, in ranked order, with no separate top-N cap or body-size limit layered on top.
+That is deliberate for now: the corpus each tier holds today is small, and adding a cap before there is
+a real case of an oversized prompt would be exactly the kind of speculative machinery this document
+elsewhere declines to build ahead of need. If a real repository's skill corpus grows large enough to
+make this a problem, bounding the render (not the ranking) is the fix, and belongs in a future revision
+of this clause, not a silent implementation change.

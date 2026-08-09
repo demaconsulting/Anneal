@@ -62,7 +62,8 @@ public sealed class FileSkillOperation : IOperation
     public string Usage =>
         "usage: dotnet anneal file-skill --id <id> --tags <tag[,tag...]> --summary <summary> --body <body> - " +
         "writes one repository-local skill file at .anneal/skills/<id>.md in the shared front-matter shape. " +
-        "Fails when the target file already exists or the resolved path would fall outside .anneal/skills/.";
+        "The id must be a single path segment (no '/' or '\\', not '.' or '..'). Fails when the target file " +
+        "already exists or the resolved path would fall outside .anneal/skills/.";
 
     /// <inheritdoc />
     /// <remarks>
