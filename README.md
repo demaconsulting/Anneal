@@ -254,8 +254,10 @@ maintained using its own agents.
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`src/`, `test/`, `Anneal.slnx`** — the Toolkit, a .NET tool hosting operations that combine
   deterministic checks with model-backed judgement
-- **`.anneal/`** — repository-local runtime configuration the Toolkit resolves: role-to-model
-  mapping, and the arguments a self-hosted run's contract check is invoked with
+- **`.anneal/`** — repository-local runtime configuration the Toolkit resolves (role-to-model mapping,
+  the arguments a self-hosted run's contract check is invoked with) alongside `skills/`, where
+  `file-skill` writes deliberately curated, committed lessons about this repository (see
+  [Skills](docs/architecture/toolkit/skills.md))
 - **`test-process-contract.ps1`** — a fixture suite holding the payload itself to its documented
   behavior; `dotnet anneal check-contracts` is held to its own contract by
   `CheckContractsSubprocessTests` under `test/`, a compiled C# suite that spawns the tool as a
