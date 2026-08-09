@@ -42,8 +42,8 @@ Determine the **mode** first, because three of the four fix the scope automatica
 - **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
   INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
   it does exist, the tree is already written and each stage is bounded implementation work: report
-  INCOMPLETE naming the stage and directing the user to `apply`, which is what lands a stage.
-  Either way you stop here.
+  INCOMPLETE naming the stage and directing the user to re-invoke `dispatch` for it. Either way you
+  stop here.
 - **Change** — continue to Step 2.
 
 For Change mode, do **not** resolve Small Fix vs. Contract Change vs. Structural Change yourself —

@@ -53,7 +53,8 @@ For Contract Change and Structural Change, write the contract before any impleme
 - Add, narrow, or remove clauses per `system-contracts.md`, which owns identifier discipline —
   including what happens to a clause when a system is renamed, split, or merged.
 - Name the contract test each new or changed clause will be verified by, even though it does not
-  exist yet — the `apply` agent is obliged to create it under that name.
+  exist yet — whichever pass implements this clause next, routed through `dispatch`, is obliged to
+  create it under that name.
 - When no implementation will follow — you were invoked directly rather than by `dispatch` — write the
   verifier in the **placeholder form**: an uppercase `TODO.` or `TODO_` opening the verifier string,
   followed by the name the test will take, as in `TODO.InstallCopiesPayloadOnly`. Only that exact form
@@ -89,7 +90,7 @@ When a system is added, removed, renamed, split, or merged, the source and test 
 with it — `src/{System}/` and `test/{System}.Tests/Contract/`, plus the solution file. You do not
 perform that move; you are documentation-only. State it in your report as an implementation
 obligation, naming the directories involved, because `covers` will point at paths that do not exist
-yet until `apply` makes them.
+yet until the implementing pass makes them.
 
 # Step 5 — Prune (MANDATORY for Contract Change and Structural Change)
 
@@ -161,7 +162,7 @@ Run `pwsh ./fix.ps1`, then generate the completion report per the AGENTS.md repo
 
 ## Implementation Obligations
 
-{Contract tests the `apply` agent must create, by name, and the behavior each must prove}
+{Contract tests the implementing pass must create, by name, and the behavior each must prove}
 
 {For Structural Change: source and test directories and the solution file to create, move, or delete. Clauses
 whose identifier changed owner are in the Contract Changes table above; their tests are renamed to
