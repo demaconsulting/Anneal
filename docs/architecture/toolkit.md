@@ -100,10 +100,9 @@ from.
   a contract clause ahead of implementation. [VerifyChange](./toolkit/verify-change.md) is model-backed
   and built on Process, but writes nothing: it runs `DiffCheck`, `DeterministicCheck`, and `Verifier`
   alone, judging a change already made rather than authoring one. [Skills](./toolkit/skills.md) is
-  staged, not yet built: its `TOOLKIT-38`/`39`/`40` clauses describe two deterministic actions —
-  `file-skill` writes a repository-local skill file, and `search-skills` runs lexical matching over it
-  and a toolkit-wide embedded catalog — built on the Runtime alone, with the automatic context-assembly
-  injection they will feed into as the only point that touches a model-backed operation's prompt.
+  built: `file-skill` writes a repository-local skill file, `search-skills` runs lexical matching over
+  it and a toolkit-wide embedded catalog, and compiled workers automatically inject matching skill
+  summaries and bodies into their prompt context before asking a model.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
@@ -281,6 +280,6 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
 - [VerifyChange](./toolkit/verify-change.md) — how `verify-change` judges a completed change against its
   declared scope without authoring anything, and how it sets aside a pre-existing, unrelated
   `check-contracts` gap as advisory rather than blocking
-- [Skills](./toolkit/skills.md) — staged, not yet built: how a repository-local skill filed under
-  `.anneal/skills/` and a toolkit-wide skill embedded in the Toolkit assembly will share one file shape
-  and one lexical search surface, and why a vector index is deferred rather than assumed
+- [Skills](./toolkit/skills.md) — how a repository-local skill filed under `.anneal/skills/` and a
+  toolkit-wide skill embedded in the Toolkit assembly share one file shape and one lexical search
+  surface, and how matching skills are injected automatically into compiled worker prompts
