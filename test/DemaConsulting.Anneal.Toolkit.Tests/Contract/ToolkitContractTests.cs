@@ -91,14 +91,14 @@ public class ToolkitContractTests
             repository.Root,
             TestContext.Current.CancellationToken);
 
-        // Assert: the caller-error code, and the shipped set is exactly the seven actions, each discoverable
+        // Assert: the caller-error code, and the shipped set is exactly the eight actions, each discoverable
         // from the output and each actually reachable rather than merely advertised
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitUsageError, exitCode),
             () => Assert.Contains("unknown action 'no-such-action'", written, StringComparison.Ordinal),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
             () => Assert.Equal(
-                new[] { "check-contracts", "lint-fix", "maintain", "probe-rule-owner", "route", "stage-contract", "stats", "verify-evidence" },
+                new[] { "check-contracts", "lint-fix", "maintain", "probe-rule-owner", "route", "stage-contract", "stats", "verify-change", "verify-evidence" },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(
                 AnnealTool.DefaultOperations,

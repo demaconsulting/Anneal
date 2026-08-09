@@ -79,7 +79,8 @@ public static class AnnealTool
         new StatsOperation(),
         new RouteOperation(),
         new MaintainOperation(),
-        new StageContractOperation()
+        new StageContractOperation(),
+        new VerifyChangeOperation()
     ];
 
     /// <summary>
