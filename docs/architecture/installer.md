@@ -27,7 +27,7 @@ likely to damage somebody's repository.
 
 - **INSTALLER-01** — Installs the payload into a target repository by file copy alone, adding no build
   step, package manager, or runtime dependency to that repository.
-  *Verified by:* `TODO.InstallCopiesPayloadOnly`
+  *Verified by:* `TODO.InstalledLayoutMatchesRepository`
 
 - **INSTALLER-02** — Vendors the template to `.github/template/` in the target repository, so the
   template resolves locally and is pinned to the agents installed beside it.
@@ -48,7 +48,7 @@ likely to damage somebody's repository.
 - **INSTALLER-06** — Lists payload-directory files the payload no longer provides when `-Prune` is
   given, separates those `retired-payload.txt` names as formerly ours from those the repository added
   itself, and deletes only what the user confirms.
-  *Verified by:* `TODO.PruneConfirmsBeforeDeleting`
+  *Verified by:* `TODO.PruneListsRetiredPayloadFiles`
 
 ### Requires
 
@@ -82,11 +82,12 @@ same change.** A line never removed from it is what lets a repository upgrade fr
 skipping it leaves a superseded file installed and selectable, which is worse than not shipping the
 rename at all.
 
-The system has no fixture suite, and that is its most significant gap. Every promise above is currently
-verified by hand, on the entry point every adopter runs first. `CheckContractsSubprocessTests`
-(`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`) is the model to copy — a compiled suite that
-builds throw-away fixtures and spawns the real entry point as a subprocess — and the work is recorded
-in [BACKLOG.md](../../BACKLOG.md).
+The contract is verified by a compiled fixture suite, `InstallSubprocessTests`
+(`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`), modeled on `CheckContractsSubprocessTests`.
+It builds throw-away target-repository fixtures and spawns the real `install.ps1` as a subprocess to
+verify the payload table (including the `AGENTS.pristine.md` to `AGENTS.md` rename), collision
+detection before any write, `-Prune` behavior against `retired-payload.txt`, and installed-layout
+parity against this repository.
 
 ## Decisions
 

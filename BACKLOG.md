@@ -48,13 +48,6 @@ where `architecture-design` will read them. See the Intake admission test in
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
-- **Give `install.ps1` a fixture suite** — it is the entry point every user runs first and it now
-  carries real logic: a payload table that renames `AGENTS.pristine.md` on the way in, collision
-  detection before any write, `-Prune` with the retired-payload list, and a claim that the installed
-  layout matches this repository's own. All of that is currently verified by hand. Model it on
-  `CheckContractsSubprocessTests` (`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`), which
-  exists for the same reason: a compiled suite that builds throw-away fixtures and spawns the real
-  entry point as a subprocess.
 - **Decide whether a narrow class of trivial edits may run inline in `dispatch`** — Step 3 is now
   unconditional: `dispatch` always calls `apply` and never edits directly. That is the safe default,
   because `dispatch` cannot know *in advance* that a sub-agent would add nothing — `apply` selects
@@ -113,11 +106,15 @@ where `architecture-design` will read them. See the Intake admission test in
   scheduled; the router/catalog work lands first.
 - **Design a way to periodically re-validate filed skills, not just accumulate them** — `skills.md`
   has a filing path (`file-skill`) and a search path (`search-skills`) but no re-validation path: once
-  a lesson is filed, nothing ever checks whether it still holds. This is a capability a human maintainer
-  structurally lacks — accumulated notes are rarely re-walked and almost never pruned — but an agent
-  can mechanically enumerate every filed skill and ask "does this still describe the current code and
-  decisions?", correcting or retiring the ones that have aged out rather than letting the corpus
-  monotonically grow. Whether this is a `maintain`-style bounded sweep, a new operation, or a check
-  folded into an existing review pass is undecided; needs its own `architecture-design` pass once the
-  corpus has enough real entries to design against, since designing a review mechanism against a
-  single-entry corpus would be guessing at a shape rather than observing one.
+  a lesson is filed, nothing ever checks whether it still holds, or whether several narrow skills filed
+  separately over time have turned out to be instances of one broader pattern worth consolidating. This
+  is a capability a human maintainer structurally lacks — accumulated notes are rarely re-walked and
+  almost never pruned or merged — but an agent can mechanically enumerate every filed skill and ask both
+  "does this still describe the current code and decisions?" and "do three of these now read as one
+  general practice?", correcting, retiring, or consolidating entries rather than letting the corpus
+  monotonically grow. Neither question can be answered by inspecting one skill in isolation, and the
+  consolidation half specifically can only be recognized in hindsight, once enough separately-filed
+  entries exist to compare - designing this against today's single-entry corpus would be guessing at a
+  shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
+  a check folded into an existing review pass is undecided; needs its own `architecture-design` pass
+  once real entries accumulate.
