@@ -14,8 +14,14 @@ input-files:
   - docs/architecture/toolkit/model-seam.md
   - docs/architecture/toolkit/verify-evidence.md
   - docs/architecture/toolkit/probe-rule-owner.md
+  - docs/architecture/toolkit/lint-fix.md
   - docs/architecture/toolkit/contract-check.md
+  - docs/architecture/toolkit/stats.md
+  - docs/architecture/toolkit/route.md
   - docs/architecture/toolkit/maintain.md
+  - docs/architecture/toolkit/stage-contract.md
+  - docs/architecture/toolkit/verify-change.md
+  - docs/architecture/toolkit/skills.md
 template: template.html
 table-of-contents: true
 number-sections: true

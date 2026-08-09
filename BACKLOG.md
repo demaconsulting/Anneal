@@ -111,10 +111,3 @@ where `architecture-design` will read them. See the Intake admission test in
   so noticing does not become scheduled busywork, and a merge gate — branch, review, and test before
   reaching `main` — since reversibility, not origin, is what makes autonomous initiative safe. Not
   scheduled; the router/catalog work lands first.
-- **`docs/architecture/definition.yaml`'s `input-files` list is stale** — found while staging
-  `skills.md`: the PDF-compilation manifest already omits `toolkit/lint-fix.md`, `toolkit/route.md`,
-  `toolkit/stage-contract.md`, `toolkit/verify-change.md`, and `toolkit/stats.md`, so the compiled
-  collection has been missing five section documents for several stages now, and `skills.md`'s own
-  absence from it is the same pre-existing gap, not a new one. Add all six once at once; nothing
-  currently notices this list going stale as a document is added, which is itself worth a mechanical
-  check (see the related, more general backlog item above on extending `check-contracts`).
