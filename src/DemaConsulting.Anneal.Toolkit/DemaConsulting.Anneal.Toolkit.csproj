@@ -50,6 +50,10 @@
     <InternalsVisibleTo Include="DemaConsulting.Anneal.Toolkit.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Skills\Cards\**\*.md" />
+  </ItemGroup>
+
   <!--
     Model access. Microsoft.Extensions.AI supplies only the message and tool
     transport types the seam carries; GitHub.Copilot.SDK is the single provider

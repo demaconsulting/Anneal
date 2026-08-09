@@ -56,7 +56,7 @@ are queried through one search surface, so a caller never needs to know which ti
   matches ranked by match strength with each match's full body available to the caller. An empty query
   or no skills found is a success with zero matches, never a failure or refusal; a missing query is a
   usage error under `TOOLKIT-10`.
-  *Verified by:* `TODO.SearchSkillsRanksLexicalMatchesAcrossBothTiers`
+  *Verified by:* `SearchSkillsRanksLexicalMatchesAcrossBothTiers`
 
 - **TOOLKIT-40** — Whatever files and topic text a model-backed operation already assembles for its own
   turn, that same input also drives one automatic `search-skills` lookup, and each match's summary and

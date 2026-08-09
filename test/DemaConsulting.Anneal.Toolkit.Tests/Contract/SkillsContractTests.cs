@@ -90,4 +90,78 @@ public class SkillsContractTests
             () => Assert.Equal(writtenText, File.ReadAllText(writtenPath)),
             () => Assert.Equal(AnnealTool.ExitUsageError, misuseExit));
     }
+
+    /// <summary>
+    ///     TOOLKIT-39 — <c>search-skills</c> performs lexical search across repository-local and embedded skills,
+    ///     ranking matches by match strength and returning each match's full body. An empty query succeeds with
+    ///     zero matches, and a missing query is a usage error. Verified by
+    ///     <c>SearchSkillsRanksLexicalMatchesAcrossBothTiers</c>.
+    /// </summary>
+    [Fact]
+    public async Task SearchSkillsRanksLexicalMatchesAcrossBothTiers()
+    {
+        // Arrange: one repository-local skill that matches the query weakly beside the embedded built-in skill
+        // that matches it more strongly.
+        using var repository = new TemporaryRepository();
+        Directory.CreateDirectory(Path.Combine(repository.Root, ".anneal", "skills"));
+        File.WriteAllText(
+            Path.Combine(repository.Root, ".anneal", "skills", "todo-test-names.md"),
+            """
+            ---
+            id: todo-test-names
+            tags:
+              - tests
+              - contracts
+            summary: A real test name may contain Todo without becoming a planned obligation.
+            ---
+
+            A literal Todo in a real boundary test name is still just that test's name.
+            """);
+
+        var operation = new SearchSkillsOperation(repository.Root);
+
+        // Act: search for a TODO placeholder verifier, then ask the zero-result and missing-query cases.
+        var output = new StringWriter();
+        var exitCode = await AnnealTool.RunAsync(
+            ["search-skills", "TODO placeholder verifier"],
+            output,
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+        var report = (await operation.ExecuteAsync(
+            ["TODO placeholder verifier"],
+            new StringWriter(),
+            TestContext.Current.CancellationToken)).FindingAs<SearchSkillsReport>();
+
+        var emptyQueryOutput = new StringWriter();
+        var emptyQueryExit = await AnnealTool.RunAsync(
+            ["search-skills", ""],
+            emptyQueryOutput,
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+
+        var missingQueryExit = await AnnealTool.RunAsync(
+            ["search-skills"],
+            new StringWriter(),
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+        var matches = report?.Matches ?? [];
+
+        // Assert: both tiers were searched, the stronger embedded match ranked first, the full body is
+        // available, and the empty-query and missing-query cases follow the contract.
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.NotNull(report),
+            () => Assert.Equal(2, matches.Count),
+            () => Assert.Equal("check-contracts-placeholder-form", matches[0].Id),
+            () => Assert.Equal("todo-test-names", matches[1].Id),
+            () => Assert.Contains("unfulfilled obligation", matches[0].Body, StringComparison.Ordinal),
+            () => Assert.Contains("check-contracts-placeholder-form", output.ToString(), StringComparison.Ordinal),
+            () => Assert.Contains("todo-test-names", output.ToString(), StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitSuccess, emptyQueryExit),
+            () => Assert.Contains("0 match(es)", emptyQueryOutput.ToString(), StringComparison.Ordinal),
+            () => Assert.Equal(AnnealTool.ExitUsageError, missingQueryExit));
+    }
 }

@@ -101,7 +101,7 @@ public class ToolkitContractTests
                 new[]
                 {
                     "check-contracts", "file-skill", "lint-fix", "maintain", "probe-rule-owner", "route",
-                    "stage-contract", "stats", "verify-change", "verify-evidence"
+                    "search-skills", "stage-contract", "stats", "verify-change", "verify-evidence"
                 },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(
