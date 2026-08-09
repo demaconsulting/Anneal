@@ -113,6 +113,17 @@ hardest control flow to encode — not because they are exempt. Along the way, A
 capabilities of a separate, earlier autonomous-coding project built under a rigid regulated process
 that could not evolve, and replaces it.
 
+Once absorbed, the catalog is not only reactive. Work does not have to arrive from outside — the
+same catalog that processes a request can originate one, proposing a Maintenance sweep, an
+architectural review, or a documentation pass from its own inspection of the repository, on the same
+terms as anything a person asks for. Origination does not relax the terms; whether a change is safe
+to make depends on whether it can reach `main` only through the ordinary route of branch, review, and
+test, never on whether a person or the catalog itself proposed it — reversibility is the guard, not
+authorship. The one place that guard is insufficient is a change that leaves version control's own
+blast radius: a published release, an install into another repository, or a tool grant with a
+real-world effect outside this repository. Those keep asking for a person, not because judgement
+elsewhere is untrusted, but because nothing short of a person can be rolled back.
+
 Routing is what makes that catalog affordable. A planning-and-review process that runs on every
 change multiplies the cost of every change, which is exactly the mechanism this repository refuses;
 the same process run only on work that earns it is proportionality, not overhead. That is the same
@@ -137,6 +148,13 @@ order to *remove* per-change cost is the point of this direction, not a case aga
 One further item is held at lower confidence than the rest, and named here because it shapes
 thinking below this line without being committed: an on-premises model provider. It would be
 re-decided when a stage that depends on it is approached.
+
+A further item is held at the same low confidence: whether the catalog eventually chooses its own
+forward direction, rather than a person choosing it — not proposing a bounded sweep within a category
+already named above, but selecting which capability to build next. This is not committed here. It is
+conditional on first demonstrating, at the narrower scope above, that self-originated work stays
+reliably positive under long-term unattended maintenance and planning; that scope has to be earned
+and observed before this one is even re-decided, let alone granted.
 
 How the journey is run is not part of this direction and is deliberately not scheduled here.
 [MIGRATION.md](MIGRATION.md) owns it, and plans one stage at a time.

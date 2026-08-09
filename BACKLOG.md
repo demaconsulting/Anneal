@@ -102,3 +102,12 @@ where `architecture-design` will read them. See the Intake admission test in
   format and the xUnit `Fact` and `Theory` attribute names are overridable by a discovery profile,
   but a repository that has not written one inherits the single names. Neither is held by anything but
   this note.
+- **Document the process flowchart once the compiled catalog stabilizes** — the bunny-ears/toolkit-
+  belly shape (two conversational agents feeding a Router that selects among a catalog of compiled
+  workers) has no written home yet; `process.md`'s diagram covers only what has landed so far.
+  Deferred until the catalog stops changing shape stage to stage.
+- **Design the origination path before self-triggered work is enabled** — a Maintenance sweep,
+  architectural review, or documentation pass the catalog proposes on its own needs a cadence guard,
+  so noticing does not become scheduled busywork, and a merge gate — branch, review, and test before
+  reaching `main` — since reversibility, not origin, is what makes autonomous initiative safe. Not
+  scheduled; the router/catalog work lands first.
