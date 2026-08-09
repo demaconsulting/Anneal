@@ -17,7 +17,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     are on the exit code and the written output. Nothing here reaches inside <see cref="RouteOperation" />
 ///     or <c>Process.Router</c>.
 /// </remarks>
-public class Toolkit262728DecompositionContractTests
+public class DecompositionContractTests
 {
     /// <summary>
     ///     TOOLKIT-26 — the mandatory cumulative check runs, and must clear, before any phase of a decomposed

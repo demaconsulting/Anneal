@@ -16,7 +16,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     are on the exit code and the written output. Nothing here reaches inside <see cref="RouteOperation" />
 ///     or <c>Process.Router</c>.
 /// </remarks>
-public class Toolkit25EffortContractTests
+public class EffortContractTests
 {
     /// <summary>
     ///     TOOLKIT-25 — the route oracle's classified Effort surfaces on both a completed run and a run that

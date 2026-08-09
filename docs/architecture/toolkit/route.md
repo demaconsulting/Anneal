@@ -40,7 +40,7 @@ the report separately from the completion fields.
 - **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
   the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and
   reports the classified value alongside whatever outcome the run reaches.
-  *Verified by:* `Toolkit25EffortContractTests.RouteReportsClassifiedEffort`
+  *Verified by:* `EffortContractTests.RouteReportsClassifiedEffort`
 
 - **TOOLKIT-26** — When `route` classifies a work item's Effort as Massive, it does not select a worker
   for that item directly. It decomposes the item into phases and clears a mandatory cumulative check,
@@ -48,21 +48,21 @@ the report separately from the completion fields.
   does `route` re-route each phase through the same Router. Every generated phase's declared file scope
   is a strict subset of the file scope the original item's own classification already cleared — never
   equal to it or larger.
-  *Verified by:* `Toolkit262728DecompositionContractTests.CumulativeCheckClearsBeforeAnyPhaseIsRouted`,
-  `Toolkit262728DecompositionContractTests.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
+  *Verified by:* `DecompositionContractTests.CumulativeCheckClearsBeforeAnyPhaseIsRouted`,
+  `DecompositionContractTests.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
 
 - **TOOLKIT-27** — Any phase whose declared file scope touches `README.md`, anything under
   `docs/architecture/`, `CONSTRAINTS.md`, or `BACKLOG.md` forces the same escalation outcome `TOOLKIT-23`
   already defines, with a recommended next step naming the file, regardless of what the cumulative check
   `TOOLKIT-26` runs concludes for the phase set as a whole.
-  *Verified by:* `Toolkit262728DecompositionContractTests.PhaseTouchingProtectedFileForcesEscalation`
+  *Verified by:* `DecompositionContractTests.PhaseTouchingProtectedFileForcesEscalation`
 
 - **TOOLKIT-28** — Decomposition recurses through the same Router at most once beyond a Massive item's
   own first decomposition: a phase produced by decomposing a Massive item may itself be decomposed again
   only if it too classifies as Massive, and the phases produced by that second decomposition are never
   decomposed further — routing one of them as Massive again reaches the same escalation outcome
   `TOOLKIT-23` defines, with a recommended next step, instead of decomposing it.
-  *Verified by:* `Toolkit262728DecompositionContractTests.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
+  *Verified by:* `DecompositionContractTests.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
 
 ### Requires
 

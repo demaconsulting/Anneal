@@ -97,7 +97,9 @@ from.
   a declared-bound Maintenance work item directly against `SmallFixWorker`, with no routing oracle and
   no Router of its own. [StageContract](./toolkit/stage-contract.md) is model-backed and writes to the
   repository, but runs `DocumentAuthor` alone — no `Developer`, no `Verifier`, and no Router — to stage
-  a contract clause ahead of implementation.
+  a contract clause ahead of implementation. [VerifyChange](./toolkit/verify-change.md) is model-backed
+  and built on Process, but writes nothing: it runs `DiffCheck`, `DeterministicCheck`, and `Verifier`
+  alone, judging a change already made rather than authoring one.
 - **[Runtime](./toolkit/runtime.md)** is the shared execution every operation is built from: category
   and gating, the outcome-and-exit-code model, the structured invocation record, the finding an
   operation returns beside its outcome, and the asynchronous boundary carrying the caller's
@@ -272,3 +274,6 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
   stage a contract clause ahead of implementation, and how the architecture-tree check and the
   well-formed-clause check escalate or fail a run that reached outside its bound or left the clause
   malformed
+- [VerifyChange](./toolkit/verify-change.md) — how `verify-change` judges a completed change against its
+  declared scope without authoring anything, and how it sets aside a pre-existing, unrelated
+  `check-contracts` gap as advisory rather than blocking

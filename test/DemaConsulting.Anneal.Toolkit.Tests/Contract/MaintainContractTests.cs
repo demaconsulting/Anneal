@@ -16,7 +16,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     are on the exit code and the written output. Nothing here reaches inside <see cref="MaintainOperation" />
 ///     or <c>Process.SmallFixWorker</c>.
 /// </remarks>
-public class Toolkit293031MaintainContractTests
+public class MaintainContractTests
 {
     /// <summary>
     ///     TOOLKIT-29 — <c>maintain</c> takes a Maintenance work item and a declared file-scope bound and runs it

@@ -18,7 +18,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 ///     are on the exit code and the written output. Nothing here reaches inside
 ///     <see cref="StageContractOperation" /> or <c>Primitives.DocumentAuthor</c>.
 /// </remarks>
-public class Toolkit323334StageContractContractTests
+public class StageContractContractTests
 {
     private const string WellFormedTodoClause = """
                                                  ## Contract
