@@ -70,8 +70,8 @@ Routing once classified:
 | --- | --- |
 | Intake | `dispatch` appends to `BACKLOG.md` or README assumptions, or proposes a constraint; no other agent runs |
 | Change | `dispatch` runs the compiled `route` action, which classifies scope and authors and verifies the work |
-| Maintenance | `apply`, within a declared bound |
-| Migration | `architecture-design` → approved `MIGRATION.md` → staged `apply` work |
+| Maintenance | `dispatch` runs the compiled `maintain` action, within a declared bound |
+| Migration | `architecture-design` → approved `MIGRATION.md` → staged implementation work, re-invoking `dispatch` per stage |
 
 Modes and scope may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
@@ -132,7 +132,6 @@ Delegate only for:
 
 - **Any non-trivial change** → `dispatch` (classifies the mode and scope, then routes to the minimum
   process)
-- **Scoped implementation with a known approach** → `apply`
 - **Contract or architecture tree changes** → `architecture-update`
 - **Verifying a completed change against its scope** → `scope-check`
 - **Repository layout versus template** → `template-sync`

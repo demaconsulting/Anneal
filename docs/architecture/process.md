@@ -143,7 +143,7 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   It must not call it, because that agent's method is a live interview and a headless invocation would
   invent the answers.
 
-`architecture-update` and `scope-check` stay in the mechanical zone as directly invocable agents —
+`architecture-update` and `scope-check` both stay in the mechanical zone as directly invocable agents —
 `helper` still calls `scope-check` to verify a finished change — but `dispatch` no longer calls either
 for Change or Maintenance mode; see Decisions below.
 
@@ -155,10 +155,12 @@ zone is where behavioral verification is spent.
 For the span of the migration [MIGRATION.md](../../MIGRATION.md) carries, a third shape coexists with
 these two rather than replacing either: a compiled Router selects one of a small worker catalog
 (`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
-[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for every Change-mode request (see Decisions
-below); `architecture-update` and `scope-check` keep their edges to `Tree` above for the jobs the Router
-does not cover — Maintenance, Migration, and any Change-mode invocation run through the prose path
-directly rather than through `dispatch`.
+[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, and for
+Maintenance mode via `maintain` (see Decisions below); `architecture-update` keeps its edge to `Tree`
+above for the one job neither compiled action covers yet — staging a contract clause ahead of
+implementation — and `scope-check` keeps its edge from `Helper` for verifying a diff that never went
+through `route` or `maintain` at all. Both are the next named retirement targets, not permanent
+carve-outs; see Decisions below.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —

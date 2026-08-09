@@ -165,7 +165,7 @@ public class Toolkit323334StageContractContractTests
         Assert.Multiple(
             () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
             () => Assert.Contains("stage-contract: failed", written, StringComparison.Ordinal),
-            () => Assert.Contains("not well-formed", written, StringComparison.Ordinal),
+            () => Assert.Contains("did not pass after staging", written, StringComparison.Ordinal),
             () => Assert.Contains("does not gate", written, StringComparison.Ordinal));
     }
 

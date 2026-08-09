@@ -24,13 +24,12 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///         clause, the same "Scope already fixed before this action is reached" reasoning
 ///         <see cref="MaintainOperation" /> already applies to Maintenance mode.
 ///     </para>
-///     <para>
+/// <para>
 ///         <b>What this operation adds beyond composing an existing primitive.</b> Two mechanical, post-run
-///         checks against what <see cref="DocumentAuthor" /> actually changed, never against its own self-report:
-///         every changed file must fall under <c>docs/architecture/</c> — the mirror image of
-///         <see cref="ProtectedPathTripwire" />'s rule for Maintenance, since this action's whole job is to touch
-///         the architecture tree and nothing else — and the staged clause must pass a non-strict
-///         <c>check-contracts</c> run, proving it is well-formed even though it is deliberately unfulfilled.
+///         checks against what <see cref="DocumentAuthor" /> reports having changed: every changed file must
+///         fall under <c>docs/architecture/</c> — the mirror image of <see cref="ProtectedPathTripwire" />'s
+///         rule for Maintenance, since this action's whole job is to touch the architecture tree and nothing
+///         else — and a non-strict, repository-wide <c>check-contracts</c> run must exit clean afterward.
 ///         Non-strict, not <see cref="ContractCheckRunner" />'s default, because a staged clause's unfulfilled
 ///         obligation is exactly what <c>-Strict</c> would otherwise promote from a warning to an error — see
 ///         <c>system-contracts.md</c>'s own "use <c>-Strict</c> once implementation is complete" rule.
@@ -127,10 +126,11 @@ public sealed class StageContractOperation : IOperation
         "usage: dotnet anneal stage-contract <work item> - runs <work item> directly against DocumentAuthor, " +
         "asking no routing oracle and running no Developer or Verifier pass, to write or update a contract " +
         "clause in docs/architecture/ using system-contracts.md's TODO. planned-obligation form, ahead of any " +
-        "implementation. Succeeds when a clause was authored and a non-strict check-contracts run reports it " +
-        "well-formed; escalates when DocumentAuthor names a reroute, a protected-path write is refused, or the " +
-        "actual changes reach outside docs/architecture/; fails when the staged clause is not well-formed, " +
-        "DocumentAuthor's file-count budget is exceeded, or no model could be reached.";
+        "implementation. Succeeds when a clause was authored and a non-strict, repository-wide check-contracts " +
+        "run exits clean; escalates when DocumentAuthor names a reroute, a protected-path write is refused, or " +
+        "the reported changes reach outside docs/architecture/; fails when the repository's contract check " +
+        "does not pass after staging, DocumentAuthor's file-count budget is exceeded, or no model could be " +
+        "reached.";
 
     /// <inheritdoc />
     /// <remarks>
@@ -188,8 +188,10 @@ public sealed class StageContractOperation : IOperation
 
         // The mirror image of ProtectedPathTripwire's rule for Maintenance: this action's whole job is to
         // touch the architecture tree and nothing else, so a change reaching outside it is a stop condition
-        // rather than an unqualified success, checked against the actual changed-file list, never against
-        // DocumentAuthor's own self-report.
+        // rather than an unqualified success. Checked against DocumentAuthor's reported changed-file list,
+        // normalized against the repository root the same way ProtectedPathTripwire normalizes a declared
+        // file scope - no ledger of the model's real tool calls exists yet, so this report is the only
+        // evidence available, the same evidence maintain's own equivalent check reasons from.
         var outOfScopeFile = change.FilesChanged.FirstOrDefault(file => !IsUnderArchitectureTree(file));
         if (outOfScopeFile is not null)
         {
@@ -202,14 +204,16 @@ public sealed class StageContractOperation : IOperation
         }
 
         // Non-strict: implementation is deliberately not yet complete, so an unfulfilled planned obligation
-        // must not be promoted from a warning to an error. A non-zero exit here means the staged clause itself
-        // is malformed (for example, not a well-formed clause ID, or missing a *Verified by:* line entirely),
-        // which is a real defect this operation can catch mechanically.
+        // must not be promoted from a warning to an error. This runs against the whole repository, not
+        // scoped to this run's own changes, so a non-zero exit here can also mean a pre-existing unrelated
+        // failure elsewhere in the tree - a coarser signal than "the clause this run staged is malformed",
+        // but the only one available without building check-contracts a change-scoped mode it does not
+        // otherwise need.
         var check = await ContractCheckRunner.RunAsync(_repositoryRoot, cancellationToken, strict: false)
             .ConfigureAwait(false);
         if (check.ExitCode != 0)
         {
-            output.WriteLine("stage-contract: failed - the staged clause is not well-formed:");
+            output.WriteLine("stage-contract: failed - the repository's contract check did not pass after staging:");
             output.WriteLine(check.Output);
             return new OperationResult(
                 OperationOutcome.Failed,
@@ -224,9 +228,20 @@ public sealed class StageContractOperation : IOperation
             new StageContractReport(change.FilesChanged, change.Summary, null, null, null));
     }
 
-    private static bool IsUnderArchitectureTree(string file)
+    /// <summary>
+    ///     Whether <paramref name="file" /> falls under <c>docs/architecture/</c> in this run's repository,
+    ///     resolved the same way <see cref="ProtectedPathTripwire" /> resolves a declared file scope: normalized
+    ///     against the repository root rather than matched as a raw string, so a relative path with <c>./</c> or
+    ///     <c>../</c> segments, or an absolute path DocumentAuthor happened to report, cannot slip past a
+    ///     literal-prefix check that a real model's own output would defeat.
+    /// </summary>
+    private bool IsUnderArchitectureTree(string file)
     {
-        var normalized = file.Replace('\\', '/').TrimStart('/').ToLowerInvariant();
-        return normalized.StartsWith("docs/architecture/", StringComparison.Ordinal);
+        var candidate = Path.IsPathRooted(file) ? file : Path.Combine(_repositoryRoot, file);
+        var fullPath = Path.GetFullPath(candidate);
+        var relative = Path.GetRelativePath(_repositoryRoot, fullPath).Replace('\\', '/');
+
+        return !relative.StartsWith("..", StringComparison.Ordinal) &&
+               relative.StartsWith("docs/architecture/", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -43,17 +43,24 @@ Maintenance mode.
   having changed and forces escalation, naming the offending file, when any of them falls outside
   `docs/architecture/` — the mirror image of `ProtectedPathTripwire`'s rule for Maintenance
   (`TOOLKIT-31`), since this action's whole job is to touch the architecture tree and nothing else.
-  Checked against the actual changed-file list, never against `DocumentAuthor`'s own self-report.
+  Checked against `DocumentAuthor`'s reported changed-file list, normalized against the repository
+  root the same way `ProtectedPathTripwire` normalizes a declared file scope, rather than trusted as a
+  literal string — no ledger of the model's real tool calls is consulted, since none yet exists;
+  `DocumentAuthor`'s own report is the only evidence this check has, the same evidence `maintain`'s
+  own equivalent check (`TOOLKIT-30`) reasons from.
   *Verified by:* `StageContractEscalatesWhenActualChangesReachOutsideTheArchitectureTree`
 
 - **TOOLKIT-34** — After the architecture-tree check clears, `stage-contract` runs a non-strict
-  `check-contracts` pass against the repository — the repository's configured arguments with any
-  `-Strict` entry filtered out — and fails, naming what it found, rather than reporting an unqualified
-  success, when the staged clause is not well-formed. Non-strict, because a staged clause's unfulfilled
+  `check-contracts` pass against the whole repository — the repository's configured arguments with any
+  `-Strict` entry filtered out — and fails, printing what it found, rather than reporting an unqualified
+  success, when that pass does not exit clean. Non-strict, because a staged clause's unfulfilled
   obligation is exactly what `-Strict` would otherwise promote from a warning to an error, per
   `system-contracts.md`'s own "use `-Strict` once implementation is complete" rule; a genuinely
   malformed document (for example, missing its `## Contract` section) still fails, since `check-contracts`
-  fails closed regardless of `-Strict`.
+  fails closed regardless of `-Strict`. Because the check runs repository-wide rather than scoped to
+  this run's own changes, a pre-existing unrelated failure elsewhere in the tree also fails this action —
+  a coarser signal than "the clause this run staged is malformed", but the only one available without
+  building `check-contracts` a change-scoped mode it does not otherwise need.
   *Verified by:* `StageContractFailsWhenTheStagedClauseIsNotWellFormed`
 
 ### Requires
