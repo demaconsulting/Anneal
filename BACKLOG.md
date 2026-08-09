@@ -111,12 +111,11 @@ where `architecture-design` will read them. See the Intake admission test in
   so noticing does not become scheduled busywork, and a merge gate — branch, review, and test before
   reaching `main` — since reversibility, not origin, is what makes autonomous initiative safe. Not
   scheduled; the router/catalog work lands first.
-- **Give agents a place to file tactical lessons, distinct from the contract tree** —
-  `docs/architecture/`'s Decisions sections carry the reasoning behind a promise, and
-  `.anneal/records/`/`transcripts/` carry raw telemetry, but nothing keeps a curated, atomic lesson
-  that never rises to a promise (a pattern that works, a check that's easy to misread) for a later
-  agent to find. Filed deliberately, never scraped from `.agent-logs/` — the same mistake the
-  `agent-metrics.ps1` item above avoids. Start with tagged files under `.anneal/skills/` and lexical
-  search, not embeddings; a vector index is a later stage, earned once lexical search starts missing
-  relevant entries, not assumed up front. A Toolkit capability every installed repository would get,
-  not something specific to this one.
+- **Give agents a place to file tactical lessons, distinct from the contract tree** — architecture
+  staged as `docs/architecture/toolkit/skills.md` (`TOOLKIT-38`/`39`/`40`, all `TODO.` placeholders):
+  two tiers sharing one file shape and one lexical search surface — repository-local skills written at
+  runtime under `.anneal/skills/`, and toolkit-wide skills hand-authored as embedded Toolkit source,
+  à la `DemaConsulting.Jeeves`'s knowledge-card catalog. Lexical search only; a vector index stays
+  deferred until lexical search is observed missing entries. Implementation (the `file-skill` and
+  `search-skills` operations, the embedded card loader, and the context-assembly wiring) is not yet
+  built.
