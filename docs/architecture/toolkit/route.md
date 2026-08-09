@@ -85,7 +85,7 @@ positional style (`probe-rule-owner <rule>`); changed-file hints follow it posit
 
 **Every charter is authored fresh, not lifted from a prose agent** — unlike `lint-fix`, which duplicated
 `lint-fix.agent.md`'s own guidance because a prose equivalent already existed, the Router and its three
-workers have no prose predecessor: `dispatch` and `apply` play a comparable role today, but their
+workers have no prose predecessor: `dispatch` played a comparable role before `apply` retired, but its
 instructions are written for a conversational agent reading a whole standards tree, not for the bounded
 typed questions a route oracle and a worker's own primitives answer. The route charter names each
 catalog worker by its exact key so the oracle's answer and `Router`'s own catalog lookup agree by

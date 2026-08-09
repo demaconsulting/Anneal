@@ -233,12 +233,9 @@ restore already-promised behavior, dependency bumps, and test additions.
   fact — one whose correction does not add, remove, or rename a system, or change a system's stated
   relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
   list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
-- **Agents**: `apply` alone.
+- **Agents**: `dispatch`, which runs it through the compiled toolkit's `route` action.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
   untouched — that is the proof the scope is correct.
-
-This should be the large majority of changes. A process where Small Fix is rare has a contract
-pitched at the wrong altitude.
 
 # Contract Change
 
@@ -246,8 +243,9 @@ A clause is added, narrowed, removed, or given different meaning; or the system'
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
 - **Documentation**: `docs/architecture/{system}.md` only.
-- **Agents**: `architecture-update` updates the contract **first**, then `apply` implements against
-  it, then `scope-check` verifies.
+- **Agents**: `dispatch`, which runs it through `route` — one worker updates the contract,
+  implements, and verifies in a single pass. `architecture-update` is invoked directly only to stage
+  the contract ahead of implementation, as a deliberate planned obligation.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
 - **Pruning**: `architecture-update` performs the section-document prune check for the affected
   system.
@@ -259,8 +257,7 @@ boundary between systems changes.
 
 - **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience changed — usually it has not.
-- **Agents**: `architecture-update` updates `overview.md` and the affected system documents, then
-  `apply`, then `scope-check`.
+- **Agents**: `dispatch`, which runs it through the compiled toolkit's `route` action.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
 

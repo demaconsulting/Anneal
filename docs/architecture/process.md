@@ -115,7 +115,6 @@ flowchart TD
     subgraph Mechanical["Mechanical zone — routed, never converses"]
         Dispatch[dispatch]
         ArchUpdate[architecture-update]
-        Apply[apply]
         ScopeCheck[scope-check]
         TemplateSync[template-sync]
     end
@@ -126,12 +125,11 @@ flowchart TD
     User --> ArchDesign
     Helper --> Dispatch
     Helper --> TemplateSync
-    Dispatch --> Apply
+    Helper --> ScopeCheck
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
     Tree ==> ArchUpdate
-    Tree ==> Apply
 
     linkStyle 5 stroke-dasharray: 3 3
 ```
@@ -146,8 +144,8 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   invent the answers.
 
 `architecture-update` and `scope-check` stay in the mechanical zone as directly invocable agents —
-`helper` still calls `scope-check` to verify a finished change, and both apply to Migration-mode work —
-but `dispatch` no longer calls either for Change mode; see Decisions below.
+`helper` still calls `scope-check` to verify a finished change — but `dispatch` no longer calls either
+for Change or Maintenance mode; see Decisions below.
 
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
 instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
@@ -263,12 +261,27 @@ reserved for sub-agent invocation with a consumed report, and a fourth edge kind
 a compiled command" would document machinery this system does not decide, since Toolkit already owns
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 
-**`dispatch`'s edges to `architecture-update` and `scope-check` were removed, not redrawn** — at
-Migration stage S11, `dispatch` began calling `route` directly for every Change-mode request instead of
-chaining `architecture-update` → `apply` → `scope-check`; the diagram above reflects that. Both agents
-keep their edges from `Tree`, because `architecture-update` still writes it and `scope-check` still
-reads it for the jobs `route` does not cover: Maintenance, Migration, and any Change-mode invocation run
-through the prose path directly.
+**`dispatch`'s edges to `architecture-update`, `apply`, and `scope-check` were removed, not redrawn** —
+at Migration stage S11, `dispatch` began calling `route` directly for every Change-mode request instead
+of chaining `architecture-update` → `apply` → `scope-check`; at S15, its Maintenance-mode edge moved to
+`maintain` the same way. The diagram above reflects both. `architecture-update` keeps its edge to
+`Tree` and `scope-check` keeps its edge from `Helper`, because each still does a job neither `route` nor
+`maintain` covers: `architecture-update` writes a contract clause *ahead of* implementation, as a
+deliberate planned obligation — `route`'s Contract Change and Structural Change workers always compose
+document authoring, code authoring, and verification together in one atomic pass, with no "write the
+promise, implement it later" mode. `scope-check` verifies a diff that never went through `route` or
+`maintain` at all — a hand-written change, an externally contributed one, or anything predating this
+migration — where `route`'s own verification step only ever judges what its own pass just authored.
+
+**`apply.agent.md` was retired at Migration stage S16**, once its last two callers — `helper`'s "a
+specific fix already reported" row and `dispatch`'s own stale Migration-mode line — were rewired to
+`dispatch` itself, following exactly the `lint-fix` precedent above: the node is removed once nothing
+calls it, not kept as an unused fallback. Its own removal from the diagram left `architecture-update`
+and `scope-check` each with one fewer edge, adjusted above; neither agent's own remaining job changed.
+`architecture-update` and `scope-check` are not exempt from the same fate — each is the next named
+target once a compiled equivalent for its remaining job exists (a design-only path built from
+`DocumentAuthor` alone, and a standalone verify path built from `Verifier` and the existing
+`DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or

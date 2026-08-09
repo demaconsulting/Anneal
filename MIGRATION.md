@@ -101,7 +101,64 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-No stage is currently in flight. S15 landed and was validated this session.
+### S16 — Retire `apply.agent.md` — landed
+
+**Why now.** Every caller `apply.agent.md` used to have is gone: S11 moved `dispatch`'s Change-mode
+edge to `route`; S15 moved its Maintenance-mode edge to `maintain`; this session's own pass fixed the
+last two stragglers — `helper.agent.md`'s "a specific fix already reported" row (now `dispatch`) and
+`dispatch.agent.md`'s own stale Migration-mode line (now points back at `dispatch`, since a stage's
+implementation is ordinary Change/Maintenance work). Nothing left in this repository names `apply` as
+the agent to call. `architecture-update.agent.md`'s two remaining `apply` mentions were reworded to
+"the implementing pass, routed through `dispatch`" in the same pass, since `apply` is not that pass
+for anything `dispatch` reaches.
+
+**What does not retire alongside it, and why — this is not a loophole, it is two named future
+stages.** `architecture-update.agent.md` and `scope-check.agent.md` keep a real, distinct job neither
+`route` nor `maintain` covers today:
+
+- **`architecture-update`** writes a contract clause *ahead of* implementation, as a deliberate planned
+  obligation (the `TODO.` form `system-contracts.md` defines) — this Migration itself depends on that
+  shape (`TOOLKIT-29/30/31` landed staged this way, implemented later). `route`'s Contract Change and
+  Structural Change workers always compose `DocumentAuthor` and `Developer` (and `Verifier`) together
+  in one atomic pass; there is no "write the promise, implement it later" mode today.
+- **`scope-check`** verifies a diff that never went through `route`/`maintain` at all — a hand-written
+  change, an externally contributed one, or anything predating this migration. `route`'s `Verifier`
+  only ever judges what its own pass just authored.
+
+Both gaps are buildable from primitives that already exist and are already proven inside
+`ContractChangeWorker`/`StructuralChangeWorker` — `DocumentAuthor` alone (a design-only path) and
+`Verifier` plus the existing `DeterministicCheck` pair (a standalone verify path) — not a new kind of
+machinery. They are named as the next two stages after this one, not as permanent exceptions: the
+destination this file states is that every prose agent is eventually absorbed, and these two are two
+more items on that list, in the order their own compiled equivalent gets built.
+
+**Step 1 — delete `.github/agents/apply.agent.md`.**
+
+**Step 2 — update `docs/architecture/process.md`**, mirroring exactly how `lint-fix.agent.md`'s own
+retirement was recorded (its Decisions entry, referenced above): remove the `Apply` node and its edges
+from the Composition diagram, and add a Decisions entry stating the retirement and why, replacing the
+stale "Maintenance, Migration, and any Change-mode invocation run through the prose path directly"
+reasoning for `architecture-update`/`scope-check`'s remaining edges with the precise two-job reasoning
+above (Maintenance is no longer one of those jobs — S15 closed it).
+
+**Step 3 — confirm `PROCESS-03`'s tripwire does not trip**: no standard is named only by
+`apply.agent.md` (`change-classification.md` is named directly by every other mechanical agent; the
+product-code standards are reached only through `AGENTS.md`'s Standards Application matrix, never by
+any single agent prompt, so removing one agent cannot orphan them).
+
+**Exit conditions:** `apply.agent.md` deleted; `process.md`'s diagram and Decisions section describe
+the resulting shape accurately, with no stale reasoning left; `pwsh ./build.ps1` and `pwsh ./lint.ps1`
+both pass, including `PROCESS-03`'s `NoOrphanedStandards` check.
+
+**Landed.** All three steps completed: `apply.agent.md` deleted; `process.md`'s diagram and Decisions
+section rewritten (also fixing a pre-existing inconsistency — a `ScopeCheck` node with no edges despite
+adjacent prose claiming `helper` still calls it); `change-classification.md`'s three "Agents:" lines
+renamed from the old `architecture-update` → `apply` → `scope-check` chain to `dispatch`/`route`, with
+`architecture-update`'s standalone staging use kept explicit; `route.md`'s one remaining present-tense
+"`apply` play[s] a comparable role today" line corrected to past tense. `PROCESS-03`'s
+`NoOrphanedStandards` passed on the first run — the predicted safety held. Trimming
+`change-classification.md` was needed to keep `WorstCaseInvocationWithinBudget` under 20000 (peaked at
+20028, landed at 19983). 353/355 tests, `lint.ps1` exit 0.
 
 ### S15 — Dispatch hands Maintenance-mode work to `maintain` — landed
 
