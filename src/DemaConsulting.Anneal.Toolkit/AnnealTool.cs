@@ -77,6 +77,7 @@ public static class AnnealTool
         new CheckContractsOperation(),
         new LintFixOperation(),
         new StatsOperation(),
+        new FileSkillOperation(),
         new RouteOperation(),
         new MaintainOperation(),
         new StageContractOperation(),

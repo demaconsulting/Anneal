@@ -48,7 +48,7 @@ are queried through one search surface, so a caller never needs to know which ti
   target path falls outside `.anneal/skills/`. A missing id, summary, or body, or an empty tag list, is
   a usage error under `TOOLKIT-10`. There is no embedded-tier equivalent: a toolkit-wide skill is
   authored as Toolkit source, never through this action.
-  *Verified by:* `TODO.FileSkillWritesAWellFormedRepositoryLocalSkill`
+  *Verified by:* `FileSkillWritesAWellFormedRepositoryLocalSkill`
 
 - **TOOLKIT-39** — `search-skills` takes a query and performs lexical search — no embeddings — over
   every repository-local skill under `.anneal/skills/` and every embedded toolkit-wide skill compiled

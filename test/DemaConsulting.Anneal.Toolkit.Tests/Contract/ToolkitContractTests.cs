@@ -98,7 +98,11 @@ public class ToolkitContractTests
             () => Assert.Contains("unknown action 'no-such-action'", written, StringComparison.Ordinal),
             () => Assert.NotEmpty(AnnealTool.DefaultOperations),
             () => Assert.Equal(
-                new[] { "check-contracts", "lint-fix", "maintain", "probe-rule-owner", "route", "stage-contract", "stats", "verify-change", "verify-evidence" },
+                new[]
+                {
+                    "check-contracts", "file-skill", "lint-fix", "maintain", "probe-rule-owner", "route",
+                    "stage-contract", "stats", "verify-change", "verify-evidence"
+                },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(
                 AnnealTool.DefaultOperations,
