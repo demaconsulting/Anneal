@@ -122,22 +122,50 @@ to auto-select this action; and avoid the name `design`, which collides with the
 runs a work item directly against `DocumentAuthor` alone — no `Router`, no `Developer`, no `Verifier` —
 composed the same "Scope already fixed before this action is reached" way `maintain` composes
 `SmallFixWorker`. Two mechanical, post-run checks enforce what `change-classification.md` and
-`system-contracts.md` require, against `DocumentAuthor`'s actual output rather than its self-report:
-every changed file must fall under `docs/architecture/` (the mirror image of `ProtectedPathTripwire`'s
-rule for Maintenance — `TOOLKIT-33`), and a non-strict `check-contracts` run must find the staged clause
-well-formed (`TOOLKIT-34`) — non-strict because the unfulfilled obligation this action deliberately
-produces is exactly what `-Strict` would otherwise promote to an error.
-`Process.ContractCheckRunner` gained an optional `strict` parameter (defaulting to its existing
+`system-contracts.md` require, against `DocumentAuthor`'s reported output (no ledger of its real tool
+calls exists yet, so its report is the only evidence available — the same evidence `maintain`'s own
+equivalent check reasons from): every changed file must fall under `docs/architecture/` (the mirror
+image of `ProtectedPathTripwire`'s rule for Maintenance — `TOOLKIT-33`), and a non-strict, repository-
+wide `check-contracts` run must exit clean afterward (`TOOLKIT-34`) — non-strict because the unfulfilled
+obligation this action deliberately produces is exactly what `-Strict` would otherwise promote to an
+error. `Process.ContractCheckRunner` gained an optional `strict` parameter (defaulting to its existing
 behavior) rather than a second implementation, so both callers still share one "run the repository's
 configured contract check" seam. Documented in `docs/architecture/toolkit/stage-contract.md`
 (`TOOLKIT-32`/`33`/`34`) and listed in `docs/architecture/toolkit.md`. Three boundary tests cover the
 new clauses; the whole suite and `lint.ps1` pass.
 
-**What does not retire yet.** `architecture-update.agent.md` itself is not deleted this stage — a
-compiled path existing is not the same claim as it being proven against a live model, which is the same
-bar S14/S15 held before retiring `apply.agent.md`. The prose agent retires once `stage-contract` is
-live-validated the same way `maintain` was, and `dispatch`/`helper` are wired to call it. `scope-check`'s
-standalone-verify path (`Verifier` + `DeterministicCheck`, no preceding authoring pass) remains the one
+A second independent-reviewer pass, run before live-trial validation per the user's standing
+instruction, found five defects: `AGENTS.md` and its pristine template counterpart still routed
+Maintenance and Migration to the deleted `apply` agent (a live self-hosting defect S16 had missed);
+`process.md`'s Composition prose duplicated and drifted from the corrected Decisions account of why
+`architecture-update`/`scope-check` keep their edges (a `PROCESS-I2` violation), and falsely claimed
+`scope-check` has an edge to `Tree` the diagram never drew; `IsUnderArchitectureTree` used a brittle
+string-prefix check a real model's own output (an absolute path, a `./` or `../` segment) could defeat;
+and both the clause text and the operation's own messages overstated what the mechanical checks prove —
+claiming a check against "the actual changed-file list" when only `DocumentAuthor`'s self-report exists,
+and claiming a failure means "the staged clause is not well-formed" when the check runs repository-wide
+and can fail on an unrelated pre-existing defect. All five were fixed and re-verified (356/356 tests,
+84/84 clauses linked, lint exit 0) before proceeding.
+
+**Live-trial validation landed.** `LiveTrialFixture` gained `RunStageContractAsync`, and
+`LiveTrialStageContractTests` ran a real, in-process `stage-contract` invocation against a real model:
+a two-document fixture repository whose prose already named a capability its `## Contract` section did
+not yet promise, and a work item asking for exactly the clause `stage-contract` exists to stage. The
+first run surfaced a miscalibrated *test* expectation, not an operation defect — the model correctly
+wrote `TODO.ConfigurationInvalidityNamesFirstReason`, a real `TODO.`-prefixed placeholder, but the
+grading oracle's stated expectation had implied the suffix itself should look unlike a real test name,
+which is not what `system-contracts.md` requires. The expectation was corrected to state the actual
+rule (the prefix is what matters, not the suffix), and the trial passed: the real model staged a
+well-formed `TODO.` clause, touched only `docs/architecture/` and the Toolkit's own `.anneal/`
+bookkeeping, and `stage-contract` reported completing rather than escalating or failing.
+
+**What does not retire yet.** `architecture-update.agent.md` itself is not deleted this stage — the
+compiled path now exists, is unit-tested, and has been live-validated against a real model, the same
+bar `maintain` cleared before `apply.agent.md` retired, but `dispatch` and `helper` are not yet wired to
+call `stage-contract` the way they call `route` and `maintain`. That wiring, and the prose agent's actual
+deletion, is the next milestone on this same node — not a new stage, since nothing about the
+classification changes. `scope-check`'s standalone-verify path (`Verifier` + `DeterministicCheck`, no
+preceding authoring pass) remains the one
 stage after that.
 
 ### S16 — Retire `apply.agent.md` — landed

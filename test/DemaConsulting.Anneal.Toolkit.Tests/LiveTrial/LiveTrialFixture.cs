@@ -201,6 +201,34 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         return (exitCode, writer.ToString());
     }
 
+    /// <summary>
+    ///     Runs a real, in-process <c>stage-contract</c> invocation against this fixture's working tree.
+    /// </summary>
+    /// <param name="workItem">The work item text describing the clause to stage. Must not be null or blank.</param>
+    /// <param name="cancellationToken">The caller's signal, carried unchanged into the run.</param>
+    /// <returns>The exit code <see cref="AnnealTool" /> reached, and everything it wrote to its output.</returns>
+    /// <remarks>
+    ///     Unlike <see cref="RunRouteAsync" /> and <see cref="RunMaintainAsync" />, no script stub is needed:
+    ///     <see cref="Operations.StageContractOperation" /> takes no build-script override, and its own
+    ///     post-run <c>check-contracts</c> pass already runs in process
+    ///     (<see cref="Process.ContractCheckRunner" />), never shelling out to a repository script this
+    ///     throwaway fixture does not ship.
+    /// </remarks>
+    public async Task<(int ExitCode, string Output)> RunStageContractAsync(
+        string workItem, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workItem);
+
+        var operation = new StageContractOperation(RepositoryRoot);
+        var writer = new StringWriter();
+
+        var exitCode = await AnnealTool
+            .RunAsync([operation.Name, workItem], writer, [operation], RepositoryRoot, cancellationToken)
+            .ConfigureAwait(false);
+
+        return (exitCode, writer.ToString());
+    }
+
     private static Task<ScriptRun> StubScriptRunner(string script, CancellationToken cancellationToken) =>
         Task.FromResult(new ScriptRun(0, $"live trial stub: '{script}' was not run against this throwaway fixture"));
 
