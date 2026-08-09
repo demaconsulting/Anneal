@@ -225,32 +225,22 @@ internal sealed class SmallFixWorker
                 check.Notes);
     }
 
-    private static string ComposeInstruction(WorkerBrief brief, string repositoryRoot)
-    {
-        var research = brief.RelevantResearchFindings.Count == 0
-            ? "none"
-            : string.Join("\n", brief.RelevantResearchFindings.Select(finding => $"- {finding.Answer}"));
+    private static string ComposeInstruction(WorkerBrief brief, string repositoryRoot) =>
+        $"""
+         {brief.OriginalWorkItem}
 
-        var reroutes = brief.PriorReroutes.Count == 0
-            ? "none"
-            : string.Join("\n", brief.PriorReroutes.Select(reroute => $"- from '{reroute.WorkerKey}': {reroute.Why}"));
+         Why this worker was selected: {brief.ScopeHint}
 
-        return $"""
-                {brief.OriginalWorkItem}
+         <research-findings>
+         {brief.RenderResearch()}
+         </research-findings>
 
-                Why this worker was selected: {brief.ScopeHint}
+         <prior-reroutes>
+         {brief.RenderReroutes()}
+         </prior-reroutes>
 
-                <research-findings>
-                {research}
-                </research-findings>
-
-                <prior-reroutes>
-                {reroutes}
-                </prior-reroutes>
-
-                <standards>
-                {WorkerStandards.Render(repositoryRoot, DeveloperStandards)}
-                </standards>
-                """;
-    }
+         <standards>
+         {WorkerStandards.Render(repositoryRoot, DeveloperStandards)}
+         </standards>
+         """;
 }

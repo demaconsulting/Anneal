@@ -61,4 +61,24 @@ internal sealed record WorkerBrief(
             scopeHint,
             [.. ledger.Facts.RelevantArchitectureNodes]);
     }
+
+    /// <summary>
+    ///     Renders <see cref="RelevantResearchFindings" /> as one line per finding, for embedding in an
+    ///     instruction a worker's model-backed pass reads.
+    /// </summary>
+    /// <returns>One <c>"- {answer}"</c> line per finding, or <c>"none"</c> when there are none.</returns>
+    public string RenderResearch() =>
+        RelevantResearchFindings.Count == 0
+            ? "none"
+            : string.Join("\n", RelevantResearchFindings.Select(finding => $"- {finding.Answer}"));
+
+    /// <summary>
+    ///     Renders <see cref="PriorReroutes" /> as one line per reroute, for embedding in an instruction a
+    ///     worker's model-backed pass reads.
+    /// </summary>
+    /// <returns>One <c>"- from '{worker}': {why}"</c> line per reroute, or <c>"none"</c> when there are none.</returns>
+    public string RenderReroutes() =>
+        PriorReroutes.Count == 0
+            ? "none"
+            : string.Join("\n", PriorReroutes.Select(reroute => $"- from '{reroute.WorkerKey}': {reroute.Why}"));
 }

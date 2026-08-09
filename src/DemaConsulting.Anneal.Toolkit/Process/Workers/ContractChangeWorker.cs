@@ -537,11 +537,11 @@ internal sealed class ContractChangeWorker
          Why this worker was selected: {brief.ScopeHint}
 
          <research-findings>
-         {RenderResearch(brief)}
+         {brief.RenderResearch()}
          </research-findings>
 
          <prior-reroutes>
-         {RenderReroutes(brief)}
+         {brief.RenderReroutes()}
          </prior-reroutes>
 
          <standards>
@@ -561,7 +561,7 @@ internal sealed class ContractChangeWorker
          Why this worker was selected: {brief.ScopeHint}
 
          <research-findings>
-         {RenderResearch(brief)}
+         {brief.RenderResearch()}
          </research-findings>
 
          <standards>
@@ -580,14 +580,4 @@ internal sealed class ContractChangeWorker
 
                Repair the issue.
                """;
-
-    private static string RenderResearch(WorkerBrief brief) =>
-        brief.RelevantResearchFindings.Count == 0
-            ? "none"
-            : string.Join("\n", brief.RelevantResearchFindings.Select(finding => $"- {finding.Answer}"));
-
-    private static string RenderReroutes(WorkerBrief brief) =>
-        brief.PriorReroutes.Count == 0
-            ? "none"
-            : string.Join("\n", brief.PriorReroutes.Select(reroute => $"- from '{reroute.WorkerKey}': {reroute.Why}"));
 }
