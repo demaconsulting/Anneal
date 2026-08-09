@@ -111,3 +111,13 @@ where `architecture-design` will read them. See the Intake admission test in
   so noticing does not become scheduled busywork, and a merge gate — branch, review, and test before
   reaching `main` — since reversibility, not origin, is what makes autonomous initiative safe. Not
   scheduled; the router/catalog work lands first.
+- **Design a way to periodically re-validate filed skills, not just accumulate them** — `skills.md`
+  has a filing path (`file-skill`) and a search path (`search-skills`) but no re-validation path: once
+  a lesson is filed, nothing ever checks whether it still holds. This is a capability a human maintainer
+  structurally lacks — accumulated notes are rarely re-walked and almost never pruned — but an agent
+  can mechanically enumerate every filed skill and ask "does this still describe the current code and
+  decisions?", correcting or retiring the ones that have aged out rather than letting the corpus
+  monotonically grow. Whether this is a `maintain`-style bounded sweep, a new operation, or a check
+  folded into an existing review pass is undecided; needs its own `architecture-design` pass once the
+  corpus has enough real entries to design against, since designing a review mechanism against a
+  single-entry corpus would be guessing at a shape rather than observing one.
