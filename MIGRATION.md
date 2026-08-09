@@ -151,7 +151,7 @@ and can fail on an unrelated pre-existing defect. All five were fixed and re-ver
 `LiveTrialStageContractTests` ran a real, in-process `stage-contract` invocation against a real model:
 a two-document fixture repository whose prose already named a capability its `## Contract` section did
 not yet promise, and a work item asking for exactly the clause `stage-contract` exists to stage. The
-first run surfaced a miscalibrated *test* expectation, not an operation defect — the model correctly
+first run surfaced a mismatched *test* expectation, not an operation defect — the model correctly
 wrote `TODO.ConfigurationInvalidityNamesFirstReason`, a real `TODO.`-prefixed placeholder, but the
 grading oracle's stated expectation had implied the suffix itself should look unlike a real test name,
 which is not what `system-contracts.md` requires. The expectation was corrected to state the actual
@@ -159,14 +159,49 @@ rule (the prefix is what matters, not the suffix), and the trial passed: the rea
 well-formed `TODO.` clause, touched only `docs/architecture/` and the Toolkit's own `.anneal/`
 bookkeeping, and `stage-contract` reported completing rather than escalating or failing.
 
-**What does not retire yet.** `architecture-update.agent.md` itself is not deleted this stage — the
-compiled path now exists, is unit-tested, and has been live-validated against a real model, the same
-bar `maintain` cleared before `apply.agent.md` retired, but `dispatch` and `helper` are not yet wired to
-call `stage-contract` the way they call `route` and `maintain`. That wiring, and the prose agent's actual
-deletion, is the next milestone on this same node — not a new stage, since nothing about the
-classification changes. `scope-check`'s standalone-verify path (`Verifier` + `DeterministicCheck`, no
-preceding authoring pass) remains the one
-stage after that.
+**Retirement landed.** A third independent-reviewer pass (background, separate context), asked to vet
+wiring `stage-contract` into `dispatch`/`helper` and retiring `architecture-update.agent.md`, confirmed
+staging is already within `dispatch`'s Change-mode remit per `change-classification.md`'s own Contract
+Change section, confirmed `helper` must route rather than execute directly (`stage-contract` is
+`OperationCategory.Authoring`, unlike the deterministic `lint-fix` precedent), and produced a 22-item
+disposition list of every file mentioning `architecture-update` plus a 14-step ordered edit list. That
+list was executed in full: `dispatch.agent.md` gained a caller-declared Step 2a (reached only when the
+user explicitly asks to stage a clause, never inferred) that runs `dotnet anneal stage-contract` and
+shares the same four-way exit-code contract as `route` and `maintain`; `helper.agent.md` gained one new
+delegation row routing staging requests to `dispatch`; `change-classification.md`,
+`architecture-documentation.md`, `.github/skills/check-contracts/SKILL.md`, `CONSTRAINTS.md` (and its
+template counterpart), `.github/template/repository-map.md`, and `README.md` had every `architecture-
+update` mention reworded to name `dispatch`, `stage-contract`, or `route`'s Structural Change worker, as
+the disposition list required; `.github/agents/architecture-update.agent.md` was deleted; and
+`docs/architecture/process.md`'s diagram, Composition section, and Decisions section were updated to
+remove the `ArchUpdate` node and its edge, matching the `apply.agent.md` retirement's own precedent. The
+same pass also caught and fixed two stale S16 leftovers the reviewer found while re-reading ground
+truth rather than trusting this file's prose: `README.md` still named the already-deleted `apply` agent
+in its inventory sentence, and `process.md`'s Decisions section still claimed `architecture-update` had
+not yet been live-validated, which S17's own live-trial subsection above already contradicted.
+
+One thing did not carry forward, and is recorded here rather than silently dropped:
+`architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table, naming every
+section document it examined and its keep/delete verdict with reasoning. `StageContractReport` has no
+equivalent structured field — it reports only the files `DocumentAuthor` changed and a summary string.
+`stage-contract.md`'s own charter still instructs pruning judgement the same way the retired agent's
+prompt did; only the itemized per-document report of that judgement did not survive the compiled
+equivalent. This is an accepted reduction in reporting granularity, not an accidental one.
+
+After this change, `WorstCaseInvocationWithinBudget` reads 19990 of 20000 tokens —
+`dispatch.agent.md` grew substantially to hold the new Step 2a and had to be trimmed in the same pass
+(consolidating three near-duplicate exit-code tables into one shared section) to stay inside budget,
+following the exact precedent S15 and S16 both set for paying for growth out of `dispatch.agent.md`'s
+own prose rather than any other file. `PROCESS-03`/`NoOrphanedStandards` and `PROCESS-02`/
+`AgentReferencesResolve` both still pass, as the reviewer predicted: `scope-check.agent.md` and
+`architecture-design.agent.md` still name every standard `architecture-update.agent.md` used to name,
+and no surviving agent references the deleted file's path. `AGENTS.md` still matches its pristine
+template counterpart exactly outside the exempt Template Stewardship section. 356/356 tests pass,
+84/84 contract clauses link, and `lint.ps1` exits 0.
+
+`scope-check`'s standalone-verify path (`Verifier` + `DeterministicCheck`, no preceding authoring
+pass) remains the one stage after this — the same named future target this file has stated since S16,
+now the last one outstanding.
 
 ### S16 — Retire `apply.agent.md` — landed
 

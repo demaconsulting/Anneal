@@ -8,7 +8,7 @@
 # Constraints
 
 Conditions this architecture must satisfy. `architecture-design` reads this before re-cutting system
-boundaries, and `architecture-update` reads it before a Structural Change.
+boundaries, and `route`'s Structural Change worker reads it before a Structural Change.
 
 A satisfied constraint is not finished business — it is the reason the current shape is the shape it
 is, and the guard rail that stops the next re-cut from silently regressing it. Entries are never

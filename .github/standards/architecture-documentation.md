@@ -218,7 +218,8 @@ it:
 - The document has decayed into restating names and signatures.
 - The rejected alternative it preserved is no longer a plausible option.
 
-The `architecture-update` agent MUST perform a prune check on every Contract Change and Structural
+Whichever pass authors the change — `route`'s Contract Change or Structural Change worker, or
+`stage-contract` — MUST perform a prune check on every Contract Change and Structural
 Change: list the section documents under the affected system and confirm each still
 earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
 silently becomes an anchor.

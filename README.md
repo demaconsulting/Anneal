@@ -60,10 +60,11 @@ and the documents describing it in agreement.
 
 - **Agents** (`.github/agents/`) — the workers. Two are conversational and you invoke them yourself:
   `helper`, which takes a request in ordinary words and routes it, and `architecture-design`, which
-  establishes system boundaries by interview. The other five are invoked by the process rather than by
-  you: `dispatch` classifies the work, `apply` implements it, `architecture-update` moves the
-  architecture documents with it, `scope-check` verifies the finished change, and `template-sync` keeps
-  the repository aligned with the template.
+  establishes system boundaries by interview. The other three are invoked by the process rather than by
+  you: `dispatch` classifies the work and runs it through the compiled toolkit's `route` and `maintain`
+  actions — including staging a contract clause ahead of implementation, when explicitly asked to —
+  `scope-check` verifies the finished change, and `template-sync` keeps the repository aligned with the
+  template.
 - **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
   sole owner of its subject: coding principles and C# language, testing principles and C# testing,
   system contracts, architecture and technical documentation, and change classification. An agent
@@ -216,8 +217,8 @@ the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
 | 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
 | 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
-Level 3 is exceptional. Most systems have none, and the `architecture-update` agent prunes those that
-stop earning their place.
+Level 3 is exceptional. Most systems have none, and the pass authoring a contract change prunes those
+that stop earning their place.
 
 ## Repository Layout
 

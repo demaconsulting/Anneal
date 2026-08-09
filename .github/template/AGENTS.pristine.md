@@ -130,9 +130,8 @@ conversation on the user's behalf, and do not attempt the work instead.
 
 Delegate only for:
 
-- **Any non-trivial change** → `dispatch` (classifies the mode and scope, then routes to the minimum
-  process)
-- **Contract or architecture tree changes** → `architecture-update`
+- **Any non-trivial change, including staging a contract clause ahead of implementation** → `dispatch`
+  (classifies the mode and scope, then routes to the minimum process)
 - **Verifying a completed change against its scope** → `scope-check`
 - **Repository layout versus template** → `template-sync`
 

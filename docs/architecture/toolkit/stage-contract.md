@@ -10,12 +10,13 @@ covers:
 # Stage Contract
 
 `stage-contract` is the compiled front door for staging a contract clause ahead of implementation —
-`architecture-update.agent.md`'s one remaining job after `apply.agent.md` retired at Migration stage
-S16. `route`'s Contract Change and Structural Change paths always compose `DocumentAuthor` with
-`Developer` and `Verifier` in one atomic pass; neither has a "write the promise, implement it later"
-mode, and Migration itself depends on that mode existing — `TOOLKIT-29`/`30`/`31` were each staged this
-way, as a `TODO.` placeholder clause, before their implementation landed. `stage-contract` is that mode,
-compiled.
+the one remaining job `architecture-update.agent.md` still did after `apply.agent.md` retired at
+Migration stage S16, before `architecture-update.agent.md` itself retired once this action was
+live-validated. `route`'s Contract Change and Structural Change paths always compose `DocumentAuthor`
+with `Developer` and `Verifier` in one atomic pass; neither has a "write the promise, implement it
+later" mode, and Migration itself depends on that mode existing — `TOOLKIT-29`/`30`/`31` were each
+staged this way, as a `TODO.` placeholder clause, before their implementation landed. `stage-contract`
+is that mode, compiled.
 
 No new worker type is introduced. `DocumentAuthor` is the exact primitive `ContractChangeWorker` and
 `StructuralChangeWorker` already use for their own documentation half; `stage-contract` runs it alone,

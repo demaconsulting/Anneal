@@ -114,7 +114,6 @@ flowchart TD
 
     subgraph Mechanical["Mechanical zone — routed, never converses"]
         Dispatch[dispatch]
-        ArchUpdate[architecture-update]
         ScopeCheck[scope-check]
         TemplateSync[template-sync]
     end
@@ -129,7 +128,6 @@ flowchart TD
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
-    Tree ==> ArchUpdate
 
     linkStyle 5 stroke-dasharray: 3 3
 ```
@@ -143,9 +141,9 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   It must not call it, because that agent's method is a live interview and a headless invocation would
   invent the answers.
 
-`architecture-update` and `scope-check` both stay in the mechanical zone as directly invocable agents —
-`helper` still calls `scope-check` to verify a finished change — but `dispatch` no longer calls either
-for Change or Maintenance mode; see Decisions below.
+`scope-check` stays in the mechanical zone as a directly invocable agent — `helper` still calls it to
+verify a finished change — but `dispatch` no longer calls it, or any other agent, for Change or
+Maintenance mode; see Decisions below.
 
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
 instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
@@ -155,12 +153,12 @@ zone is where behavioral verification is spent.
 For the span of the migration [MIGRATION.md](../../MIGRATION.md) carries, a third shape coexists with
 these two rather than replacing either: a compiled Router selects one of a small worker catalog
 (`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
-[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, and for
-Maintenance mode via `maintain` (see Decisions below); `architecture-update` keeps its edge to `Tree`
-above for the one job neither compiled action covers yet — staging a contract clause ahead of
-implementation — and `scope-check` keeps its edge from `Helper` for verifying a diff that never went
-through `route` or `maintain` at all. Both are the next named retirement targets, not permanent
-carve-outs; see Decisions below.
+[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, for Maintenance
+mode via `maintain`, and for a declared stage-ahead-of-implementation request via `stage-contract` (see
+Decisions below); `scope-check` keeps its edge from `Helper` for verifying a diff that never went
+through any of the three at all — a hand-written change, an externally contributed one, or anything
+predating this migration. It is the one remaining named retirement target, not a permanent carve-out;
+see Decisions below.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
@@ -266,32 +264,44 @@ that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 **`dispatch`'s edges to `architecture-update`, `apply`, and `scope-check` were removed, not redrawn** —
 at Migration stage S11, `dispatch` began calling `route` directly for every Change-mode request instead
 of chaining `architecture-update` → `apply` → `scope-check`; at S15, its Maintenance-mode edge moved to
-`maintain` the same way. The diagram above reflects both. `architecture-update` keeps its edge to
-`Tree` and `scope-check` keeps its edge from `Helper`, because each still does a job neither `route` nor
-`maintain` covers: `architecture-update` writes a contract clause *ahead of* implementation, as a
-deliberate planned obligation — `route`'s Contract Change and Structural Change workers always compose
-document authoring, code authoring, and verification together in one atomic pass, with no "write the
-promise, implement it later" mode. `scope-check` verifies a diff that never went through `route` or
-`maintain` at all — a hand-written change, an externally contributed one, or anything predating this
-migration — where `route`'s own verification step only ever judges what its own pass just authored.
+`maintain` the same way. At the time, `architecture-update` kept its edge to `Tree` and `scope-check`
+kept its edge from `Helper`, because each still did a job neither `route` nor `maintain` covered:
+`architecture-update` wrote a contract clause *ahead of* implementation, as a deliberate planned
+obligation — `route`'s Contract Change and Structural Change workers always compose document authoring,
+code authoring, and verification together in one atomic pass, with no "write the promise, implement it
+later" mode. `scope-check` verifies a diff that never went through `route` or `maintain` at all — a
+hand-written change, an externally contributed one, or anything predating this migration — where
+`route`'s own verification step only ever judges what its own pass just authored.
 
 **`apply.agent.md` was retired at Migration stage S16**, once its last two callers — `helper`'s "a
 specific fix already reported" row and `dispatch`'s own stale Migration-mode line — were rewired to
 `dispatch` itself, following exactly the `lint-fix` precedent above: the node is removed once nothing
 calls it, not kept as an unused fallback. Its own removal from the diagram left `architecture-update`
 and `scope-check` each with one fewer edge, adjusted above; neither agent's own remaining job changed.
-`architecture-update` and `scope-check` are not exempt from the same fate — each is the next named
-target once a compiled equivalent for its remaining job exists (a design-only path built from
+`architecture-update` and `scope-check` were not exempt from the same fate — each was the next named
+target once a compiled equivalent for its remaining job existed (a design-only path built from
 `DocumentAuthor` alone, and a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
-**A compiled design-only path (`stage-contract`) landed at Migration stage S17, but `architecture-update`
-was not retired alongside it** — the Toolkit gained `StageContractOperation`, running `DocumentAuthor`
-alone to stage a contract clause ahead of implementation, exactly the compiled equivalent S16 named as
-the next stage. It is not yet wired into `dispatch`/`helper`'s routing and not yet live-validated against
-a real model the way `maintain` was before `apply.agent.md` retired — a compiled path existing is not the
-same claim as it holding up in practice. `architecture-update.agent.md` therefore keeps its edge to
-`Tree` for now; its retirement is the next milestone on this same node, not a new stage.
+**`architecture-update.agent.md` was retired at Migration stage S17**, once `stage-contract` — the
+Toolkit's compiled design-only path, running `DocumentAuthor` alone to stage a contract clause ahead
+of implementation — was live-validated against a real model, the same bar `maintain` cleared before
+`apply.agent.md` retired. `dispatch` gained a **caller-declared** branch for it: Step 1 sends a request
+to `stage-contract` only when the user explicitly asked to stage a clause rather than build it now,
+never inferred from a request's size or difficulty, mirroring how Maintenance mode is caller-declared
+rather than classified. `helper` gained one Step 3 table row routing the same ask to `dispatch`, since
+`helper` never implements and staging a clause is `DocumentAuthor` performing exactly a documentation
+edit. `architecture-update`'s edge to `Tree` is removed from the diagram above, following the
+`lint-fix`/`apply` precedent: the node is removed once nothing calls it. One thing did not carry
+forward — `architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table naming
+every section document examined and its verdict; `StageContractReport` carries only the files changed
+and a summary, since the mechanical checks this stage added verify scope and clause well-formation, not
+which documents `DocumentAuthor` considered pruning. `docs/architecture/toolkit/stage-contract.md`'s
+own charter still instructs pruning; only the itemized report of it did not survive.
+
+`scope-check` is not exempt from the same fate — it is the one remaining named target once a compiled
+equivalent for its job exists (a standalone verify path built from `Verifier` and the existing
+`DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or

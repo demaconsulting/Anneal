@@ -78,9 +78,8 @@ not.
 
 **Promotion is still an agent action.** Moving an already-admitted entry from **Not Yet Satisfied**
 to **Satisfied** is not admission — the user already said yes to the condition, and the move only
-records that the current shape now meets it. `architecture-update` does this as part of a Structural
-Change
-change. Nothing here restricts it.
+records that the current shape now meets it. `route`'s Structural Change worker does this as part of
+a Structural Change. Nothing here restricts it.
 
 **Why this one register and not the others.** The asymmetry is the cost of being wrong, not the cost
 of filing. A wrong `BACKLOG.md` line or README assumption is one stale bullet somebody skips, so
@@ -244,11 +243,12 @@ decomposition changes enough that the rationale in its architecture document is 
 
 - **Documentation**: `docs/architecture/{system}.md` only.
 - **Agents**: `dispatch`, which runs it through `route` — one worker updates the contract,
-  implements, and verifies in a single pass. `architecture-update` is invoked directly only to stage
-  the contract ahead of implementation, as a deliberate planned obligation.
+  implements, and verifies in a single pass. `dispatch` runs `dotnet anneal stage-contract` directly,
+  instead, only when the caller explicitly asks to stage the contract ahead of implementation, as a
+  deliberate planned obligation.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
-- **Pruning**: `architecture-update` performs the section-document prune check for the affected
-  system.
+- **Pruning**: whichever pass authors the change — `route`'s worker, or `stage-contract` — performs
+  the section-document prune check for the affected system.
 
 # Structural Change
 

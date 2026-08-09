@@ -10,11 +10,12 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     form, ahead of any implementation.
 /// </summary>
 /// <remarks>
-///     <c>docs/architecture/toolkit/stage-contract.md</c> is the contract this implements. It gives
+///     <c>docs/architecture/toolkit/stage-contract.md</c> is the contract this implements. It gave
 ///     <c>architecture-update.agent.md</c>'s one remaining job — staging a contract clause ahead of
 ///     implementation, as a deliberate planned obligation, per <c>MIGRATION.md</c>'s S16 entry — a compiled
 ///     equivalent, mirroring how <see cref="MaintainOperation" /> gave <c>apply.agent.md</c>'s old Maintenance
-///     job one. No new worker type is introduced: <see cref="DocumentAuthor" /> is the exact primitive
+///     job one; <c>architecture-update.agent.md</c> itself retired once this action was live-validated. No new
+///     worker type is introduced: <see cref="DocumentAuthor" /> is the exact primitive
 ///     <see cref="Process.ContractChangeWorker" /> and <see cref="Process.StructuralChangeWorker" /> already use
 ///     for their own documentation half, run here alone instead of composed with <see cref="Developer" /> and
 ///     <see cref="Verifier" />, and instructed to stop before either would run.
