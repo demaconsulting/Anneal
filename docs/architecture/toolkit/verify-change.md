@@ -10,12 +10,13 @@ covers:
 
 # Verify Change
 
-`verify-change` is the compiled equivalent of `scope-check.agent.md`'s standalone review job: judging a
-change already made against its declared scope, without authoring anything. `route`'s Contract Change
-and Structural Change paths always run their strict contract check against a change they just made
+`verify-change` is the compiled equivalent of `scope-check.agent.md`'s standalone review job — the
+prose predecessor this operation replaced and whose retirement it made possible — for judging a change
+already made against its declared scope, without authoring anything. `route`'s Contract Change and
+Structural Change paths always run their strict contract check against a change they just made
 themselves, so a failing check is unconditionally a defect of that run. A standalone review is
 different — it may be asked to judge a change against a repository that already carries pre-existing,
-unrelated gaps elsewhere, and `scope-check.agent.md` deliberately treats one specific gap kind as
+unrelated gaps elsewhere, and `scope-check.agent.md` deliberately treated one specific gap kind as
 advisory rather than blocking: an unfulfilled `-Strict` test obligation in a system the change did not
 touch. `verify-change` is that narrower judgement, compiled.
 
@@ -42,7 +43,7 @@ ground truth, not a hint.
   *Verified by:* `VerifyChangeRunsBuildAndStrictContractCheckThenAsksAVerifier`
 
 - **TOOLKIT-36** — `verify-change` sets aside, as advisory rather than blocking, exactly the failure kind
-  `scope-check.agent.md` treats as pre-existing: a strict `check-contracts` "unfulfilled test obligation"
+  `scope-check.agent.md` treated as pre-existing: a strict `check-contracts` "unfulfilled test obligation"
   error naming a document whose file is not among the diff's changed files. Every other `check-contracts`
   failure — a malformed clause, a duplicate ID, a stale or missing test result — remains blocking
   regardless of which system it names. When the diff could not be read, no exception is applied at all:
@@ -52,7 +53,7 @@ ground truth, not a hint.
 
 - **TOOLKIT-37** — `verify-change` declares `OperationCategory.Advisory`: a `Failed` outcome reports
   concerns to whichever agent or person invoked it and never gates a build, matching exactly how
-  `scope-check.agent.md` is used today. It edits nothing in the repository.
+  `scope-check.agent.md` was used before its retirement. It edits nothing in the repository.
   *Verified by:* `VerifyChangeNeverGatesRegardlessOfOutcome`
 
 ### Requires
@@ -84,10 +85,10 @@ scope honesty and tree accuracy can only see what is embedded in its question te
 to see actual boundary-diff content, not just which files changed, so the patch (trimmed) is threaded
 through the verifier's question alongside the changed-file list.
 
-**Declared `OperationCategory.Advisory`, not `Enforcement`** — matching how `scope-check.agent.md` is
-used today: it reports back and its caller decides. Making this operation `Enforcement` would let a
-model-backed verdict fail a build for the first time in this Toolkit, directly implicating `TOOLKIT-I3`'s
-suspension — a separate, deliberate design decision this operation does not make.
+**Declared `OperationCategory.Advisory`, not `Enforcement`** — matching how `scope-check.agent.md` was
+used before its retirement: it reports back and its caller decides. Making this operation `Enforcement`
+would let a model-backed verdict fail a build for the first time in this Toolkit, directly implicating
+`TOOLKIT-I3`'s suspension — a separate, deliberate design decision this operation does not make.
 
 **Conservative fallback when the diff is unavailable** — if `git diff` cannot be read (not a repository,
 `git` missing, a timeout), `verify-change` does not guess at scope from a stale or absent hint. Every

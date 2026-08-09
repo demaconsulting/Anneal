@@ -132,7 +132,8 @@ Delegate only for:
 
 - **Any non-trivial change, including staging a contract clause ahead of implementation** → `dispatch`
   (classifies the mode and scope, then routes to the minimum process)
-- **Verifying a completed change against its scope** → `scope-check`
+- **Verifying a change against its scope** → run `dotnet anneal verify-change` directly, not as a
+  sub-agent
 - **Repository layout versus template** → `template-sync`
 
 # Agent Reporting (Specialized Agents Must Follow)

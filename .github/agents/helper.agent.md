@@ -93,7 +93,7 @@ the words the confirmation used, plus the bound if there is one:
 | A bounded tidy-up, with the bound agreed | `dispatch`, passing the bound |
 | A specific fix the user has already had reported to them | `dispatch`, quoting the finding |
 | A contract clause to write now and implement later | `dispatch`, saying the clause is to be staged, not implemented |
-| Verifying a change someone has finished | `scope-check` |
+| Verifying a change someone has finished | run `dotnet anneal verify-change [<base-ref>]` directly, not as a sub-agent |
 | Lint noise before a pull request | run `dotnet anneal lint-fix` directly, not as a sub-agent |
 | Checking the repository against the template | `template-sync` |
 

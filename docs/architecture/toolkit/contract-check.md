@@ -19,7 +19,7 @@ contracts.
 
 If it were rewritten, consumers would notice through its **exit code and its failure taxonomy**, not its
 implementation. CI depends on the exit code. The `check-contracts` skill documents each failure and how
-to resolve it, and `scope-check` invokes it with `-Strict`. That taxonomy is the real interface, which is
+to resolve it, and `verify-change` invokes it with `-Strict`. That taxonomy is the real interface, which is
 why the clauses below are written in terms of *what is rejected* rather than how parsing works.
 
 Its own verifiers are fixture repositories rather than unit tests.

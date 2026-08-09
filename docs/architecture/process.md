@@ -114,7 +114,6 @@ flowchart TD
 
     subgraph Mechanical["Mechanical zone — routed, never converses"]
         Dispatch[dispatch]
-        ScopeCheck[scope-check]
         TemplateSync[template-sync]
     end
 
@@ -124,12 +123,11 @@ flowchart TD
     User --> ArchDesign
     Helper --> Dispatch
     Helper --> TemplateSync
-    Helper --> ScopeCheck
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
 
-    linkStyle 5 stroke-dasharray: 3 3
+    linkStyle 4 stroke-dasharray: 3 3
 ```
 
 Three kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
@@ -141,9 +139,9 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   It must not call it, because that agent's method is a live interview and a headless invocation would
   invent the answers.
 
-`scope-check` stays in the mechanical zone as a directly invocable agent — `helper` still calls it to
-verify a finished change — but `dispatch` no longer calls it, or any other agent, for Change or
-Maintenance mode; see Decisions below.
+`scope-check.agent.md` is gone from this diagram entirely — retired at Migration stage S18, following
+the `lint-fix`/`apply`/`architecture-update` precedent below — rather than kept as a Mechanical-zone
+node with nothing left calling it.
 
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
 instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
@@ -155,10 +153,11 @@ these two rather than replacing either: a compiled Router selects one of a small
 (`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
 [Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, for Maintenance
 mode via `maintain`, and for a declared stage-ahead-of-implementation request via `stage-contract` (see
-Decisions below); `scope-check` keeps its edge from `Helper` for verifying a diff that never went
-through any of the three at all — a hand-written change, an externally contributed one, or anything
-predating this migration. It is the one remaining named retirement target, not a permanent carve-out;
-see Decisions below.
+Decisions below); verifying a diff that never went through any of the three at all — a hand-written
+change, an externally contributed one, or anything predating this migration — is `verify-change`, a
+compiled action a developer or `helper` runs directly, never a sub-agent, since it reports and edits
+nothing, the same relationship `lint-fix` already has to this diagram without appearing in it as an
+agent. See Decisions below.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
@@ -302,6 +301,21 @@ own charter still instructs pruning; only the itemized report of it did not surv
 `scope-check` is not exempt from the same fate — it is the one remaining named target once a compiled
 equivalent for its job exists (a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
+
+**`scope-check.agent.md` was retired at Migration stage S18**, once `verify-change` — the compiled
+standalone verify path built from `DiffCheck`, `DeterministicCheck`, and `Verifier`, the same
+primitives `ContractChangeWorker`/`StructuralChangeWorker` already compose for their own verification
+half — was live-validated against a real model, the same bar `stage-contract` cleared before
+`architecture-update.agent.md` retired. Unlike `stage-contract`, `helper` invokes it directly rather
+than routing through `dispatch`: `verify-change` declares `OperationCategory.Advisory`, edits nothing,
+and produces no change for `dispatch` to classify or register, so there is nothing here for `dispatch`'s
+per-change tracking to do — the same "developer runs a compiled command" relationship `lint-fix` already
+has to this diagram, not the `stage-contract` precedent's sub-agent call. `helper`'s Step 3 table gained
+one row for it; `AGENTS.md` and its pristine template counterpart gained the matching bullet.
+`scope-check`'s own edge from `Helper` is removed from the diagram above, following the
+`lint-fix`/`apply`/`architecture-update` precedent: the node is removed once nothing calls it. This was
+the last named retirement target this file tracked; no further prose agent is queued behind it as of
+this stage.
 
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or

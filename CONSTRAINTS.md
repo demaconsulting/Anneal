@@ -65,7 +65,7 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   -Force` overwrites every payload-owned file with no backup and no diff, including a customized
   `AGENTS.md` and any locally edited standard.
 - **A judging agent must show the basis for its verdict before stating it** — no agent prompt in the
-  payload obliges one to, and `scope-check`'s report template places `Required Fixes` ahead of every
+  payload obliges one to, and `dispatch.agent.md`'s own report template places `Result` ahead of every
   section carrying what that verdict rests on, so a universally-quantified negative about a file the
   agent never opened reads exactly like a checked finding. The paired belief is in the Assumptions
   section of [README.md](README.md); how a prompt demands the basis is owned by

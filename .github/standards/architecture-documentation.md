@@ -186,9 +186,9 @@ covers:
 ```
 
 `covers` names the source a document describes, so **drift** — source under `covers` changed while
-the document did not — can be spotted. Nothing computes it; the `scope-check` agent judges it by
-reading, and it is advisory either way: a review flag, never a hard failure. Blocking gates on every
-file change are precisely what makes evolution expensive.
+the document did not — can be spotted. Nothing computes it mechanically; `verify-change`'s
+model-backed verifier judges it by reading, and it is advisory either way: a review flag, never a
+hard failure. Blocking gates on every file change are precisely what makes evolution expensive.
 
 # When to Create a Section Document
 

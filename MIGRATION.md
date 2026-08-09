@@ -101,6 +101,70 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
+### S18 — Compile a standalone verify path, retiring `scope-check.agent.md` — landed
+
+**Why now.** S17 named this as the last named retirement target: `scope-check.agent.md`'s one
+remaining job — verifying a diff that never went through `route` or `maintain` at all (a hand-written
+change, an externally contributed one, or anything predating this migration) — was framed as buildable
+from `Verifier` and the existing `DeterministicCheck` pair, the exact primitives
+`ContractChangeWorker`/`StructuralChangeWorker` already compose for their own verification half. The
+new operation, `verify-change` (`VerifyChangeOperation`/`VerifyChangeReport`), was built, unit- and
+contract-tested (three clauses, `TOOLKIT-35`/`36`/`37` in `docs/architecture/toolkit/verify-change.md`),
+and live-trial validated before this stage's wiring work began — recorded in an earlier commit this
+same day, ahead of the retirement itself, mirroring the order S14 and S17 both used (build and validate
+the compiled equivalent first; wire and retire second).
+
+**Live-trial validation.** `LiveTrialFixture` gained `RunVerifyChangeAsync`, deliberately the first of
+the fixture's `Run*` methods to leave `git diff` un-substituted rather than stubbing it, since
+`verify-change`'s whole job is reading a real diff. `LiveTrialVerifyChangeTests` seeded a committed
+baseline carrying a real contract clause, made an honest uncommitted Small-Fix-shaped change on top,
+ran `verify-change` against a real model through the real `Verifier`, and graded the result with a
+real model-backed oracle. The trial passed on the first run. It skips by default under the normal gate,
+the same `ANNEAL_LIVE_TRIALS=1` opt-in every other live trial uses.
+
+**What landed.** `helper.agent.md`'s Step 3 table gained one row: verifying a finished change now reads
+"run `dotnet anneal verify-change [<base-ref>]` directly, not as a sub-agent," replacing the row that
+routed to `scope-check`. Unlike `stage-contract`'s retirement of `architecture-update` at S17, this one
+does **not** route through `dispatch`: `verify-change` declares `OperationCategory.Advisory`, edits
+nothing, and produces no change for `dispatch` to classify or register, so there is nothing for
+`dispatch`'s per-change tracking to do. The relationship is instead the one `lint-fix` already has to
+`process.md`'s diagram — a developer or `helper` runs a compiled command directly, and it never appears
+in the diagram as a node, because the diagram's solid edges are reserved for sub-agent invocation with
+a consumed report. `AGENTS.md` and its pristine template counterpart both gained the matching
+delegation bullet, kept byte-identical outside the Template Stewardship section as
+`AgentsFileMatchesPristine` requires. `README.md`'s agents-inventory paragraph was reworded from three
+agents invoked by the process to two, with a sentence added noting `verify-change` is a compiled
+Toolkit action run directly rather than through an agent. `docs/architecture/toolkit/contract-check.md`,
+`.github/standards/system-contracts.md`, and `.github/standards/architecture-documentation.md` each had
+their one `scope-check` mention reworded to name `verify-change` or its model-backed verifier in its
+place — `system-contracts.md`'s change is substantive, not cosmetic: closing an unfulfilled obligation
+was previously attributed to "that agent" (`scope-check`, an authoring agent), and is now attributed to
+"the change's own responsibility," since `verify-change` only verifies and reports a finding, never
+closes an obligation itself. `CONSTRAINTS.md`'s one bullet citing `scope-check.agent.md`'s report
+template as a live example of evidence-before-verdict ordering was rewritten to cite
+`dispatch.agent.md`'s own report template instead, since the cited file is deleted by this same stage.
+`docs/architecture/process.md`'s diagram, Composition section, and Decisions section were updated to
+remove the `ScopeCheck` node and its edge from `Helper`, following the `lint-fix`/`apply`/
+`architecture-update` retirement precedent exactly, and a closing Decisions bullet records the
+retirement itself. `.github/agents/scope-check.agent.md` was deleted.
+
+One thing did **not** change, and is recorded here for the same reason S17 recorded its own reduction:
+`docs/architecture/toolkit.md`'s historical measurement data, comparing `tier-check`'s and `scope-check`'s
+observed pass/fail rates from before this migration began, was left untouched — it is a record of what
+was measured at the time, not a live pointer to a still-existing agent, and rewriting history to erase
+a retired name would falsify the record rather than clarify it. `CONSTRAINTS.md`'s S11-incident bullet
+was left for the identical reason.
+
+`PROCESS-03`/`NoOrphanedStandards` and `PROCESS-02`/`AgentReferencesResolve` both still pass:
+`.github/standards/system-contracts.md`, `.github/standards/architecture-documentation.md`, and every
+other standard `scope-check.agent.md` used to name are still named by at least one surviving agent, and
+no surviving agent references the deleted file's path. `AGENTS.md` still matches its pristine template
+counterpart exactly outside the exempt Template Stewardship section.
+
+This was the last named retirement target this file tracked. No further prose agent is queued behind
+it as of this stage; `helper` and `architecture-design` remain, absorbed last per this file's own
+Destination section, because a conversation is the hardest control flow to encode.
+
 ### S17 — Compile a design-only path, giving `architecture-update` a retirable equivalent — landed
 
 **Why now.** S16 named this as the next stage, not a permanent exception: `architecture-update.agent.md`'s
