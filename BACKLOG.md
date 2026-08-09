@@ -62,10 +62,15 @@ where `architecture-design` will read them. See the Intake admission test in
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
-- **Wire an agent to `probe-rule-owner` or `verify-evidence`** — `dispatch` now calls `route`, and
-  `helper` now calls `stats` directly for pass-rate review conversations, but these two operations are
-  still reachable only by hand. Each is fully specified and tested; what's missing is an agent prompt
-  that calls it.
+- **Escalated or out-of-scope worker diffs should be preserved structurally, not left as bare
+  working-tree state** — when `route` or a dispatched worker escalates or produces changes beyond
+  what was asked, the uncommitted diff currently just sits in the working tree for a human or `helper`
+  to triage by eye. That is a real incident risk: reverting or deleting part of it by hand, on an
+  unverified assumption about which parts are in scope, can permanently discard real work with no
+  recovery path, since nothing was ever committed or staged. `route`/`dispatch` (or the calling agent)
+  should save a snapshot — a stash, or a patch file under `.agent-logs/` or `artifacts/` — before any
+  human-directed partial revert touches an escalated diff, so a wrong call is recoverable rather than
+  destructive.
 - **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
   list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:

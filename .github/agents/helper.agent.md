@@ -96,6 +96,8 @@ the words the confirmation used, plus the bound if there is one:
 | Verifying a change someone has finished | run `dotnet anneal verify-change [<base-ref>]` directly, not as a sub-agent |
 | Asking how an agent or operation is performing — pass rates, failure trends — at the start of a review or retrospective | run `dotnet anneal stats` directly; it reports real pass-rate numbers from recorded invocation history rather than impression |
 | Lint noise before a pull request | run `dotnet anneal lint-fix` directly, not as a sub-agent |
+| A sub-agent or another agent's report cites evidence (quoted text + file:line) that should be spot-checked rather than trusted at face value | run `dotnet anneal verify-evidence` directly, not as a sub-agent |
+| About to add or state a rule or standard and it is unclear whether it is already stated elsewhere | run `dotnet anneal probe-rule-owner` directly, not as a sub-agent, before writing it |
 | Checking the repository against the template | `template-sync` |
 
 **`architecture-design` is the exception: hand off, never call.** See below.
