@@ -94,6 +94,7 @@ the words the confirmation used, plus the bound if there is one:
 | A specific fix the user has already had reported to them | `dispatch`, quoting the finding |
 | A contract clause to write now and implement later | `dispatch`, saying the clause is to be staged, not implemented |
 | Verifying a change someone has finished | run `dotnet anneal verify-change [<base-ref>]` directly, not as a sub-agent |
+| Asking how an agent or operation is performing — pass rates, failure trends — at the start of a review or retrospective | run `dotnet anneal stats` directly; it reports real pass-rate numbers from recorded invocation history rather than impression |
 | Lint noise before a pull request | run `dotnet anneal lint-fix` directly, not as a sub-agent |
 | Checking the repository against the template | `template-sync` |
 

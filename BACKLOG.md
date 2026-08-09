@@ -69,9 +69,10 @@ where `architecture-design` will read them. See the Intake admission test in
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
-- **Wire an agent to `probe-rule-owner`, `verify-evidence`, or `stats`** — `dispatch` now calls `route`,
-  but these three operations are still reachable only by hand. Each is fully specified and tested; what's
-  missing is an agent prompt that calls it.
+- **Wire an agent to `probe-rule-owner` or `verify-evidence`** — `dispatch` now calls `route`, and
+  `helper` now calls `stats` directly for pass-rate review conversations, but these two operations are
+  still reachable only by hand. Each is fully specified and tested; what's missing is an agent prompt
+  that calls it.
 - **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
   list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:
