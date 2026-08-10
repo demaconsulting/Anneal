@@ -65,6 +65,9 @@ here and none of it is mandatory on a private helper:
 - **Error Handling**: Every error case handled deliberately. An error a caller cannot distinguish is
   an error they cannot respond to.
 - **Resource Management**: Deterministic cleanup using language-appropriate patterns.
+- **Minimalism**: The smallest code that reliably and correctly does the job is preferred. When
+  fixing or extending, look first for code to delete — a defect removed is worth more than a check
+  added.
 
 # Quality Gates
 

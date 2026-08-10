@@ -88,22 +88,19 @@ shape for it — every entry either blocks or gates future work.
 Satisfied** to **Satisfied** is not admission — the user already said yes to the condition, and the
 move only records the current shape meets it. `route`'s Structural Change worker does this.
 
-**Why these two registers, and not backlog.** The asymmetry is the cost of being wrong. A wrong
-backlog line is one stale bullet somebody skips, so that register stays frictionless. A wrong
-constraint is a barrier every later change routes around, and removal is a decision, never
-bookkeeping — entries are never deleted for being met. A wrong assumption is worse: a silently added
-false premise the whole decomposition below it may rest on, not a stale note. Requiring the user's
-admission buys back the only exit each ratchet otherwise lacks.
+**Why these two registers, and not backlog.** A wrong backlog line is one stale bullet somebody
+skips, so that register stays frictionless. A wrong constraint or assumption is a standing barrier or
+false premise later work may build on, and removing one is a decision, never bookkeeping — that
+asymmetry is what justifies requiring the user's admission.
 
 ### A Citation Is Not a Derivation
 
-A sentence that binds future work must carry its own reasoning inline. Naming another rule or
-invariant as the reason is not the same as showing that the named rule actually implies the claim —
-a citation can be wrong, and once written it reads with that rule's full authority whether or not
-anyone checked. This applies wherever a binding-sounding claim is written, not only inside
-`constraints.md` — an `active-plan.md` stage entry, a Decisions paragraph, a routing table row. Before
-writing "per the X invariant," reread X and confirm the claim actually follows; if it doesn't
-obviously follow, that is evidence the claim doesn't belong, not that it needs a better citation.
+A binding claim must carry its own reasoning, not just cite another rule — a citation can be wrong,
+and once written it reads with that rule's authority regardless. Before writing "per the X
+invariant," confirm the claim actually follows from X; if it doesn't obviously follow, that is
+evidence the claim doesn't belong, not that it needs a better citation. Applies to any
+binding-sounding sentence — an `active-plan.md` stage entry, a Decisions paragraph, a routing table
+row — not only `constraints.md`.
 
 ### A Constraint Says What, Not How
 
@@ -117,9 +114,6 @@ directories, restores a .NET tool, or both. *"The payload installs by file copy 
 process is enforceable by one mechanical check"* are **how** — both were removed because each named a
 mechanism (a file copy, a single check) that later work outgrew, forcing an amendment that a **what**
 would never have needed.
-
-Actionable form: a constraint whose body explains a mechanism is describing, not constraining. State
-the condition and stop.
 
 ## Change
 
@@ -185,10 +179,6 @@ Effort within Change mode, once Scope is known:
 | Medium | Multiple files, one system; ~50-200 lines | Lightweight plan. |
 | Large | Interiors of multiple systems | Full plan plus a Tenet Check against `.anneal/work/constraints.md` and affected contracts. |
 | Massive | Cannot execute as one unit | Decompose into phases first — see below. |
-
-Effort and Scope never imply one another. A 300-file mechanical rename is Massive Effort at Small
-Fix scope and needs no human — it crosses no contract. A one-line public signature change is Small
-Effort at Contract Change scope and still moves `{system}.md`.
 
 ## Massive Effort Must Be Decomposed
 
@@ -287,12 +277,10 @@ boundary between systems changes.
   process removes.
 - **An agent never widens its own authority.** Hitting a boundary that forbids the work is a stop
   condition and a report, never an invitation to edit the boundary.
-- **Effort never substitutes for Scope, either direction.** A large Effort is not evidence Scope
-  must be higher, and a Massive item's own phase-level Small Fix classifications never license
-  skipping the cumulative check across the whole phase set.
-- **Never decompose to dodge the mandatory cumulative check.** Splitting a Massive item into phases
-  that individually dodge the tripwire while collectively crossing it is the same evasion the
-  split-to-stay-at-a-lower-scope rule already forbids, applied across phases instead of commits.
+- **Never let phase-level classification dodge the mandatory cumulative check.** A Massive item's own
+  phase-level Small Fix classifications do not license skipping the check across the whole phase set,
+  and splitting phases so each individually dodges the tripwire while collectively crossing it is the
+  same evasion as splitting commits to stay at a lower scope.
 
 # Worked Examples
 

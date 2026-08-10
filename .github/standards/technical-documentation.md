@@ -19,6 +19,8 @@ Dense, precise prose costs less context and leaves fewer ways to misread a rule.
 - Cut intensifiers if the sentence survives: "genuinely", "actually", "simply", "clearly".
 - No narrating the writing: "as mentioned above", "in summary".
 - State the outcome, not the process that found it.
+- Deletion is progress. When revising, look for what to remove before adding — a rewrite that keeps
+  every existing sentence has not been edited.
 
 This rule applies to every markdown file in the repository, `.anneal/architecture/**` included —
 `architecture-documentation.md` does not restate it.

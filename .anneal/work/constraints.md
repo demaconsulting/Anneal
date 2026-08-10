@@ -104,3 +104,4 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   evidence** — a warning about a clause the current change actually touched could in principle be pushed
   past that truncation point by other unrelated warnings ahead of it, hiding it from the AI verifier step
   relied on to catch an unimplemented touched clause. Not being fixed now, just recorded.
+- No agent, in any mode, writes to a file under .anneal/governance/ -- an agent proposes exact wording and escalates; only a human edits assumptions.md, vision.md, or tenets.md by hand. .anneal/work/constraints.md is the sole exception: it sits outside governance/, is a plain append-only bullet list, and once a human confirms exact wording the deterministic admit-constraint action performs the write.
