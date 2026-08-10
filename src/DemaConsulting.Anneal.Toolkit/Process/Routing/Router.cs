@@ -547,7 +547,7 @@ internal sealed class Router
         [
             $"Work item: {ledger.OriginalWorkItem}",
             $"Vision facts: {(ledger.Facts.VisionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.VisionFacts))}",
-            $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
+            $".anneal/work/active-plan.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             $"Changed-file hints: {(ledger.Facts.ChangedFileHints.Count == 0 ? "none" : string.Join(", ", ledger.Facts.ChangedFileHints))}",
             $"Requests template sync: {ledger.Facts.RequestsTemplateSync}",
@@ -576,7 +576,7 @@ internal sealed class Router
         [
             $"Work item: {ledger.OriginalWorkItem}",
             $"Vision facts: {(ledger.Facts.VisionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.VisionFacts))}",
-            $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
+            $".anneal/work/active-plan.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             ledger.Facts.ChangedFileHints.Count == 0
                 ? "Cleared file scope boundary: none was explicitly declared for the original item. You may still decompose it by naming narrow repository-relative phase scopes; the router will not require a strict-subset comparison against a missing boundary."

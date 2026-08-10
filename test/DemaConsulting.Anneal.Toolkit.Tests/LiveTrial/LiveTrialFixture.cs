@@ -11,7 +11,8 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.LiveTrial;
 /// </summary>
 /// <remarks>
 ///     This replaces the hand-built, outside-the-repository fixture repos this migration's stage log
-///     (<c>MIGRATION.md</c> S9 through S13) narrates rebuilding by hand for every live trial: create a temp
+///     (<c>.anneal/work/active-plan.md</c> S9 through S13) narrates rebuilding by hand for every live trial:
+///     create a temp
 ///     folder, seed it as a git repo, run the compiled tool against it, read <c>git status</c>/<c>git diff</c>
 ///     by hand, then delete it. This type does the same thing once, in-repo, as something disposable.
 ///     <para>

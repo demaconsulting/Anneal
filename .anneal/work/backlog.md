@@ -122,16 +122,16 @@ where `architecture-design` will read them. See the Intake admission test in
   shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
   a check folded into an existing review pass is undecided; needs its own `architecture-design` pass
   once real entries accumulate.
-- **The same staleness risk applies to `.anneal/work/backlog.md` and `MIGRATION.md` themselves, not only the skills
+- **The same staleness risk applies to `.anneal/work/backlog.md` and `.anneal/work/active-plan.md` themselves, not only the skills
   corpus** — an item can be silently resolved as a side effect of unrelated landed work (a new
-  operation absorbs what a backlog item asked for, an architectural pivot removes an assumption a
-  `MIGRATION.md` stage depended on) and nothing re-reads the older entries against what has since
+  operation absorbs what a backlog item asked for, an architectural pivot removes an assumption an
+  `active-plan.md` stage depended on) and nothing re-reads the older entries against what has since
   landed. Both files are append-mostly in practice: entries get added when noticed and removed only
   when someone happens to work the exact item, never swept as a batch. The failure mode is the same
   shape as the skills one above — a human maintainer rarely re-walks a backlog after a large change,
   but an agent can mechanically diff each entry's premise against current `.anneal/architecture/` and
   recent commits. Whether this becomes one general "re-validate accumulated notes" sweep covering
-  skills, `.anneal/work/backlog.md`, and `MIGRATION.md` together, or three narrower checks, is exactly the kind of
+  skills, `.anneal/work/backlog.md`, and `active-plan.md` together, or three narrower checks, is exactly the kind of
   question the skills item above says can only be answered once more experience of *doing* one such
   sweep exists — do not design the general version speculatively.
 

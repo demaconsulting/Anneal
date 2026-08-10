@@ -12,7 +12,7 @@
   <!--
     Packaged as a .NET tool so that a repository restores it and invokes it as
     "dotnet anneal <action>". Nothing publishes it yet: the tool manifest that
-    makes it restorable downstream is stage S2 of MIGRATION.md, so the package
+    makes it restorable downstream is stage S2 of .anneal/work/active-plan.md, so the package
     identity is fixed here only to stop it moving once something depends on it.
   -->
   <PropertyGroup>

@@ -77,7 +77,7 @@ else keeps the property — a system can still be replaced wholesale without rec
 
 That exception is widening for the duration of the migration. Prose agents invoke `dotnet anneal`
 directly, so a call becomes the normal edge from Process to Toolkit rather than an anomaly, and
-[MIGRATION.md](../../MIGRATION.md) carries it in the suspension register. It is not restored at the
+[active-plan.md](../work/active-plan.md) carries it in the suspension register. It is not restored at the
 end: Process is dissolved, and the rule will have nothing left to describe.
 
 The one cycle in the diagram is deliberate. The Toolkit audits a tree that agents from the payload

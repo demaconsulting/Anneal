@@ -1,7 +1,9 @@
 # Migration: from prose agents to compiled processes
 
 This file is the approved proposal every Migration commit references. It exists only while the
-migration is in flight; the commit landing the final stage deletes it.
+migration is in flight; the commit landing the final stage deletes it. It lived at root
+`MIGRATION.md` through stage S20; S21 relocated it here without changing its content, as the last
+step of making `.anneal/` the sole authoritative source for this repository's own process documents.
 
 ## Destination
 
@@ -13,7 +15,7 @@ reachable, and they are dismantled into that catalog. `helper` and `architecture
 absorbed last, because a conversation is the hardest control flow to encode — not because they are
 exempt.
 
-The dividing line in [`.anneal/governance/vision.md`](.anneal/governance/vision.md) holds for the
+The dividing line in [`../governance/vision.md`](../governance/vision.md) holds for the
 whole journey: control flow and context assembly become code, judgement stays data. Absorbing an
 agent means compiling its loop, never its opinions; its prose becomes content a model is shown.
 
@@ -49,7 +51,7 @@ These hold after **every** commit, not merely at a stage boundary.
 - **Self-hosting** — every commit leaves Anneal able to develop Anneal. Each generation of the
   process builds the next one, so a change that breaks the agents currently doing the work stops the
   migration rather than advancing it. This is the constraint that decides what a stage may contain,
-  and it is registered in [constraints.md](.anneal/work/constraints.md) rather than owned here.
+  and it is registered in [constraints.md](constraints.md) rather than owned here.
 - **One-way** — a responsibility that has moved from prose into code does not move back. The ratchet
   is what makes an unscheduled migration safe: with no plan to measure against, monotonic direction
   is the only guarantee that a day's work is progress.
@@ -87,7 +89,7 @@ needed.
   gates today.
 - *Restored, scoped* to deterministic operations when the first model-backed operation gates.
 
-**[overview.md](.anneal/architecture/overview.md)** — every edge is a file, never a call.
+**[overview.md](../architecture/overview.md)** — every edge is a file, never a call.
 
 - *Cannot hold because* prose agents invoke `dotnet anneal`, and the catalog is reached by calling
   it.
@@ -100,6 +102,42 @@ standard fails the build. That is the check working. The repair is to relocate t
 retire it with the agent — never to silence the clause.
 
 ## Current stage
+
+### S21 — Relocate this file to `.anneal/work/active-plan.md` — landed
+
+**Why now.** S19's own entry named this move and blocked it on "this file's own retirement" —
+meaning root `MIGRATION.md` had to stop being the thing every mechanism read before it could safely
+move. S20 finished that: `RepositoryFacts`, the standards, and every cross-reference in this
+repository's own architecture tree were retargeted to `.anneal/` as the sole authoritative source
+for everything else this file's own name is a sibling of (`CONSTRAINTS.md` → `.anneal/work/
+constraints.md`, `BACKLOG.md` → `.anneal/work/backlog.md`). This file was the one deliberately left
+out of that stage, since it is a different kind of document — a live, in-flight plan register rather
+than a curated fact file — and moving it while it still held open state felt riskier to combine with
+the broader cutover than to land as its own small, mechanical step immediately after.
+
+**What landed.** `git mv MIGRATION.md .anneal/work/active-plan.md` — a pure relocation, no content
+dropped or reworded beyond what the move itself requires. `RepositoryFacts.Gather` now reads
+`.anneal/work/active-plan.md` instead of root `MIGRATION.md` for both `MigrationPresent` and
+`MigrationCurrentStage` — a real behavior change, not just a doc move, since this is the one place a
+compiled Toolkit operation reads this specific file rather than a person or an agent reading prose.
+`Router`'s diagnostic strings, `PROCESS-02`'s contract clause in `process.md` (which named
+`MIGRATION.md` by exact filename as the one file promised to belong to the installed layout while
+being absent from most repositories), `test-process-contract.ps1`'s `$requiredFiles` membership
+list, and every prose citation of a specific stage entry (`MIGRATION.md`'s S8/S9/S10/S12/S16/S17
+entries, cited from Toolkit source doc comments, `route.md`, `runtime.md`, and elsewhere) were
+retargeted to name `.anneal/work/active-plan.md` instead. No test exercises
+`RepositoryFacts.Gather`'s file-reading behavior against a real fixture file — `WorkerBriefTests`
+constructs `RepositoryFacts` directly with record initializers — so no test fixture needed renaming.
+
+**What did not land, and is deferred.** The template (`.github/template/`, `AGENTS.pristine.md`,
+`repository-map.md`) still describes a downstream repository's own migration file as root
+`MIGRATION.md`, left untouched for the same reason S20 deferred the rest of the template: an
+onboarding operation migrates downstream repositories deliberately, rather than this repository's own
+housekeeping silently drifting the template out from under them. This file's own self-description —
+"the commit landing the final stage deletes it" — is unchanged: this stage relocated the file, it did
+not land the final stage of the underlying prose-to-compiled migration, so the file is not deleted.
+
+**Verification.** `pwsh ./fix.ps1` → `pwsh ./build.ps1` → `pwsh ./lint.ps1`, all green.
 
 ### S20 — Cut over to `.anneal/` as the sole authoritative source — landed
 

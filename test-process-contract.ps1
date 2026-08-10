@@ -356,8 +356,8 @@ Test-Case -Name "AgentFrontMatterIsWellFormed" -Body {
 # Two assertions over the same token stream. A payload reference must resolve on
 # disk. Every other path must belong to the layout the process defines - what
 # Template ships, plus the files and directories every installed repository
-# carries. That is membership, not existence, which is why MIGRATION.md passes
-# while absent from this repository.
+# carries. That is membership, not existence, which is why
+# .anneal/work/active-plan.md passes while absent from this repository.
 Test-Case -Name "AgentReferencesResolve" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
@@ -401,7 +401,7 @@ Test-Case -Name "AgentReferencesResolve" -Body {
     $requiredFiles = @(
         "README.md", ".anneal/work/backlog.md", ".anneal/work/constraints.md",
         ".anneal/governance/assumptions.md", ".anneal/governance/tenets.md", ".anneal/governance/vision.md",
-        "MIGRATION.md", ".anneal/architecture/overview.md"
+        ".anneal/work/active-plan.md", ".anneal/architecture/overview.md"
     )
     # The layout the Project Structure section of AGENTS.md requires of every
     # installed repository. A directory names a location rather than a file, so it

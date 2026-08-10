@@ -44,10 +44,10 @@ internal enum RequestImplication
 ///     The bullet-level lines in <c>.anneal/governance/vision.md</c>, or empty when the file is absent or carries
 ///     none.
 /// </param>
-/// <param name="MigrationPresent">Whether <c>MIGRATION.md</c> exists in the repository.</param>
+/// <param name="MigrationPresent">Whether <c>.anneal/work/active-plan.md</c> exists in the repository.</param>
 /// <param name="MigrationCurrentStage">
-///     The heading text of <c>MIGRATION.md</c>'s <c>## Current stage</c> entry, or null when the file is absent or
-///     the heading is not found.
+///     The heading text of <c>.anneal/work/active-plan.md</c>'s <c>## Current stage</c> entry, or null when the
+///     file is absent or the heading is not found.
 /// </param>
 /// <param name="RelevantArchitectureNodes">
 ///     The <c>.anneal/architecture/*.md</c> file names whose own name is mentioned, case-insensitively, in the work
@@ -86,7 +86,7 @@ internal sealed record RepositoryFacts(
 
         return new RepositoryFacts(
             VisionFacts: ReadVisionFacts(root),
-            MigrationPresent: File.Exists(Path.Combine(root, "MIGRATION.md")),
+            MigrationPresent: File.Exists(Path.Combine(root, ".anneal", "work", "active-plan.md")),
             MigrationCurrentStage: ReadMigrationCurrentStage(root),
             RelevantArchitectureNodes: ReadRelevantArchitectureNodes(root, workItem),
             ChangedFileHints: changedFileHints ?? [],
@@ -109,7 +109,7 @@ internal sealed record RepositoryFacts(
 
     private static string? ReadMigrationCurrentStage(string root)
     {
-        var path = Path.Combine(root, "MIGRATION.md");
+        var path = Path.Combine(root, ".anneal", "work", "active-plan.md");
         if (!File.Exists(path))
             return null;
 

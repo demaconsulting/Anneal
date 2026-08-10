@@ -13,7 +13,7 @@ covers:
 
 Process is the bootstrap harness: the agent prompts, the standards, and the skills they load
 on demand. Its content is read by a language model rather than executed, and everything odd about
-this repository follows from that. It is **terminal** — [MIGRATION.md](../../MIGRATION.md)
+this repository follows from that. It is **terminal** — [active-plan.md](../work/active-plan.md)
 dismantles it into compiled processes, with `helper` and `architecture-design` absorbed last — so
 the contract below is deliberately not extended, and a clause is retired with the agent it describes
 rather than carried forward. If Process were rewritten, a consumer would notice immediately — not
@@ -39,7 +39,8 @@ is written.
   given, and every other path an agent prompt names belongs to the repository layout this process
   defines — the layout [Template](./template.md) ships, and the files and directories every installed
   repository carries — so no reference resolves only in the repository the payload was authored in.
-  What is promised is membership in that layout, not presence on disk: `MIGRATION.md` belongs to the
+  What is promised is membership in that layout, not presence on disk: `.anneal/work/active-plan.md`
+  belongs to the
   layout while being absent from every repository outside a Migration. Build output the tooling
   produces rather than the layout defines is outside this promise.
   *Verified by:* `AgentReferencesResolve`
@@ -148,7 +149,7 @@ instead of asking; a mechanical one fails by widening its scope or misreporting 
 mechanical zone is therefore where the structural contract above earns its place, and the interactive
 zone is where behavioral verification is spent.
 
-For the span of the migration [MIGRATION.md](../../MIGRATION.md) carries, a third shape coexists with
+For the span of the migration [active-plan.md](../work/active-plan.md) carries, a third shape coexists with
 these two rather than replacing either: a compiled Router selects one of a small worker catalog
 (`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
 [Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, for Maintenance
@@ -249,7 +250,7 @@ repeated at each decision site.
 
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this
-repository at Migration stage S6, the condition [MIGRATION.md](../../MIGRATION.md) had named for
+repository at Migration stage S6, the condition [active-plan.md](../work/active-plan.md) had named for
 retiring the prose agent that preceded it, so `.github/agents/lint-fix.agent.md` is retired rather
 than kept as a fallback with nothing left to fall back from. The node is removed rather than
 redrawn as something else in the Mechanical zone, because it was never a sub-agent another agent

@@ -97,7 +97,7 @@ A sentence that binds future work must carry its own reasoning inline. Naming an
 invariant as the reason is not the same as showing that the named rule actually implies the claim —
 a citation can be wrong, and once written it reads with that rule's full authority whether or not
 anyone checked. This applies wherever a binding-sounding claim is written, not only inside
-`.anneal/work/constraints.md` — a `MIGRATION.md` stage entry, a Decisions paragraph, a routing table row. Before
+`constraints.md` — an `active-plan.md` stage entry, a Decisions paragraph, a routing table row. Before
 writing "per the X invariant," reread X and confirm the claim actually follows; if it doesn't
 obviously follow, that is evidence the claim doesn't belong, not that it needs a better citation.
 
@@ -150,17 +150,17 @@ design.
 - Requires an **approved proposal** before any file changes. The proposal is the output of a
   `architecture-design` session — the target decomposition, the stages, and what each stage leaves
   working — and the user approves it.
-- The approved proposal lives in **`MIGRATION.md`** at the repository root. It must be tracked,
+- The approved proposal lives in **`.anneal/work/active-plan.md`**. It must be tracked,
   because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
   the stages and their exit conditions only; the target tree it approves lives in
   `.anneal/architecture/` and is not restated here.
-- Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
+- Every commit declares Migration mode and references `.anneal/work/active-plan.md`; splitting work is required
   here, not forbidden.
 - Contract clauses describing systems not yet built are **planned**: written now, and verified by a
   placeholder that `dotnet anneal check-contracts` reports as an unfulfilled obligation until the stage that
-  builds them (see `system-contracts.md`). `MIGRATION.md` carries the exit condition for each.
+  builds them (see `system-contracts.md`). `.anneal/work/active-plan.md` carries the exit condition for each.
 - Ends when every planned clause is satisfied and the exit conditions are met. **Delete
-  `MIGRATION.md` in the final commit.** The file existing is what says a migration is in flight, so
+  `.anneal/work/active-plan.md` in the final commit.** The file existing is what says a migration is in flight, so
   one left behind claims a migration that never ends.
 - A single stage's own implementation still classifies Scope and Effort like any other work, once a
   human has written the stage and its exit condition. A stage whose implementation turns out Massive
@@ -318,8 +318,8 @@ boundary between systems changes.
 - [ ] Small Fix changes left contract tests passing untouched
 - [ ] Contract Change and Structural Change changes updated the contract before implementation
 - [ ] No change was split across commits to avoid a higher scope
-- [ ] Every Migration commit declared Migration mode and referenced `MIGRATION.md`
-- [ ] A completed Migration deleted `MIGRATION.md`
+- [ ] Every Migration commit declared Migration mode and referenced `.anneal/work/active-plan.md`
+- [ ] A completed Migration deleted `.anneal/work/active-plan.md`
 - [ ] Prune check was performed for every Contract Change and Structural Change
 - [ ] Effort was classified independently of Scope, neither inferred from the other
 - [ ] Massive Effort was decomposed only after the cumulative check cleared the whole phase set, and

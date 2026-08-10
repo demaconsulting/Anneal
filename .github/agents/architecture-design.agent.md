@@ -150,10 +150,11 @@ describe what systems promise *each other*. Write any load-bearing assumption fr
 omit an entry entirely rather than inventing one for it.
 
 **When re-cutting a repository that already has code**, the tree you write is the *target*, not the
-current state, and moving code to match it will span commits. Also write **`MIGRATION.md`** at the
-repository root: the stages in order, what each one leaves working, and the exit condition for each
+current state, and moving code to match it will span commits. Also write **`.anneal/work/active-plan.md`**:
+the stages in order, what each one leaves working, and the exit condition for each
 planned clause. Mark the last stage as final and say in it that the commit landing it deletes this
-file — whoever lands that stage is reading `MIGRATION.md`, and may not be reading anything else. This
+file — whoever lands that stage is reading `.anneal/work/active-plan.md`, and may not be reading anything
+else. This
 file is the approved proposal that every Migration commit references; `change-classification.md` owns
 the rest of its lifecycle. A bootstrap has no stages and writes no such file.
 
@@ -206,7 +207,7 @@ Run `pwsh ./fix.ps1`, then report per the AGENTS.md reporting requirements.
 
 ## Stages
 
-{Re-cut only: the number of stages written to `MIGRATION.md` and what the first one lands. Write
+{Re-cut only: the number of stages written to `.anneal/work/active-plan.md` and what the first one lands. Write
 "none — bootstrap" otherwise}
 
 ## Open Concerns

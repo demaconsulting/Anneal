@@ -11,14 +11,15 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// <remarks>
 ///     Mirrors <c>AGENTS.md</c>'s own "Standards Application" table, statically, per worker — the same table the
 ///     prose agents <c>apply</c> and <c>architecture-update</c> already read before touching anything. This is
-///     deliberately the minimal mechanism <c>MIGRATION.md</c>'s S12 entry describes: no oracle call, no dynamic
-///     selection from the work item's own text, a fixed list per worker decided once at compile time.
+///     deliberately the minimal mechanism <c>.anneal/work/active-plan.md</c>'s S12 entry describes: no oracle call,
+///     no dynamic selection from the work item's own text, a fixed list per worker decided once at compile time.
 ///     <para>
 ///         A standard that does not exist at the expected path is skipped, not a thrown exception — a repository
 ///         that has not installed Anneal's standards (or has renamed one) still gets a worker that runs, just
 ///         without that one piece of optional guidance. A compiled worker should not hard-fail an entire run
 ///         because advisory content is absent, the same "best effort over an optional read" posture
-///         <see cref="Process.Routing.RepositoryFacts" /> already takes for <c>vision.md</c> and <c>MIGRATION.md</c>.
+///         <see cref="Process.Routing.RepositoryFacts" /> already takes for <c>vision.md</c> and
+///         <c>active-plan.md</c>.
 ///     </para>
 /// </remarks>
 internal static class WorkerStandards

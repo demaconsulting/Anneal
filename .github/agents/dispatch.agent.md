@@ -41,11 +41,11 @@ Determine the **mode** first, because three of the four fix the scope automatica
   passing that bound to `maintain` as its file-scope hints. If the request has no bound, ask for one
   instead of inventing it. If the work turns out to need a contract change, stop and re-classify as a
   Change: Maintenance is defined by touching nothing a consumer can observe.
-- **Migration** — an agent never enters this mode on its own. If `MIGRATION.md` does not exist, report
-  INCOMPLETE saying an approved proposal is required and that `architecture-design` produces one. If
-  it does exist, the tree is already written and each stage is bounded implementation work: report
-  INCOMPLETE naming the stage and directing the user to re-invoke `dispatch` for it. Either way you
-  stop here.
+- **Migration** — an agent never enters this mode on its own. If `.anneal/work/active-plan.md` does
+  not exist, report INCOMPLETE saying an approved proposal is required and that `architecture-design`
+  produces one. If it does exist, the tree is already written and each stage is bounded
+  implementation work: report INCOMPLETE naming the stage and directing the user to re-invoke
+  `dispatch` for it. Either way you stop here.
 - **Change** — continue to Step 2, unless the user explicitly asked to stage the contract ahead of
   implementation rather than build it now, in which case go to Step 2a instead. Never infer staging
   from a request's difficulty or size; honor it only when actually asked for.

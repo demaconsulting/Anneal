@@ -208,7 +208,7 @@ Do **not** create a section document to:
 - Restate the public API — that belongs in doc comments on the members themselves.
 - Describe what the tests cover — the tests do this.
 - Record history or migration narrative — history belongs in git, and a migration in flight is
-  described by `MIGRATION.md`.
+  described by `.anneal/work/active-plan.md`.
 - Satisfy a sense that a system "ought to have" documentation.
 
 # When to Delete a Section Document (MANDATORY)

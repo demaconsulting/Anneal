@@ -41,7 +41,7 @@ scaffolding and compile away with the rest of the control flow they once encoded
 data is the *content* a compiled step composes into what a model sees — standards, and a repository's
 own declared contracts — because those are corrected in one edit, where a wrong compiled rule is
 corrected only through build, test, publish and restore. Whether that content stays a plain file or
-becomes a packaged resource is a delivery detail still open (see `MIGRATION.md`); a repository's own
+becomes a packaged resource is a delivery detail still open (see `.anneal/work/active-plan.md`); a repository's own
 contracts cannot become one, because they are a fact about that installation, not shared behavior.
 
 The admission test underneath is the one *What must not be reintroduced* in
@@ -61,6 +61,6 @@ reliably positive under long-term unattended maintenance and planning; that scop
 and observed before this one is even re-decided, let alone granted.
 
 How the journey is run is not part of this direction and is deliberately not scheduled here.
-[MIGRATION.md](../../MIGRATION.md) owns it today, and plans one stage at a time. That file is the
-live, authoritative plan register as of this stage; a later stage may retire it in favor of
-`../work/active-plan.md`, at which point this link moves with it.
+[active-plan.md](../work/active-plan.md) owns it, and plans one stage at a time. It was
+`MIGRATION.md` at the repository root through stage S20; S21 relocated it here without changing its
+content.

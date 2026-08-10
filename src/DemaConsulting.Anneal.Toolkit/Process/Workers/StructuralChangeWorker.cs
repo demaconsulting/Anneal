@@ -35,7 +35,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     <see cref="DocumentAuthor" /> → <see cref="Developer" /> → checks → <see cref="Verifier" /> restart from
 ///     the top. The documentation, code, and tenet repair budgets are <b>not</b> reset when this happens — they
 ///     are independent counters that simply carry whatever they had left across the re-plan, per
-///     <c>MIGRATION.md</c>'s S9 entry.
+///     <c>.anneal/work/active-plan.md</c>'s S9 entry.
 ///     <para>
 ///         <b>When this worker reroutes.</b> Four paths surface a <see cref="WorkerRunResult.Reroute" />: (1)
 ///         the <see cref="Planner" /> itself concludes the work does not belong to a structural worker at all,
@@ -538,7 +538,7 @@ internal sealed class StructuralChangeWorker
                 return replanTerminal;
 
             // No budget resets afterward: documentationRepairBudget, codeRepairBudget, and tenetRepairBudget
-            // carry whatever they had left across this re-plan, per MIGRATION.md's S9 entry.
+            // carry whatever they had left across this re-plan, per .anneal/work/active-plan.md's S9 entry.
             plan = revisedPlan;
         }
     }

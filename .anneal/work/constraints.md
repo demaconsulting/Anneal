@@ -45,12 +45,12 @@ quietly.
   itself that is currently installed, so a change that breaks the agents, scripts or tool doing the
   work halts development rather than advancing it. This holds after every commit, not merely at a
   stage boundary, and it is what bounds the content of a migration step;
-  [MIGRATION.md](../../MIGRATION.md) names it as a step invariant rather than restating the condition.
+  [active-plan.md](active-plan.md) names it as a step invariant rather than restating the condition.
 - **The basis of a model-backed judgement is captured at the time or lost** — a verdict on unchanged
   input is expected to be stable, but the reasoning behind it, the data the model was shown and the
   exact question it was asked are not recoverable by re-running. Without them a wrong verdict cannot
   be diagnosed as a bad question rather than a bad answer. `TOOLKIT-11` absorbed this at stage S2 of
-  [MIGRATION.md](../../MIGRATION.md).
+  [active-plan.md](active-plan.md).
 
 ## Not Yet Satisfied
 
@@ -70,13 +70,13 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   agent never opened reads exactly like a checked finding. The paired belief is in
   [assumptions.md](../governance/assumptions.md); how a prompt demands the basis is owned by
   [prompt-authoring.md](../architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
-  mechanical half at stage S1a of [MIGRATION.md](../../MIGRATION.md) — whether a cited quote really is at the
+  mechanical half at stage S1a of [active-plan.md](active-plan.md) — whether a cited quote really is at the
   line named — leaving the prompt obligation to state the basis still outstanding.
 - **No compiled-in default may name a single external identifier whose retirement breaks every
   repository that has not overridden it** — a default naming one provider-side name works until that
   name is retired, and then fails everywhere at once with only a release to fix it.
 - **A repository's own pinned model names are not guaranteed to stay valid** — `.anneal/config.json`
-  names specific models by string, discovered at stage S1b of [MIGRATION.md](../../MIGRATION.md) when the
+  names specific models by string, discovered at stage S1b of [active-plan.md](active-plan.md) when the
   shipped defaults had already rotted before their first use. This recurs per repository and cannot
   be fixed once: a vendor retiring a name breaks that repository's Toolkit invocations with nothing in
   the process noticing or repairing it, independently of whether Anneal's own compiled defaults (the

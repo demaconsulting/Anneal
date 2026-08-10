@@ -125,7 +125,7 @@ breaks the build rather than deferring the obligation.
 
 `verify-change` runs `check-contracts -Strict` once implementation is complete, promoting
 obligations to errors; closing them is the change's own responsibility. During a Migration the
-planned clauses are closed stage by stage, and `MIGRATION.md` holds the exit condition for each.
+planned clauses are closed stage by stage, and `.anneal/work/active-plan.md` holds the exit condition for each.
 
 **Never resolve a check failure by editing the clause to match the code.** Fix the test name, or make
 the contract change deliberately.

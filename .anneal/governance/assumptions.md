@@ -41,7 +41,7 @@ propose a revision but never edits this file unilaterally.
 - **A described schema is enough without constrained decoding.** The Copilot session API has no
   response-format facility, so a typed answer rests on a schema described in the prompt and a retry
   on parse failure. If failures survive the retry budget often enough to matter — measured at stage
-  S1b of [MIGRATION.md](../../MIGRATION.md) — typed probes need a provider that enforces the shape on
+  S1b of [active-plan.md](../work/active-plan.md) — typed probes need a provider that enforces the shape on
   the wire.
 - **The build now requires network access**, to fetch the Copilot CLI the SDK depends on. Build-time
   only — no enforcement operation's runtime determinism is affected. See

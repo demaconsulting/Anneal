@@ -18,7 +18,8 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     <para>
 ///         <b>Nothing calls this type yet.</b> This pass implements the primitive in isolation; composing it into
 ///         a worker is the Structural Change worker's job, a later, separate stage per
-///         <c>MIGRATION.md</c>'s S8 entry. A caller that does not yet exist cannot single-shot anything, so this
+///         <c>.anneal/work/active-plan.md</c>'s S8 entry. A caller that does not yet exist cannot single-shot
+///         anything, so this
 ///         remark is the only guarantee available until one does.
 ///     </para>
 ///     <para>

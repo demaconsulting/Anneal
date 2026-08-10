@@ -14,7 +14,8 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.LiveTrial;
 ///     or <c>pwsh ./build.ps1</c> never reaches a real model or a real process here.
 ///     <para>
 ///         This is the live-trial validation the "declare → build → live-validate → retire" discipline requires
-///         before <c>architecture-update.agent.md</c> can retire (see <c>MIGRATION.md</c>'s S17 entry): a compiled
+///         before <c>architecture-update.agent.md</c> can retire (see <c>.anneal/work/active-plan.md</c>'s S17
+///         entry): a compiled
 ///         path existing and passing fake-endpoint unit tests is not the same claim as it holding up against a
 ///         real model's real reasoning and real tool calls.
 ///     </para>

@@ -76,7 +76,7 @@ the report separately from the completion fields.
 ## Decisions
 
 **The action name, argument shape, charters, and worker catalog keys were this pass's own judgement
-call** — `MIGRATION.md`'s S10 entry names exactly this and delegates the specifics to whoever lands the
+call** — `.anneal/work/active-plan.md`'s S10 entry names exactly this and delegates the specifics to whoever lands the
 stage. `route` was chosen over `develop` or `work` because it reads plainly as "hand this repository a
 real piece of work and let the routing oracle decide", which is the whole of what the action does. The
 work item is a single positional argument rather than a flag, matching every other action's own

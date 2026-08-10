@@ -13,7 +13,8 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// <remarks>
 ///     <c>.anneal/architecture/toolkit/stage-contract.md</c> is the contract this implements. It gave
 ///     <c>architecture-update.agent.md</c>'s one remaining job — staging a contract clause ahead of
-///     implementation, as a deliberate planned obligation, per <c>MIGRATION.md</c>'s S16 entry — a compiled
+///     implementation, as a deliberate planned obligation, per <c>.anneal/work/active-plan.md</c>'s S16 entry — a
+///     compiled
 ///     equivalent, mirroring how <see cref="MaintainOperation" /> gave <c>apply.agent.md</c>'s old Maintenance
 ///     job one; <c>architecture-update.agent.md</c> itself retired once this action was live-validated. No new
 ///     worker type is introduced: <see cref="DocumentAuthor" /> is the exact primitive
