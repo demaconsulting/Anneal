@@ -1,13 +1,13 @@
 # Anneal
 
-**A development process for AI coding agents working in long-lived .NET codebases.**
+**A development process for AI coding agents working in long-lived source repositories.**
 
 Anneal installs into your repository as a set of agent prompts, coding standards, a repository
 template, and a command-line tool. From then on you work by asking an agent for what you want, and
 the process decides how much rigor the request deserves — from none at all for a change nobody
 outside the code can observe, up to a staged, approved restructure when the architecture itself is the
-thing that is wrong. It is aimed at .NET and C# products that will be maintained for years by a mix of
-people and agents.
+thing that is wrong. It is aimed at codebases that will be maintained for years by a mix of
+people and agents; today's shipped template covers .NET and C# only.
 
 The mechanism is a single rule: **documentation work is triggered only when you change a promise
 other code depends on.** The interior of a system is therefore yours to rearrange as often as you
@@ -16,10 +16,8 @@ names a test that proves it — so the build fails the moment a promise loses it
 inside a scope they declare before they start, and reaching the edge of it stops them and returns a
 report to you.
 
-That places Anneal between two unsatisfying options: unstructured prompting, which is quick until
-the design ossifies and nobody can say what anything still guarantees, and regulated development,
-which buys traceability at a price paid on every subsequent change. The name is the metaphor:
-annealing relieves the stress that repeated working builds up in metal, so it can be shaped again.
+The name is the metaphor: annealing relieves the stress that repeated working builds up in metal, so
+it can be shaped again.
 
 > **Not a regulated-development process.** `Anneal` does not produce IEC 62304 or equivalent
 > compliance evidence.[^1]

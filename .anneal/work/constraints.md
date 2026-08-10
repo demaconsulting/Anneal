@@ -29,11 +29,10 @@ quietly.
   reference it rather than restating it here.
 - **The cost of keeping documentation trustworthy does not grow with the volume of code change** —
   interior rearrangement of a system must stay free of documentation cost no matter how often it
-  happens; only a change to what a system promises another may carry one. The current mechanism
-  ([product.md](../profile/product.md): "documentation work is triggered only when you change a
-  promise other code depends on") is one way of satisfying this, not the property itself — a re-cut
-  that found a better mechanism for the same property would still have to hold this constraint,
-  which is why it is recorded here rather than only as the mechanism's own description.
+  happens; only a change to what a system promises another may carry one. The current mechanism —
+  documentation work is triggered only when a promise other code depends on changes — is one way of
+  satisfying this, not the property itself: a re-cut that found a better mechanism for the same
+  property would still have to hold this constraint.
 - **Agent prompts and standards stay within a per-invocation context budget** — the worst-case prompt
   load stays under the ceiling declared and counted in
   [prompt-authoring.md](../architecture/process/prompt-authoring.md).
