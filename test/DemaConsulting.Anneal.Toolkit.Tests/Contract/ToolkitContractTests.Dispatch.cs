@@ -55,7 +55,7 @@ public partial class ToolkitContractTests
             () => Assert.Equal(
                 new[]
                 {
-                   "admit-assumption", "admit-constraint", "check-contracts", "file-skill", "intake", "lint-fix",
+                   "admit-constraint", "check-contracts", "file-skill", "intake", "lint-fix",
                    "maintain", "probe-rule-owner", "route", "search-skills", "stage-contract", "stats",
                    "verify-change", "verify-evidence"
                 },

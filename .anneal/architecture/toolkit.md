@@ -93,9 +93,10 @@ from.
   the Model Seam, and [LintFix](./toolkit/lint-fix.md) is model-backed and also writes to the
   repository. [Intake](./toolkit/intake.md) is model-backed and writes to the repository, but only by
   appending one filed bullet to backlog; an assumption or constraint answer escalates instead of
-  writing it. [AdmitAssumption and AdmitConstraint](./toolkit/intake.md) are deterministic companions
-  that perform the verbatim governance write once a human has approved the exact wording — no model
-  call, no classification. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
+  writing it. [AdmitConstraint](./toolkit/intake.md) is its deterministic companion
+  that performs the verbatim constraints write once a human has approved the exact wording — no model
+  call, no classification. Everything under `.anneal/governance/` (assumptions, vision, tenets) has no
+  admit action; the agent proposes and escalates, and a human edits the file by hand. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
   operation built on Process rather than the Model Seam alone: it constructs a real Router over the
   production worker catalog and runs whichever compiled worker the routing oracle selects.
   [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, but runs
@@ -276,8 +277,9 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
 - [Stats](./toolkit/stats.md) — how `stats` reads a repository's invocation records and reports each
   action's pass rate across five cumulative time windows
 - [Intake](./toolkit/intake.md) — how `intake` applies the Intake admission test and either appends one
-  bullet to backlog, or escalates a proposed assumption or constraint; how `admit-assumption` and
-  `admit-constraint` perform the deterministic approved write
+  bullet to backlog, or escalates a proposed assumption or constraint; how `admit-constraint` performs
+  the deterministic approved write for constraints (governance files have no admit action and are
+  hand-edited by a human)
 - [Maintain](./toolkit/maintain.md) — how `maintain` runs a declared-bound Maintenance work item
   directly against `SmallFixWorker`, and how the containment and protected-path checks escalate a run
   whose actual changes exceeded the bound it declared

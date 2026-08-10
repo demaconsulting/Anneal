@@ -79,7 +79,6 @@ public static class AnnealTool
         new StatsOperation(),
         new FileSkillOperation(),
         new IntakeOperation(),
-        new AdmitAssumptionOperation(),
         new AdmitConstraintOperation(),
         new SearchSkillsOperation(),
         new RouteOperation(),

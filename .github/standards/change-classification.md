@@ -63,21 +63,26 @@ append it** — see below.
 
 ### Only the User Admits a Constraint or Assumption
 
-**No agent, in any mode, appends an entry to `.anneal/work/constraints.md` or
-`.anneal/governance/assumptions.md`.** Only the user admits one. This binds Change, Maintenance and
+**No agent, in any mode, appends an entry to `.anneal/work/constraints.md` or any file under
+`.anneal/governance/`.** Only the user admits one. This binds Change, Maintenance and
 Migration exactly as Intake; a rule scoped to Intake alone would leave every other path open.
 
 **To propose:** state the exact bullet in the completion report — for a constraint, its section,
 **Satisfied** or **Not Yet Satisfied** — and stop. Silence, plausibility, or a general instruction to
 improve the repository is never admission; only an explicit yes to *that* item is.
 
-**To admit,** once the user has confirmed the exact wording, run the matching deterministic action —
+**To admit a constraint**, once the user has confirmed the exact wording, run the deterministic action —
 no classification, no model call:
 
-- `dotnet anneal admit-assumption "<exact bullet text>"` appends verbatim to
-  `.anneal/governance/assumptions.md`.
 - `dotnet anneal admit-constraint "<exact bullet text>" <satisfied|not-yet-satisfied>` appends
   verbatim to the named section of `.anneal/work/constraints.md`.
+
+**To admit an assumption** (or any entry under `.anneal/governance/` — vision, tenets, or assumptions),
+there is no admit action. The agent proposes exact wording and escalates; the user edits the file by
+hand. `.anneal/governance/` holds load-bearing narrative prose where placement is a human judgement
+call. `.anneal/work/constraints.md` alone keeps the confirm-then-machine-writes pattern because it sits
+outside `.anneal/governance/`, is a plain append-only bullet list, and a mechanical append is the right
+shape for it — every entry either blocks or gates future work.
 
 **Promotion is still an agent action.** Moving an already-admitted constraint from **Not Yet
 Satisfied** to **Satisfied** is not admission — the user already said yes to the condition, and the

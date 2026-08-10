@@ -8,7 +8,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 /// <summary>
 ///     Boundary tests for TOOLKIT-42 through TOOLKIT-47: how <c>intake</c> classifies one Intake item,
 ///     appends to the backlog register, and escalates rather than auto-admitting an assumption or constraint;
-///     and how <c>admit-assumption</c> and <c>admit-constraint</c> perform the deterministic approved write.
+///     and how <c>admit-constraint</c> performs the deterministic approved write.
 /// </summary>
 /// <remarks>
 ///     These tests go through the same command surface a caller has — the action name dispatched through
@@ -167,66 +167,6 @@ public class IntakeContractTests
     }
 
     [Fact]
-    public async Task AdmitAssumptionAppendsBulletVerbatim()
-    {
-        // Scenario 1: approved bullet is appended to assumptions.md without a model call.
-        using (var repository = CreateRepository())
-        {
-            var operation = new AdmitAssumptionOperation(repository.Root);
-            var assumptionsPath = Path.Combine(repository.Root, ".anneal", "governance", "assumptions.md");
-
-            var output = new StringWriter();
-            var exitCode = await AnnealTool.RunAsync(
-                ["admit-assumption", "**The CI runner has internet access.**"],
-                output,
-                [operation],
-                repository.Root,
-                TestContext.Current.CancellationToken);
-
-            var assumptions = File.ReadAllText(assumptionsPath);
-
-            Assert.Multiple(
-                () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.Contains("filed in .anneal/governance/assumptions.md", output.ToString(), StringComparison.Ordinal),
-                () => Assert.Contains("**The CI runner has internet access.**", assumptions, StringComparison.Ordinal));
-        }
-
-        // Scenario 2: missing argument is a usage error.
-        using (var repository = CreateRepository())
-        {
-            var operation = new AdmitAssumptionOperation(repository.Root);
-
-            var exitCode = await AnnealTool.RunAsync(
-                ["admit-assumption"],
-                new StringWriter(),
-                [operation],
-                repository.Root,
-                TestContext.Current.CancellationToken);
-
-            Assert.Equal(AnnealTool.ExitUsageError, exitCode);
-        }
-
-        // Scenario 3: missing assumptions.md escalates instead of recreating it.
-        using (var repository = CreateRepository(includeAssumptions: false))
-        {
-            var operation = new AdmitAssumptionOperation(repository.Root);
-
-            var output = new StringWriter();
-            var exitCode = await AnnealTool.RunAsync(
-                ["admit-assumption", "some bullet"],
-                output,
-                [operation],
-                repository.Root,
-                TestContext.Current.CancellationToken);
-
-            Assert.Multiple(
-                () => Assert.Equal(AnnealTool.ExitEscalated, exitCode),
-                () => Assert.Contains("template-sync", output.ToString(), StringComparison.Ordinal),
-                () => Assert.False(File.Exists(Path.Combine(repository.Root, ".anneal", "governance", "assumptions.md"))));
-        }
-    }
-
-    [Fact]
     public async Task AdmitConstraintAppendsBulletUnderNamedSection()
     {
         // Scenario 1: approved bullet appended under Satisfied.
@@ -317,7 +257,6 @@ public class IntakeContractTests
 
     private static TemporaryRepository CreateRepository(
         bool includeBacklog = true,
-        bool includeAssumptions = true,
         bool includeConstraints = true)
     {
         var repository = new TemporaryRepository();
@@ -333,16 +272,13 @@ public class IntakeContractTests
                 """);
         }
 
-        if (includeAssumptions)
-        {
-            repository.Write(
-                ".anneal/governance/assumptions.md",
-                """
-                # Assumptions
+        repository.Write(
+            ".anneal/governance/assumptions.md",
+            """
+            # Assumptions
 
-                Curated, descriptive truths the design rests on, disprovable but not chosen.
-                """);
-        }
+            Curated, descriptive truths the design rests on, disprovable but not chosen.
+            """);
 
         if (includeConstraints)
         {
