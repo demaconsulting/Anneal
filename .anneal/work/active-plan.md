@@ -74,15 +74,9 @@ and is doing useful work throughout it: `PROCESS-01` through `PROCESS-04`, `PROC
 `PROCESS-09` keep passing across a rename and are precisely what catches a botched one, and
 `PROCESS-I1` is untouched because the mechanical agents were never entry points. They are not
 suspended, and suspending them would remove the migration's safety net at the moment it is most
-needed.
-
-**`TOOLKIT-I1`** — model tool grants are read-only.
-
-- *Cannot hold because* a process that writes code cannot be granted read-only tools.
-- *What holds instead*: grants stay an explicit allowlist, never absent, and read-only holds for
-  every operation that does not write.
-- *Retired* the day the first writing process lands, replaced by a clause that keeps the allowlist
-  requirement without the read-only one.
+needed. `TOOLKIT-I1` is no longer listed here either: [model-seam.md](../architecture/toolkit/model-seam.md)
+retired it when the first writing workers landed and replaced it with `TOOLKIT-I6`, whose explicit
+allowlist and path-containment guarantees are the current invariant.
 
 **`TOOLKIT-I3`** — a verdict is reproducible from repository inputs.
 

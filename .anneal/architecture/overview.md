@@ -100,9 +100,10 @@ a provided script, and that nothing is deleted without confirmation — are reco
 
 The second is Toolkit's model boundary. Repository content is sent to a model under the ambient Copilot
 account of the calling session, which is the account the agents already run under, so the boundary moves
-no data to a party that was not already receiving it. The tools granted to a model are read-only and
-explicitly enumerated, because the surrounding SDK exposes mutating built-ins when a tool allowlist is
-left absent; that is `TOOLKIT-I1` rather than a note here.
+no data to a party that was not already receiving it. The tools granted to a model are explicitly
+enumerated, their filesystem paths stay contained within the repository root, and protected configuration
+files and repository scripts are refused; [toolkit/model-seam.md](./toolkit/model-seam.md) owns those
+guarantees as `TOOLKIT-I6`.
 
 ## Repository-Wide Decisions
 
