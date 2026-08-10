@@ -12,9 +12,9 @@ covers:
 `maintain` is the compiled front door for Maintenance mode — `change-classification.md`'s "available
 capacity, no requested outcome" work: renaming for clarity, extracting helpers, deleting dead code,
 tidying interior tests, bumping a dependency, and the periodic self-triggered structural-cohesion
-sweep. Today that mode is entirely prose: `dispatch`'s own Step 3 hands Maintenance-mode work straight
-to `apply`, with no compiled equivalent. `maintain` is that equivalent, and it is deliberately narrower
-than `route`.
+sweep. It is that compiled path, and it is deliberately narrower than `route`: helper or any other
+caller that has already fixed the work to Maintenance mode invokes this action directly instead of
+routing through a second classifier.
 
 Maintenance is Small Fix by definition — `change-classification.md` says so in the same sentence that
 defines the mode — so a caller invoking `maintain` has already fixed the work's Scope before this

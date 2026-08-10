@@ -55,8 +55,8 @@ public partial class ToolkitContractTests
             () => Assert.Equal(
                 new[]
                 {
-                    "check-contracts", "file-skill", "lint-fix", "maintain", "probe-rule-owner", "route",
-                    "search-skills", "stage-contract", "stats", "verify-change", "verify-evidence"
+                   "check-contracts", "file-skill", "intake", "lint-fix", "maintain", "probe-rule-owner",
+                   "route", "search-skills", "stage-contract", "stats", "verify-change", "verify-evidence"
                 },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),
             () => Assert.All(

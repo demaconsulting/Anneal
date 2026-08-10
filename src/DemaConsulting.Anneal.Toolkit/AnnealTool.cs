@@ -78,6 +78,7 @@ public static class AnnealTool
         new LintFixOperation(),
         new StatsOperation(),
         new FileSkillOperation(),
+        new IntakeOperation(),
         new SearchSkillsOperation(),
         new RouteOperation(),
         new MaintainOperation(),
