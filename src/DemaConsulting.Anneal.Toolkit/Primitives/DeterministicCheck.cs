@@ -67,7 +67,10 @@ internal sealed class DeterministicCheck
     ///     Runs the named check.
     /// </summary>
     /// <param name="name">The check's own name. Must not be null or blank.</param>
-    /// <param name="script">The repository-relative script to run. Must not be null or blank.</param>
+    /// <param name="script">
+    ///     The repository-relative script to run, or null when the repository configures no such script for this
+    ///     check. Must not be empty or blank when given.
+    /// </param>
     /// <param name="selector">
     ///     A strictness or scope selector recorded as evidence alongside the script, or null when the check runs
     ///     unqualified. This primitive does not interpret it — a selector is passed through to the caller's own
@@ -75,18 +78,32 @@ internal sealed class DeterministicCheck
     /// </param>
     /// <param name="cancellationToken">The caller's signal; cancelling it stops the run without reporting a verdict.</param>
     /// <returns>
-    ///     <see cref="OperationOutcome.UsageError" /> with no finding when <paramref name="name" /> or
-    ///     <paramref name="script" /> is blank; <see cref="OperationOutcome.Succeeded" /> with the finding when the
-    ///     script exits zero; <see cref="OperationOutcome.Failed" /> with the finding when it exits non-zero or the
-    ///     check times out.
+    ///     <see cref="OperationOutcome.UsageError" /> with no finding when <paramref name="name" /> is blank or
+    ///     <paramref name="script" /> is empty or blank (but not null); <see cref="OperationOutcome.Succeeded" />
+    ///     with a finding marked skipped when <paramref name="script" /> is null; <see cref="OperationOutcome.Succeeded" />
+    ///     with the finding when the script exits zero; <see cref="OperationOutcome.Failed" /> with the finding
+    ///     when it exits non-zero or the check times out.
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
     public async Task<StepResult<CheckFinding>> RunAsync(
-        string name, string script, string? selector, CancellationToken cancellationToken)
+        string name, string? script, string? selector, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(script))
+        if (string.IsNullOrWhiteSpace(name))
+            return new StepResult<CheckFinding>(
+                OperationOutcome.UsageError, null, [new ProcessNote("a check needs both a name and a script")]);
+
+        // A repository that configures no script for this check (see ScriptConfiguration) is not a failure to
+        // diagnose - there is nothing to run, so the check passes trivially rather than reporting a script that
+        // does not exist.
+        if (script is null)
+            return new StepResult<CheckFinding>(
+                OperationOutcome.Succeeded,
+                new CheckFinding(name, true, 0, "skipped - no script configured for this repository", []),
+                []);
+
+        if (string.IsNullOrWhiteSpace(script))
             return new StepResult<CheckFinding>(
                 OperationOutcome.UsageError, null, [new ProcessNote("a check needs both a name and a script")]);
 

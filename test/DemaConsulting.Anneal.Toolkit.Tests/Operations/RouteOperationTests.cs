@@ -227,6 +227,7 @@ public class RouteOperationTests
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-route-op-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "build.ps1"), "");
         return root;
     }
 }

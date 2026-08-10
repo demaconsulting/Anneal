@@ -111,6 +111,8 @@ public sealed class LintFixOperation : IOperation
     private readonly string _repositoryRoot;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunRepositoryScript _runScript;
+    private readonly string? _fixScript;
+    private readonly string? _lintScript;
 
     /// <summary>
     ///     Creates an operation over the current working directory, running the repository's own scripts through
@@ -153,6 +155,10 @@ public sealed class LintFixOperation : IOperation
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _endpointFor = endpointFor;
         _runScript = runScript ?? new PowerShellScripts(_repositoryRoot).RunAsync;
+
+        var scripts = ScriptConfiguration.Load(_repositoryRoot);
+        _fixScript = scripts.Fix;
+        _lintScript = scripts.Lint;
     }
 
     /// <inheritdoc />
@@ -175,10 +181,12 @@ public sealed class LintFixOperation : IOperation
 
     /// <inheritdoc />
     public string Usage =>
-        "usage: dotnet anneal lint-fix - runs fix.ps1, then repeatedly runs lint.ps1 and has a model repair " +
-        "what it reports, up to " + MaxIterations + " times. Takes no arguments. Succeeds when lint is clean, " +
-        "escalates when a repair needs a protected configuration file or repository script changed, and fails " +
-        "when the budget is exhausted or lint reports a contract-check failure.";
+        "usage: dotnet anneal lint-fix - runs the repository's configured fix script, then repeatedly runs its " +
+        "configured lint script and has a model repair what it reports, up to " + MaxIterations + " times. Takes " +
+        "no arguments. A repository that configures neither script (see ScriptConfiguration) succeeds trivially " +
+        "with nothing to do. Succeeds when lint is clean, escalates when a repair needs a protected " +
+        "configuration file or repository script changed, and fails when the budget is exhausted or lint " +
+        "reports a contract-check failure.";
 
     /// <summary>
     ///     Finds the contract-check errors in a lint run's output.
@@ -272,8 +280,17 @@ public sealed class LintFixOperation : IOperation
     {
         // The auto-fixers first, as process control flow. They are never a tool the model may call: a worker
         // that can run commands can do anything and then report plausibly that it did not.
-        output.WriteLine("lint-fix: applying automatic fixes...");
-        await _runScript("fix.ps1", cancellationToken).ConfigureAwait(false);
+        if (_fixScript is not null)
+        {
+            output.WriteLine("lint-fix: applying automatic fixes...");
+            await _runScript(_fixScript, cancellationToken).ConfigureAwait(false);
+        }
+
+        // A repository that configures no lint script has nothing for this operation to drive clean, with or
+        // without a fix script - there is no output to judge a repair against, so the run succeeds trivially
+        // rather than looping against a check that does not exist.
+        if (_lintScript is null)
+            return NoLintConfigured(output);
 
         var session = new ModelSession(
             new ModelRoles(_repositoryRoot, _endpointFor),
@@ -285,7 +302,7 @@ public sealed class LintFixOperation : IOperation
 
         for (var iteration = 0; ; iteration++)
         {
-            var lint = await _runScript("lint.ps1", cancellationToken).ConfigureAwait(false);
+            var lint = await _runScript(_lintScript, cancellationToken).ConfigureAwait(false);
 
             if (lint.ExitCode == 0)
                 return Clean(output, iteration);
@@ -340,6 +357,13 @@ public sealed class LintFixOperation : IOperation
         output.WriteLine($"lint-fix: lint is clean after {iterations} repair iteration(s).");
         return new OperationResult(
             OperationOutcome.Succeeded, new LintFixReport(iterations, string.Empty, [], []));
+    }
+
+    private static OperationResult NoLintConfigured(TextWriter output)
+    {
+        output.WriteLine("lint-fix: this repository configures no lint script - nothing to drive clean.");
+        return new OperationResult(
+            OperationOutcome.Succeeded, new LintFixReport(0, string.Empty, [], []));
     }
 
     private static OperationResult ContractFailure(

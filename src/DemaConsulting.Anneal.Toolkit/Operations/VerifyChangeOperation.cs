@@ -92,6 +92,7 @@ public sealed partial class VerifyChangeOperation : IOperation
     private readonly string _repositoryRoot;
     private readonly DiffCheck _diffCheck;
     private readonly DeterministicCheck _buildCheck;
+    private readonly string? _buildScript;
     private readonly Verifier _verifier;
     private readonly RunRepositoryScript _contractCheckRunScript;
 
@@ -138,6 +139,7 @@ public sealed partial class VerifyChangeOperation : IOperation
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _diffCheck = new DiffCheck(_repositoryRoot, runGit: runGit);
         _buildCheck = new DeterministicCheck(_repositoryRoot, runScript: buildRunScript);
+        _buildScript = ScriptConfiguration.Load(_repositoryRoot).Build;
         _verifier = new Verifier(_repositoryRoot, VerifierCharter, endpointFor: endpointFor);
         _contractCheckRunScript = contractCheckRunScript ??
                                   ((_, ct) => ContractCheckRunner.RunAsync(_repositoryRoot, ct));
@@ -204,7 +206,7 @@ public sealed partial class VerifyChangeOperation : IOperation
 
         output.WriteLine("verify-change: running build.ps1...");
         var buildCheck = await _buildCheck
-            .RunAsync("build.ps1 check", "build.ps1", null, cancellationToken)
+            .RunAsync("build.ps1 check", _buildScript, null, cancellationToken)
             .ConfigureAwait(false);
 
         output.WriteLine("verify-change: running check-contracts -Strict...");

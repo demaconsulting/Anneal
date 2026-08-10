@@ -38,8 +38,8 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// </remarks>
 internal sealed class SmallFixWorker
 {
-    /// <summary>The repository-relative build/test script this worker's deterministic check runs.</summary>
-    private const string BuildScript = "build.ps1";
+    /// <summary>The repository-relative build/test script this worker's deterministic check runs, or null.</summary>
+    private readonly string? _buildScript;
 
     /// <summary>
     ///     The fixed standards this worker injects into every <see cref="Developer" /> call, mirroring
@@ -96,6 +96,7 @@ internal sealed class SmallFixWorker
         _developer = new Developer(repositoryRoot, developerCharter, endpointFor: endpointFor);
         _check = new DeterministicCheck(repositoryRoot, runScript: runScript);
         _repairLoop = new RepairLoop<DevelopmentResult>(maxRepairAttempts);
+        _buildScript = ScriptConfiguration.Load(_repositoryRoot).Build;
     }
 
     /// <summary>
@@ -168,7 +169,7 @@ internal sealed class SmallFixWorker
             : $"""
                {instruction}
 
-               The previous attempt's deterministic build check ({BuildScript}) reported:
+               The previous attempt's deterministic build check ({_buildScript ?? "build check"}) reported:
                {string.Join("\n", requiredFixes)}
 
                Repair the issue.
@@ -192,7 +193,7 @@ internal sealed class SmallFixWorker
                 OperationOutcome.Refused, null, [new ProcessNote("the developer named a better owner for this change")]);
 
         var check = await _check
-            .RunAsync("build.ps1 check", BuildScript, null, cancellationToken)
+            .RunAsync("build.ps1 check", _buildScript, null, cancellationToken)
             .ConfigureAwait(false);
 
         return check.Outcome == OperationOutcome.Succeeded

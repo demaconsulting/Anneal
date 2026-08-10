@@ -247,6 +247,7 @@ public class VerifyChangeOperationTests
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-verify-change-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "build.ps1"), "");
         return root;
     }
 }

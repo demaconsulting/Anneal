@@ -26,6 +26,12 @@ internal sealed class TemporaryRepository : IDisposable
     {
         Root = Path.Combine(Path.GetTempPath(), $"anneal-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path.Combine(Root, ".anneal", "architecture"));
+
+        // A stub, never executed directly by most tests (build/lint scripts are substituted through
+        // buildRunScript / runScript), but its presence on disk is what ScriptConfiguration's default
+        // resolution reads as "this repository has a build script" - a fixture with none on disk would
+        // otherwise resolve to no build script configured, silently skipping a substituted runner.
+        File.WriteAllText(Path.Combine(Root, "build.ps1"), "");
     }
 
     /// <summary>

@@ -187,6 +187,7 @@ public class MaintainContractTests
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-tk293031-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "build.ps1"), "");
         return root;
     }
 }

@@ -138,6 +138,38 @@ public class DeterministicCheckTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_NullScript_ReportsSucceededWithATruthfulSkippedFinding()
+    {
+        // Arrange: a repository that configures no script for this check (ScriptConfiguration) is not a
+        // failure to diagnose - the finding must still read as truthfully passed, not merely absent, so
+        // downstream evidence lists and report fields that read Finding?.Passed do not silently read as failed.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var ran = false;
+            var check = new DeterministicCheck(root, runScript: (_, _) =>
+            {
+                ran = true;
+                return Task.FromResult(new ScriptRun(0, "should never run"));
+            });
+
+            // Act
+            var result = await check.RunAsync(
+                "build", null, null, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.True(result.Finding?.Passed),
+                () => Assert.False(ran));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-check-" + Guid.NewGuid().ToString("N")[..12]);

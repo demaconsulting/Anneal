@@ -56,8 +56,8 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// </remarks>
 internal sealed class StructuralChangeWorker
 {
-    /// <summary>The repository-relative build/test script this worker's first deterministic check runs.</summary>
-    private const string BuildScript = "build.ps1";
+    /// <summary>The repository-relative build/test script this worker's first deterministic check runs, or null.</summary>
+    private readonly string? _buildScript;
 
     /// <summary>
     ///     The evidence label recorded for this worker's second deterministic check. Not a file on disk: the
@@ -263,6 +263,7 @@ internal sealed class StructuralChangeWorker
         _maxTenetRepairAttempts = maxTenetRepairAttempts;
         _maxReplanAttempts = maxReplanAttempts;
         _recordStore = recordStore;
+        _buildScript = ScriptConfiguration.Load(root).Build;
     }
 
     /// <summary>
@@ -331,7 +332,7 @@ internal sealed class StructuralChangeWorker
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var buildCheck = await _buildCheck
-                    .RunAsync("build.ps1 check", BuildScript, null, cancellationToken)
+                    .RunAsync("build.ps1 check", _buildScript, null, cancellationToken)
                     .ConfigureAwait(false);
                 RecordStep(parentInvocationId, "DeterministicCheck:build.ps1", buildCheck.Outcome);
 

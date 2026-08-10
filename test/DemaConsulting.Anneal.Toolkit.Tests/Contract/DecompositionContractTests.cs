@@ -311,6 +311,7 @@ public class DecompositionContractTests
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-tk262728-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "build.ps1"), "");
         return root;
     }
 }

@@ -44,6 +44,14 @@ contract and a suite, and a worker told to fix lint would resolve it by renaming
   from a person's direct invocation, and change its own behavior accordingly (for example, skipping a
   step that would collide with the Toolkit package currently running it).
   *Verified by:* `ScriptEnvironmentContractTests.ScriptsRunUnderTheToolkitSeeTheAnnealToolkitVariable`
+- **TOOLKIT-41** — A repository names its own fix, build, and lint scripts in `.anneal/config.json`, or
+  omits the section entirely and gets `fix.ps1`/`build.ps1`/`lint.ps1` when that file exists on disk. A
+  repository with neither a configured name nor the default file present has no such step, and every
+  deterministic check this Toolkit runs treats that as a trivial pass rather than a failure to diagnose
+  — there is nothing to run, so there is nothing to fail. `lint-fix` in particular: with no lint script
+  configured it succeeds immediately with nothing to drive clean; with a lint script but no fix script
+  it skips straight to the repair loop; with neither, or with both, its existing behavior is unchanged.
+  *Verified by:* `ToolkitContractTests.LintFixHonorsConfiguredScriptsAndSkipsAbsentOnes`
 
 ### Requires
 
@@ -81,3 +89,14 @@ signature carries no argument-passing hook, so a switch would need extending tha
 repository's own defense. An environment variable needs no signature change and works for any
 repository's own scripts, not only this one's, so `build.ps1` here checks for it directly and skips
 its own package-refresh step when it is present.
+
+**A missing script is a repository fact, not a misconfiguration** — `ScriptConfiguration` resolves an
+omitted name against the repository's own default file only, never guesses a substitute, and an
+explicit name is trusted as given and never checked for existence: a repository that names a script
+which does not exist finds out when the check tries to run it, the same way it would find out by hand.
+This is what makes the skip honest rather than merely absent — `DeterministicCheck.RunAsync` given a
+null script returns a real `CheckFinding` marked `Passed: true` with an explanatory summary, not a null
+finding, because every worker that feeds a build check into a `Verifier` as evidence
+(`SmallFixWorker`/`ContractChangeWorker`/`StructuralChangeWorker`) and `verify-change`'s own report
+field read `Finding?.Passed ?? false` — a null finding there would silently read as an untested build,
+not a repository honestly reporting it has none.

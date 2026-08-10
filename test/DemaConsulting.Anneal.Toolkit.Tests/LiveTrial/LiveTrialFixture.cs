@@ -85,6 +85,12 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
 
+        // A stub, never executed directly (every worker's build step is substituted via buildRunScript /
+        // StubScriptRunner), but its presence on disk is what tells ScriptConfiguration's default resolution
+        // this repository has a build script at all - a fixture with none on disk would otherwise resolve to
+        // no build script configured, and the substituted runner would never be called.
+        File.WriteAllText(Path.Combine(root, "build.ps1"), "");
+
         var fixture = new LiveTrialFixture(root);
         try
         {
