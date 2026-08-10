@@ -81,8 +81,8 @@ contract and defeats the entire check.
   clauses are all planned obligations is exempt, so bootstrapping never trips this.
 - **`is not declared as a test method`** — the name does not resolve to a declared test. It may have
   been renamed or deleted, or the clause may be pointing at a helper. Restore or write the test under
-  the name the clause gives. A deliberate rename is a contract change; route it to
-  `dispatch`. If *every* clause reports this, look for the message above instead.
+  the name the clause gives. A deliberate rename is a contract change; route it through the compiled
+  `route` path. If *every* clause reports this, look for the message above instead.
 - **`is not in a 'Contract' folder`** — the test exists but is an interior test. Interior tests are
   disposable, so they cannot carry a durable promise. Move it to `test/{System}.Tests/Contract/` and
   rewrite it to use only the public boundary.

@@ -18,8 +18,8 @@ producing none. `helper` sends users here by name rather than calling it.
 Use this to bootstrap a repository or to re-cut an existing one whose system boundaries have drifted
 out of shape. Re-cutting an existing repository is also how a **Migration** proposal is produced: the
 tree this agent proposes, plus the stages it would land in, is what the user approves before any
-Migration commit. For ordinary change, use `dispatch` instead — this agent is for establishing
-structure, not evolving it.
+Migration commit. For ordinary change, use `helper`, which classifies the mode and invokes the
+compiled path directly — this agent is for establishing structure, not evolving it.
 
 When re-cutting, read `.anneal/work/constraints.md` first. **Satisfied** entries are conditions the new tree must
 still meet — the current shape upholds them, and a re-cut is the easiest way to lose one by accident.

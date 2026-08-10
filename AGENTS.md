@@ -68,10 +68,10 @@ Routing once classified:
 
 | Mode / Scope | Route |
 | --- | --- |
-| Intake | `dispatch` appends to `BACKLOG.md` or README assumptions, or proposes a constraint; no other agent runs |
-| Change | `dispatch` runs the compiled `route` action, which classifies scope and authors and verifies the work |
-| Maintenance | `dispatch` runs the compiled `maintain` action, within a declared bound |
-| Migration | `architecture-design` → approved `MIGRATION.md` → staged implementation work, re-invoking `dispatch` per stage |
+| Intake | `helper` invokes compiled `intake`, which files backlog or assumptions work, or proposes a constraint |
+| Change | `helper` invokes compiled `route`, which classifies scope and authors and verifies the work |
+| Maintenance | `helper` invokes compiled `maintain`, within a declared bound |
+| Migration | `architecture-design` → approved `.anneal/work/active-plan.md` → staged implementation work, with `helper` reading the open stage directly |
 
 Modes and scope may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
@@ -130,8 +130,9 @@ conversation on the user's behalf, and do not attempt the work instead.
 
 Delegate only for:
 
-- **Any non-trivial change, including staging a contract clause ahead of implementation** → `dispatch`
-  (classifies the mode and scope, then routes to the minimum process)
+- **Any non-trivial change, including staging a contract clause ahead of implementation** → invoke the
+  compiled `intake`, `route`, `maintain`, or `stage-contract` action directly; `helper` does this
+  conversationally for user-invoked work
 - **Verifying a change against its scope** → run `dotnet anneal verify-change` directly, not as a
   sub-agent
 - **Repository layout versus template** → `template-sync`

@@ -101,8 +101,8 @@ is written.
 
 ## Composition
 
-Process divides into two zones with a single crossing point, and the division is the most important thing
-about its interior.
+Process divides into two zones with a single crossing point, even though only one prose agent now
+remains in the Mechanical zone; the division is still the most important thing about its interior.
 
 ```mermaid
 flowchart TD
@@ -114,7 +114,6 @@ flowchart TD
     end
 
     subgraph Mechanical["Mechanical zone — routed, never converses"]
-        Dispatch[dispatch]
         TemplateSync[template-sync]
     end
 
@@ -122,13 +121,12 @@ flowchart TD
 
     User --> Helper
     User --> ArchDesign
-    Helper --> Dispatch
     Helper --> TemplateSync
 
     Helper -.-> ArchDesign
     ArchDesign ==> Tree
 
-    linkStyle 4 stroke-dasharray: 3 3
+    linkStyle 3 stroke-dasharray: 3 3
 ```
 
 Three kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
@@ -149,16 +147,15 @@ instead of asking; a mechanical one fails by widening its scope or misreporting 
 mechanical zone is therefore where the structural contract above earns its place, and the interactive
 zone is where behavioral verification is spent.
 
-For the span of the migration [active-plan.md](../work/active-plan.md) carries, a third shape coexists with
-these two rather than replacing either: a compiled Router selects one of a small worker catalog
-(`DemaConsulting.Anneal.Toolkit.Process`), each worker composed from the primitive library
-[Toolkit](./toolkit.md) owns. `dispatch` calls it directly for Change mode via `route`, for Maintenance
-mode via `maintain`, and for a declared stage-ahead-of-implementation request via `stage-contract` (see
-Decisions below); verifying a diff that never went through any of the three at all — a hand-written
-change, an externally contributed one, or anything predating this migration — is `verify-change`, a
-compiled action a developer or `helper` runs directly, never a sub-agent, since it reports and edits
-nothing, the same relationship `lint-fix` already has to this diagram without appearing in it as an
-agent. See Decisions below.
+For the span of the migration [active-plan.md](../work/active-plan.md) carries, a third shape
+coexists with these two rather than replacing either: compiled Toolkit actions (`intake`, `route`,
+`maintain`, `stage-contract`, `verify-change`, and peers) do the bounded mechanical work without
+appearing here as sub-agent nodes. `helper` invokes `intake`, `route`, `maintain`, and
+`stage-contract` directly once Mode is known; verifying a diff that never went through any of those
+authoring paths at all — a hand-written change, an externally contributed one, or anything predating
+this migration — is `verify-change`, likewise run directly rather than through an agent. The diagram
+shows only conversational entry points and report-consuming sub-agent calls; Toolkit owns the direct
+command surface.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
 subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
@@ -175,24 +172,26 @@ Application matrix keyed on the file types an agent discovers at runtime. That i
 requiring each prompt to name them would hard-code a product technology into agents that must stay
 technology-neutral, and would enlarge every prompt against the budget PROCESS-06 defends.
 
-The seam that must not move is the one between `helper` and `dispatch`. Everything upstream of it talks
-to a person; everything downstream is classified, bounded work. If that seam ever widens — if `helper`
-starts performing work, or a mechanical agent starts asking the developer questions — the interactive
-zone has become a system in its own right and should be split out of Process.
+The seam that must not move is the one between `helper`'s conversation and the compiled or
+mechanical paths it triggers. Everything upstream of it talks to a person; everything downstream is
+classified, bounded work. If that seam ever widens — if `helper` starts performing repository edits,
+or a mechanical path starts asking the developer questions — the interactive zone has become a
+system in its own right and should be split out of Process.
 
 ## Decisions
 
 **`architecture-design` is deliberately not model-invocable** — it is marked
-`disable-model-invocation: true` so no agent can call it. The rejected alternative was letting `dispatch`
-invoke it when boundaries look wrong, which would produce a plausible architecture tree that nobody
-agreed to. That is worse than producing none, because a tree carries authority once it exists. This
-reverses only if the agent gains a non-interview mode whose output is explicitly provisional.
+`disable-model-invocation: true` so no agent can call it. The rejected alternative was letting
+`helper` invoke it in headless mode when boundaries look wrong, which would produce a plausible
+architecture tree that nobody agreed to. That is worse than producing none, because a tree carries
+authority once it exists. This reverses only if the agent gains a non-interview mode whose output is
+explicitly provisional.
 
-**`helper` routes but never works** — the front door classifies nothing and edits nothing; it gathers
-context and calls `dispatch`. Allowing it to make small edits directly was rejected because a self-granted
-exemption does not stay narrow, and because `helper` does not load the standards that would make the edit
-correct. The same argument is under review one level down for `dispatch`, and is recorded in
-[.anneal/work/backlog.md](../work/backlog.md).
+**`helper` classifies Mode but never works** — the front door decides whether a request is Intake,
+Change, Maintenance, or Migration, then invokes the compiled path that already owns the bounded
+mechanical work. It still edits nothing itself. Allowing it to make even small repository changes
+directly was rejected because a self-granted exemption does not stay narrow, and because `helper`
+does not load the standards that would make the edit correct.
 
 **Exactly two entry points** — every other agent is a sub-agent, so there are no trigger words to learn.
 The rejected alternative was exposing each agent to the developer, which pushes classification onto the
@@ -202,13 +201,14 @@ person least equipped to do it consistently.
 budget PROCESS-06 protects depends on. [Prompt Authoring](./process/prompt-authoring.md) owns the
 mechanism and why bundling into `AGENTS.md` was rejected.
 
-**Bounded repairs, no planning phase** — `dispatch` allows one documentation repair and one code repair
-per change, because a documentation finding has to be fixed before implementation can use it, but
-grinding a finding that will not clear means the change was misunderstood at the start. The rejected
-alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three retries, which multiplied
-every cost by up to four and made the process expensive rather than the design. What was refused was
-the multiplier — cost paid on every subsequent change — not orchestration itself; sequencing bounded
-work is what `dispatch` already is.
+**Bounded repairs, no planning phase** — the compiled authoring paths allow one documentation repair
+and one code repair per change, because a documentation finding has to be fixed before implementation
+can use it, but grinding a finding that will not clear means the change was misunderstood at the
+start. The rejected alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three
+retries, which multiplied every cost by up to four and made the process expensive rather than the
+design. What was refused was the multiplier — cost paid on every subsequent change — not
+orchestration itself; sequencing bounded work is what `route`, `maintain`, and `stage-contract`
+already do.
 
 **The classification vocabulary is contracted as two clauses, not one** — modes and scope are one idea
 to a reader and two different problems to a checker, and PROCESS-07 spent a release as an unfulfilled
@@ -261,22 +261,19 @@ reserved for sub-agent invocation with a consumed report, and a fourth edge kind
 a compiled command" would document machinery this system does not decide, since Toolkit already owns
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 
-**`dispatch`'s edges to `architecture-update`, `apply`, and `scope-check` were removed, not redrawn** —
-`dispatch` calls `route` directly for every Change-mode request instead of chaining
-`architecture-update` → `apply` → `scope-check`, and its Maintenance-mode edge goes to `maintain` the
-same way. Before that, `architecture-update` kept its edge to `Tree` and `scope-check`
-kept its edge from `Helper`, because each still did a job neither `route` nor `maintain` covered:
-`architecture-update` wrote a contract clause *ahead of* implementation, as a deliberate planned
-obligation — `route`'s Contract Change and Structural Change workers always compose document authoring,
-code authoring, and verification together in one atomic pass, with no "write the promise, implement it
-later" mode. `scope-check` verifies a diff that never went through `route` or `maintain` at all — a
-hand-written change, an externally contributed one, or anything predating this migration — where
-`route`'s own verification step only ever judges what its own pass just authored.
+**`dispatch.agent.md` was retired once `intake` compiled its last remaining job** — after `route`,
+`maintain`, `stage-contract`, `lint-fix`, and `verify-change` were already direct Toolkit paths, the
+only mechanical work still living in prose was Intake filing. `intake` compiles that admission test,
+so `helper` now owns Mode selection itself and invokes `intake`, `route`, `maintain`, or
+`stage-contract` directly. One behavior did not carry forward: `dispatch`'s hidden "recreate a
+missing register from template" fallback was dropped. A missing Intake register now escalates so
+layout repair stays explicit rather than being buried inside unrelated filing work.
 
 **`apply.agent.md` was retired** once its last two callers — `helper`'s "a
-specific fix already reported" row and `dispatch`'s own stale Migration-mode line — were rewired to
-`dispatch` itself, following exactly the `lint-fix` precedent above: the node is removed once nothing
-calls it, not kept as an unused fallback. Its own removal from the diagram left `architecture-update`
+specific fix already reported" row and the stale Migration-mode routing that predated direct Toolkit
+invocation — were rewired to the compiled Change path itself, following exactly the `lint-fix`
+precedent above: the node is removed once nothing calls it, not kept as an unused fallback. Its own
+removal from the diagram left `architecture-update`
 and `scope-check` each with one fewer edge, adjusted above; neither agent's own remaining job changed.
 `architecture-update` and `scope-check` were not exempt from the same fate — each was the next named
 target once a compiled equivalent for its remaining job existed (a design-only path built from
@@ -286,12 +283,11 @@ target once a compiled equivalent for its remaining job existed (a design-only p
 **`architecture-update.agent.md` was retired** once `stage-contract` — the
 Toolkit's compiled design-only path, running `DocumentAuthor` alone to stage a contract clause ahead
 of implementation — was live-validated against a real model, the same bar `maintain` cleared before
-`apply.agent.md` retired. `dispatch` gained a **caller-declared** branch for it: Step 1 sends a request
-to `stage-contract` only when the user explicitly asked to stage a clause rather than build it now,
-never inferred from a request's size or difficulty, mirroring how Maintenance mode is caller-declared
-rather than classified. `helper` gained one Step 3 table row routing the same ask to `dispatch`, since
-`helper` never implements and staging a clause is `DocumentAuthor` performing exactly a documentation
-edit. `architecture-update`'s edge to `Tree` is removed from the diagram above, following the
+`apply.agent.md` retired. `helper` gained a **caller-declared** direct branch for it: Step 1 sends a
+request to `stage-contract` only when the user explicitly asked to stage a clause rather than build
+it now, never inferred from a request's size or difficulty, mirroring how Maintenance mode is
+caller-declared rather than classified. `architecture-update`'s edge to `Tree` is removed from the
+diagram above, following the
 `lint-fix`/`apply` precedent: the node is removed once nothing calls it. One thing did not carry
 forward — `architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table naming
 every section document examined and its verdict; `StageContractReport` carries only the files changed
@@ -307,11 +303,11 @@ equivalent for its job exists (a standalone verify path built from `Verifier` an
 standalone verify path built from `DiffCheck`, `DeterministicCheck`, and `Verifier`, the same
 primitives `ContractChangeWorker`/`StructuralChangeWorker` already compose for their own verification
 half — was live-validated against a real model, the same bar `stage-contract` cleared before
-`architecture-update.agent.md` retired. Unlike `stage-contract`, `helper` invokes it directly rather
-than routing through `dispatch`: `verify-change` declares `OperationCategory.Advisory`, edits nothing,
-and produces no change for `dispatch` to classify or register, so there is nothing here for `dispatch`'s
-per-change tracking to do — the same "developer runs a compiled command" relationship `lint-fix` already
-has to this diagram, not the `stage-contract` precedent's sub-agent call. `helper`'s Step 3 table gained
+`architecture-update.agent.md` retired. Unlike `stage-contract`, `helper` invokes it directly:
+`verify-change` declares `OperationCategory.Advisory`, edits nothing, and produces no change for a
+separate routing agent to classify or register, so there is nothing here for a prose middle layer to
+do — the same "developer runs a compiled command" relationship `lint-fix` already has to this
+diagram, not the `stage-contract` precedent's sub-agent call. `helper`'s Step 3 table gained
 one row for it; `AGENTS.md` and its pristine template counterpart gained the matching bullet.
 `scope-check`'s own edge from `Helper` is removed from the diagram above, following the
 `lint-fix`/`apply`/`architecture-update` precedent: the node is removed once nothing calls it. This was

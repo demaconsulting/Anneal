@@ -59,8 +59,9 @@ way to update it and Patch as a fallback.
 
 ## Constraints and Backlog
 
-Two root-level files. In Intake mode, `dispatch` writes to `BACKLOG.md` and README assumptions; for a
-constraint, it reports the proposed bullet for user admission. The Intake admission test in
+Two root-level files. In Intake mode, `helper` invokes compiled `intake`, which writes to
+`BACKLOG.md` and README assumptions; for a constraint, it reports the proposed bullet for user
+admission. The Intake admission test in
 `change-classification.md` decides which path an item takes:
 
 | File | What belongs in it | Read by |

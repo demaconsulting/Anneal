@@ -235,7 +235,8 @@ restore already-promised behavior, dependency bumps, and test additions.
   fact — one whose correction does not add, remove, or rename a system, or change a system's stated
   relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
   list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
-- **Agents**: `dispatch`, which runs it through the compiled toolkit's `route` action.
+- **Agents**: the agent holding the request runs the compiled toolkit's `route` action directly;
+  `helper` does this conversationally for user-invoked work.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
   untouched — that is the proof the scope is correct.
 
@@ -245,10 +246,10 @@ A clause is added, narrowed, removed, or given different meaning; or the system'
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
 - **Documentation**: `.anneal/architecture/{system}.md` only.
-- **Agents**: `dispatch`, which runs it through `route` — one worker updates the contract,
-  implements, and verifies in a single pass. `dispatch` runs `dotnet anneal stage-contract` directly,
-  instead, only when the caller explicitly asks to stage the contract ahead of implementation, as a
-  deliberate planned obligation.
+- **Agents**: the agent holding the request runs `route` directly — one worker updates the contract,
+  implements, and verifies in a single pass. Run `dotnet anneal stage-contract` directly, instead,
+  only when the caller explicitly asks to stage the contract ahead of implementation, as a deliberate
+  planned obligation.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
 - **Pruning**: whichever pass authors the change — `route`'s worker, or `stage-contract` — performs
   the section-document prune check for the affected system.
@@ -260,7 +261,8 @@ boundary between systems changes.
 
 - **Documentation**: `.anneal/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience changed — usually it has not.
-- **Agents**: `dispatch`, which runs it through the compiled toolkit's `route` action.
+- **Agents**: the agent holding the request runs the compiled toolkit's `route` action directly;
+  `helper` does this conversationally for user-invoked work.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is
   deleted entirely.
 
