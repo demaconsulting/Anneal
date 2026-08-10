@@ -101,6 +101,76 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
+### S19 — Create `.anneal/` as a parallel, non-authoritative documentation home — landed
+
+**Why now.** S18 closed the last named prose-agent retirement target, leaving only `helper` and
+`architecture-design` — deliberately absorbed last because a conversation is the hardest control flow
+to encode. Before resuming that thread, an `architecture-design` session (run at the user's request,
+independent of this migration's own stage sequence) worked through where this repository's
+process-owned documentation should live long-term. The finding: `README.md`, `CONSTRAINTS.md`,
+`BACKLOG.md`, and `docs/architecture/` are scattered root artifacts today, read by convention rather
+than by any Toolkit-owned mechanism, while `.anneal/` already exists as the folder the Toolkit itself
+resolves configuration from. A single `.anneal/` tree — `governance/` (owner-curated: tenets, vision,
+assumptions), `profile/` (descriptive facts: product, technology, validation, layout, conventions),
+`work/` (lifecycle-tracked: constraints, backlog, and eventually the plan register this file itself
+occupies), plus `architecture/` — gives every one of those documents a Toolkit-native home, with
+folders grouping by *how a file may be changed* rather than by accident of root-level placement. The
+user's explicit instruction was to land this **before** continuing the prose-agent-retirement thread,
+reasoning that thread's own driving data — the very documents `dispatch`, `route`, and the workers
+read — benefits from being organized this way first, rather than migrating agents on top of a layout
+already known to be temporary.
+
+This stage follows the same discipline S17/S18 both used for their own compiled equivalents: build
+and validate the new artifact first, wire and retire the old one in a later stage. Applied here, that
+means creating `.anneal/`'s new structure as a **parallel, non-authoritative copy** — nothing reads it
+yet, and every current mechanism (`RepositoryFacts.ReadDirectionFacts`, `ProtectedPathTripwire`, the
+standards' own `docs/architecture/**` globs, `check-contracts`) keeps reading the existing root files
+exactly as before. No code changed this stage, and no root file was deleted.
+
+**What landed.** Ten new files: `.anneal/governance/{tenets,vision,assumptions}.md`,
+`.anneal/profile/{product,technology,validation,layout,conventions}.md`, and
+`.anneal/work/{constraints,backlog}.md`. `constraints.md` and `backlog.md` are verbatim copies of the
+root `CONSTRAINTS.md`/`BACKLOG.md` — their cross-references were **not** rewritten, since the root
+files remain the authoritative, currently-read copies this stage; rewriting a preview copy's links to
+point at itself before it is authoritative would make the preview inconsistent with what is actually
+live. The other eight files are new, derived content: `vision.md` is `README.md`'s § Direction, renamed
+to match this file's own vocabulary distinction between a prescriptive Tenet and a confidence-graded
+strategic destination; `assumptions.md`, `product.md` (absorbing README's Features and How It Works
+per an independent reviewer's suggested mapping), `technology.md`, `validation.md`, and `layout.md`
+are each a focused split of README sections that previously shared one file, aimed at a specific
+LLM/oracle-prompt consumer rather than a human reading top to bottom; `tenets.md` is new prose,
+extracting the load-bearing, prescriptive facts (the .NET/C# scope, the contract-triggered
+documentation rule, NuGet distribution, the non-regulated-process boundary) that were previously
+implicit across the README's opening pitch and Assumptions section. `conventions.md` is deliberately a
+pointer, not a copy: `.github/standards/csharp-language.md` and `csharp-testing.md` are loaded today
+through a `globs:`-keyed file-discovery mechanism wired into code, and relocating their bodies without
+also retargeting that loader would either duplicate content or require the code change this stage
+explicitly defers — the file says this and names the two source standards directly.
+
+`docs/architecture/` was copied wholesale to `.anneal/architecture/`, minus its PDF-publishing
+artifacts (`build.bat`, `definition.yaml`, `title.txt`, `generated/`) which have no place in a
+Toolkit-consumed tree. The copy needed **no** cross-reference rewriting at all: every file sits at the
+same relative depth in both trees, so links to root files (`../../README.md`, `../../MIGRATION.md`,
+`../../CONSTRAINTS.md`) resolve identically from either location, and sibling links within the tree
+(`process.md` to `toolkit/route.md`, etc.) were already structurally correct. The copied files'
+descriptions of `ProtectedPathTripwire`'s protected-path list and the standards' `docs/architecture/**`
+globs were left exactly as written, because they correctly describe the code and configuration that
+actually runs today — retargeting that prose ahead of the code itself would make the architecture tree
+describe behavior that does not yet exist, which is the opposite of what this file's own "no forward
+schedule as fiction" discipline warns against.
+
+**What did not land, and is deferred to a later stage.** Code retargeting
+(`RepositoryFacts.ReadDirectionFacts`, `ProtectedPathTripwire`), widening the standards' file-discovery
+globs to also (or instead) match `.anneal/architecture/**`, deleting the old root files
+(`CONSTRAINTS.md`, `BACKLOG.md`, `docs/architecture/`) once nothing reads them, folding
+`csharp-language.md`/`csharp-testing.md`'s bodies into `conventions.md` (or leaving them referenced
+permanently — an open question for that stage), consolidating `.anneal/records/` and
+`.anneal/transcripts/` into a single `logs/` folder (deferred because the Toolkit actively writes to
+both today, and redirecting that is itself a code change), and creating
+`.anneal/work/active-plan.md` (blocked until this file itself is retired — until then, `MIGRATION.md`
+remains the live, occupied mechanism, and `vision.md`'s link to it points at the root file rather than
+a not-yet-existing successor).
+
 ### S18 — Compile a standalone verify path, retiring `scope-check.agent.md` — landed
 
 **Why now.** S17 named this as the last named retirement target: `scope-check.agent.md`'s one
