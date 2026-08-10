@@ -111,34 +111,36 @@ public sealed class AdmitConstraintOperation : IOperation
     }
 
     /// <remarks>
-    ///     Inserts the bullet immediately after the target section header line. If the section header is not
-    ///     found, the bullet is appended at the end of the file so the write never silently drops the item —
-    ///     the caller sees it in the output regardless.
+    ///     Inserts the bullet at the <em>end</em> of the target section — immediately before the next
+    ///     <c>## </c> heading, or at end of file if the section is last — never right after the header line.
+    ///     A constraints section opens with descriptive prose before its bullet list begins, so inserting
+    ///     right after the header would land the new bullet ahead of that prose and corrupt the document
+    ///     structure. If the section header is not found, the bullet is appended at the end of the file so
+    ///     the write never silently drops the item — the caller sees it in the output regardless.
     /// </remarks>
     private static void AppendUnderSection(string fullPath, string sectionHeader, string bulletText)
     {
         var lines = File.ReadAllLines(fullPath).ToList();
-        var insertIndex = -1;
+        var headerIndex = lines.FindIndex(line => line.Equals(sectionHeader, StringComparison.OrdinalIgnoreCase));
 
-        for (var i = 0; i < lines.Count; i++)
+        if (headerIndex < 0)
         {
-            if (!lines[i].Equals(sectionHeader, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            // Insert after the header, skipping any immediately following blank line.
-            var after = i + 1;
-            while (after < lines.Count && string.IsNullOrWhiteSpace(lines[after]))
-                after++;
-
-            insertIndex = after;
-            break;
+            lines.Add($"- {bulletText}");
+            File.WriteAllLines(fullPath, lines);
+            return;
         }
 
-        if (insertIndex >= 0)
-            lines.Insert(insertIndex, $"- {bulletText}");
-        else
-            lines.Add($"- {bulletText}");
+        // Find the next top-level heading after this section's header, or the end of the file.
+        var nextHeadingIndex = lines.FindIndex(
+            headerIndex + 1, line => line.StartsWith("## ", StringComparison.Ordinal));
+        var sectionEnd = nextHeadingIndex >= 0 ? nextHeadingIndex : lines.Count;
 
+        // Back up over trailing blank lines so the new bullet sits immediately after the last real line
+        // of the section, not floating below a blank gap before the next heading.
+        while (sectionEnd > headerIndex + 1 && string.IsNullOrWhiteSpace(lines[sectionEnd - 1]))
+            sectionEnd--;
+
+        lines.Insert(sectionEnd, $"- {bulletText}");
         File.WriteAllLines(fullPath, lines);
     }
 }

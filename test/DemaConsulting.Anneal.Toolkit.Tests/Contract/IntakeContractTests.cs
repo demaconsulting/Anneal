@@ -249,7 +249,13 @@ public class IntakeContractTests
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("filed in .anneal/work/constraints.md", output.ToString(), StringComparison.Ordinal),
                 () => Assert.Contains("Satisfied", output.ToString(), StringComparison.Ordinal),
-                () => Assert.Contains("**Installation is by a provided script.**", constraints, StringComparison.Ordinal));
+                () => Assert.Contains("**Installation is by a provided script.**", constraints, StringComparison.Ordinal),
+                // The new bullet must land after the section's descriptive prose and the existing
+                // bullet, not ahead of them — inserting right after the header would corrupt the
+                // document structure.
+                () => Assert.True(
+                    constraints.IndexOf("**Existing constraint.**", StringComparison.Ordinal) <
+                    constraints.IndexOf("**Installation is by a provided script.**", StringComparison.Ordinal)));
         }
 
         // Scenario 2: approved bullet appended under Not Yet Satisfied.
@@ -346,6 +352,8 @@ public class IntakeContractTests
                 # Constraints
 
                 ## Satisfied
+
+                Conditions the current design meets.
 
                 - **Existing constraint.**
 

@@ -56,6 +56,7 @@ quietly.
   input is expected to be stable, but the reasoning behind it, the data the model was shown and the
   exact question it was asked are not recoverable by re-running. Without them a wrong verdict cannot
   be diagnosed as a bad question rather than a bad answer. `TOOLKIT-11` absorbs this.
+- A back-end operation never blocks waiting on interactive input mid-run -- every operation resolves to a terminal report. Ambiguity is returned as data (an Unknowns list) for whatever front-end is calling it to resolve and re-invoke with; it is never surfaced as a prompt the operation itself waits on. This holds regardless of whether front-end and back-end share an executable: the dependency direction is fixed -- back-end has no dependency on a front-end being present to complete an operation.
 
 ## Not Yet Satisfied
 
