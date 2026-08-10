@@ -99,4 +99,128 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-None open. The next stage is written here, the morning it starts.
+### S22 — Retire `dispatch.agent.md` by compiling Intake and moving Mode selection into `helper`
+
+`route`, `maintain`, and `stage-contract` already absorb every real job `dispatch.agent.md` still does
+*after* Mode is known. What remains in prose is exactly the part that does not earn a second oracle:
+read the conversation, decide whether the work is Intake, Change, Maintenance, or Migration, and then
+pick the correct compiled path. The backlog entry retiring a compiled `WorkTypeRouter` records why this
+stays in the conversational layer: Scope needs repository investigation to resolve real ambiguity, so
+`route` earns a model call; Mode does not, because the agent already holding the request either heard it
+stated or can clarify it directly. The one missing compiled path is Intake itself, whose current prose
+implementation still appends directly to the registers. This stage closes that gap and then removes the
+now-empty `dispatch.agent.md`.
+
+**This stage, in order:**
+
+1. Add a compiled `intake` action to the Toolkit and wire it into `dotnet anneal help`, using the same
+   operation/report registration pattern the existing `file-skill`, `maintain`, and `stage-contract`
+   actions already follow.
+2. Rewrite `helper.agent.md` so Mode classification is its own job and direct CLI invocation replaces the
+   `dispatch` sub-agent hop: `intake` for filed work, `route` for Change, `maintain` for bounded
+   Maintenance, `stage-contract` for caller-declared staged clauses, and an inline read of this file for
+   Migration.
+3. Delete `.github/agents/dispatch.agent.md` and update the current-state references its removal makes
+   false: `AGENTS.md` and `.github/template/AGENTS.pristine.md`, `README.md`,
+   `.anneal/architecture/process.md`, `.anneal/architecture/toolkit.md`,
+   `.anneal/architecture/toolkit/intake.md`, `.anneal/architecture/toolkit/maintain.md`,
+   `.github/standards/change-classification.md`, `.github/template/repository-map.md`,
+   `.github/agents/architecture-design.agent.md`, `.github/skills/check-contracts/SKILL.md`, the
+   dispatch-routing repository skill(s), and any other file that currently instructs a reader to use
+   `dispatch` for present-tense behavior.
+4. Add and verify the tests that hold both the new action and the prompt/process changes to their stated
+   behavior, then close the stage by deleting this entry back to `None open`.
+
+**`intake` action design:**
+
+- **Surface and argument shape:** `dotnet anneal intake "<work item>"`, one positional work item, named
+  plainly alongside `route`, `maintain`, and `stage-contract`. Missing or blank input is a usage error
+  under `TOOLKIT-10`.
+- **Decision shape:** one `Oracle<TDecision>` pass over a closed typed answer, not a free-form classifier.
+  The answer carries `Kind` (`Backlog`, `Assumption`, `Constraint`), `Why`, the bullet text to write or
+  propose, the intended constraint section (`Satisfied` or `Not Yet Satisfied`, meaningful only for the
+  constraint case), and `HasSufficientEvidence`.
+- **Safety bias:** the oracle charter applies `change-classification.md`'s admission test explicitly and,
+  when the work item could plausibly be a standing condition rather than a discrete completion, prefers
+  the `Constraint` kind over silently filing a backlog or assumption entry. A false-positive constraint
+  escalates and asks for admission; a false-negative constraint silently weakens the ratchet, so the
+  bias belongs on the safer side.
+- **Effects by kind:** `Backlog` appends one bullet to `.anneal/work/backlog.md`; `Assumption` appends
+  one bullet to `.anneal/governance/assumptions.md`; `Constraint` never writes
+  `.anneal/work/constraints.md` and instead returns `Escalated` with the proposed bullet and target
+  section carried in a structured report and rendered in stdout.
+- **Unexpected missing registers:** this stage targets the `.anneal/` register layout Anneal itself and the
+  existing compiled catalog already read — `.anneal/work/backlog.md` and
+  `.anneal/governance/assumptions.md`. Unlike `dispatch.agent.md`, `intake` will not scaffold a missing
+  register from the template: restoring shipped layout is `template-sync`'s job, while silently
+  recreating governance files inside an Intake write path hides a broken layout under unrelated work. The
+  operation escalates, names the missing register, and points at explicit layout repair instead of
+  quietly recreating the file. Reconciling the older root-register template shape is a separate change,
+  not hidden inside this stage.
+- **Category and role:** `OperationCategory.Authoring`, because backlog and assumption writes change the
+  repository; `ModelRole.Light`, because the only judgement is the narrow intake decision.
+
+**`helper.agent.md` design:**
+
+- Helper now owns **Mode** classification itself, after reading `change-classification.md`, exactly as
+  `dispatch` Step 1 did. For Change mode it still does **not** decide Scope; it states that `route`
+  classifies Scope/Effort and performs the implementation.
+- Helper carries forward `dispatch`'s full Intake admission test rather than treating "record this for
+  later" as a vague future-tense shortcut: it asks whether the item **completes** or **holds**, and for
+  a holding statement whether reality could disprove it. That keeps standing conditions out of `route`
+  and funnels the user-admitted-constraint rule through the same front door that now owns Mode.
+- Intake work is routed straight to `dotnet anneal intake`; bounded tidy-up work to
+  `dotnet anneal maintain`; declared staging to `dotnet anneal stage-contract`; ordinary Change to
+  `dotnet anneal route`; verification, lint-fix, stats, and evidence spot-checking keep their existing
+  direct-command paths.
+- Migration gets no new Toolkit action. Helper checks whether `.anneal/work/active-plan.md` exists and,
+  when it does, reads the current-stage section using the same rule the compiled `RepositoryFacts`
+  helper already uses — the first `###` heading under `## Current stage`, or none when the section says
+  `None open.` — and reports whether staged implementation is already in flight or a migration exists
+  with no stage currently opened; when the file does not exist, it reports that `architecture-design` is
+  required to produce an approved proposal.
+- The report shape moves from helper's current lightweight routing summary to the same metadata-and-work
+  structure `dispatch` used, so the direct-command replacement does not silently shed contract-impact,
+  register-change, or residual-state reporting.
+- One direct-command detail must be carried forward honestly: `AnnealTool` maps non-gating failures from
+  authoring/advisory actions to process exit `0`, with the failure rendered in stdout and the
+  `InvocationRecord`. Helper's instructions therefore need to read the matching
+  `.anneal/logs/records/invocations.jsonl` row after each direct `dotnet anneal ...` call and treat its
+  `Outcome` as authoritative, using the shell exit code as a cross-check and stdout only for summaries,
+  changed-file lists, and quoted reasons. That is not new behavior in the tool; it is the existing
+  dispatcher contract helper must now consume directly because the `dispatch` hop is gone.
+
+**Reference and contract updates this stage must carry:**
+
+- `AGENTS.md` and `.github/template/AGENTS.pristine.md` routing/delegation text must point at helper plus
+  the compiled actions, not a retired prose agent.
+- `README.md` and `.anneal/architecture/process.md` must remove `dispatch` from the current Process
+  inventory and describe helper's direct compiled-action calls instead; `process.md`'s diagram and
+  decisions have to land in the same change, because deleting the node without redrawing the current
+  composition would violate the one-file ownership rule in the opposite direction.
+- `.anneal/architecture/toolkit/intake.md` must be the new action's own contract node; `toolkit.md` only
+  absorbs the inventory-level mention that one more shipped action exists.
+- `.github/standards/change-classification.md` must name the compiled actions (and helper's direct staged
+  path) in its current-state agent guidance, since it is the authoritative classification standard.
+- `.github/template/repository-map.md` and any current agent prompt that still says "use `dispatch` for
+  ordinary change" need the same mechanical correction.
+- `test-process-contract.ps1` must continue to pass with one fewer agent prompt; if a check fails, repair
+  the process contract or the payload it proves rather than weakening the check.
+
+**Deliberately not part of this stage:**
+
+- No compiled replacement for helper's own conversation loop.
+- No new Migration action; the stage check stays a file read unless review finds a concrete failure that a
+  compiled helper cannot avoid.
+- No template-scaffolding fallback inside `intake`; if that behavior is judged worth keeping, it belongs
+  to an explicit template/layout repair path, not to an Intake append.
+
+**No-silent-loss note to carry into the commit that deletes `dispatch.agent.md`:** the one behavior not
+coming forward unchanged is its opportunistic "recreate the missing backlog register from template"
+fallback. This stage deliberately drops that repair from the Intake path and treats a missing register as
+layout drift that must be repaired explicitly, because hidden scaffolding in an append operation is a
+different responsibility than filing work.
+
+**Exit conditions:** `dotnet anneal intake` is shipped, documented, and contract-tested; helper classifies
+Mode and invokes `intake`/`route`/`maintain`/`stage-contract` directly; `dispatch.agent.md` is deleted;
+all current-state references to it are repaired; `pwsh ./build.ps1` and `pwsh ./lint.ps1` pass.
