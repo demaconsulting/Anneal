@@ -5,18 +5,18 @@ using DemaConsulting.Anneal.Toolkit.Primitives;
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Files one Intake-mode work item into the backlog or assumptions register, or escalates a proposed
-///     constraint for user admission.
+///     Files one Intake-mode work item into the backlog, or escalates a proposed assumption or constraint for
+///     user admission.
 /// </summary>
 /// <remarks>
 ///     <c>.anneal/architecture/toolkit/intake.md</c> is the contract this implements. The action asks one narrow
 ///     typed question — backlog, assumption, or constraint, with the bullet text to use — and then applies the
-///     user-admitted-constraint rule mechanically: backlog and assumption entries are appended directly, while a
-///     constraint classification never writes <c>.anneal/work/constraints.md</c> and instead escalates with the
-///     proposed bullet and target section.
+///     confirm-before-write rule mechanically: a <c>Backlog</c> answer appends directly to the backlog register,
+///     while an <c>Assumption</c> or <c>Constraint</c> classification never writes the governance or constraints
+///     file and instead escalates with the proposed bullet and, for a constraint, the target section.
 ///     <para>
-///         It declares <see cref="OperationCategory.Authoring" /> because filing backlog and assumption work edits
-///         repository content for later use. A constraint proposal still reports through the same action because
+///         It declares <see cref="OperationCategory.Authoring" /> because filing backlog work edits repository
+///         content for later use. Assumption and constraint proposals still report through the same action because
 ///         the question it answered was authoring-related even when the safe result is "stop and ask for
 ///         admission."
 ///     </para>
@@ -48,7 +48,6 @@ public sealed class IntakeOperation : IOperation
         """;
 
     private const string BacklogRelativePath = ".anneal/work/backlog.md";
-    private const string AssumptionsRelativePath = ".anneal/governance/assumptions.md";
     private const string ConstraintsRelativePath = ".anneal/work/constraints.md";
 
     private readonly string _repositoryRoot;
@@ -87,7 +86,7 @@ public sealed class IntakeOperation : IOperation
     public OperationCategory Category => OperationCategory.Authoring;
 
     /// <inheritdoc />
-    public string Summary => "File one Intake work item into backlog or assumptions, or escalate a constraint proposal";
+    public string Summary => "File one Intake work item into backlog, or escalate an assumption or constraint proposal";
 
     /// <inheritdoc />
     public ModelRole? RequiredRole => ModelRole.Light;
@@ -95,8 +94,8 @@ public sealed class IntakeOperation : IOperation
     /// <inheritdoc />
     public string Usage =>
         "usage: dotnet anneal intake <work item> - classifies <work item> through the Intake admission test " +
-        "and either appends one bullet to .anneal/work/backlog.md or .anneal/governance/assumptions.md, or " +
-        "escalates a proposed constraint for .anneal/work/constraints.md without writing it.";
+        "and either appends one bullet to .anneal/work/backlog.md, or escalates a proposed assumption or " +
+        "constraint without writing it.";
 
     /// <inheritdoc />
     public async Task<OperationResult> ExecuteAsync(
@@ -135,8 +134,7 @@ public sealed class IntakeOperation : IOperation
         {
             IntakeDecisionKind.Backlog => AppendToRegister(
                 output, BacklogRelativePath, workItem, bulletText, decision.Why, cancellationToken),
-            IntakeDecisionKind.Assumption => AppendToRegister(
-                output, AssumptionsRelativePath, workItem, bulletText, decision.Why, cancellationToken),
+            IntakeDecisionKind.Assumption => EscalateAssumption(output, bulletText, decision),
             IntakeDecisionKind.Constraint => EscalateConstraint(output, bulletText, decision),
             _ => FailedDecision(output, decision)
         };
@@ -186,6 +184,19 @@ public sealed class IntakeOperation : IOperation
             new IntakeReport(relativePath, bulletText, why, null, null));
     }
 
+    private static OperationResult EscalateAssumption(
+        TextWriter output, string bulletText, IntakeDecisionEnvelope decision)
+    {
+        output.WriteLine(
+            $"intake: escalated - proposed assumption for .anneal/governance/assumptions.md:");
+        output.WriteLine($"  - {bulletText}");
+        output.WriteLine($"intake: reason - {decision.Why}");
+
+        return new OperationResult(
+            OperationOutcome.Escalated,
+            new IntakeReport(".anneal/governance/assumptions.md", bulletText, decision.Why, null, null));
+    }
+
     private static OperationResult EscalateConstraint(
         TextWriter output, string bulletText, IntakeDecisionEnvelope decision)
     {
@@ -214,7 +225,7 @@ public sealed class IntakeOperation : IOperation
             new IntakeReport(string.Empty, NormalizeBulletText(decision.BulletText), decision.Why, null, null));
     }
 
-    private static void AppendBullet(string fullPath, string bulletText)
+    internal static void AppendBullet(string fullPath, string bulletText)
     {
         var prefix = string.Empty;
         if (new FileInfo(fullPath).Length > 0)
@@ -229,7 +240,7 @@ public sealed class IntakeOperation : IOperation
         File.AppendAllText(fullPath, $"{prefix}- {bulletText}{Environment.NewLine}");
     }
 
-    private static string NormalizeBulletText(string bulletText)
+    internal static string NormalizeBulletText(string bulletText)
     {
         var trimmed = bulletText.Trim();
         return trimmed.StartsWith("- ", StringComparison.Ordinal) ? trimmed[2..].TrimStart() : trimmed;

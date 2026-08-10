@@ -70,9 +70,12 @@ the root stubs above redirect to them for backward compatibility.
 | `.anneal/work/backlog.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
 | `.anneal/work/active-plan.md` | The stages of an approved migration; present only while a migration is in flight. | Migration workers, stage by stage |
 
-In Intake mode, `helper` invokes compiled `intake`, which writes to `.anneal/work/backlog.md` and
-`README.md` assumptions; for a constraint, it reports the proposed bullet for user admission. The
-Intake admission test in `change-classification.md` decides which path an item takes.
+In Intake mode, `helper` invokes compiled `intake`, which appends directly to `.anneal/work/backlog.md`
+for a backlog item; for an assumption or constraint, it reports the proposed bullet for user
+admission and leaves the governance and constraints files unchanged. The Intake admission test in
+`change-classification.md` decides which path an item takes. Once a user has confirmed exact wording,
+`dotnet anneal admit-assumption` or `dotnet anneal admit-constraint` performs the deterministic write
+with no further model judgement.
 
 A constraint is never deleted for being met — it moves to **Satisfied** and stays as the guard rail
 against regressing it. It is removed only when the condition stops being required. Backlog entries

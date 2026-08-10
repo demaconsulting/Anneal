@@ -32,7 +32,7 @@ scope.
 
 | Mode | Triggered by | May touch | Scope |
 | --- | --- | --- | --- |
-| **Intake** | someone raises a need or an idea | `.anneal/work/backlog.md`, `.anneal/governance/assumptions.md`; a `.anneal/work/constraints.md` proposal | n/a |
+| **Intake** | someone raises a need or an idea | `.anneal/work/backlog.md`; a `.anneal/governance/assumptions.md` or `.anneal/work/constraints.md` proposal | n/a |
 | **Change** | a requested behavior change | code, tests, contracts | Small Fix / Contract Change / Structural Change |
 | **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | Small Fix |
 | **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
@@ -40,15 +40,14 @@ scope.
 ## Intake
 
 Recording that something is wanted. **No code, no tests, no contract change.** Filing to
-`.anneal/work/backlog.md` and to `.anneal/governance/assumptions.md` is the cheapest step in the
-process, deliberately — if
-filing a need costs anything, needs stop being filed and those registers go empty. `.anneal/work/constraints.md`
-is the one exception, for the reason given under *Only the user admits a constraint* below.
+`.anneal/work/backlog.md` is the cheapest step in the process, deliberately — if filing a need costs
+anything, needs stop being filed and that register goes empty.
 
 Apply the admission test: *does it hold, or does it complete?*
 
 Something that **completes** is a discrete piece of work, finished and stays finished — "add a
-`--version` flag". Append one bullet to `.anneal/work/backlog.md`.
+`--version` flag". Append one bullet to `.anneal/work/backlog.md`, the one destination Intake writes
+directly.
 
 Something that **holds** is a standing statement, and splits again on who could change it. If it
 could only change by a decision, it is a **constraint** — "runs on Windows", "supports .NET
@@ -58,38 +57,38 @@ constraint that needs work before it holds is still a constraint, not backlog. *
 append it** — see below.
 
 If instead reality could prove it wrong without anyone changing their mind, it is an **assumption** —
-"our users have outbound internet access". Append one bullet to
-`.anneal/governance/assumptions.md`, per `architecture-documentation.md`. Recording it is all that
-happens here; judging
-whether it is load-bearing belongs to boundary work in `helper` at the next re-cut.
+"our users have outbound internet access". Assumptions are carefully researched, load-bearing beliefs,
+and `.anneal/governance/` is the most protected content in the repository. **Propose it; do not
+append it** — see below.
 
-Whichever file it lands in, the item is recorded and nothing else happens.
+### Only the User Admits a Constraint or Assumption
 
-### Only the User Admits a Constraint
+**No agent, in any mode, appends an entry to `.anneal/work/constraints.md` or
+`.anneal/governance/assumptions.md`.** Only the user admits one. This binds Change, Maintenance and
+Migration exactly as Intake; a rule scoped to Intake alone would leave every other path open.
 
-**No agent, in any mode, appends an entry to `.anneal/work/constraints.md` — in either section.** Only the user
-admits one. This binds Change, Maintenance and Migration exactly as it binds Intake; a rule that
-covered only Intake would leave every other path into the file open.
+**To propose:** state the exact bullet in the completion report — for a constraint, its section,
+**Satisfied** or **Not Yet Satisfied** — and stop. Silence, plausibility, or a general instruction to
+improve the repository is never admission; only an explicit yes to *that* item is.
 
-**To propose, mechanically:** state the bullet in the completion report, in the exact wording and
-under the exact section heading — **Satisfied** or **Not Yet Satisfied** — it would take, and stop.
-Do not append it, and do not treat silence, plausibility, or a general instruction to improve the
-repository as admission. Append the bullet only when the current request explicitly admits *that*
-constraint. This is actionable by a sub-agent with no way to prompt anybody, which "ask the user" is
-not.
+**To admit,** once the user has confirmed the exact wording, run the matching deterministic action —
+no classification, no model call:
 
-**Promotion is still an agent action.** Moving an already-admitted entry from **Not Yet Satisfied**
-to **Satisfied** is not admission — the user already said yes to the condition, and the move only
-records that the current shape now meets it. `route`'s Structural Change worker does this as part of
-a Structural Change. Nothing here restricts it.
+- `dotnet anneal admit-assumption "<exact bullet text>"` appends verbatim to
+  `.anneal/governance/assumptions.md`.
+- `dotnet anneal admit-constraint "<exact bullet text>" <satisfied|not-yet-satisfied>` appends
+  verbatim to the named section of `.anneal/work/constraints.md`.
 
-**Why this one register and not the others.** The asymmetry is the cost of being wrong, not the cost
-of filing. A wrong `.anneal/work/backlog.md` line or assumption is one stale bullet somebody skips, so
-those stay frictionless and the argument above holds for them intact. A wrong constraint is a
-barrier every later change has to route around, and the register deliberately makes removal a
-decision rather than bookkeeping — *entries are never deleted for being met* — so anything an agent
-writes there is close to permanent. Requiring the user to admit it buys back the only exit the
-ratchet does not otherwise provide.
+**Promotion is still an agent action.** Moving an already-admitted constraint from **Not Yet
+Satisfied** to **Satisfied** is not admission — the user already said yes to the condition, and the
+move only records the current shape meets it. `route`'s Structural Change worker does this.
+
+**Why these two registers, and not backlog.** The asymmetry is the cost of being wrong. A wrong
+backlog line is one stale bullet somebody skips, so that register stays frictionless. A wrong
+constraint is a barrier every later change routes around, and removal is a decision, never
+bookkeeping — entries are never deleted for being met. A wrong assumption is worse: a silently added
+false premise the whole decomposition below it may rest on, not a stale note. Requiring the user's
+admission buys back the only exit each ratchet otherwise lacks.
 
 ### A Citation Is Not a Derivation
 

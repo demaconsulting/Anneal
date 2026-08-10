@@ -220,7 +220,7 @@ a single verdict over two independent promises and hide which one had lapsed.
 `.anneal/work/constraints.md` has ever arrived through Intake in this repository's history, so closing only the
 Intake path would have left every other mode's route into the file open. This entry records that
 Process's Decisions section holds Change, Maintenance and Migration to the rule exactly as Intake is
-held; `change-classification.md` § *Only the User Admits a Constraint* owns the rule itself, the
+held; `change-classification.md` § *Only the User Admits a Constraint or Assumption* owns the rule itself, the
 reasoning behind it, and the proposal mechanism.
 
 No clause is added for it. Whether an agent proposes rather than files is a property of what agents do,
