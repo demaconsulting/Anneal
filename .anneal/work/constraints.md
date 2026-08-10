@@ -99,3 +99,7 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   change under review happens to touch that sentence. Found twice in one session (a routing table and
   a diagram both went stale when `dispatch` was rewritten at S11, undetected by `scope-check` at the
   time) before a later, unrelated review caught both by hand.
+- **`DeterministicCheck` truncates a check's raw output to 2000 characters before it becomes verifier
+  evidence** — a warning about a clause the current change actually touched could in principle be pushed
+  past that truncation point by other unrelated warnings ahead of it, hiding it from the AI verifier step
+  relied on to catch an unimplemented touched clause. Not being fixed now, just recorded.

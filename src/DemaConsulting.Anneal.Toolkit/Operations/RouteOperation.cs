@@ -217,10 +217,9 @@ public sealed class RouteOperation : IOperation
     ///     the PowerShell host. Injected so the whole run is exercisable without a real build.
     /// </param>
     /// <param name="contractCheckRunScript">
-    ///     Runs the repository's strict contract check for a worker's deterministic check, or null to run it
+    ///     Runs the repository's non-strict contract check for a worker's deterministic check, or null to run it
     ///     through <see cref="Process.Workers.ContractCheckRunner" /> — <see cref="CheckContractsOperation" /> called in
-    ///     process, with arguments read from <see cref="Model.ContractCheckConfiguration" />. Injected so the
-    ///     whole run is exercisable without a real check.
+    ///     process with <c>-Strict</c> filtered out. Injected so the whole run is exercisable without a real check.
     /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     public RouteOperation(

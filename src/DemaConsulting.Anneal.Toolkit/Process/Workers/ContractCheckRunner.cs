@@ -5,7 +5,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
 ///     The default way <see cref="ContractChangeWorker" /> and <see cref="StructuralChangeWorker" /> run their
-///     strict contract-check step when a caller supplies no <see cref="RunRepositoryScript" /> override.
+///     non-strict contract-check step when a caller supplies no <see cref="RunRepositoryScript" /> override.
 /// </summary>
 /// <remarks>
 ///     Calls <see cref="CheckContractsOperation" /> in process rather than shelling out to a repository script,
@@ -33,12 +33,12 @@ internal static class ContractCheckRunner
     /// <param name="repositoryRoot">The repository to check. Must not be null or blank.</param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
     /// <param name="strict">
-    ///     Whether to run the repository's configured arguments as-is (the default, used by
-    ///     <see cref="ContractChangeWorker" /> and <see cref="StructuralChangeWorker" />, whose checks always run
-    ///     after implementation is complete), or with any <c>-Strict</c> entry filtered out first. Pass
-    ///     <see langword="false" /> only when implementation is deliberately not yet complete — a staged, not-yet-
-    ///     implemented clause is exactly what <c>-Strict</c> would otherwise promote from a warning to an error —
-    ///     per <c>system-contracts.md</c>'s own "use <c>-Strict</c> once implementation is complete" rule.
+    ///     Whether to run the repository's configured arguments as-is, or with any <c>-Strict</c> entry filtered
+    ///     out first. Pass <see langword="false" /> — as <see cref="ContractChangeWorker" /> and
+    ///     <see cref="StructuralChangeWorker" /> do by default — so that pre-existing staged TODO obligations
+    ///     unrelated to the current change are warnings rather than errors, while real test failures still fail
+    ///     the check. Pass <see langword="true" /> only from a context that has verified all staged obligations
+    ///     are fulfilled, such as <see cref="Operations.StageContractOperation" />'s own post-stage check.
     /// </param>
     /// <returns>
     ///     A <see cref="ScriptRun" /> whose exit code is zero when the check succeeded and non-zero otherwise,

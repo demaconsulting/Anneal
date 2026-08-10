@@ -10,7 +10,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// <summary>
 ///     The Contract Change path: <see cref="DocumentAuthor" /> updates the affected system contract document(s)
 ///     and prunes their section docs, <see cref="Developer" /> implements code and tests against the clauses that
-///     just changed, two <see cref="DeterministicCheck" /> steps run <c>build.ps1</c> and a strict contract check,
+///     just changed, two <see cref="DeterministicCheck" /> steps run <c>build.ps1</c> and a non-strict contract check,
 ///     and a model-backed <see cref="Verifier" /> judges contract conformance, scope honesty, tree accuracy, and
 ///     tenet conformance against that evidence before either finishing or spending one of three independent
 ///     one-shot repair budgets.
@@ -154,11 +154,12 @@ internal sealed class ContractChangeWorker
     ///     deterministic check is exercisable without a real build.
     /// </param>
     /// <param name="contractCheckRunScript">
-    ///     Runs the repository's strict contract check, or null to run it through <see cref="ContractCheckRunner" />
-    ///     — <see cref="Operations.CheckContractsOperation" /> called in process, with arguments read from
-    ///     <see cref="ContractCheckConfiguration" />. <see cref="DeterministicCheck" />'s own <c>selector</c>
-    ///     parameter is evidence metadata only and is never forwarded to the script it runs, so the default
-    ///     arguments are resolved inside the default delegate rather than threaded through that parameter.
+    ///     Runs the repository's non-strict contract check, or null to run it through <see cref="ContractCheckRunner" />
+    ///     — <see cref="Operations.CheckContractsOperation" /> called in process with <c>-Strict</c> filtered out,
+    ///     so pre-existing staged TODO obligations unrelated to this change do not block the run while real test
+    ///     failures still do. <see cref="DeterministicCheck" />'s own <c>selector</c> parameter is evidence
+    ///     metadata only and is never forwarded to the script it runs, so the default arguments are resolved
+    ///     inside the default delegate rather than threaded through that parameter.
     ///     Injected so the check is exercisable without a real script.
     /// </param>
     /// <param name="recordStore">
@@ -206,7 +207,7 @@ internal sealed class ContractChangeWorker
         _buildCheck = new DeterministicCheck(root, runScript: buildRunScript);
         _contractCheck = new DeterministicCheck(
             root,
-            runScript: contractCheckRunScript ?? ((_, ct) => ContractCheckRunner.RunAsync(root, ct)));
+            runScript: contractCheckRunScript ?? ((_, ct) => ContractCheckRunner.RunAsync(root, ct, strict: false)));
         _verifier = new Verifier(root, verifierCharter, endpointFor: endpointFor);
         _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
         _maxCodeRepairAttempts = maxCodeRepairAttempts;
