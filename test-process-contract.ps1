@@ -863,10 +863,10 @@ Test-Case -Name "EffortVocabularyIsClosed" -Body {
 }
 
 # --- PROCESS-I1 ---------------------------------------------------------------
-# A count alone would pass a repository where the two entry points had swapped
-# with the two AGENTS.md names as non-delegatable, so the identities are checked
+# A count alone would pass a repository where the one entry point had swapped
+# with the AGENTS.md name as non-delegatable, so the identities are checked
 # against that section rather than assumed.
-Test-Case -Name "EntryPointsAreExactlyTwo" -Body {
+Test-Case -Name "EntryPointsAreExactlyOne" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
     $entryPoints = [System.Collections.Generic.List[string]]::new()
@@ -893,7 +893,7 @@ Test-Case -Name "EntryPointsAreExactlyTwo" -Body {
         }
     }
 
-    # The two AGENTS.md names as undelegatable, read from the section that says so.
+    # The AGENTS.md names as undelegatable, read from the section that says so.
     $lines = (Read-Text (Repo-Path "AGENTS.md")) -split "`n"
     $start = -1
     for ($i = 0; $i -lt $lines.Count; $i++) {
@@ -926,8 +926,8 @@ Test-Case -Name "EntryPointsAreExactlyTwo" -Body {
         $problems.Add("AGENTS.md names '$name' as undelegatable but its front matter is not user-invocable: true")
     }
 
-    if ($entryPoints.Count -ne 2) {
-        $problems.Add("$($entryPoints.Count) agents are user-invocable ($($entryPoints -join ', ')); the contract allows exactly two")
+    if ($entryPoints.Count -ne 1) {
+        $problems.Add("$($entryPoints.Count) agents are user-invocable ($($entryPoints -join ', ')); the contract allows exactly one")
     }
 
     Add-Note "entry points: $($entryPoints -join ', ')"

@@ -14,7 +14,8 @@
 #   first and from template-url second, so the vendored copy is preferred rather
 #   than required: it needs no network, and it pins the template to the agent
 #   versions installed beside it, so the two cannot drift apart. With neither
-#   available, template-sync and architecture-design can only report INCOMPLETE.
+#   available, template-sync can only report INCOMPLETE, and helper's bootstrap path falls back
+#   to the standards.
 #
 #   AGENTS.md carries no per-repository customization, so -Force may overwrite
 #   it to pick up a newer version. Project facts live in README.md instead.
@@ -214,9 +215,8 @@ Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Fill in README.md - AGENTS.md needs no editing."
 Write-Host "  2. Run @helper scaffold the repository structure from the template."
-Write-Host "  3. Run @architecture-design to establish the architecture tree."
+Write-Host "  3. Ask @helper to establish the architecture tree."
 Write-Host ""
-Write-Host "  @helper is the front door for everything afterwards. @architecture-design is the"
-Write-Host "  only other agent you invoke yourself; the rest run as sub-agents."
+Write-Host "  @helper is the only agent you invoke yourself; the rest run as sub-agents."
 
 exit 0

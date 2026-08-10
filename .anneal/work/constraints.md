@@ -1,6 +1,6 @@
 # Constraints
 
-Conditions this architecture must satisfy. `architecture-design` reads this before re-cutting system
+Conditions this architecture must satisfy. `helper` reads this before re-cutting system
 boundaries, and `route`'s Structural Change worker reads it before a Structural Change.
 
 A satisfied constraint is not finished business — it is the reason the current shape is the shape it

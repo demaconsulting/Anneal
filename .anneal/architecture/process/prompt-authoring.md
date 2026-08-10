@@ -23,17 +23,17 @@ selects — nothing else.
 
 **The context budget is 20,000 tokens**, and this document is where that number is declared; `PROCESS-06`
 is the clause that defends it, over the worst-case load the clause itself defines. Measured against the
-current payload:
+post-merge payload:
 
 | File | Tokens |
 | --- | --- |
-| `AGENTS.md` | 3,016 |
-| `architecture-design.agent.md` — largest agent prompt | 2,728 |
-| `architecture-documentation.md` | 4,207 |
-| `change-classification.md` | 3,528 |
-| `system-contracts.md` | 2,639 |
-| `technical-documentation.md` | 2,036 |
-| **Worst case** | **18,154** |
+| `AGENTS.md` | 2,998 |
+| `helper.agent.md` — largest agent prompt | 2,702 |
+| `architecture-documentation.md` | 4,127 |
+| `change-classification.md` | 5,146 |
+| `system-contracts.md` | 2,643 |
+| `technical-documentation.md` | 2,304 |
+| **Worst case** | **19,920** |
 
 The measurement is recorded beside the ceiling on purpose. 20,000 leaves under a tenth headroom: it
 does not fire today, but the margin is thin enough that the next standard or agent prompt added to this
@@ -71,9 +71,10 @@ it either applies the rule where it does not fit or abandons it entirely.
 
 A justification earns its place when it does one of these:
 
-- **Names the rejected alternative.** "Do not call `architecture-design`" is a rule an agent will bend
-  when calling seems efficient. "Called headless it would have nobody to ask and would invent the answers
-  — worse than producing none" is a rule it can apply to a case nobody wrote down.
+- **Names the rejected alternative.** "Do not write a re-cut over a dirty tree" is a rule an agent
+  will bend when a partial draft seems helpful. "A re-cut overwrites files that cannot be
+  reconstructed, so a dirty tree destroys the only reliable before-state" is a rule it can apply to
+  a case nobody wrote down.
 - **Explains a counter-intuitive instruction.** Any rule that looks like unnecessary friction will be
   optimized away unless the friction is explained.
 - **Marks a boundary that must not be crossed under pressure.** Stop conditions are exactly where an

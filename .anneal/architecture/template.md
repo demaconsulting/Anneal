@@ -93,7 +93,7 @@ root files may diverge from their template counterparts, but the template must r
 product repository. Verifying "valid for a C# product repository" requires compiling a downstream
 project, running its tests, and judging that nothing Anneal-specific leaked into the generic
 skeleton — a judgement call that depends on what a product repository looks like and is therefore
-owned by `architecture-design` review rather than a script. The `TODO.TemplateRemainsProductShaped`
+owned by `helper`'s boundary-work review rather than a script. The `TODO.TemplateRemainsProductShaped`
 verifier placeholder stands as an obligation reminder, not a gap — if a future constraint makes
 the property mechanical, the placeholder resolves then.
 

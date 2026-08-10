@@ -106,8 +106,9 @@ rots silently. Everything else in this process is judgement, deliberately. This 
 because a script does it faster and more reliably than an agent can.
 
 A clause may be **planned**: a promise the repository intends to keep but has not yet built, so that
-`architecture-design` can write a contract before its tests exist. This section is the single owner of
-that authoring rule; everywhere else cites it rather than restating the form.
+`helper` can write a contract before its tests exist while establishing or re-cutting boundaries.
+This section is the single owner of that authoring rule; everywhere else cites it rather than
+restating the form.
 
 Write the planned verifier in the **placeholder form** — an uppercase `TODO.` or `TODO_` opening the
 verifier string, followed by the name the test will take:

@@ -50,7 +50,7 @@ repair — it would change behavior for every caller.
 
 `-Strict` promotes unfulfilled planned obligations, and absent test results, from warnings to errors.
 Use it once implementation is complete — before that, a planned obligation is a deliberate placeholder
-written by `architecture-design`, not a defect.
+written during `helper` boundary work, not a defect.
 
 **Run `pwsh ./build.ps1` first, always.** The pass check reads recorded test results; without them
 it verifies nothing and says so. `build.ps1` clears `artifacts/tests` before each run, so results

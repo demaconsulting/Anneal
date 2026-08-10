@@ -71,7 +71,7 @@ Routing once classified:
 | Intake | `helper` invokes compiled `intake`, which files backlog or assumptions work, or proposes a constraint |
 | Change | `helper` invokes compiled `route`, which classifies scope and authors and verifies the work |
 | Maintenance | `helper` invokes compiled `maintain`, within a declared bound |
-| Migration | `architecture-design` → approved `.anneal/work/active-plan.md` → staged implementation work, with `helper` reading the open stage directly |
+| Migration | `helper` boundary-work interview → approved `.anneal/work/active-plan.md` → staged implementation work, with `helper` reading the open stage directly |
 
 Modes and scope may be raised mid-flight, never silently lowered. An agent never promotes itself
 into Migration, and never edits a boundary that forbids its work — that is a stop condition and a
@@ -123,10 +123,10 @@ the skill over reconstructing a procedure from memory.
 
 The default agent handles simple, well-understood tasks directly.
 
-Two agents cannot be delegated to at all: `helper` and `architecture-design` are started by the user
-and work by talking to them. When a request would be better talked through than specified, or when
-system boundaries need establishing or re-cutting, say so and name the agent — do not attempt the
-conversation on the user's behalf, and do not attempt the work instead.
+One agent cannot be delegated to at all: `helper` is started by the user and works by talking
+to them. When a request would be better talked through than specified, or when system boundaries
+need establishing or re-cutting, say so and name the agent — do not attempt the conversation on the
+user's behalf, and do not attempt the work instead.
 
 Delegate only for:
 

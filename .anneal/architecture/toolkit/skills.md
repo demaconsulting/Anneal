@@ -16,8 +16,8 @@ it is worth keeping. Neither existing memory shape holds this today: `.anneal/ar
 sections carry the reasoning behind a promise, which a lesson is not, and `.anneal/logs/records`/
 `transcripts` (`TOOLKIT-08`, `TOOLKIT-11`) carry raw telemetry nobody curated. This system is that third
 shape, filed as `.anneal/work/backlog.md` unscheduled future work and built once a genuine boundary — not an
-extension of an existing one — was confirmed through an `architecture-design` interview rather than
-guessed at by a compiled routing oracle, which is exactly what happened: `dispatch`'s own `route`
+extension of an existing one — was confirmed through `helper`'s boundary-work interview rather
+than guessed at by a compiled routing oracle, which is exactly what happened: `dispatch`'s own `route`
 escalated a first attempt to build this mechanically, reasoning correctly that it "reshapes the Toolkit
 surface, adds new primitives/CLI entry points, and requires contract changes."
 

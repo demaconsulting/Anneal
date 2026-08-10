@@ -167,5 +167,5 @@ are documented by reason: intent that cannot be recovered from the code, or noth
 **`docs/user-guide/` is deliberately outside the tree's `covers` lists** — `technical-documentation.md`
 § User Guides decouples user documentation from structure so that user-facing prose does not churn when
 internals move. The obligation to update the guide is triggered by a change to the surfaces it documents
-(`install.ps1`'s interface, `helper`'s behavior, `architecture-design`'s purpose), not by any interior
-change to the payload.
+(`install.ps1`'s interface, `helper`'s behavior, including its boundary-work interview), not by
+any interior change to the payload.

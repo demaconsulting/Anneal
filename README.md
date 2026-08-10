@@ -57,12 +57,12 @@ and the documents describing it in agreement.
 
 **The parts:**
 
-- **Agents** (`.github/agents/`) — the workers. Two are conversational and you invoke them yourself:
-  `helper`, which takes a request in ordinary words, classifies its mode, and invokes the minimum
-  compiled toolkit action directly, and `architecture-design`, which establishes system boundaries by
-  interview. `template-sync` is invoked by the process rather than by you, keeping the repository
-  aligned with the template. Verifying a finished change is itself a compiled toolkit action,
-  `verify-change`, run directly rather than through an agent.
+- **Agents** (`.github/agents/`) — the workers. One is conversational and you invoke it yourself:
+  `helper`, which takes a request in ordinary words, classifies its mode, invokes the minimum
+  compiled toolkit action directly, and handles boundary interviews when the repository needs its
+  first architecture tree or a re-cut. `template-sync` is invoked by the process rather than by you,
+  keeping the repository aligned with the template. Verifying a finished change is itself a compiled
+  toolkit action, `verify-change`, run directly rather than through an agent.
 - **Standards** (`.github/standards/`) — the rules the agents work to, one subject per file, each the
   sole owner of its subject: coding principles and C# language, testing principles and C# testing,
   system contracts, architecture and technical documentation, and change classification. An agent
@@ -125,12 +125,12 @@ product is and what it is written in belong in your own `README.md`, which agent
 the architecture tree — so an upgrade can replace it outright with `-Force`.
 
 For a new repository, run `@helper scaffold the repository structure from the template` to lay down
-the layout, then `@architecture-design` to interview you and generate the architecture tree.
+the layout, then ask `@helper` to interview you and generate the architecture tree.
 
-The payload installs three agent prompts and the standards they load. You invoke two: `@helper` is
-the front door for anything you want done, and `@architecture-design` interviews you when system
-boundaries need establishing or re-cutting. `template-sync` runs only when layout-versus-template
-work is the thing being done.
+The payload installs two agent prompts and the standards they load. You invoke one: `@helper` is
+the front door for anything you want done, including the boundary interview when system boundaries
+need establishing or re-cutting. `template-sync` runs only when layout-versus-template work is the
+thing being done.
 [Process](.anneal/architecture/process.md) describes the full composition.
 
 ## Assumptions

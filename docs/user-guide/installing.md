@@ -51,4 +51,4 @@ already have.
 ## Next
 
 Then ask `@helper` for the first thing you want built; if this repository has no system boundaries
-yet it will send you to `@architecture-design` first.
+yet it will stay in the conversation and interview you first.

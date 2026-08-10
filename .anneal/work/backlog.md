@@ -4,7 +4,7 @@ Wanted, not yet scheduled.
 
 Items here **complete** — each one finishes and stays finished. Standing properties the system must
 always satisfy hold rather than complete, so they go in [constraints.md](constraints.md) instead,
-where `architecture-design` will read them. See the Intake admission test in
+where `helper` will read them during boundary work. See the Intake admission test in
 `change-classification.md`.
 
 - **Retired: a compiled `WorkTypeRouter` ahead of `route`'s `ScopeRouter`.** Considered twice
@@ -132,8 +132,8 @@ where `architecture-design` will read them. See the Intake admission test in
   consolidation half specifically can only be recognized in hindsight, once enough separately-filed
   entries exist to compare - designing this against today's single-entry corpus would be guessing at a
   shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
-  a check folded into an existing review pass is undecided; needs its own `architecture-design` pass
-  once real entries accumulate.
+  a check folded into an existing review pass is undecided; needs its own `helper` boundary-work
+  pass once real entries accumulate.
 - **The same staleness risk applies to `.anneal/work/backlog.md` and `.anneal/work/active-plan.md` themselves, not only the skills
   corpus** — an item can be silently resolved as a side effect of unrelated landed work (a new
   operation absorbs what a backlog item asked for, an architectural pivot removes an assumption an

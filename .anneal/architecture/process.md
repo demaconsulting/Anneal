@@ -14,9 +14,9 @@ covers:
 Process is the bootstrap harness: the agent prompts, the standards, and the skills they load
 on demand. Its content is read by a language model rather than executed, and everything odd about
 this repository follows from that. It is **terminal** — [active-plan.md](../work/active-plan.md)
-dismantles it into compiled processes, with `helper` and `architecture-design` absorbed last — so
-the contract below is deliberately not extended, and a clause is retired with the agent it describes
-rather than carried forward. If Process were rewritten, a consumer would notice immediately — not
+dismantles it into compiled processes, with the remaining conversational entry point absorbed last —
+so the contract below is deliberately not extended, and a clause is retired with the agent or path it
+describes rather than carried forward. If Process were rewritten, a consumer would notice immediately — not
 because an interface changed, but because agents would classify work differently, touch different files,
 and stop at different boundaries. The observable surface of a prompt is the behavior it produces.
 
@@ -91,9 +91,9 @@ is written.
 
 ### Invariants
 
-- **PROCESS-I1** — Exactly two agents are user-invocable; every other agent is reachable only as a
+- **PROCESS-I1** — Exactly one agent is user-invocable; every other agent is reachable only as a
   sub-agent.
-  *Verified by:* `EntryPointsAreExactlyTwo`
+  *Verified by:* `EntryPointsAreExactlyOne`
 
 - **PROCESS-I2** — No normative rule is stated in more than one payload file; other files reference the
   owning file rather than restating it.
@@ -101,16 +101,15 @@ is written.
 
 ## Composition
 
-Process divides into two zones with a single crossing point, even though only one prose agent now
-remains in the Mechanical zone; the division is still the most important thing about its interior.
+Process divides into two zones with a single crossing point: one interactive entry point and one
+mechanical zone. That division is still the most important thing about its interior.
 
 ```mermaid
 flowchart TD
     User(["Developer"])
 
-    subgraph Interactive["Interactive zone — converses, never mechanical"]
+    subgraph Interactive["Interactive zone — converses, writes boundary deliverables only"]
         Helper[helper]
-        ArchDesign[architecture-design]
     end
 
     subgraph Mechanical["Mechanical zone — routed, never converses"]
@@ -120,23 +119,18 @@ flowchart TD
     Tree[(".anneal/architecture/")]
 
     User --> Helper
-    User --> ArchDesign
     Helper --> TemplateSync
-
-    Helper -.-> ArchDesign
-    ArchDesign ==> Tree
-
-    linkStyle 3 stroke-dasharray: 3 3
+    Helper ==> Tree
 ```
 
-Three kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
+Two kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
 
 - **Solid — invocation.** One agent calls another as a sub-agent and consumes its report.
-- **Thick — artifact.** No call occurs. `architecture-design` writes the tree, and other agents read it
-  later, possibly in a different session.
-- **Dotted — hand-off by name.** `helper` tells the developer to invoke `architecture-design` themselves.
-  It must not call it, because that agent's method is a live interview and a headless invocation would
-  invent the answers.
+- **Thick — artifact.** No call occurs. `helper` writes the tree during boundary work, and other
+  agents read it later, possibly in a different session.
+
+The old dotted hand-off is gone. Boundary work stays inside `helper`, so no second user entry point
+remains.
 
 `scope-check.agent.md` is gone from this diagram entirely — retired, following the
 `lint-fix`/`apply`/`architecture-update` precedent below — rather than kept as a Mechanical-zone
@@ -174,28 +168,28 @@ technology-neutral, and would enlarge every prompt against the budget PROCESS-06
 
 The seam that must not move is the one between `helper`'s conversation and the compiled or
 mechanical paths it triggers. Everything upstream of it talks to a person; everything downstream is
-classified, bounded work. If that seam ever widens — if `helper` starts performing repository edits,
-or a mechanical path starts asking the developer questions — the interactive zone has become a
-system in its own right and should be split out of Process.
+classified, bounded work. If that seam ever widens — if `helper` starts performing ordinary
+implementation work instead of only boundary deliverables, or a mechanical path starts asking the
+developer questions — the interactive zone has become a system in its own right and should be split
+out of Process.
 
 ## Decisions
 
-**`architecture-design` is deliberately not model-invocable** — it is marked
-`disable-model-invocation: true` so no agent can call it. The rejected alternative was letting
-`helper` invoke it in headless mode when boundaries look wrong, which would produce a plausible
-architecture tree that nobody agreed to. That is worse than producing none, because a tree carries
-authority once it exists. This reverses only if the agent gains a non-interview mode whose output is
-explicitly provisional.
+**Boundary work stayed inside `helper` rather than remaining a second entry point** — the rejected
+alternatives were a cold hand-off to `architecture-design` or a headless sub-agent call. Both force
+the user to predict the need for a re-cut before the interview does, and the headless form would
+invent answers for a conversation nobody had.
 
-**`helper` classifies Mode but never works** — the front door decides whether a request is Intake,
-Change, Maintenance, or Migration, then invokes the compiled path that already owns the bounded
-mechanical work. It still edits nothing itself. Allowing it to make even small repository changes
-directly was rejected because a self-granted exemption does not stay narrow, and because `helper`
-does not load the standards that would make the edit correct.
+**`helper` routes ordinary work but writes boundary deliverables itself** — Intake, Change, and
+Maintenance still go straight to compiled actions. The exception is boundary work: the architecture
+tree, `README.md`, governance files, and `.anneal/work/active-plan.md` when a Migration proposal is
+what the repository needs. Letting `helper` implement ordinary code or maintenance directly was
+rejected because a self-granted exemption does not stay narrow.
 
-**Exactly two entry points** — every other agent is a sub-agent, so there are no trigger words to learn.
-The rejected alternative was exposing each agent to the developer, which pushes classification onto the
-person least equipped to do it consistently.
+**Exactly one entry point** — every other agent is a sub-agent or compiled action, so there are no
+trigger words to learn and no separate boundary-design front door to guess. The rejected alternative
+was exposing multiple prompts to the developer, which pushes classification onto the person least
+equipped to do it consistently.
 
 **Standards are loaded on demand, never bundled** — recorded here because it is the design choice the
 budget PROCESS-06 protects depends on. [Prompt Authoring](./process/prompt-authoring.md) owns the

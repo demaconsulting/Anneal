@@ -51,8 +51,8 @@ and stop when those two are done
 That last one runs auto-fixers and lint in a loop until the repository is clean. It never refactors
 and never makes functional changes.
 
-If your repository has no system boundaries yet, or they need redrawing, `@helper` will send you to
-`@architecture-design`. See [First Run](first-run.md) for what that conversation is like.
+If your repository has no system boundaries yet, or they need redrawing, `@helper` stays in the
+conversation and interviews you. See [First Run](first-run.md) for what that conversation is like.
 
 ## A Worked Example
 
@@ -106,8 +106,8 @@ than 90 days should no longer appear.
 ```
 
 `@helper` recognizes that this changes what the Search system promises to its callers — its
-behavior on the same input actually differs — and sends you briefly to `@architecture-design`
-before any code is written. The exchange is short:
+behavior on the same input actually differs — and stays in the same conversation for a brief
+boundary pass before any code is written. The exchange is short:
 
 ```text
 Search currently promises: "returns every order matching the filter, most recent first".
@@ -121,7 +121,7 @@ Confirm and I will land the clause; implementation follows.
 
 You confirm. The clause lands in `docs/architecture/search.md`, and the test it names is recorded
 as an outstanding implementation obligation — a promise written before the code exists to keep it.
-`@helper` picks up from there.
+`@helper` then keeps going from the same conversation.
 
 The diff on the implementation pass:
 

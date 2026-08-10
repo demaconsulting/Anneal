@@ -66,7 +66,7 @@ admission. The Intake admission test in
 
 | File | What belongs in it | Read by |
 | --- | --- | --- |
-| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry states the condition; a Not Yet Satisfied entry may also state why the current shape blocks it. | `architecture-design` before re-cutting; `route`'s Structural Change worker at Structural Change |
+| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry states the condition; a Not Yet Satisfied entry may also state why the current shape blocks it. | `helper` before re-cutting; `route`'s Structural Change worker at Structural Change |
 | `BACKLOG.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
 
 Neither is a plan, and neither is scheduled. There is deliberately no `ROADMAP.md`: scheduling is

@@ -16,4 +16,5 @@
 .github/agents/contract-check.agent.md
 .github/agents/evolve.agent.md
 .github/agents/developer.agent.md
+.github/agents/architecture-design.agent.md
 .github/standards/change-tiers.md

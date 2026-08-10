@@ -61,7 +61,7 @@ If instead reality could prove it wrong without anyone changing their mind, it i
 "our users have outbound internet access". Append one bullet to
 `.anneal/governance/assumptions.md`, per `architecture-documentation.md`. Recording it is all that
 happens here; judging
-whether it is load-bearing belongs to `architecture-design` at the next re-cut.
+whether it is load-bearing belongs to boundary work in `helper` at the next re-cut.
 
 Whichever file it lands in, the item is recorded and nothing else happens.
 
@@ -147,9 +147,9 @@ A large, approved restructure landing in stages. Migration is not "a bigger Stru
 differs in kind, not degree, because it is the only mode permitted to span multiple commits by
 design.
 
-- Requires an **approved proposal** before any file changes. The proposal is the output of a
-  `architecture-design` session — the target decomposition, the stages, and what each stage leaves
-  working — and the user approves it.
+- Requires an **approved proposal** before any file changes. The proposal is the output of
+  `helper`'s boundary-work interview — the target decomposition, the stages, and what each stage
+  leaves working — and the user approves it.
 - The approved proposal lives in **`.anneal/work/active-plan.md`**. It must be tracked,
   because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
   the stages and their exit conditions only; the target tree it approves lives in

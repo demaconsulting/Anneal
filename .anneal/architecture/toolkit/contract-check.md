@@ -190,7 +190,7 @@ silently checking less than the call site says it checks. Merging a set of confi
 single-configuration settings they replace was rejected for the same reason — whichever won would be
 invisible to the reader.
 
-**Warn on planned clauses, error under `-Strict`** — `architecture-design` must be able to write a
+**Warn on planned clauses, error under `-Strict`** — `helper` must be able to write a
 contract before its tests exist, so placeholder verifiers are tolerated during design and promoted to
 errors once implementation is complete. Rejecting them outright would force either fabricated tests or an
 undocumented contract.

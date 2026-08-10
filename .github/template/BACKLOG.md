@@ -10,7 +10,7 @@ Wanted, not yet scheduled.
 
 Items here **complete** — each one finishes and stays finished. Standing properties the system must
 always satisfy hold rather than complete, so they go in [CONSTRAINTS.md](CONSTRAINTS.md) instead,
-where `architecture-design` will read them. See the Intake admission test in
+where `helper` will read them during boundary work. See the Intake admission test in
 `change-classification.md`.
 
 - **TODO: the item, in one line**
