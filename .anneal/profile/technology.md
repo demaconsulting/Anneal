@@ -11,9 +11,11 @@ Change scope.
 - **Platform** — PowerShell 7 and the .NET SDK; Node and Python supply the lint tooling. The build
   requires network access, to fetch the Copilot CLI the SDK depends on — build-time only, no
   enforcement operation's runtime determinism is affected.
-- **Model access** — the GitHub Copilot SDK, under the ambient account of the calling session. It has
+- **Model access** — `GitHub.Copilot.SDK`, under the ambient account of the calling session. It has
   no response-format facility, so a typed answer rests on a schema described in the prompt and a
   retry on parse failure.
+- **On-prem model access is planned, not present** — `OllamaSharp` is the intended second provider
+  behind the same model seam; no repository uses it yet.
 - **Distribution** — a .NET tool (`dotnet anneal`), packaged and published through NuGet; see
   `../architecture/toolkit.md` for the tool's own composition.
 - **Adoption today is .NET and C# only** — the shipped layout defaults to `*.cs` sources, xUnit
