@@ -12,7 +12,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     file-scope bound this operation mechanically enforces after the worker runs.
 /// </summary>
 /// <remarks>
-///     <c>docs/architecture/toolkit/maintain.md</c> is the contract this implements. Maintenance is Small Fix by
+///     <c>.anneal/architecture/toolkit/maintain.md</c> is the contract this implements. Maintenance is Small Fix by
 ///     definition — <c>change-classification.md</c> says so in the same sentence that defines the mode — so a
 ///     caller invoking <c>maintain</c> has already fixed the work's Scope before this action is ever reached. This
 ///     operation therefore constructs no <see cref="Router" /> and asks no routing oracle to reclassify Effort or
@@ -21,8 +21,9 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     the coarser question of which worker runs at all.
 ///     <para>
 ///         <b>What this operation adds beyond composing an existing worker.</b> <c>change-classification.md</c>
-///         requires Maintenance to be "bounded before it starts" and to "never edit the architecture tree,
-///         <c>CONSTRAINTS.md</c>, or <c>BACKLOG.md</c>". Both rules are enforced here as mechanical, post-run checks
+///         requires Maintenance to be "bounded before it starts" and to "never edit the architecture tree or the
+///         governed documents under <c>.anneal/governance/</c>, <c>.anneal/profile/</c>, or <c>.anneal/work/</c>".
+///         Both rules are enforced here as mechanical, post-run checks
 ///         against what <see cref="SmallFixWorker" /> actually changed — never against a model's own self-report,
 ///         and never skipped because the worker itself reported success. The tripwire
 ///         (<see cref="ProtectedPathTripwire" />) and the containment check both always run, and either can force
@@ -50,11 +51,11 @@ public sealed class MaintainOperation : IOperation
         text search alone, since your text-search tool searches file contents, not file names, and can
         report no match for a file that is right there to be read.
 
-        Maintenance may never edit the architecture tree (docs/architecture/), CONSTRAINTS.md, or BACKLOG.md.
-        Discovering an architectural problem while you work is a finding to report, never a license to act on
-        it - if the correct fix would need one of those files changed, say so and name a better owner rather
-        than editing it. Some files are protected and your edit tools will refuse them; a refusal is a real
-        answer, not an obstacle to route around.
+        Maintenance may never edit the architecture tree (.anneal/architecture/), or the governed documents under
+        .anneal/governance/, .anneal/profile/, or .anneal/work/. Discovering an architectural problem while you
+        work is a finding to report, never a license to act on it - if the correct fix would need one of those
+        files changed, say so and name a better owner rather than editing it. Some files are protected and your
+        edit tools will refuse them; a refusal is a real answer, not an obstacle to route around.
 
         If, while working, you discover this item actually needs a contract change or a system-boundary move,
         say so and name the worker you believe is right rather than silently widening your own scope.
@@ -129,7 +130,8 @@ public sealed class MaintainOperation : IOperation
         "error since unbounded Maintenance work has no bound to declare. Succeeds when the worker completes the " +
         "work within the declared bound; escalates when the worker names a reroute, a protected-path write is " +
         "refused, the actual changes exceed the declared bound, or the actual changes touch a protected path " +
-        "(the architecture tree, CONSTRAINTS.md, or BACKLOG.md); fails when the worker's repair budget is " +
+        "(the architecture tree, or the governed documents under .anneal/governance/, .anneal/profile/, or " +
+        ".anneal/work/); fails when the worker's repair budget is " +
         "exhausted or no model could be reached.";
 
     /// <inheritdoc />

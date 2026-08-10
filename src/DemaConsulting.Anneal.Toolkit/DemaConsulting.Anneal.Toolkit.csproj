@@ -42,7 +42,7 @@
 
   <!--
     The primitive library (DemaConsulting.Anneal.Toolkit.Primitives) is internal by design - see
-    docs/architecture/toolkit.md - because nothing outside the assembly calls it yet. Its interior
+    .anneal/architecture/toolkit.md - because nothing outside the assembly calls it yet. Its interior
     tests still need to construct and exercise it directly, which is what this grant is for; it opens
     no other boundary.
   -->

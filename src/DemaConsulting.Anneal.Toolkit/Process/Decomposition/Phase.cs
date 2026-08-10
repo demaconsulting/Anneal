@@ -35,7 +35,7 @@ internal enum EditCategory
 /// <remarks>
 ///     A <see cref="Router" /> never invents a phase itself — it is handed one by a decomposition pass and routes
 ///     it back through <see cref="Router.RunAsync" /> exactly as it would a top-level work item, per
-///     <c>docs/architecture/toolkit/route.md</c> § Decisions ("Decomposition recurses through <c>Router</c> itself,
+///     <c>.anneal/architecture/toolkit/route.md</c> § Decisions ("Decomposition recurses through <c>Router</c> itself,
 ///     with a depth parameter, rather than a separate decomposer type").
 ///     <para>
 ///         <see cref="Depth" /> counts how many decompositions have already happened to produce this phase, not

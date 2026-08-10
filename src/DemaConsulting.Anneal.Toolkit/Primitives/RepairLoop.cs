@@ -27,7 +27,7 @@ internal delegate Task<StepResult<VerificationFinding>> RepairLoopVerify<TState>
 ///     worker from the top.
 /// </summary>
 /// <remarks>
-///     This is the "ownership-directed" repair <c>docs/architecture/process.md</c> § Decisions describes: a
+///     This is the "ownership-directed" repair <c>.anneal/architecture/process.md</c> § Decisions describes: a
 ///     documentation finding is sent back through the same <see cref="DocumentAuthor" /> call, a code finding
 ///     through the same <see cref="Developer" /> call, each spending the one shared budget this loop enforces.
 ///     What makes that possible without this type knowing anything about <see cref="DocumentAuthor" /> or

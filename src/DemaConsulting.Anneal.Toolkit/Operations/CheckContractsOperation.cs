@@ -120,7 +120,7 @@ public sealed class CheckContractsOperation : IOperation
     {
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var profiles = new List<string>();
-        var architectureRoot = "docs/architecture";
+        var architectureRoot = ".anneal/architecture";
         var strict = false;
 
         for (var index = 0; index < arguments.Count; index++)

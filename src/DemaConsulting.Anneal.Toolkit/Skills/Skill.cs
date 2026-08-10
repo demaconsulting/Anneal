@@ -4,7 +4,7 @@ namespace DemaConsulting.Anneal.Toolkit.Skills;
 ///     A curated, atomic lesson shipped either as a repository-local file or as an embedded Toolkit resource.
 /// </summary>
 /// <remarks>
-///     A skill is one search unit across both tiers defined by <c>docs/architecture/toolkit/skills.md</c>: the
+///     A skill is one search unit across both tiers defined by <c>.anneal/architecture/toolkit/skills.md</c>: the
 ///     caller never reasons about a repository-local file and an embedded card as different result shapes. The
 ///     type therefore captures only the shared contract - identifier, tags, summary, and markdown body - and
 ///     nothing about how the skill was stored.

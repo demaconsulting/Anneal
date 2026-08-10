@@ -25,7 +25,7 @@ internal sealed class TemporaryRepository : IDisposable
     public TemporaryRepository()
     {
         Root = Path.Combine(Path.GetTempPath(), $"anneal-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(Path.Combine(Root, "docs", "architecture"));
+        Directory.CreateDirectory(Path.Combine(Root, ".anneal", "architecture"));
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ internal sealed class TemporaryRepository : IDisposable
     /// <summary>
     ///     Writes a system document into the architecture tree.
     /// </summary>
-    public void WriteDocument(string name, string contents) => Write($"docs/architecture/{name}", contents);
+    public void WriteDocument(string name, string contents) => Write($".anneal/architecture/{name}", contents);
 
     /// <summary>
     ///     Writes a well-formed TRX recording the named outcomes.

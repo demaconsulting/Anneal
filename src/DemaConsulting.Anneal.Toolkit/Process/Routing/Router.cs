@@ -45,7 +45,7 @@ internal abstract record RouterOutcome
 ///     spending two independent budgets — research iterations and worker reroutes — rather than one shared one.
 /// </summary>
 /// <remarks>
-///     This is the compiled Router <c>docs/architecture/process.md</c> § Composition and § Decisions describe: one
+///     This is the compiled Router <c>.anneal/architecture/process.md</c> § Composition and § Decisions describe: one
 ///     narrow typed question per pass (select a worker, ask for bounded research, or report no route), never a
 ///     universal plan-build-review loop. The two budgets are independent because a research pass (the router
 ///     lacked facts) and a reroute (a worker learned mid-execution that the classification was wrong) are
@@ -179,7 +179,7 @@ internal sealed class Router
     /// <param name="depth">
     ///     How many decompositions already produced this call's own work item: 0 for a top-level call, threaded one
     ///     deeper on every recursive re-route of a decomposed <see cref="Phase" /> rather than remembered as state
-    ///     the router itself tracks — see <c>docs/architecture/toolkit/route.md</c> § Decisions ("The depth cap of
+    ///     the router itself tracks — see <c>.anneal/architecture/toolkit/route.md</c> § Decisions ("The depth cap of
     ///     two is carried the same way the existing budgets already are — as a bound threaded on the call"). At
     ///     <c>2</c>, a Massive classification escalates instead of decomposing further.
     /// </param>
@@ -343,7 +343,7 @@ internal sealed class Router
 
     /// <summary>
     ///     Decomposes a Massive item into phases and re-routes each one through this same method, one depth
-    ///     deeper - see <c>docs/architecture/toolkit/route.md</c> §§ TOOLKIT-26 through TOOLKIT-28.
+    ///     deeper - see <c>.anneal/architecture/toolkit/route.md</c> §§ TOOLKIT-26 through TOOLKIT-28.
     /// </summary>
     /// <remarks>
     ///     Order matters here and follows the contract's own order: the depth cap is checked before anything else
@@ -546,7 +546,7 @@ internal sealed class Router
         List<string> context =
         [
             $"Work item: {ledger.OriginalWorkItem}",
-            $"README Direction facts: {(ledger.Facts.ReadmeDirectionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.ReadmeDirectionFacts))}",
+            $"Vision facts: {(ledger.Facts.VisionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.VisionFacts))}",
             $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             $"Changed-file hints: {(ledger.Facts.ChangedFileHints.Count == 0 ? "none" : string.Join(", ", ledger.Facts.ChangedFileHints))}",
@@ -575,7 +575,7 @@ internal sealed class Router
         List<string> context =
         [
             $"Work item: {ledger.OriginalWorkItem}",
-            $"README Direction facts: {(ledger.Facts.ReadmeDirectionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.ReadmeDirectionFacts))}",
+            $"Vision facts: {(ledger.Facts.VisionFacts.Count == 0 ? "none" : string.Join("; ", ledger.Facts.VisionFacts))}",
             $"MIGRATION.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             ledger.Facts.ChangedFileHints.Count == 0

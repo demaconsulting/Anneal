@@ -19,7 +19,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Tools;
 public class RepositoryToolsTests
 {
     [Theory]
-    [InlineData("docs/architecture/toolkit.md")]
+    [InlineData(".anneal/architecture/toolkit.md")]
     [InlineData("./docs/toolkit.md")]
     [InlineData("docs/sub/../toolkit.md")]
     [InlineData(".")]

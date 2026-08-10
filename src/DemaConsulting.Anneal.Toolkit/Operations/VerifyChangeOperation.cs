@@ -11,7 +11,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     architecture tree accuracy — without authoring anything.
 /// </summary>
 /// <remarks>
-///     <c>docs/architecture/toolkit/verify-change.md</c> is the contract this implements. It gives
+///     <c>.anneal/architecture/toolkit/verify-change.md</c> is the contract this implements. It gives
 ///     <c>scope-check.agent.md</c>'s standalone review job a compiled equivalent, composed from the same
 ///     primitives <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" />
 ///     already use for their own verification half — <see cref="DiffCheck" />, <see cref="DeterministicCheck" />,

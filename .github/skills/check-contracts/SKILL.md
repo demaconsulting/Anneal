@@ -8,7 +8,7 @@ description: Run and interpret the system contract check. Use when implementing 
 
 # Check Contracts
 
-`dotnet anneal check-contracts` verifies that every contract clause in `docs/architecture/` names a
+`dotnet anneal check-contracts` verifies that every contract clause in `.anneal/architecture/` names a
 real boundary test that exists and passed. It is the **only** mechanically enforced relationship in
 this process; everything else is judgement. Treat its output as authoritative and do not re-verify
 by hand what it proved.

@@ -203,7 +203,7 @@ public class DecompositionContractTests
                 MassiveSelectWorkerJson(),
                 DecomposedJson(
                     ["do a clean part", "update the direction notes"],
-                    ["src/a.cs", "README.md"],
+                    ["src/a.cs", ".anneal/governance/vision.md"],
                     ["Code", "Documentation"]));
 
             var operation = new RouteOperation(root, endpointFor: _ => endpoint);
@@ -220,7 +220,7 @@ public class DecompositionContractTests
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitEscalated, exitCode),
                 () => Assert.Contains("route: escalated", written, StringComparison.Ordinal),
-                () => Assert.Contains("README.md", written, StringComparison.Ordinal),
+                () => Assert.Contains(".anneal/governance/vision.md", written, StringComparison.Ordinal),
                 () => Assert.Contains("update the direction notes", written, StringComparison.Ordinal));
         }
         finally

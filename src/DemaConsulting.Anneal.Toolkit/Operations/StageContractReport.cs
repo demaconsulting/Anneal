@@ -24,7 +24,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// </param>
 /// <param name="Summary">What was changed, in the author's own words. Never null; empty when nothing was changed.</param>
 /// <param name="OutOfScopeFile">
-///     The first actually-changed file found outside <c>docs/architecture/</c>, forcing escalation because this
+///     The first actually-changed file found outside <c>.anneal/architecture/</c>, forcing escalation because this
 ///     action's whole job is to touch the architecture tree and nothing else. Null unless that check is what
 ///     forced this run's escalation.
 /// </param>

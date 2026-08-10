@@ -74,10 +74,10 @@ public class VerifyChangeOperationTests
 
             var patch =
                 """
-                diff --git a/docs/architecture/toolkit.md b/docs/architecture/toolkit.md
+                diff --git a/.anneal/architecture/toolkit.md b/.anneal/architecture/toolkit.md
                 index 1111111..2222222 100644
-                --- a/docs/architecture/toolkit.md
-                +++ b/docs/architecture/toolkit.md
+                --- a/.anneal/architecture/toolkit.md
+                +++ b/.anneal/architecture/toolkit.md
                 @@ -1 +1 @@
                 -old
                 +new
@@ -116,10 +116,10 @@ public class VerifyChangeOperationTests
 
             var patch =
                 """
-                diff --git a/docs/architecture/process.md b/docs/architecture/process.md
+                diff --git a/.anneal/architecture/process.md b/.anneal/architecture/process.md
                 index 1111111..2222222 100644
-                --- a/docs/architecture/process.md
-                +++ b/docs/architecture/process.md
+                --- a/.anneal/architecture/process.md
+                +++ b/.anneal/architecture/process.md
                 @@ -1 +1 @@
                 -old
                 +new

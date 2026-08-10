@@ -61,7 +61,7 @@ public sealed class RouteOperation : IOperation
           the affected contract document(s) first, then implements code and tests against the clauses that just
           changed, verified against both a deterministic build/test check and a strict contract check.
         - "structural-change": a change that moves a system boundary itself - splitting, merging, or creating a
-          system, or otherwise reshaping docs/architecture/ beyond one system's own contract. It plans before
+          system, or otherwise reshaping .anneal/architecture/ beyond one system's own contract. It plans before
           authoring, and its documentation budget is wider than contract-change's.
 
         Naming no route is a correct answer, not a failure, when the work item names a Migration proposal this

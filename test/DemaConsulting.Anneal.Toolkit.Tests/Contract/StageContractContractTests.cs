@@ -9,7 +9,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 /// <summary>
 ///     Boundary tests for TOOLKIT-32, TOOLKIT-33, and TOOLKIT-34: how <c>stage-contract</c> runs a work item
 ///     directly against <c>DocumentAuthor</c> with no routing oracle and no <c>Developer</c>/<c>Verifier</c>
-///     pass, and mechanically enforces that the actual changes stay under <c>docs/architecture/</c> and that
+///     pass, and mechanically enforces that the actual changes stay under <c>.anneal/architecture/</c> and that
 ///     the staged clause is well-formed.
 /// </summary>
 /// <remarks>
@@ -55,7 +55,7 @@ public class StageContractContractTests
 
             var endpoint = new QueuedEndpoint(
                 "I staged the clause.",
-                CompletedJson(["docs/architecture/example.md"], "staged EXAMPLE-01 as a planned obligation"));
+                CompletedJson([".anneal/architecture/example.md"], "staged EXAMPLE-01 as a planned obligation"));
 
             var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
 
@@ -71,7 +71,7 @@ public class StageContractContractTests
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("stage-contract: completed", written, StringComparison.Ordinal),
-                () => Assert.Contains("docs/architecture/example.md", written, StringComparison.Ordinal),
+                () => Assert.Contains(".anneal/architecture/example.md", written, StringComparison.Ordinal),
                 () => Assert.Equal(2, endpoint.Calls));
         }
 
@@ -97,7 +97,7 @@ public class StageContractContractTests
     /// <summary>
     ///     TOOLKIT-33 — after <c>DocumentAuthor</c>'s run, <c>stage-contract</c> checks the actual files it
     ///     reports having changed and forces escalation, naming the offending file, when any of them falls
-    ///     outside <c>docs/architecture/</c> — the mirror image of <c>ProtectedPathTripwire</c>'s rule for
+    ///     outside <c>.anneal/architecture/</c> — the mirror image of <c>ProtectedPathTripwire</c>'s rule for
     ///     Maintenance, since this action's whole job is to touch the architecture tree and nothing else.
     ///     Verified by <c>StageContractEscalatesWhenActualChangesReachOutsideTheArchitectureTree</c>.
     /// </summary>
@@ -106,11 +106,11 @@ public class StageContractContractTests
     {
         using var repository = new TemporaryRepository();
 
-        // DocumentAuthor reports a file outside docs/architecture/ - a stop condition regardless of what it
+        // DocumentAuthor reports a file outside .anneal/architecture/ - a stop condition regardless of what it
         // claims to have accomplished.
         var endpoint = new QueuedEndpoint(
             "I made a code change too.",
-            CompletedJson(["docs/architecture/example.md", "src/Something.cs"], "touched code as well"));
+            CompletedJson([".anneal/architecture/example.md", "src/Something.cs"], "touched code as well"));
 
         var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
 
@@ -127,7 +127,7 @@ public class StageContractContractTests
             () => Assert.Equal(AnnealTool.ExitEscalated, exitCode),
             () => Assert.Contains("stage-contract: escalated", written, StringComparison.Ordinal),
             () => Assert.Contains("src/Something.cs", written, StringComparison.Ordinal),
-            () => Assert.Contains("falls outside docs/architecture/", written, StringComparison.Ordinal));
+            () => Assert.Contains("falls outside .anneal/architecture/", written, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public class StageContractContractTests
 
         var endpoint = new QueuedEndpoint(
             "I staged the clause.",
-            CompletedJson(["docs/architecture/example.md"], "staged EXAMPLE-01 as a planned obligation"));
+            CompletedJson([".anneal/architecture/example.md"], "staged EXAMPLE-01 as a planned obligation"));
 
         var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
 

@@ -112,7 +112,7 @@ internal sealed class Developer
     ///     <see cref="OperationOutcome.Escalated" /> with the decoded result when a repair needed a protected
     ///     path or an explicit admission; <see cref="OperationOutcome.Succeeded" /> with the decoded result when
     ///     the change was completed or the pass named a better owner — both are this primitive successfully
-    ///     answering its own question, per <c>docs/architecture/toolkit.md</c> § Decisions;
+    ///     answering its own question, per <c>.anneal/architecture/toolkit.md</c> § Decisions;
     ///     <see cref="OperationOutcome.Failed" /> with no finding when the build-repair budget was spent with the
     ///     check still failing, when the check itself faulted, or when no model could be reached;
     ///     <see cref="OperationOutcome.Refused" /> is reserved for the rarer case where this pass cannot proceed

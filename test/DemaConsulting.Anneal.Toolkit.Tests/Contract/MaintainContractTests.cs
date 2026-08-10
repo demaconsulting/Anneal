@@ -145,12 +145,12 @@ public class MaintainContractTests
         var root = CreateTemporaryDirectory();
         try
         {
-            // The worker reports it changed BACKLOG.md - a protected path per change-classification.md's
-            // "Maintenance may never edit ... BACKLOG.md" rule - and the declared bound explicitly names it too,
+            // The worker reports it changed .anneal/work/backlog.md - a protected path per change-classification.md's
+            // "Maintenance may never edit ... .anneal/work/backlog.md" rule - and the declared bound explicitly names it too,
             // so the containment check (TOOLKIT-30) alone would clear this run; only the tripwire must fire.
             var endpoint = new QueuedEndpoint(
                 "I made the change.",
-                CompletedJson(["src/a.cs", "BACKLOG.md"], "tidied and updated the backlog"));
+                CompletedJson(["src/a.cs", ".anneal/work/backlog.md"], "tidied and updated the backlog"));
 
             var operation = new MaintainOperation(
                 root,
@@ -159,7 +159,7 @@ public class MaintainContractTests
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
-                ["maintain", "tidy the interior helper", "src/a.cs", "BACKLOG.md"],
+                ["maintain", "tidy the interior helper", "src/a.cs", ".anneal/work/backlog.md"],
                 output,
                 [operation],
                 root,
@@ -169,7 +169,7 @@ public class MaintainContractTests
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitEscalated, exitCode),
                 () => Assert.Contains("maintain: escalated", written, StringComparison.Ordinal),
-                () => Assert.Contains("BACKLOG.md", written, StringComparison.Ordinal),
+                () => Assert.Contains(".anneal/work/backlog.md", written, StringComparison.Ordinal),
                 () => Assert.Contains("protected path", written, StringComparison.Ordinal));
         }
         finally

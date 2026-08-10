@@ -1,7 +1,7 @@
 ---
 name: System Contracts
 description: Follow these standards when defining or changing what a system promises to its consumers.
-globs: ["docs/architecture/**/*.md"]
+globs: [".anneal/architecture/**/*.md"]
 ---
 
 # Principle

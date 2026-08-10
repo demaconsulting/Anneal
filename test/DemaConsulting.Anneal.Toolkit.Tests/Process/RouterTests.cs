@@ -479,7 +479,7 @@ public class RouterTests
                 contractChangeCalls++;
                 return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary(["docs/architecture/toolkit.md"], "updated the contract")),
+                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/toolkit.md"], "updated the contract")),
                     null,
                     []));
             };
@@ -850,7 +850,7 @@ public class RouterTests
                 SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
                 DecomposedJson(
                     ["do part A", "update the constraints", "do part C"],
-                    ["a.cs", "CONSTRAINTS.md", "c.cs"],
+                    ["a.cs", ".anneal/work/constraints.md", "c.cs"],
                     ["Code", "Documentation", "Code"]));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
@@ -867,7 +867,7 @@ public class RouterTests
             var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
-                () => Assert.Contains("CONSTRAINTS.md", report.RecommendedNextStep),
+                () => Assert.Contains(".anneal/work/constraints.md", report.RecommendedNextStep),
                 () => Assert.Contains("update the constraints", report.RecommendedNextStep));
         }
         finally

@@ -1,0 +1,5 @@
+# Toolkit evidence: invocation records and model transcripts. Both quote repository source - a
+# transcript carries the files a model was shown, a record carries the arguments it was given -
+# so the whole folder is ignored rather than picked apart file by file. Everything else under
+# .anneal/ (governance/, profile/, work/, architecture/, skills/, config.json) is committed.
+logs/

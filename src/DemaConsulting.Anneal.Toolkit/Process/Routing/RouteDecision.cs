@@ -22,7 +22,7 @@ internal enum RouteResearchScope
 /// </summary>
 /// <remarks>
 ///     A closed union of three cases, all reached by the route oracle successfully answering its own question —
-///     see <see cref="Router" /> for how each case is composed, and <c>docs/architecture/process.md</c> § Decisions
+///     see <see cref="Router" /> for how each case is composed, and <c>.anneal/architecture/process.md</c> § Decisions
 ///     ("the router asks one narrow typed question per pass … against two independent counters").
 /// </remarks>
 internal abstract record RouteDecision

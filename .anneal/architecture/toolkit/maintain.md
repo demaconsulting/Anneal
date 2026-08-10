@@ -27,7 +27,7 @@ for Effort. No worker type is new; `maintain` composes machinery that already ex
 
 What `maintain` *does* add, because nothing else in the Toolkit already enforces it: `change-
 classification.md` requires Maintenance to be "bounded before it starts" — a declared file set, before
-any file is touched — and to "never edit the architecture tree, `CONSTRAINTS.md`, or `BACKLOG.md`",
+any file is touched — and to "never edit the architecture tree, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`",
 naming an architectural finding a *report*, never a license to act on it. Today both of those rules
 are prose a model is trusted to follow. `maintain` makes each one a mechanical, post-run check against
 what the worker actually changed, so neither rule depends on a model's good behavior to hold.
@@ -61,7 +61,7 @@ what the worker actually changed, so neither rule depends on a model's good beha
   changed-file list rather than only the declared bound, and forces the same escalation outcome
   whenever it trips, naming the tripped path, regardless of what the containment check (`TOOLKIT-30`)
   concludes for the same run. This is the mechanical enforcement of `change-classification.md`'s
-  "Maintenance may never edit the architecture tree, `CONSTRAINTS.md`, or `BACKLOG.md`" rule: a finding
+  "Maintenance may never edit the architecture tree, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`" rule: a finding
   the tripwire reports is escalated to a person, never silently discarded and never silently allowed to
   stand as a completed Maintenance run.
   *Verified by:* `MaintainEscalatesWhenActualChangesTripTheProtectedPathCheck`
@@ -116,7 +116,7 @@ skipped because an earlier one happened to pass.
 **No separate permitted-edit-category argument** — `change-classification.md` bounds Maintenance by
 file set and by the "interior code and interior tests only" restriction the mode definition already
 carries, and `TOOLKIT-31`'s tripwire is exactly the mechanical form of the one edit category Maintenance
-can never touch (the architecture tree, `CONSTRAINTS.md`, `BACKLOG.md`). A second, separate
+can never touch (the architecture tree, `.anneal/work/constraints.md`, `.anneal/work/backlog.md`). A second, separate
 edit-category argument alongside the file-scope bound would let a caller declare a category
 `SmallFixWorker` already has no way to violate differently than the file-scope bound already
 constrains, duplicating a constraint the file-scope argument and the tripwire together already cover

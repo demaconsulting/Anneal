@@ -11,7 +11,7 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     never loops, never re-asks on a <see cref="PlanningDecision.Reroute" /> or
 ///     <see cref="PlanningDecision.DirectExecutionIsBetter" /> answer, and holds no state between calls. That is
 ///     deliberate and is the whole of what a planner is allowed to cost — see
-///     <c>docs/architecture/process.md</c> § Decisions, "Bounded repairs, no planning phase" and "The compiled
+///     <c>.anneal/architecture/process.md</c> § Decisions, "Bounded repairs, no planning phase" and "The compiled
 ///     catalog is a Router choosing a bounded worker": a universal plan-build-review loop was rejected once
 ///     already, and a planner that re-plans on its own answer reintroduces exactly that multiplier under a
 ///     different name.

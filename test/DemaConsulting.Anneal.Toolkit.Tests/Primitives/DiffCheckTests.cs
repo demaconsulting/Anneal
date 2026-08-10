@@ -76,10 +76,10 @@ public class DiffCheckTests
                 @@ -1 +1 @@
                 -old
                 +new
-                diff --git a/docs/architecture/toolkit.md b/docs/architecture/toolkit.md
+                diff --git a/.anneal/architecture/toolkit.md b/.anneal/architecture/toolkit.md
                 index 3333333..4444444 100644
-                --- a/docs/architecture/toolkit.md
-                +++ b/docs/architecture/toolkit.md
+                --- a/.anneal/architecture/toolkit.md
+                +++ b/.anneal/architecture/toolkit.md
                 @@ -1 +1 @@
                 -old doc
                 +new doc
@@ -93,7 +93,7 @@ public class DiffCheckTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.True(result.Finding?.Available),
                 () => Assert.Equal(
-                    ["src/Foo.cs", "docs/architecture/toolkit.md"], result.Finding?.ChangedFiles),
+                    ["src/Foo.cs", ".anneal/architecture/toolkit.md"], result.Finding?.ChangedFiles),
                 () => Assert.Contains("new doc", result.Finding?.Patch));
         }
         finally

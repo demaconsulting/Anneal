@@ -52,7 +52,7 @@ the report separately from the completion fields.
   `DecompositionContractTests.GeneratedPhaseScopeIsStrictSubsetOfClearedScope`
 
 - **TOOLKIT-27** — Any phase whose declared file scope touches `README.md`, anything under
-  `docs/architecture/`, `CONSTRAINTS.md`, or `BACKLOG.md` forces the same escalation outcome `TOOLKIT-23`
+  `.anneal/architecture/`, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md` forces the same escalation outcome `TOOLKIT-23`
   already defines, with a recommended next step naming the file, regardless of what the cumulative check
   `TOOLKIT-26` runs concludes for the phase set as a whole.
   *Verified by:* `DecompositionContractTests.PhaseTouchingProtectedFileForcesEscalation`

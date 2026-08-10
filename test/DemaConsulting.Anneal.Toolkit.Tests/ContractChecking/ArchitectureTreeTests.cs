@@ -32,7 +32,7 @@ public class ArchitectureTreeTests
         using var repository = new TemporaryRepository();
         repository.WriteDocument("ingest.md", Contract);
         repository.Write(
-            "docs/architecture/ingest/queueing.md",
+            ".anneal/architecture/ingest/queueing.md",
             """
             ## Contract
 
@@ -43,7 +43,7 @@ public class ArchitectureTreeTests
             """);
 
         // Act
-        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, "docs", "architecture"));
+        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, ".anneal", "architecture"));
 
         // Assert
         Assert.Equal(
@@ -61,10 +61,10 @@ public class ArchitectureTreeTests
         // Arrange
         using var repository = new TemporaryRepository();
         repository.WriteDocument("ingest.md", Contract);
-        repository.Write("docs/architecture/ingest/notes.md", "# Notes\n\n- **Queue depth** - bounded.\n");
+        repository.Write(".anneal/architecture/ingest/notes.md", "# Notes\n\n- **Queue depth** - bounded.\n");
 
         // Act
-        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, "docs", "architecture"));
+        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, ".anneal", "architecture"));
 
         // Assert
         var section = Assert.Single(tree.Documents, document => document.Name == "notes.md");
@@ -86,7 +86,7 @@ public class ArchitectureTreeTests
         repository.WriteDocument("overview.md", "# Overview\n\nThe systems.\n");
 
         // Act
-        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, "docs", "architecture"));
+        var tree = ArchitectureTree.Read(Path.Combine(repository.Root, ".anneal", "architecture"));
 
         // Assert
         Assert.Equal(["ingest.md"], tree.Documents.Select(document => document.Name));

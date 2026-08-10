@@ -12,10 +12,10 @@ covers:
 
 A skill is a curated, atomic lesson that never rises to a contract promise — a pattern that works, a
 check that's easy to misread, a gotcha worth remembering — filed deliberately by an agent that decides
-it is worth keeping. Neither existing memory shape holds this today: `docs/architecture/`'s Decisions
-sections carry the reasoning behind a promise, which a lesson is not, and `.anneal/records`/
+it is worth keeping. Neither existing memory shape holds this today: `.anneal/architecture/`'s Decisions
+sections carry the reasoning behind a promise, which a lesson is not, and `.anneal/logs/records`/
 `transcripts` (`TOOLKIT-08`, `TOOLKIT-11`) carry raw telemetry nobody curated. This system is that third
-shape, filed as `BACKLOG.md` unscheduled future work and built once a genuine boundary — not an
+shape, filed as `.anneal/work/backlog.md` unscheduled future work and built once a genuine boundary — not an
 extension of an existing one — was confirmed through an `architecture-design` interview rather than
 guessed at by a compiled routing oracle, which is exactly what happened: `dispatch`'s own `route`
 escalated a first attempt to build this mechanically, reasoning correctly that it "reshapes the Toolkit
@@ -27,7 +27,7 @@ one need know about the other:
 - **Repository-local skills** are files an agent writes at runtime, under `.anneal/skills/` in the
   repository it is working in, capturing something true about *that* repository. They are never
   scraped from `.agent-logs/` or telemetry — the same mistake `agent-metrics.ps1`'s pending retirement
-  in `BACKLOG.md` already names — only filed by deliberate choice.
+  in `.anneal/work/backlog.md` already names — only filed by deliberate choice.
 - **Toolkit-wide skills** are markdown files with the same front matter, embedded as data in the
   Toolkit assembly at build time — the same mechanism a sibling internal project
   (`DemaConsulting.Jeeves`) already uses for its own knowledge-card catalog — and hand-authored in
@@ -79,8 +79,8 @@ are queried through one search surface, so a caller never needs to know which ti
 **Lexical search first, vector search deferred, not assumed** — `search-skills` matches on tags,
 summary, and id text, not embeddings. A vector index is real added machinery (an embedding model,
 a stored index kept in sync as skills are added) that only earns its cost once lexical search is
-observed missing relevant entries in practice — matching the standing decision already in `BACKLOG.md`
-before this system existed, and not reopened by this document.
+observed missing relevant entries in practice — matching the standing decision already in
+`.anneal/work/backlog.md` before this system existed, and not reopened by this document.
 
 **Two tiers, one file shape, one search surface** — a repository-local skill and a toolkit-wide skill
 answer the same question ("what have we learned that isn't a promise") and are indistinguishable to a

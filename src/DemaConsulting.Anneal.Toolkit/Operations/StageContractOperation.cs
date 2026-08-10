@@ -7,11 +7,11 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
 ///     Runs a work item directly against <see cref="DocumentAuthor" /> alone, to write or update a contract
-///     clause in <c>docs/architecture/</c> using <c>system-contracts.md</c>'s <c>TODO.</c> planned-obligation
+///     clause in <c>.anneal/architecture/</c> using <c>system-contracts.md</c>'s <c>TODO.</c> planned-obligation
 ///     form, ahead of any implementation.
 /// </summary>
 /// <remarks>
-///     <c>docs/architecture/toolkit/stage-contract.md</c> is the contract this implements. It gave
+///     <c>.anneal/architecture/toolkit/stage-contract.md</c> is the contract this implements. It gave
 ///     <c>architecture-update.agent.md</c>'s one remaining job — staging a contract clause ahead of
 ///     implementation, as a deliberate planned obligation, per <c>MIGRATION.md</c>'s S16 entry — a compiled
 ///     equivalent, mirroring how <see cref="MaintainOperation" /> gave <c>apply.agent.md</c>'s old Maintenance
@@ -29,7 +29,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// <para>
 ///         <b>What this operation adds beyond composing an existing primitive.</b> Two mechanical, post-run
 ///         checks against what <see cref="DocumentAuthor" /> reports having changed: every changed file must
-///         fall under <c>docs/architecture/</c> — the mirror image of <see cref="ProtectedPathTripwire" />'s
+///         fall under <c>.anneal/architecture/</c> — the mirror image of <see cref="ProtectedPathTripwire" />'s
 ///         rule for Maintenance, since this action's whole job is to touch the architecture tree and nothing
 ///         else — and a non-strict, repository-wide <c>check-contracts</c> run must exit clean afterward.
 ///         Non-strict, not <see cref="ContractCheckRunner" />'s default, because a staged clause's unfulfilled
@@ -57,9 +57,9 @@ public sealed class StageContractOperation : IOperation
         named path does not exist, read it directly with your read-file tool or list its containing directory
         - never conclude a file is missing from a text search alone.
 
-        Update only the affected system contract document(s) under docs/architecture/ for this change, and
+        Update only the affected system contract document(s) under .anneal/architecture/ for this change, and
         prune any section document whose content no longer earns its place. Never touch code, tests, or any
-        file outside docs/architecture/ - that is a different pass's job, run later.
+        file outside .anneal/architecture/ - that is a different pass's job, run later.
 
         Every clause you add or change must name its verifier in the placeholder form system-contracts.md
         defines: an uppercase 'TODO.' or 'TODO_' opening the verifier string, followed by the name the test
@@ -127,10 +127,10 @@ public sealed class StageContractOperation : IOperation
     public string Usage =>
         "usage: dotnet anneal stage-contract <work item> - runs <work item> directly against DocumentAuthor, " +
         "asking no routing oracle and running no Developer or Verifier pass, to write or update a contract " +
-        "clause in docs/architecture/ using system-contracts.md's TODO. planned-obligation form, ahead of any " +
+        "clause in .anneal/architecture/ using system-contracts.md's TODO. planned-obligation form, ahead of any " +
         "implementation. Succeeds when a clause was authored and a non-strict, repository-wide check-contracts " +
         "run exits clean; escalates when DocumentAuthor names a reroute, a protected-path write is refused, or " +
-        "the reported changes reach outside docs/architecture/; fails when the repository's contract check " +
+        "the reported changes reach outside .anneal/architecture/; fails when the repository's contract check " +
         "does not pass after staging, DocumentAuthor's file-count budget is exceeded, or no model could be " +
         "reached.";
 
@@ -198,7 +198,7 @@ public sealed class StageContractOperation : IOperation
         if (outOfScopeFile is not null)
         {
             output.WriteLine(
-                $"stage-contract: escalated - '{outOfScopeFile}' falls outside docs/architecture/; a person " +
+                $"stage-contract: escalated - '{outOfScopeFile}' falls outside .anneal/architecture/; a person " +
                 "must review this run.");
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -231,7 +231,7 @@ public sealed class StageContractOperation : IOperation
     }
 
     /// <summary>
-    ///     Whether <paramref name="file" /> falls under <c>docs/architecture/</c> in this run's repository,
+    ///     Whether <paramref name="file" /> falls under <c>.anneal/architecture/</c> in this run's repository,
     ///     resolved the same way <see cref="ProtectedPathTripwire" /> resolves a declared file scope: normalized
     ///     against the repository root rather than matched as a raw string, so a relative path with <c>./</c> or
     ///     <c>../</c> segments, or an absolute path DocumentAuthor happened to report, cannot slip past a
@@ -244,6 +244,6 @@ public sealed class StageContractOperation : IOperation
         var relative = Path.GetRelativePath(_repositoryRoot, fullPath).Replace('\\', '/');
 
         return !relative.StartsWith("..", StringComparison.Ordinal) &&
-               relative.StartsWith("docs/architecture/", StringComparison.OrdinalIgnoreCase);
+               relative.StartsWith(".anneal/architecture/", StringComparison.OrdinalIgnoreCase);
     }
 }

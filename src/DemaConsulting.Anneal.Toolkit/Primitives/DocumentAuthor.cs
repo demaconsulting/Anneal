@@ -87,7 +87,7 @@ internal sealed class DocumentAuthor
     ///     <see cref="OperationOutcome.Escalated" /> with the decoded result when a repair needed a protected
     ///     path; <see cref="OperationOutcome.Succeeded" /> with the decoded result when a change was authored or
     ///     the pass named a better owner — both are this primitive successfully answering its own question, per
-    ///     <c>docs/architecture/toolkit.md</c> § Decisions; <see cref="OperationOutcome.Failed" /> with no finding
+    ///     <c>.anneal/architecture/toolkit.md</c> § Decisions; <see cref="OperationOutcome.Failed" /> with no finding
     ///     when the authored change exceeded the file-count budget or no model could be reached;
     ///     <see cref="OperationOutcome.Refused" /> is reserved for the rarer case where ownership cannot be
     ///     determined honestly enough to answer at all — see the remarks on <see cref="DocumentAuthoringResult" />

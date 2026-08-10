@@ -37,7 +37,7 @@ public sealed class LiveTrialStageContractTests
         // a clause for a capability its own prose already describes - an obvious in-bound "stage a clause"
         // work item.
         fixture.WriteFile(
-            "docs/architecture/overview.md",
+            ".anneal/architecture/overview.md",
             """
             # Overview
 
@@ -46,7 +46,7 @@ public sealed class LiveTrialStageContractTests
             - **Widget** - reads a configuration file and reports whether it is valid.
             """);
         fixture.WriteFile(
-            "docs/architecture/widget.md",
+            ".anneal/architecture/widget.md",
             """
             # Widget
 
@@ -68,8 +68,8 @@ public sealed class LiveTrialStageContractTests
         var (exitCode, output) = await fixture.RunStageContractAsync(
             "Widget also reports a configuration file invalid, naming the first reason, when it fails to parse " +
             "or is missing a required field - but this is not yet implemented. Stage a new contract clause for " +
-            "this in docs/architecture/widget.md, using system-contracts.md's TODO. planned-obligation form for " +
-            "its verifier, since no test exists yet. Do not touch any file outside docs/architecture/.",
+            "this in .anneal/architecture/widget.md, using system-contracts.md's TODO. planned-obligation form for " +
+            "its verifier, since no test exists yet. Do not touch any file outside .anneal/architecture/.",
             cancellationToken);
 
         var status = await fixture.GitStatusAsync(cancellationToken);
@@ -79,7 +79,7 @@ public sealed class LiveTrialStageContractTests
         // '.anneal/' directory is the Toolkit's own transcript bookkeeping, an expected side effect of any real
         // invocation, and is called out explicitly so the oracle does not read it as an unrelated change.
         var verdict = await fixture.GradeAsync(
-            "stage-contract reported completing (not escalating or failing); docs/architecture/widget.md gained " +
+            "stage-contract reported completing (not escalating or failing); .anneal/architecture/widget.md gained " +
             "a new contract clause for reporting an invalid configuration and naming the first reason; that " +
             "clause's *Verified by:* line names a verifier whose text begins with the literal characters " +
             "'TODO.' or 'TODO_' (case-sensitive) - the specific word or words following that prefix do not " +

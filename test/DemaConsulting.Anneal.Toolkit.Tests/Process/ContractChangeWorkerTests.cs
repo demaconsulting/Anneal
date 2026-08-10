@@ -25,7 +25,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -57,7 +57,7 @@ public class ContractChangeWorkerTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
                 () => Assert.Equal(
-                    ["docs/architecture/toolkit.md", "src/Foo.cs"],
+                    [".anneal/architecture/toolkit.md", "src/Foo.cs"],
                     ((WorkerRunResult.Completed)result.Finding!).Summary.FilesChanged),
                 () => Assert.Equal(1, buildCalls),
                 () => Assert.Equal(1, contractCalls));
@@ -85,7 +85,7 @@ public class ContractChangeWorkerTests
 
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -130,7 +130,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -205,7 +205,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "This belongs elsewhere.",
                 """{"kind":"Reroute","why":"needs a structural change","suggestedWorker":"structural-change","filesChanged":[],"summary":""}""");
 
@@ -249,7 +249,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 "I repaired the code.",
@@ -296,12 +296,12 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -346,7 +346,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -388,12 +388,12 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"},{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -435,12 +435,12 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix the wording.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"tried again"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"tried again"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"still ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -478,7 +478,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -519,10 +519,10 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"src/Foo.cs reaches across a system boundary CONSTRAINTS.md forbids"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"src/Foo.cs reaches across a system boundary .anneal/work/constraints.md forbids"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I removed the boundary crossing.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -561,7 +561,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -606,7 +606,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"},{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -650,7 +650,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this actually moves a system boundary; it needed Structural Change"],"evidenceSufficient":true}""");
@@ -691,7 +691,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this contradicts the README Assumption about build-time network access; the repository needs a re-cut"],"evidenceSufficient":true}""");
@@ -730,7 +730,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":false}""");
@@ -796,7 +796,7 @@ public class ContractChangeWorkerTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -812,7 +812,7 @@ public class ContractChangeWorkerTests
             // Act
             var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
 
-            // Assert: the temporary repository has no docs/architecture tree, so the in-process check reports
+            // Assert: the temporary repository has no .anneal/architecture tree, so the in-process check reports
             // "nothing to check" and passes - a real verdict, not a pwsh usage banner or a missing-file failure
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),

@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Architecture Design Agent
 
-Interview the user, then write the initial `docs/architecture/` tree and system contracts.
+Interview the user, then write the initial `.anneal/architecture/` tree and system contracts.
 
 This agent and `helper` are the only two a user invokes directly, and it is deliberately not
 model-invocable. Its whole method is a live interview, so called headless it would have nobody to ask
@@ -21,19 +21,20 @@ tree this agent proposes, plus the stages it would land in, is what the user app
 Migration commit. For ordinary change, use `dispatch` instead — this agent is for establishing
 structure, not evolving it.
 
-When re-cutting, read `CONSTRAINTS.md` first. **Satisfied** entries are conditions the new tree must
+When re-cutting, read `.anneal/work/constraints.md` first. **Satisfied** entries are conditions the new tree must
 still meet — the current shape upholds them, and a re-cut is the easiest way to lose one by accident.
 **Not Yet Satisfied** entries are what the current decomposition gets in the way of, and are usually
 the reason a re-cut is being considered. Move any the new tree meets into **Satisfied**.
 
-Read the **Assumptions** section of `README.md` alongside it. Those are the beliefs the current shape
+Read `.anneal/governance/assumptions.md` alongside it. Those are the beliefs the current shape
 was chosen under, and a re-cut is the moment to ask whether each still holds. An assumption that has
 been disproved is a first-class reason to re-cut; one that still holds constrains the new tree the
-same way a Satisfied constraint does. Update the section to match what you and the user conclude.
+same way a Satisfied constraint does. Update the file to match what you and the user conclude.
+Read `.anneal/governance/tenets.md` too — a re-cut must not silently drop a tenet.
 
 # Re-Cutting an Existing Repository
 
-When `docs/architecture/` already exists, read it before asking the first question. The current tree
+When `.anneal/architecture/` already exists, read it before asking the first question. The current tree
 is the starting proposal, not a blank sheet: interview to find what is wrong with it, and do not
 re-ask what the existing documents already answer.
 
@@ -136,16 +137,17 @@ Continue as long as the user wants. Only write the deliverable once they confirm
 
 Write the tree directly into the repository:
 
-- `docs/architecture/overview.md` — system inventory, interactions, repository-wide decisions
-- `docs/architecture/{system}.md` — one per system, each with a `## Contract`
-- `docs/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
+- `.anneal/architecture/overview.md` — system inventory, interactions, repository-wide decisions
+- `.anneal/architecture/{system}.md` — one per system, each with a `## Contract`
+- `.anneal/architecture/{system}/{section}.md` — **only** where the volatility discussion surfaced a
   genuine non-obvious specific that earns its place under the benefit test
 
 Also update `README.md` to the shape the template gives it — product, features, requirements, how it
-works, assumptions, installation, usage, and a link to the overview. Do not reduce it to a pointer:
-level 0 is the product contract, and it is the only place "what the user gets" can live, because
-system contracts describe what systems promise *each other*. Carry any load-bearing assumption from
-the interview into its section, and omit the section entirely rather than inventing entries for it.
+works, installation, usage, and a link to the overview. Do not reduce it to a pointer: level 0 is the
+product contract, and it is the only place "what the user gets" can live, because system contracts
+describe what systems promise *each other*. Write any load-bearing assumption from the interview into
+`.anneal/governance/assumptions.md`, and any settled identity into `.anneal/governance/tenets.md`;
+omit an entry entirely rather than inventing one for it.
 
 **When re-cutting a repository that already has code**, the tree you write is the *target*, not the
 current state, and moving code to match it will span commits. Also write **`MIGRATION.md`** at the

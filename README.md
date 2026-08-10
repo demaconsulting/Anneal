@@ -35,8 +35,9 @@ annealing relieves the stress that repeated working builds up in metal, so it ca
 - **Agents stop instead of improvising.** An agent declares what it will touch before it touches it.
   Reaching that boundary is a stop and a report back to you, never a decision to widen it.
 - **Filing a need costs one line.** A standing property the product must always satisfy goes into
-  `CONSTRAINTS.md`, where the next design review reads it; work that finishes goes into `BACKLOG.md`;
-  a belief the design rests on goes into this file's Assumptions. No code, no tests, no contract.
+  `.anneal/work/constraints.md`, where the next design review reads it; work that finishes goes into
+  `.anneal/work/backlog.md`; a belief the design rests on goes into `.anneal/governance/assumptions.md`.
+  No code, no tests, no contract.
 - **Tidying is a first-class activity.** Background quality work has its own mode, with a declared
   scope and a stopping point, so it cannot drift into a redesign.
 - **Restructuring is a defined operation.** Reshaping the architecture proceeds in steps you approve,
@@ -49,7 +50,7 @@ annealing relieves the stress that repeated working builds up in metal, so it ca
 **One of these is enforced by a machine; the rest are instructions.** The clause-to-test link fails
 the build, and a fixture suite holds that check to its own documented behavior. Everything else above
 is a rule agents are told to follow, carried by prompt and review rather than by tooling;
-[`overview.md`](docs/architecture/overview.md) carries the full enforcement account.
+[`overview.md`](.anneal/architecture/overview.md) carries the full enforcement account.
 
 ## How It Works
 
@@ -77,14 +78,17 @@ and the documents describing it in agreement.
 - **A command-line tool** (`dotnet anneal`) — the checks that need real analysis rather than pattern
   matching, packaged so they run identically on a laptop and in CI.
 
-**What steers them** is four documents in your repository, and the agents read and maintain these
+**What steers them** is a set of documents under `.anneal/`, and the agents read and maintain these
 rather than carrying the knowledge in their prompts:
 
 - **`README.md`** — what the product is, who it is for, and what it promises. The entry point.
-- **`CONSTRAINTS.md`** — what the product must respect regardless of what anyone asks for.
-- **`BACKLOG.md`** — work identified but not yet scheduled, so a good idea raised at a bad moment is
-  recorded instead of built.
-- **`docs/architecture/`** — the systems the product is divided into and what each publishes to the
+- **`.anneal/governance/`** — tenets, assumptions, and the long-term vision: what the product must
+  respect, what it takes on faith, and where it is headed.
+- **`.anneal/work/constraints.md`** — standing properties the product must respect regardless of what
+  anyone asks for.
+- **`.anneal/work/backlog.md`** — work identified but not yet scheduled, so a good idea raised at a bad
+  moment is recorded instead of built.
+- **`.anneal/architecture/`** — the systems the product is divided into and what each publishes to the
   others, in progressively finer detail.
 
 **How the parts meet.** A request reaches an agent, which reads only as far down that documentation
@@ -99,66 +103,16 @@ if any promise cannot show one, and fails closed — a clause it cannot understa
 a silent skip. Everything else is carried by prompt and review, deliberately.
 
 Those parts divide into systems, and
-[`docs/architecture/overview.md`](docs/architecture/overview.md) names them, says how they interact,
-and links to what each one promises. It is the next stop for any detail below this altitude.
+[`.anneal/architecture/overview.md`](.anneal/architecture/overview.md) names them, says how they
+interact, and links to what each one promises. It is the next stop for any detail below this
+altitude.
 
 ## Direction
 
-Anneal has a settled destination: it becomes its own agent CLI. Work arrives at any point on the
-complexity spectrum, a router classifies it and selects one of a catalog of processes, and each
-process runs as compiled state-flow logic — models do the work, and oracles, meaning narrow typed
-questions with no side effects, decide its branches. The prose agents under `.github/agents/` are
-the bootstrap harness that made this reachable, not the product; they are dismantled into that
-catalog. `helper` and `architecture-design` are absorbed **last**, because a conversation is the
-hardest control flow to encode — not because they are exempt. Along the way, Anneal takes on the
-capabilities of a separate, earlier autonomous-coding project built under a rigid regulated process
-that could not evolve, and replaces it.
-
-Once absorbed, the catalog is not only reactive. Work does not have to arrive from outside — the
-same catalog that processes a request can originate one, proposing a Maintenance sweep, an
-architectural review, or a documentation pass from its own inspection of the repository, on the same
-terms as anything a person asks for. Origination does not relax the terms; whether a change is safe
-to make depends on whether it can reach `main` only through the ordinary route of branch, review, and
-test, never on whether a person or the catalog itself proposed it — reversibility is the guard, not
-authorship. The one place that guard is insufficient is a change that leaves version control's own
-blast radius: a published release, an install into another repository, or a tool grant with a
-real-world effect outside this repository. Those keep asking for a person, not because judgement
-elsewhere is untrusted, but because nothing short of a person can be rolled back.
-
-Routing is what makes that catalog affordable. A planning-and-review process that runs on every
-change multiplies the cost of every change, which is exactly the mechanism this repository refuses;
-the same process run only on work that earns it is proportionality, not overhead. That is the same
-principle progressive disclosure and scoped effort already apply — read only as deep as the task needs,
-document only as much as the contract moved, run only as heavy a process as the work warrants.
-
-**The dividing line.** The Toolkit may absorb **control flow and context assembly** — sequencing
-steps, gating on their outcomes, and composing what a model is shown. It must never absorb
-**judgement as compiled behavior**. The agent prompt files under `.github/agents/` are bootstrap
-scaffolding and compile away with the rest of the control flow they once encoded by hand; what stays
-data is the *content* a compiled step composes into what a model sees — standards, and a repository's
-own declared contracts — because those are corrected in one edit, where a wrong compiled rule is
-corrected only through build, test, publish and restore. Whether that content stays a plain file or
-becomes a packaged resource is a delivery detail still open (see `MIGRATION.md`); a repository's own
-contracts cannot become one, because they are a fact about that installation, not shared behavior.
-
-The admission test underneath is the one *What must not be reintroduced* in
-[overview.md](docs/architecture/overview.md) turns on: does a mechanism add cost paid on every
-subsequent change? Anneal exists to refuse mechanisms that do. Automation that mechanizes work in
-order to *remove* per-change cost is the point of this direction, not a case against it.
-
-One further item is held at lower confidence than the rest, and named here because it shapes
-thinking below this line without being committed: an on-premises model provider. It would be
-re-decided when a stage that depends on it is approached.
-
-A further item is held at the same low confidence: whether the catalog eventually chooses its own
-forward direction, rather than a person choosing it — not proposing a bounded sweep within a category
-already named above, but selecting which capability to build next. This is not committed here. It is
-conditional on first demonstrating, at the narrower scope above, that self-originated work stays
-reliably positive under long-term unattended maintenance and planning; that scope has to be earned
-and observed before this one is even re-decided, let alone granted.
-
-How the journey is run is not part of this direction and is deliberately not scheduled here.
-[MIGRATION.md](MIGRATION.md) owns it, and plans one stage at a time.
+Anneal's long-term vision, and the load-bearing beliefs it rests on, live in
+[`.anneal/governance/vision.md`](.anneal/governance/vision.md) and
+[`.anneal/governance/assumptions.md`](.anneal/governance/assumptions.md) — read those rather than a
+summary here, so there is exactly one place either can be revised.
 
 ## Installation
 
@@ -180,61 +134,23 @@ the layout, then `@architecture-design` to interview you and generate the archit
 The payload installs eight agents and the standards they load. You invoke two: `@helper` is the front
 door for anything you want done, and `@architecture-design` interviews you when system boundaries
 need establishing or re-cutting. The other six run as sub-agents.
-[Process](docs/architecture/process.md) describes the full composition.
+[Process](.anneal/architecture/process.md) describes the full composition.
 
 ## Assumptions
 
-What this design takes to be true and cannot itself guarantee. If one of these stops holding, the
-architecture resting on it is the wrong shape — so they are stated here rather than left implicit in
-the agent prompts. A disproved assumption is a re-cut trigger, not a bug.
-
-- **A focused agent is a reliable judge.** An agent given the specific facts and a single clear
-  question answers it reliably. Reliability degrades with breadth and vagueness far more than with
-  difficulty. This is why judgement is split into separate single-question invocations instead of
-  being asked as one part of a larger job.
-- **Judging and doing have different incentives.** An agent asked to complete work is under pressure
-  to call the work done. An agent asked only to judge is not. Classification and verification are
-  therefore never performed by the agent that did the work.
-- **Correlated error is the residual risk.** Separate invocations of the same model can share a blind
-  spot; independence of incentive is not independence of judgement. A judging agent is therefore
-  given first-hand facts rather than the working agent's summary of them.
-- **An agent that must justify its answer is more reliable than one that merely states it.**
-  Separating incentives removes the motive to approve but does not oblige a judge to derive its
-  verdict. If reasoning-required agents proved no more accurate than agents asked only for a
-  conclusion, the judging layer would be ceremony.
-- **The prompt files are the reliability mechanism.** Reliability follows from the quality of the
-  facts and the clarity of the question, so a defect in an agent prompt degrades every downstream
-  agent's facts. Prompt changes are the highest-risk changes in this repository.
-- **Products adopting this process are .NET and C#.** The shipped layout defaults to `*.cs` sources,
-  xUnit attributes and TRX results, and the template's scripts assume a solution. The process itself
-  is language-neutral; the repository it hands you is not. Adoption for another ecosystem would mean
-  the template is the wrong shape, not a defect to patch. The
-  [Toolkit](docs/architecture/toolkit.md) hardens this into a dependency: it ships as a .NET tool, so
-  a repository outside that ecosystem can read the process but not run its operations.
-- **Structural properties of a prompt predict how an agent behaves.** Checking references resolve,
-  every result value is handled, and the context budget holds is worth doing because those
-  properties correlate with reliable behavior. If they don't, the mechanical contract is theater, and
-  verification would have to move wholesale to inspection and sandbox runs.
-- **Where a response schema appears in a conversation changes how reliably it is followed** — a
-  schema given after the reasoning is done is followed more closely than one given at the outset.
-  This is the belief the [Toolkit](docs/architecture/toolkit.md) exists to exploit; see there for why.
-- **A described schema is enough without constrained decoding.** The Copilot session API has no
-  response-format facility, so a typed answer rests on a schema described in the prompt and a retry
-  on parse failure. If failures survive the retry budget often enough to matter — measured at stage
-  S1b of [MIGRATION.md](MIGRATION.md) — typed probes need a provider that enforces the shape on the
-  wire.
-- **The build now requires network access**, to fetch the Copilot CLI the SDK depends on. Build-time
-  only — no enforcement operation's runtime determinism is affected. See
-  [Toolkit](docs/architecture/toolkit.md) for the mechanism.
+The load-bearing beliefs this design rests on — what would have to hold for the architecture to be
+the right shape — live in
+[`.anneal/governance/assumptions.md`](.anneal/governance/assumptions.md). A disproved assumption is a
+re-cut trigger, not a bug.
 
 ## The Architecture Tree
 
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
 | 0 | `README.md` | 50,000 ft | What is this product, what does it give me, how does it work? |
-| 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
-| 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3 | `docs/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+| 1 | `.anneal/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
+| 2 | `.anneal/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
+| 3 | `.anneal/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
 Level 3 is exceptional. Most systems have none, and the pass authoring a contract change prunes those
 that stop earning their place.
@@ -248,16 +164,18 @@ maintained using its own agents.
   unchanged
 - **`.github/template/`** — the canonical repository layout and file templates, including the
   pristine `AGENTS.md`
-- **`docs/architecture/`** — Anneal's own architecture tree, maintained with its own agents
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
 - **`src/`, `test/`, `Anneal.slnx`** — the Toolkit, a .NET tool hosting operations that combine
   deterministic checks with model-backed judgement
-- **`.anneal/`** — repository-local runtime configuration the Toolkit resolves (role-to-model mapping,
-  the arguments a self-hosted run's contract check is invoked with) alongside `skills/`, where
+- **`.anneal/`** — the sole authoritative source for Anneal's own governance, product profile,
+  work-tracking, and architecture documents (see [Layout](.anneal/profile/layout.md) for the full
+  breakdown), plus repository-local runtime configuration the Toolkit resolves (role-to-model
+  mapping, the arguments a self-hosted run's contract check is invoked with), `skills/`, where
   `file-skill` writes deliberately curated, committed lessons about this repository (see
-  [Skills](docs/architecture/toolkit/skills.md))
+  [Skills](.anneal/architecture/toolkit/skills.md)), and `logs/`, where invocation and
+  model-interaction records are written
 - **`test-process-contract.ps1`** — a fixture suite holding the payload itself to its documented
   behavior; `dotnet anneal check-contracts` is held to its own contract by
   `CheckContractsSubprocessTests` under `test/`, a compiled C# suite that spawns the tool as a
@@ -278,7 +196,7 @@ records the results that `lint.ps1` reads when it checks that each promise still
 
 ## Documentation
 
-- **[Architecture Overview](docs/architecture/overview.md)** — the systems Anneal is built from
+- **[Architecture Overview](.anneal/architecture/overview.md)** — the systems Anneal is built from
 - **[User Guide](docs/user-guide/README.md)** — installing, first run, and day-to-day usage
 
 ## License

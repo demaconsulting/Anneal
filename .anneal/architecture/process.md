@@ -117,7 +117,7 @@ flowchart TD
         TemplateSync[template-sync]
     end
 
-    Tree[("docs/architecture/")]
+    Tree[(".anneal/architecture/")]
 
     User --> Helper
     User --> ArchDesign
@@ -191,7 +191,7 @@ reverses only if the agent gains a non-interview mode whose output is explicitly
 context and calls `dispatch`. Allowing it to make small edits directly was rejected because a self-granted
 exemption does not stay narrow, and because `helper` does not load the standards that would make the edit
 correct. The same argument is under review one level down for `dispatch`, and is recorded in
-[BACKLOG.md](../../BACKLOG.md).
+[.anneal/work/backlog.md](../work/backlog.md).
 
 **Exactly two entry points** — every other agent is a sub-agent, so there are no trigger words to learn.
 The rejected alternative was exposing each agent to the developer, which pushes classification onto the
@@ -222,7 +222,7 @@ taking the other with it. The rejected alternative was one clause naming two tes
 a single verdict over two independent promises and hide which one had lapsed.
 
 **Every mode here is bound by the constraint-admission rule, not only Intake** — no entry in
-`CONSTRAINTS.md` has ever arrived through Intake in this repository's history, so closing only the
+`.anneal/work/constraints.md` has ever arrived through Intake in this repository's history, so closing only the
 Intake path would have left every other mode's route into the file open. This entry records that
 Process's Decisions section holds Change, Maintenance and Migration to the rule exactly as Intake is
 held; `change-classification.md` § *Only the User Admits a Constraint* owns the rule itself, the
@@ -231,8 +231,8 @@ reasoning behind it, and the proposal mechanism.
 No clause is added for it. Whether an agent proposes rather than files is a property of what agents do,
 not of whether the payload loads and routes, so it falls on the behavioral side of the verification split
 in [overview.md](./overview.md) and is established by inspection. Mechanizing it would mean deciding from
-text alone whether a mention of `CONSTRAINTS.md` authorizes a write or merely points at it — a judgement
-the four files that legitimately name the register would defeat.
+text alone whether a mention of `.anneal/work/constraints.md` authorizes a write or merely points at it —
+a judgement the four files that legitimately name the register would defeat.
 
 **Scope values are bare names, not qualified ordinals** — S10 retired the numeric ordinal scale in
 favor of naming each value directly after the toolkit's own compiled worker
@@ -295,7 +295,7 @@ edit. `architecture-update`'s edge to `Tree` is removed from the diagram above, 
 forward — `architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table naming
 every section document examined and its verdict; `StageContractReport` carries only the files changed
 and a summary, since the mechanical checks this stage added verify scope and clause well-formation, not
-which documents `DocumentAuthor` considered pruning. `docs/architecture/toolkit/stage-contract.md`'s
+which documents `DocumentAuthor` considered pruning. `.anneal/architecture/toolkit/stage-contract.md`'s
 own charter still instructs pruning; only the itemized report of it did not survive.
 
 `scope-check` is not exempt from the same fate — it is the one remaining named target once a compiled
@@ -346,8 +346,9 @@ dissolved into it** — `change-classification.md` now classifies Change-mode wo
 mechanical rename touching hundreds of files crosses no contract, and a one-line change to a public
 signature crosses one. A Massive Effort item decomposes into phases only under a mandatory
 cumulative-Scope check evaluated across the whole phase set — never phase by phase alone — plus a
-deterministic tripwire on `README.md`, `docs/architecture/**`, `CONSTRAINTS.md`, and `BACKLOG.md`,
-because a set of individually-innocent phases can still cross a boundary none of them crosses alone.
+deterministic tripwire on `.anneal/governance/`, `.anneal/profile/`, `.anneal/work/`, and
+`.anneal/architecture/`, because a set of individually-innocent phases can still cross a boundary none
+of them crosses alone.
 Dissolving Migration into ordinary Scope×Effort routing was considered and rejected: Migration's step
 invariants (self-hosting, one-way, no-silent-loss, named suspensions) are cross-phase monotonicity
 properties that a per-request classification cannot express, and folding it away would mechanically

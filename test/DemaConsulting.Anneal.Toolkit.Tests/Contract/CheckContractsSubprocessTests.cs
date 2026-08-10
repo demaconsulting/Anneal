@@ -1457,7 +1457,7 @@ public class CheckContractsSubprocessTests
         public Fixture()
         {
             Root = Path.Combine(FixtureRoot, $"anneal-fixture-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(Path.Combine(Root, "docs", "architecture"));
+            Directory.CreateDirectory(Path.Combine(Root, ".anneal", "architecture"));
         }
 
         /// <summary>
@@ -1493,7 +1493,7 @@ public class CheckContractsSubprocessTests
         /// <summary>
         ///     Writes a system document into the architecture tree.
         /// </summary>
-        public void WriteDocument(string name, string contents) => Write($"docs/architecture/{name}", contents);
+        public void WriteDocument(string name, string contents) => Write($".anneal/architecture/{name}", contents);
 
         /// <summary>
         ///     Writes the conventional Ingest contract test class.

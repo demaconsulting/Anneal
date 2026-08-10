@@ -10,7 +10,7 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     "Deterministic-first" is not a hint here, it is the control flow: any failing <see cref="CheckFinding" />
 ///     in the evidence handed in decides <see cref="VerificationVerdict.RepairRequired" /> (with every concern
 ///     owned by <see cref="VerificationOwner.Code" />) without a model
-///     call at all, per <c>docs/architecture/process.md</c> § Decisions, "Verification is staged
+///     call at all, per <c>.anneal/architecture/process.md</c> § Decisions, "Verification is staged
 ///     deterministic-first, model-second, so most failures never reach a model-backed <c>Verifier</c> at all." A
 ///     model is consulted only once every supplied check has passed, to judge the narrower question deterministic
 ///     evidence cannot answer on its own — whether the work is otherwise correct for its declared

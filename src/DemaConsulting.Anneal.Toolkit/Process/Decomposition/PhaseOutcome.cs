@@ -9,7 +9,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 /// <remarks>
 ///     Aggregated onto the enclosing <see cref="RouterOutcome" /> so a caller of a decomposed Massive item's run
 ///     can see which phase did what, rather than only the item's own single collapsed verdict — see
-///     <c>docs/architecture/toolkit/route.md</c> §§ TOOLKIT-26 through TOOLKIT-28.
+///     <c>.anneal/architecture/toolkit/route.md</c> §§ TOOLKIT-26 through TOOLKIT-28.
 /// </remarks>
 /// <param name="WorkItem">The phase's own work-item description.</param>
 /// <param name="Outcome">The phase's own <see cref="OperationOutcome" />, rendered as its name.</param>

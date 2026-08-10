@@ -8,7 +8,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     matter shape.
 /// </summary>
 /// <remarks>
-///     This is the repository-local authoring half of <c>docs/architecture/toolkit/skills.md</c>: a caller files a
+///     This is the repository-local authoring half of <c>.anneal/architecture/toolkit/skills.md</c>: a caller files a
 ///     curated lesson deliberately, and the operation writes exactly one skill file under the repository's own
 ///     <c>.anneal/skills/</c> directory. It consults no model and performs no ranking or judgement; its whole job
 ///     is to validate the arguments, confine the resolved path to the local skill directory, refuse a collision,

@@ -37,12 +37,12 @@ internal enum RequestImplication
 /// </summary>
 /// <remarks>
 ///     Every fact here is computed by reading files and matching text, never by a model call — the same
-///     "judgement stays in the model; code owns control flow" split <c>docs/architecture/toolkit.md</c> § Decisions
-///     draws for the Toolkit as a whole, applied to how a <see cref="RoutingLedger" /> is assembled.
+///     "judgement stays in the model; code owns control flow" split <c>.anneal/architecture/toolkit.md</c> §
+///     Decisions draws for the Toolkit as a whole, applied to how a <see cref="RoutingLedger" /> is assembled.
 /// </remarks>
-/// <param name="ReadmeDirectionFacts">
-///     The bullet-level lines under <c>README.md</c>'s own <c>## Direction</c> heading, or empty when the file or
-///     heading is absent.
+/// <param name="VisionFacts">
+///     The bullet-level lines in <c>.anneal/governance/vision.md</c>, or empty when the file is absent or carries
+///     none.
 /// </param>
 /// <param name="MigrationPresent">Whether <c>MIGRATION.md</c> exists in the repository.</param>
 /// <param name="MigrationCurrentStage">
@@ -50,14 +50,14 @@ internal enum RequestImplication
 ///     the heading is not found.
 /// </param>
 /// <param name="RelevantArchitectureNodes">
-///     The <c>docs/architecture/*.md</c> file names whose own name is mentioned, case-insensitively, in the work
+///     The <c>.anneal/architecture/*.md</c> file names whose own name is mentioned, case-insensitively, in the work
 ///     item's text. Empty when none match, which is an honest answer rather than a guess.
 /// </param>
 /// <param name="ChangedFileHints">The changed-file hints a caller supplied, or empty when none were given.</param>
 /// <param name="RequestsTemplateSync">Whether the work item's text names template synchronization explicitly.</param>
 /// <param name="Implication">The coarse scope keyword matching implies for this work item.</param>
 internal sealed record RepositoryFacts(
-    IReadOnlyList<string> ReadmeDirectionFacts,
+    IReadOnlyList<string> VisionFacts,
     bool MigrationPresent,
     string? MigrationCurrentStage,
     IReadOnlyList<string> RelevantArchitectureNodes,
@@ -67,7 +67,7 @@ internal sealed record RepositoryFacts(
 {
     /// <summary>
     ///     Gathers repository facts for a work item, reading only the files this method names and matching only on
-    ///     their own text — no model call, no directory walk beyond <c>docs/architecture/</c>.
+    ///     their own text — no model call, no directory walk beyond <c>.anneal/architecture/</c>.
     /// </summary>
     /// <param name="repositoryRoot">The repository read. Must not be null or blank.</param>
     /// <param name="workItem">The work item text the facts are gathered against. Must not be null or blank.</param>
@@ -85,7 +85,7 @@ internal sealed record RepositoryFacts(
         var root = Path.GetFullPath(repositoryRoot);
 
         return new RepositoryFacts(
-            ReadmeDirectionFacts: ReadDirectionFacts(root),
+            VisionFacts: ReadVisionFacts(root),
             MigrationPresent: File.Exists(Path.Combine(root, "MIGRATION.md")),
             MigrationCurrentStage: ReadMigrationCurrentStage(root),
             RelevantArchitectureNodes: ReadRelevantArchitectureNodes(root, workItem),
@@ -94,14 +94,13 @@ internal sealed record RepositoryFacts(
             Implication: InferImplication(workItem));
     }
 
-    private static IReadOnlyList<string> ReadDirectionFacts(string root)
+    private static IReadOnlyList<string> ReadVisionFacts(string root)
     {
-        var path = Path.Combine(root, "README.md");
+        var path = Path.Combine(root, ".anneal", "governance", "vision.md");
         if (!File.Exists(path))
             return [];
 
-        var section = ReadSection(File.ReadAllLines(path), "## Direction");
-        return [.. section
+        return [.. File.ReadAllLines(path)
             .Select(line => line.Trim())
             .Where(line => line.StartsWith("- ", StringComparison.Ordinal) ||
                            line.StartsWith("* ", StringComparison.Ordinal))
@@ -151,7 +150,7 @@ internal sealed record RepositoryFacts(
 
     private static IReadOnlyList<string> ReadRelevantArchitectureNodes(string root, string workItem)
     {
-        var directory = Path.Combine(root, "docs", "architecture");
+        var directory = Path.Combine(root, ".anneal", "architecture");
         if (!Directory.Exists(directory))
             return [];
 

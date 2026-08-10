@@ -13,10 +13,9 @@ namespace DemaConsulting.Anneal.Toolkit.Recording;
 ///     each one's shape to the other's, and a third stream — the tool's own diagnostic trace — is deliberately
 ///     outside both because its whole value is being free to change.
 ///     <para>
-///         Both live under <c>.anneal/</c> beside the role configuration, in directories a repository ignores,
-///         because both carry repository source: a transcript quotes the files a model was shown, and an
-///         invocation record carries the arguments it was given. Committing either by accident is the failure
-///         this placement removes.
+///     Both live under <c>.anneal/logs/</c>, a directory a repository ignores wholesale, because both carry
+///     repository source: a transcript quotes the files a model was shown, and an invocation record carries
+///     the arguments it was given. Committing either by accident is the failure this placement removes.
 ///     </para>
 ///     <para>
 ///         A write that cannot happen is swallowed rather than raised. The alternative is a read-only checkout
@@ -32,12 +31,12 @@ public sealed class RecordStore
     /// <summary>
     ///     Where invocation records are appended, relative to a repository root.
     /// </summary>
-    public const string InvocationsRelativePath = ".anneal/records/invocations.jsonl";
+    public const string InvocationsRelativePath = ".anneal/logs/records/invocations.jsonl";
 
     /// <summary>
     ///     Where model transcripts are appended, relative to a repository root.
     /// </summary>
-    public const string TranscriptsRelativePath = ".anneal/transcripts/model-interactions.jsonl";
+    public const string TranscriptsRelativePath = ".anneal/logs/transcripts/model-interactions.jsonl";
 
     /// <summary>
     ///     Where the transcript of every tool invocation a model made is appended, relative to a repository
@@ -48,7 +47,7 @@ public sealed class RecordStore
     ///     — "what was this judgement based on" against "what did this worker touch" — and either could lose its
     ///     mechanism without taking the other with it, which is exactly why they are contracted separately.
     /// </remarks>
-    public const string ToolCallsRelativePath = ".anneal/transcripts/tool-calls.jsonl";
+    public const string ToolCallsRelativePath = ".anneal/logs/transcripts/tool-calls.jsonl";
 
     /// <summary>
     ///     Where <see cref="ProcessStepRecord" />s are appended, relative to a repository root.
@@ -58,7 +57,7 @@ public sealed class RecordStore
     ///     transcript is its own stream: composition rate and top-level pass rate are different questions, read at
     ///     different times, and either could lose its mechanism without taking the other with it.
     /// </remarks>
-    public const string ProcessStepsRelativePath = ".anneal/records/process-steps.jsonl";
+    public const string ProcessStepsRelativePath = ".anneal/logs/records/process-steps.jsonl";
 
     /// <remarks>
     ///     One line per record, so an appender never rewrites what is already there and a reader can consume

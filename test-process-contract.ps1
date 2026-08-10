@@ -2,7 +2,7 @@
 #
 # PURPOSE:
 #   Verifies the contract clauses of the Process system, as declared in
-#   docs/architecture/process.md.
+#   .anneal/architecture/process.md.
 #
 #   The Process system is the payload this repository ships: the agent prompts,
 #   the standards, the skills, and AGENTS.md. Almost every rule in it is held by
@@ -299,7 +299,7 @@ function Get-DefinedEffort {
 # CASES
 # ==============================================================================
 
-Write-Host "Testing: Process contract (docs/architecture/process.md)"
+Write-Host "Testing: Process contract (.anneal/architecture/process.md)"
 
 # --- PROCESS-01 ---------------------------------------------------------------
 # The directory is iterated rather than listed, so a ninth agent is covered the
@@ -396,16 +396,20 @@ Test-Case -Name "AgentReferencesResolve" -Body {
         [void]$knownExtensions.Add([System.IO.Path]::GetExtension($file))
     }
 
-    # docs/architecture/{system}.md is in this set too, but every token carrying a
+    # .anneal/architecture/{system}.md is in this set too, but every token carrying a
     # placeholder is excluded before we get here.
     $requiredFiles = @(
-        "README.md", "BACKLOG.md", "CONSTRAINTS.md", "MIGRATION.md",
-        "docs/architecture/overview.md"
+        "README.md", ".anneal/work/backlog.md", ".anneal/work/constraints.md",
+        ".anneal/governance/assumptions.md", ".anneal/governance/tenets.md", ".anneal/governance/vision.md",
+        "MIGRATION.md", ".anneal/architecture/overview.md"
     )
     # The layout the Project Structure section of AGENTS.md requires of every
     # installed repository. A directory names a location rather than a file, so it
     # is checked against this list rather than against the file list above.
-    $requiredDirs = @("docs", "docs/architecture", "src", "test")
+    $requiredDirs = @(
+        "docs", "src", "test",
+        ".anneal", ".anneal/architecture", ".anneal/governance", ".anneal/profile", ".anneal/work"
+    )
 
     foreach ($file in Get-AgentFile) {
         foreach ($record in (Get-PathToken -Path $file.FullName)) {
@@ -414,8 +418,8 @@ Test-Case -Name "AgentReferencesResolve" -Body {
             $bare = $token -replace '/$', ''
 
             # A token carrying a {placeholder} segment describes the SHAPE of a
-            # tree, not a file. docs/architecture/{system}/{section}.md is the
-            # documented layout; a concrete path under docs/architecture/{system}/
+            # tree, not a file. .anneal/architecture/{system}/{section}.md is the
+            # documented layout; a concrete path under .anneal/architecture/{system}/
             # is a reference to one repository's document and is a violation.
             if ($token -match '[{}]') { continue }
 
@@ -587,7 +591,7 @@ Test-Case -Name "WorstCaseInvocationWithinBudget" -Body {
         return [int][math]::Round($bytes / 4.0, [System.MidpointRounding]::AwayFromZero)
     }
 
-    $authoring = Repo-Path "docs/architecture/process/prompt-authoring.md"
+    $authoring = Repo-Path ".anneal/architecture/process/prompt-authoring.md"
     $text = Read-Text $authoring
     if ($text -notmatch '(?m)\*\*The context budget is ([\d,]+) tokens\*\*') {
         $problems.Add("prompt-authoring.md no longer declares the context budget in the form '**The context budget is N tokens**'; the ceiling has no readable owner")
@@ -1125,7 +1129,7 @@ Test-Case -Name "NormativeRulesHaveOneOwner" -Body {
 # ==============================================================================
 
 Write-Host ""
-Write-Host "Testing: Template contract (docs/architecture/template.md)"
+Write-Host "Testing: Template contract (.anneal/architecture/template.md)"
 
 # --- TEMPLATE-01 --------------------------------------------------------------
 # install.ps1's $payload list is the authoritative list of what ships. The check

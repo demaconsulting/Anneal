@@ -16,7 +16,8 @@ rewrite through its parameters, what appears on disk afterwards, and above all t
 do without asking.
 
 It carries more recorded pressure than any other system here, because it writes into a target
-repository: the damage-guarding conditions in [CONSTRAINTS.md](../../CONSTRAINTS.md) attach here.
+repository: the damage-guarding conditions in [.anneal/work/constraints.md](../work/constraints.md)
+attach here.
 That concentration is the reason Installer is a system rather than a script filed under
 supporting machinery: the promises are real, they are contested, and they are where the process is most
 likely to damage somebody's repository.

@@ -27,7 +27,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
                 "I updated the contract documents.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -60,7 +60,7 @@ public class StructuralChangeWorkerTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
                 () => Assert.Equal(
-                    ["docs/architecture/overview.md", "docs/architecture/toolkit.md", "src/Foo.cs"],
+                    [".anneal/architecture/overview.md", ".anneal/architecture/toolkit.md", "src/Foo.cs"],
                     ((WorkerRunResult.Completed)result.Finding!).Summary.FilesChanged),
                 () => Assert.Equal(1, buildCalls),
                 () => Assert.Equal(1, contractCalls),
@@ -91,7 +91,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
                 "I updated the contract documents.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -141,7 +141,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
                 "I updated the contract documents.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -184,7 +184,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 tenStepPlan,
                 "I updated the contract documents.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"split the system"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -290,7 +290,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"DirectExecutionIsBetter","why":"this is small enough to just do","planSummary":"","planSteps":[]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -330,12 +330,12 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update the docs"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I fixed the wording.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"clarified wording"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"clarified wording"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -384,13 +384,13 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["the wrong system was split"],"evidenceSufficient":true}""",
                 """{"kind":"Plan","why":"","planSummary":"split the correct system","planSteps":["step one revised"]}""",
                 "I updated the contract document again.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"revised draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"revised draft"}""",
                 "I implemented the change again.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"revised attempt"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -438,13 +438,13 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["the wrong system was split"],"evidenceSufficient":true}""",
                 """{"kind":"Plan","why":"","planSummary":"split a different system","planSteps":["step one revised"]}""",
                 "I updated the contract document again.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md"],"summary":"revised draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"revised draft"}""",
                 "I implemented the change again.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"revised attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[],"advisoryNotes":["still the wrong system"],"evidenceSufficient":true}""");
@@ -485,12 +485,12 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"first draft"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"clause wording is ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I tried to fix the wording.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"tried again"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"tried again"}""",
                 "I re-synced the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"still ambiguous"}],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -530,10 +530,10 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update the docs"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
-                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"src/Foo.cs reaches across a system boundary CONSTRAINTS.md forbids"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"src/Foo.cs reaches across a system boundary .anneal/work/constraints.md forbids"}],"advisoryNotes":[],"evidenceSufficient":true}""",
                 "I removed the boundary crossing.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"repaired"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -580,7 +580,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -627,7 +627,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"},{"owner":"Tenet","fixText":"crosses a forbidden boundary"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -677,7 +677,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"RerouteRequired","concerns":[],"advisoryNotes":["this is actually a narrow interior fix"],"evidenceSufficient":true}""");
@@ -718,7 +718,7 @@ public class StructuralChangeWorkerTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":false}""");

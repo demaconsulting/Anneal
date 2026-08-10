@@ -9,7 +9,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     <see cref="RoutingLedger" />, never a fresh oracle summary of it.
 /// </summary>
 /// <remarks>
-///     <c>docs/architecture/process.md</c> § Decisions explicitly rejects a default "probe the oracle for a
+///     <c>.anneal/architecture/process.md</c> § Decisions explicitly rejects a default "probe the oracle for a
 ///     summary" step between routing and running a worker — a worker is handed exactly what the ledger already
 ///     holds, projected by ordinary code, so building a brief costs nothing beyond the research and reroutes the
 ///     run already paid for.

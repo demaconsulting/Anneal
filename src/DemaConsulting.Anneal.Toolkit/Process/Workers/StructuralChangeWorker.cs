@@ -24,7 +24,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     that also routes through <see cref="Developer" />), not fixed at construction. A documentation, code, or
 ///     tenet finding repairs through the owner the verdict names — a tenet finding through <see cref="Developer" />,
 ///     the same primitive a code finding uses, since fixing a tenet violation means changing code or configuration
-///     to conform to <c>CONSTRAINTS.md</c> and the affected contracts — spending that owner's own one-shot budget,
+///     to conform to <c>.anneal/work/constraints.md</c> and the affected contracts — spending that owner's own one-shot budget,
 ///     exactly as Contract Change already does. A verifier finding whose
 ///     verdict is <see cref="VerificationVerdict.RepairRequired" /> but whose <see cref="VerificationFinding.Concerns" />
 ///     names none of <see cref="VerificationOwner.Documentation" />, <see cref="VerificationOwner.Code" />, or
@@ -46,7 +46,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///         worker after all. A <see cref="Planner" />-reached <see cref="PlanningDecision.Reroute" /> and a
 ///         <see cref="Verifier" />-reached <see cref="VerificationVerdict.RerouteRequired" /> are both
 ///         <see cref="OperationOutcome.Succeeded" /> at the primitive layer — a primitive successfully answering
-///         its own question, per <c>docs/architecture/toolkit.md</c> § Decisions — so both map onto this worker's
+///         its own question, per <c>.anneal/architecture/toolkit.md</c> § Decisions — so both map onto this worker's
 ///         own <see cref="WorkerRunResult.Reroute" />, never <see cref="OperationOutcome.Failed" />.
 ///     </para>
 ///     <para>
@@ -78,7 +78,7 @@ internal sealed class StructuralChangeWorker
     private const string VerifierQuestion =
         """
         Judge whether this structural change conforms to every contract clause it touches and leaves
-        docs/architecture/ accurate for what was actually built. Also check the change against CONSTRAINTS.md's
+        .anneal/architecture/ accurate for what was actually built. Also check the change against .anneal/work/constraints.md's
         Satisfied constraints and the boundaries of every system contract it touches; report any violation as a
         concern owned by Tenet, with a FixText naming the specific constraint or contract boundary crossed and
         what must change to stop crossing it. Report the verdict 'RepairRequired' with an
@@ -159,7 +159,7 @@ internal sealed class StructuralChangeWorker
     ///     The most tenet-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Tenet" />,
     ///     independent of the other three budgets. A tenet finding repairs through <see cref="Developer" /> — the
     ///     same primitive a code finding uses — since fixing a tenet violation means changing code or
-    ///     configuration to conform to <c>CONSTRAINTS.md</c> and the affected contracts. Must be zero or greater;
+    ///     configuration to conform to <c>.anneal/work/constraints.md</c> and the affected contracts. Must be zero or greater;
     ///     defaults to 1, kept equal to Contract Change's precedent pending live evidence.
     /// </param>
     /// <param name="maxReplanAttempts">
@@ -478,7 +478,7 @@ internal sealed class StructuralChangeWorker
                     tenetRepairBudget--;
 
                     // A tenet finding repairs through Developer, the same primitive a code finding uses: fixing a
-                    // tenet violation means changing code or configuration to conform to CONSTRAINTS.md and the
+                    // tenet violation means changing code or configuration to conform to .anneal/work/constraints.md and the
                     // affected contracts, which is still a code-shaped fix, and no separate "tenet author"
                     // primitive exists - see the Apply Report's judgment call.
                     var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
@@ -691,7 +691,7 @@ internal sealed class StructuralChangeWorker
         $"""
          {brief.OriginalWorkItem}
 
-         Update every system contract document and section document under docs/architecture/ this structural
+         Update every system contract document and section document under .anneal/architecture/ this structural
          change affects - creating or pruning a node where the change requires it. Do not touch code or tests.
 
          {RenderPlan(plan)}

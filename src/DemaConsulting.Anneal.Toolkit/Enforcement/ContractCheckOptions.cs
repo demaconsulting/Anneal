@@ -19,7 +19,7 @@ public sealed record ContractCheckOptions
     /// <summary>
     ///     Root of the architecture tree holding the system documents, relative to the repository root.
     /// </summary>
-    public string ArchitectureRoot { get; init; } = "docs/architecture";
+    public string ArchitectureRoot { get; init; } = ".anneal/architecture";
 
     /// <summary>
     ///     Discovery fields the caller supplied individually, keyed by the field names

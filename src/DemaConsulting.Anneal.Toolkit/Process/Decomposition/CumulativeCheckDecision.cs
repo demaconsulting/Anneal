@@ -11,7 +11,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 /// <remarks>
 ///     A narrow, single-question decision — the smallest possible oracle addition alongside the existing route
 ///     question, matching <see cref="RouteDecision" />'s own shape rather than growing a second general-purpose
-///     router. See <see cref="Router" /> for where this is composed, and <c>docs/architecture/toolkit/route.md</c>
+///     router. See <see cref="Router" /> for where this is composed, and <c>.anneal/architecture/toolkit/route.md</c>
 ///     § Decisions for why this recurses through the same <see cref="Router" /> rather than a standalone type.
 /// </remarks>
 internal abstract record CumulativeCheckDecision

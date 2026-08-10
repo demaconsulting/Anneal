@@ -1,7 +1,7 @@
 ---
 name: Architecture Documentation
 description: Follow these standards when creating or maintaining the progressive-disclosure architecture tree.
-globs: ["README.md", "docs/architecture/**/*.md"]
+globs: ["README.md", ".anneal/architecture/**/*.md"]
 ---
 
 # Purpose
@@ -16,7 +16,7 @@ exists to keep documentation weight proportional to how slowly a thing changes.
 **Finding your way around this standard.** `Decomposition and Ownership` carries the rule the rest of
 this file elaborates; read it always. Then add only what the task needs: writing or judging a
 `README.md` — `What Each Level Owns` and `Writing Guidelines`; adding or deleting a document — the two
-section-document rules, `Drift Anchors` and `Publishing`.
+section-document rules and `Drift Anchors`.
 
 # Levels of the Tree
 
@@ -27,9 +27,9 @@ earning its place.
 | Level | File | Altitude | Answers |
 | --- | --- | --- | --- |
 | 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and what parts is it built from? |
-| 1 | `docs/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
-| 2 | `docs/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3+ | `docs/architecture/{system}/{section}.md` | 2,000 ft+ | How does one non-obvious specific work? |
+| 1 | `.anneal/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
+| 2 | `.anneal/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
+| 3+ | `.anneal/architecture/{system}/{section}.md` | 2,000 ft+ | How does one non-obvious specific work? |
 
 **Levels are created when they are earned, never upfront.** A level exists because the level above
 has grown content it cannot hold at its own altitude, or because that growth is already committed in
@@ -102,7 +102,7 @@ detail it does not own.
 ## What Each Level Owns
 
 **`README.md`** — what the product is, what it gives its user, the parts it is built from, how to
-install it, and a pointer to `docs/architecture/overview.md`. Its parts are the **kinds** of thing the
+install it, and a pointer to `.anneal/architecture/overview.md`. Its parts are the **kinds** of thing the
 product is built from, which need not match level 1's system inventory: adding a system always edits
 `overview.md`, and edits `README.md` only if it introduces a new kind of part.
 
@@ -130,13 +130,17 @@ one-to-one onto contract clauses. *"Rearrange the interior without paperwork"* i
 this file whenever a format is added. The test: would a system changing its *promises or interior*
 force an edit here? If so it belongs to that system, not to the product.
 
-`README.md` also owns the product's **assumptions**: what the design takes to be true and cannot
-itself guarantee — about its environment, platform, users, or tooling. Record only load-bearing
-ones, where the shape of everything below would be wrong if the belief were false. Distinguish them
-from `CONSTRAINTS.md` by asking whether reality could prove the statement wrong without anyone
-changing their mind: if yes it is an assumption; if it could only change by decision it is a
-constraint. They live at level 0 because they underpin the whole decomposition; a belief that
-constrains only one system belongs in that system's decomposition rationale.
+Assumptions, tenets, and constraints are recorded elsewhere, under `.anneal/governance/` and
+`.anneal/work/` respectively, so that an oracle prompt can inject the one it needs without the rest of
+`README.md`'s installation and licensing prose; `README.md` links to them rather than restating them.
+**Assumptions** (`.anneal/governance/assumptions.md`) are what the design takes to be true and cannot
+itself guarantee — about its environment, platform, users, or tooling. Record only load-bearing ones,
+where the shape of everything below would be wrong if the belief were false. Distinguish an assumption
+from a **constraint** (`.anneal/work/constraints.md`) by asking whether reality could prove the
+statement wrong without anyone changing their mind: if yes it is an assumption; if it could only change
+by decision it is a constraint. Both sit conceptually at level 0 because they underpin the whole
+decomposition; a belief that constrains only one system belongs in that system's decomposition
+rationale instead.
 
 An assumption that is disproved is a **re-cut trigger**, not a defect to patch. Say so in your
 report rather than adjusting prose to keep the assumption looking true — that is the level 0 form of
@@ -158,9 +162,8 @@ restate its parent's contract or decomposition.
 
 # Navigation
 
-This tree is read on disk, on the repository host, and as the compiled architecture PDF, so
-**relative markdown links are required** for downward navigation; `collection-links.lua` turns them
-into cross-references when the tree is compiled.
+This tree is read on disk and on the repository host, so **relative markdown links are required** for
+downward navigation.
 
 - Every level MUST link to each of its direct children.
 - A child MUST link back to its parent in a single line at the top.
@@ -224,16 +227,6 @@ Change: list the section documents under the affected system and confirm each st
 earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
 silently becomes an anchor.
 
-# Publishing (MANDATORY)
-
-The tree is a document collection: `docs/architecture/definition.yaml` lists its files in reading
-order, and `docs/architecture/build.bat` compiles them into one PDF. **Adding or deleting a document
-means editing that list in the same change.** An unlisted document is absent from the published
-architecture, and a listed file that no longer exists fails the build.
-
-Place a new system document after the systems it depends on, and a section document immediately
-after its parent system, so the compiled document reads top-down.
-
 # Length
 
 A document is the right length when a reader at that altitude finds what they came for and can stop
@@ -277,5 +270,4 @@ that earns its place. A short document missing the *why* is the more expensive f
 - [ ] Every system document and section document, at any depth, carries `level` and `covers` front matter
 - [ ] Every section document still earns its place under the benefit test
 - [ ] Section documents whose subject was removed were deleted in the same change
-- [ ] Every added or deleted document was listed or unlisted in `definition.yaml` in the same change
 - [ ] No document is long for a reason that belongs at another level

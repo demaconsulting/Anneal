@@ -79,10 +79,10 @@ public class VerifyChangeContractTests
 
             var patch =
                 """
-                diff --git a/docs/architecture/toolkit.md b/docs/architecture/toolkit.md
+                diff --git a/.anneal/architecture/toolkit.md b/.anneal/architecture/toolkit.md
                 index 1111111..2222222 100644
-                --- a/docs/architecture/toolkit.md
-                +++ b/docs/architecture/toolkit.md
+                --- a/.anneal/architecture/toolkit.md
+                +++ b/.anneal/architecture/toolkit.md
                 @@ -1 +1 @@
                 -old
                 +new

@@ -18,7 +18,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///         that has not installed Anneal's standards (or has renamed one) still gets a worker that runs, just
 ///         without that one piece of optional guidance. A compiled worker should not hard-fail an entire run
 ///         because advisory content is absent, the same "best effort over an optional read" posture
-///         <see cref="Process.Routing.RepositoryFacts" /> already takes for <c>README.md</c> and <c>MIGRATION.md</c>.
+///         <see cref="Process.Routing.RepositoryFacts" /> already takes for <c>vision.md</c> and <c>MIGRATION.md</c>.
 ///     </para>
 /// </remarks>
 internal static class WorkerStandards

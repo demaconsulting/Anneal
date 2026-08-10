@@ -454,7 +454,7 @@ public class ContractCheckTests
         // Arrange: the invariant moved into a part document
         using var repository = Standard();
         repository.Write(
-            "docs/architecture/ingest/queueing.md",
+            ".anneal/architecture/ingest/queueing.md",
             """
             ## Contract
 

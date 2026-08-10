@@ -18,7 +18,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     <see cref="Developer.DevelopAsync" /> as the execute step and a deterministic mapping of
 ///     <see cref="DeterministicCheck" />'s own <see cref="CheckFinding" /> as the verify step — never a
 ///     <see cref="Verifier" />, because judging "did the deterministic build check pass" needs no model call at
-///     all, and composing one here would be exactly the "universal quality pass" `docs/architecture/process.md`
+///     all, and composing one here would be exactly the "universal quality pass" `.anneal/architecture/process.md`
 ///     § Decisions already rejected once for a different reason.
 ///     <para>
 ///         <b>When this worker reroutes.</b> This worker adds no reroute logic of its own: a reroute is

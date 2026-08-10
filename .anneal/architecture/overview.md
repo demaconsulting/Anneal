@@ -54,7 +54,7 @@ flowchart LR
     end
     subgraph Target["Target repository"]
         Payload[Installed payload]
-        Tree["docs/architecture/"]
+        Tree[".anneal/architecture/"]
         Tool["Restored dotnet tool"]
     end
 
@@ -96,7 +96,7 @@ Two trust boundaries matter. `install.ps1` writes into a **different repository*
 from, and it is the only component that does. Everything it writes is content the target repository will
 subsequently trust and act on, so the constraints protecting that write — that installation goes through
 a provided script, and that nothing is deleted without confirmation — are recorded in
-[CONSTRAINTS.md](../../CONSTRAINTS.md) rather than left to the installer's own documentation.
+[.anneal/work/constraints.md](../work/constraints.md) rather than left to the installer's own documentation.
 
 The second is Toolkit's model boundary. Repository content is sent to a model under the ambient Copilot
 account of the calling session, which is the account the agents already run under, so the boundary moves
@@ -115,8 +115,7 @@ build, turning every omission into a full retry), and multi-retry orchestration 
 every subsequent change, and that cost — not the shape — is the admission test a new mechanism has to
 fail. Reproducing one of those cost patterns is a redesign, not an incremental regression. Automation
 that mechanizes work to remove per-change cost is the direction Anneal is moving in and is not
-caught by this rule; the [Direction](../../README.md#direction) section of the README states what does
-and does not qualify.
+caught by this rule; [vision.md](../governance/vision.md) states what does and does not qualify.
 
 **Files, not tooling — superseded by Toolkit** — Anneal originally installed by file copy alone: no build
 step, no package manager, no runtime dependency in the target repository. The decision named its own

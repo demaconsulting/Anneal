@@ -17,7 +17,7 @@ internal enum Effort
     Medium,
 
     /// <summary>The interiors of multiple systems. A full plan plus a Tenet Check.</summary>
-    [Description("interiors of multiple systems - a full plan plus a Tenet Check against CONSTRAINTS.md and affected contracts")]
+    [Description("interiors of multiple systems - a full plan plus a Tenet Check against .anneal/work/constraints.md and affected contracts")]
     Large,
 
     /// <summary>Cannot execute as one unit; must be decomposed into phases first.</summary>

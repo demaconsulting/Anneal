@@ -14,7 +14,7 @@ using Xunit;
 namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 
 /// <summary>
-///     Boundary tests for the Toolkit contract in <c>docs/architecture/toolkit.md</c>.
+///     Boundary tests for the Toolkit contract in <c>.anneal/architecture/toolkit.md</c>.
 /// </summary>
 /// <remarks>
 ///     Everything here goes through the same surface a caller has: the action name is passed to

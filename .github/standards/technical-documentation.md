@@ -1,7 +1,7 @@
 ---
 name: Technical Documentation
 description: Follow these standards when writing README, user guide, or other repository markdown.
-globs: ["**/*.md", "!docs/architecture/**"]
+globs: ["**/*.md", "!.anneal/architecture/**"]
 ---
 
 # Prose Density (MANDATORY)
@@ -20,14 +20,14 @@ Dense, precise prose costs less context and leaves fewer ways to misread a rule.
 - No narrating the writing: "as mentioned above", "in summary".
 - State the outcome, not the process that found it.
 
-This rule applies to every markdown file in the repository, `docs/architecture/**` included —
+This rule applies to every markdown file in the repository, `.anneal/architecture/**` included —
 `architecture-documentation.md` does not restate it.
 
 # Scope
 
 These are the general markdown and README conventions for the repository. The architecture tree has
 its own stricter rules — see `architecture-documentation.md`, which takes precedence for anything
-under `docs/architecture/`.
+under `.anneal/architecture/`.
 
 # Core Principles
 

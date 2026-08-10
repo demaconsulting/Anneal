@@ -16,8 +16,13 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 /// </remarks>
 internal static class ProtectedPathTripwire
 {
-    private static readonly string[] ProtectedFiles = ["readme.md", "constraints.md", "backlog.md"];
-    private const string ProtectedDirectory = "docs/architecture/";
+    private static readonly string[] ProtectedDirectories =
+    [
+        ".anneal/governance/",
+        ".anneal/profile/",
+        ".anneal/work/",
+        ".anneal/architecture/"
+    ];
 
     /// <summary>
     ///     Reports the first protected path a phase's declared file scope touches, or null when it touches none.
@@ -42,12 +47,9 @@ internal static class ProtectedPathTripwire
 
             var normalized = entry.Replace('\\', '/').TrimStart('/').ToLowerInvariant();
 
-            if (ProtectedFiles.Any(protectedFile =>
-                    normalized == protectedFile || normalized.EndsWith("/" + protectedFile, StringComparison.Ordinal)))
-                return entry;
-
-            if (normalized.StartsWith(ProtectedDirectory, StringComparison.Ordinal) ||
-                normalized.Contains("/" + ProtectedDirectory, StringComparison.Ordinal))
+            if (ProtectedDirectories.Any(directory =>
+                    normalized.StartsWith(directory, StringComparison.Ordinal) ||
+                    normalized.Contains("/" + directory, StringComparison.Ordinal)))
                 return entry;
         }
 

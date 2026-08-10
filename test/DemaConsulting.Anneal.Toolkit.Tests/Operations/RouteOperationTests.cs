@@ -61,7 +61,7 @@ public class RouteOperationTests
             var endpoint = new QueuedEndpoint(
                 SelectWorkerJson("contract-change", "this adds a contract clause"),
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -79,7 +79,7 @@ public class RouteOperationTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(
-                    ["docs/architecture/toolkit.md", "src/Foo.cs"], result.FindingAs<RouteReport>()!.FilesChanged));
+                    [".anneal/architecture/toolkit.md", "src/Foo.cs"], result.FindingAs<RouteReport>()!.FilesChanged));
         }
         finally
         {
@@ -97,7 +97,7 @@ public class RouteOperationTests
                 SelectWorkerJson("structural-change", "this moves a system boundary"),
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
                 "I updated the contract documents.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/overview.md","docs/architecture/toolkit.md"],"summary":"split the system"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -115,7 +115,7 @@ public class RouteOperationTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(
-                    ["docs/architecture/overview.md", "docs/architecture/toolkit.md", "src/Foo.cs"],
+                    [".anneal/architecture/overview.md", ".anneal/architecture/toolkit.md", "src/Foo.cs"],
                     result.FindingAs<RouteReport>()!.FilesChanged));
         }
         finally

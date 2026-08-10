@@ -21,7 +21,7 @@ internal sealed record DocumentChangeSet(IReadOnlyList<string> FilesChanged, str
 ///     A closed union of two cases, and both map to <see cref="OperationOutcome.Succeeded" /> in
 ///     <see cref="DocumentAuthor" />'s own outcome mapping: reaching either <see cref="Authored" /> or
 ///     <see cref="Reroute" /> is this primitive successfully answering its own question, never a failure to
-///     answer, per <c>docs/architecture/toolkit.md</c> § Decisions ("a typed 'Reroute' answer is a primitive
+///     answer, per <c>.anneal/architecture/toolkit.md</c> § Decisions ("a typed 'Reroute' answer is a primitive
 ///     successfully answering its own question, not a new invocation outcome").
 ///     <para>
 ///         <see cref="OperationOutcome.Refused" /> is reserved for a rarer, genuinely distinct case this union

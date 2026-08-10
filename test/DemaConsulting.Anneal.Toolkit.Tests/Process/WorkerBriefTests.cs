@@ -17,7 +17,7 @@ public class WorkerBriefTests
     {
         // Arrange
         var facts = new RepositoryFacts(
-            ReadmeDirectionFacts: ["Anneal becomes its own agent CLI"],
+            VisionFacts: ["Anneal becomes its own agent CLI"],
             MigrationPresent: true,
             MigrationCurrentStage: "S8 — the primitive library",
             RelevantArchitectureNodes: ["toolkit.md"],

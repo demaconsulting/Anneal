@@ -7,7 +7,7 @@ using Xunit;
 namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 
 /// <summary>
-///     Boundary tests for the Skills contract in <c>docs/architecture/toolkit/skills.md</c>.
+///     Boundary tests for the Skills contract in <c>.anneal/architecture/toolkit/skills.md</c>.
 /// </summary>
 /// <remarks>
 ///     These tests drive the public action surface a caller has - the named action dispatched through

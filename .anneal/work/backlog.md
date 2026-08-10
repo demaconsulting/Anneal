@@ -3,7 +3,7 @@
 Wanted, not yet scheduled.
 
 Items here **complete** — each one finishes and stays finished. Standing properties the system must
-always satisfy hold rather than complete, so they go in [CONSTRAINTS.md](CONSTRAINTS.md) instead,
+always satisfy hold rather than complete, so they go in [constraints.md](constraints.md) instead,
 where `architecture-design` will read them. See the Intake admission test in
 `change-classification.md`.
 
@@ -105,7 +105,7 @@ where `architecture-design` will read them. See the Intake admission test in
   scheduled; the router/catalog work lands first. **A candidate shape for the oracle's input, to weigh
   when this is picked up**: recent invocation outcomes (`dotnet anneal stats`), the last 10-20 commit
   subjects (trajectory, not just current state), and the standing constraints/product purpose
-  (`CONSTRAINTS.md` and README's purpose section serve the role a dedicated Tenets file would) —
+  (`.anneal/work/constraints.md` and `.anneal/governance/tenets.md` now serve this role) —
   grounding a proposed next step in what actually happened and what must keep holding, rather than in
   aspiration alone. Not a design; a seed to start from.
 - **Design a way to periodically re-validate filed skills, not just accumulate them** — `skills.md`
@@ -122,16 +122,16 @@ where `architecture-design` will read them. See the Intake admission test in
   shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
   a check folded into an existing review pass is undecided; needs its own `architecture-design` pass
   once real entries accumulate.
-- **The same staleness risk applies to `BACKLOG.md` and `MIGRATION.md` themselves, not only the skills
+- **The same staleness risk applies to `.anneal/work/backlog.md` and `MIGRATION.md` themselves, not only the skills
   corpus** — an item can be silently resolved as a side effect of unrelated landed work (a new
   operation absorbs what a backlog item asked for, an architectural pivot removes an assumption a
   `MIGRATION.md` stage depended on) and nothing re-reads the older entries against what has since
   landed. Both files are append-mostly in practice: entries get added when noticed and removed only
   when someone happens to work the exact item, never swept as a batch. The failure mode is the same
   shape as the skills one above — a human maintainer rarely re-walks a backlog after a large change,
-  but an agent can mechanically diff each entry's premise against current `docs/architecture/` and
+  but an agent can mechanically diff each entry's premise against current `.anneal/architecture/` and
   recent commits. Whether this becomes one general "re-validate accumulated notes" sweep covering
-  skills, `BACKLOG.md`, and `MIGRATION.md` together, or three narrower checks, is exactly the kind of
+  skills, `.anneal/work/backlog.md`, and `MIGRATION.md` together, or three narrower checks, is exactly the kind of
   question the skills item above says can only be answered once more experience of *doing* one such
   sweep exists — do not design the general version speculatively.
 

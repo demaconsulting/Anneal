@@ -13,9 +13,9 @@ reachable, and they are dismantled into that catalog. `helper` and `architecture
 absorbed last, because a conversation is the hardest control flow to encode — not because they are
 exempt.
 
-The dividing line in [README.md](README.md) § Direction holds for the whole journey: control flow
-and context assembly become code, judgement stays data. Absorbing an agent means compiling its loop,
-never its opinions; its prose becomes content a model is shown.
+The dividing line in [`.anneal/governance/vision.md`](.anneal/governance/vision.md) holds for the
+whole journey: control flow and context assembly become code, judgement stays data. Absorbing an
+agent means compiling its loop, never its opinions; its prose becomes content a model is shown.
 
 **Nothing below this altitude is scheduled, and no system documents are written for the
 destination.** Contracts for systems that do not exist yet are the speculative documentation this
@@ -49,7 +49,7 @@ These hold after **every** commit, not merely at a stage boundary.
 - **Self-hosting** — every commit leaves Anneal able to develop Anneal. Each generation of the
   process builds the next one, so a change that breaks the agents currently doing the work stops the
   migration rather than advancing it. This is the constraint that decides what a stage may contain,
-  and it is registered in [CONSTRAINTS.md](CONSTRAINTS.md) rather than owned here.
+  and it is registered in [constraints.md](.anneal/work/constraints.md) rather than owned here.
 - **One-way** — a responsibility that has moved from prose into code does not move back. The ratchet
   is what makes an unscheduled migration safe: with no plan to measure against, monotonic direction
   is the only guarantee that a day's work is progress.
@@ -87,7 +87,7 @@ needed.
   gates today.
 - *Restored, scoped* to deterministic operations when the first model-backed operation gates.
 
-**[overview.md](docs/architecture/overview.md)** — every edge is a file, never a call.
+**[overview.md](.anneal/architecture/overview.md)** — every edge is a file, never a call.
 
 - *Cannot hold because* prose agents invoke `dotnet anneal`, and the catalog is reached by calling
   it.
@@ -100,6 +100,91 @@ standard fails the build. That is the check working. The repair is to relocate t
 retire it with the agent — never to silence the clause.
 
 ## Current stage
+
+### S20 — Cut over to `.anneal/` as the sole authoritative source — landed
+
+**Why now.** S19 built `.anneal/`'s new tree as a parallel, non-authoritative copy, explicitly
+deferring every retargeting decision to a later stage so the preview could be validated in isolation
+first. That later stage is this one: with the new tree in place and reviewed, every remaining
+mechanism reading the old root layout (`RepositoryFacts`, `ProtectedPathTripwire`, the standards'
+file-discovery globs, `check-contracts`'s default, the agent prompts, this repository's own
+architecture cross-references) was retargeted in one stage rather than split further, since splitting
+it would leave the repository straddling two authoritative sources for longer than necessary. The
+user explicitly authorized breaking backward compatibility for this stage — there are no real
+downstream repositories yet, only tiny experiments, so nothing outside this repository depends on the
+old paths.
+
+**What landed.** Every hardcoded reference to the old root layout across source, tests, standards,
+and agent prompts now points at `.anneal/`:
+
+- **Toolkit source** — `RepositoryFacts`, `ProtectedPathTripwire`, `MaintainOperation`, `Router`,
+  `WorkerStandards`, `ContractCheckOptions`'s default `ArchitectureRoot`, `RecordStore` (records and
+  transcripts now write under `.anneal/logs/records/` and `.anneal/logs/transcripts/`, consolidating
+  what S19 deferred), and roughly forty other files carrying doc-comment cross-references, all now
+  read and describe `.anneal/architecture/`, `.anneal/work/constraints.md`, and
+  `.anneal/work/backlog.md`.
+- **Tests** — every fixture and contract test retargeted; three split `Path.Combine(root, "docs",
+  "architecture")` literals (a bulk string-substitution blind spot — a path built from separate
+  arguments is not caught by a substitution targeting the joined string) were found only by running
+  the suite, not by compiling, and fixed individually.
+- **Standards and agent prompts** — `change-classification.md`, `architecture-documentation.md`
+  (including removing its entire `# Publishing (MANDATORY)` section — PDF-publishing from
+  `docs/architecture/definition.yaml` has no place in a Toolkit-consumed tree, retired outright rather
+  than kept as a thin shell), `system-contracts.md`, `technical-documentation.md`,
+  `dispatch.agent.md`, and `architecture-design.agent.md` all retargeted; the latter's guidance for
+  reading assumptions on a re-cut now points at `.anneal/governance/assumptions.md` and
+  `.anneal/governance/tenets.md` instead of README's old Assumptions section.
+- **`test-process-contract.ps1`** — the `AgentReferencesResolve` check's `$requiredFiles`/
+  `$requiredDirs` lists, which define "the layout every installed repository is guaranteed to have,"
+  updated to the new `.anneal/` paths; this made the check an effective completeness net during the
+  retargeting, since any agent prompt still naming an old path failed until fixed. A real latent bug
+  in the script's own `prompt-authoring.md` path lookup was also fixed while there.
+- **`.anneal/architecture/*.md`'s own cross-references** — every live pointer inside Anneal's own
+  architecture tree (mermaid diagram labels, prose links to `CONSTRAINTS.md`/`BACKLOG.md`, the
+  tripwire's named protected paths) rewritten to the `.anneal/` equivalents; `template.md`'s one
+  mention of `docs/architecture/` was deliberately left alone, since it correctly describes the
+  template's *own*, not-yet-migrated skeleton structure.
+- **`.anneal/governance/`, `.anneal/profile/`, `.anneal/work/`'s own internal cross-references** —
+  `backlog.md`, `constraints.md`, `layout.md`, and a filed skill (`groom-backlog-not-just-append.md`)
+  all had their sibling links and prose retargeted to the new paths, including `constraints.md`'s
+  pointer to assumptions (now `.anneal/governance/assumptions.md` instead of README's Assumptions
+  section) and `layout.md`'s description of `.anneal/` itself (no longer "a parallel copy alongside
+  `docs/architecture/`" but the sole source).
+- **`.github/skills/check-contracts/SKILL.md`** — retargeted, since `ContractCheckOptions`'s actual
+  default changed; the skill would otherwise describe a default that no longer matches the code it's
+  documenting.
+- **`README.md`** — mechanically retargeted rather than given its full "user-level document" rewrite
+  (explicitly deferred by the user to a follow-up action). The duplicated `## Direction` and
+  `## Assumptions` sections, which restated `.anneal/governance/vision.md` and
+  `.anneal/governance/assumptions.md` verbatim, were trimmed to short pointers at those files instead
+  — removing the duplication S19 had left in place, not adding new content. The Architecture Tree
+  table, Repository Layout section, Installation section, and every other `CONSTRAINTS.md`/
+  `BACKLOG.md`/`docs/architecture/` mention were retargeted to the `.anneal/` equivalents.
+- **Old root files deleted**: `CONSTRAINTS.md`, `BACKLOG.md`, and `docs/architecture/` (the whole
+  tree, including its PDF-publishing artifacts) removed from the repository root, now that nothing
+  reads them — confirmed by a repository-wide grep finding zero remaining live references, only the
+  deliberately-preserved historical narration in this file's own S1-S19 entries and `process.md`'s
+  Decisions section, and the template's own still-deferred `docs/architecture/` skeleton under
+  `.github/template/`.
+
+**What did not land, and is deferred.** The template itself (`.github/template/`,
+`AGENTS.pristine.md`, and every file it vendors) was explicitly **not** touched this stage — it still
+describes the old root layout, and stays that way until a future onboarding operation migrates
+downstream repositories to `.anneal/` deliberately, rather than silently drifting the template out
+from under repositories that installed the old shape. `docs/user-guide/first-run.md` and
+`using-helper.md`'s worked examples were left as-is for the same reason: they describe a fictional
+target repository still on the old template layout that has not yet been migrated. `MIGRATION.md`'s own eventual move to
+`.anneal/work/active-plan.md` remains blocked on this file's own retirement, unchanged from S19.
+`.agent-logs/` consolidation under `.anneal/logs/` remains out of scope, since it would require
+editing `AGENTS.md`'s Agent Reporting section, which must stay byte-identical to
+`.github/template/AGENTS.pristine.md` — that coupling ties it to the same deferred template
+migration. README's deeper rewrite into a "nice user-level document," once this migration's own
+prose-agent-retirement thread is far enough along that the product pitch stops changing weekly,
+remains a follow-up action, not part of this stage.
+
+**Verification.** `pwsh ./fix.ps1` → `pwsh ./build.ps1` (393/393 tests, 18/18 process-contract
+checks) → `pwsh ./lint.ps1` (exit 0, 90/90 clauses linked, only the pre-existing `TEMPLATE-05`/
+`TEMPLATE-I1` planned-obligation warnings, unrelated to this stage).
 
 ### S19 — Create `.anneal/` as a parallel, non-authoritative documentation home — landed
 

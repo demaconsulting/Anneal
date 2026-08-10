@@ -24,7 +24,7 @@ internal sealed record ImplementationPlan(string Summary, IReadOnlyList<string> 
 ///     <see cref="Planner" /> for why single-shot is load-bearing here. Reusing <see cref="OperationOutcome" />
 ///     rather than growing a fourth case: whichever of these three a planning pass reaches, the pass itself
 ///     succeeded at answering its own question, which is <see cref="OperationOutcome.Succeeded" /> carrying this
-///     type as its finding, per <c>docs/architecture/toolkit.md</c> § Decisions.
+///     type as its finding, per <c>.anneal/architecture/toolkit.md</c> § Decisions.
 /// </remarks>
 internal abstract record PlanningDecision
 {

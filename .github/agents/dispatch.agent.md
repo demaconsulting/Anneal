@@ -28,14 +28,15 @@ before doing anything else.
 
 Determine the **mode** first, because three of the four fix the scope automatically:
 
-- **Intake** — apply the admission test and act on what it selects. For `BACKLOG.md` or the
-  **Assumptions** section of `README.md`, append one bullet; this stays as cheap as it is today. For
+- **Intake** — apply the admission test and act on what it selects. For `.anneal/work/backlog.md` or
+  `.anneal/governance/assumptions.md`, append one bullet; this stays as cheap as it is today. For
   a **constraint**, do not append: propose it per *Only the User Admits a Constraint* in
   `change-classification.md` — state the bullet in its intended wording and section — and report
   INCOMPLETE. If a register does not exist yet, create it from its template counterpart (resolved per
   the `# Reference Template` section of `AGENTS.md`); report INCOMPLETE if the template cannot be
-  resolved. `README.md` always exists — append to it, never recreate it. Say which file the
-  admission test chose and why. Do not proceed to Step 2; there is nothing to implement.
+  resolved. `.anneal/governance/assumptions.md` always exists — append to it, never recreate it. Say
+  which file the admission test chose and why. Do not proceed to Step 2; there is nothing to
+  implement.
 - **Maintenance** — restate the declared bound and stopping point, then go straight to Step 3,
   passing that bound to `maintain` as its file-scope hints. If the request has no bound, ask for one
   instead of inventing it. If the work turns out to need a contract change, stop and re-classify as a
@@ -106,8 +107,8 @@ dotnet anneal stage-contract "<work item, in plain text, naming the clause to st
 
 The work item is the clause to write, restated plainly, including that it is deliberately not yet
 implemented. `stage-contract` runs `DocumentAuthor` alone — no routing oracle, no code authoring, no
-verification — writing or updating `docs/architecture/{system}.md` with a `TODO.`-form clause, then
-checking that every changed file stayed under `docs/architecture/` and that a non-strict
+verification — writing or updating `.anneal/architecture/{system}.md` with a `TODO.`-form clause, then
+checking that every changed file stayed under `.anneal/architecture/` and that a non-strict
 `check-contracts` pass still exits clean. Read the exit code per **Reading Exit Codes** above.
 
 # Step 3 — Implement (Maintenance only)
@@ -124,8 +125,9 @@ here, unlike `route`'s: `maintain` mechanically checks every changed file agains
 list, so pass the declared bound through as the hint list verbatim, never summarized or widened.
 `maintain` runs `SmallFixWorker` directly — no routing oracle, no scope left to classify, since
 Maintenance is Small Fix by definition — then checks the worker's actual changes against both the
-declared bound and the architecture-tree/`CONSTRAINTS.md`/`BACKLOG.md` prohibition, escalating if
-either trips even when the worker itself reported success. Read the exit code per **Reading Exit
+declared bound and the architecture-tree/`.anneal/work/constraints.md`/`.anneal/work/backlog.md`
+prohibition, escalating if either trips even when the worker itself reported success. Read the exit
+code per **Reading Exit
 Codes** above; for Exit 2, at least one file-scope hint is required.
 
 If `maintain` reports something you cannot resolve yourself, stop and report INCOMPLETE with its
@@ -182,6 +184,7 @@ written (Migration)}
 ## Unknowns (only when Result is INCOMPLETE)
 
 {Each question the user must answer, and what can proceed without it — including "does the user
-admit this constraint into `CONSTRAINTS.md`?", quoting the proposed bullet, or `route`'s or
+admit this constraint into `.anneal/work/constraints.md`?", quoting the proposed bullet, or `route`'s
+or
 `stage-contract`'s own recommended next step verbatim when it escalated}
 ```

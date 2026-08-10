@@ -17,10 +17,10 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// </summary>
 /// <remarks>
 ///     Unlike <see cref="SmallFixWorker" />, this worker's repair is not one owner spending one shared budget —
-///     <c>docs/architecture/process.md</c> § Decisions' "ownership-directed" repair means a documentation finding
+///     <c>.anneal/architecture/process.md</c> § Decisions' "ownership-directed" repair means a documentation finding
 ///     repairs through <see cref="DocumentAuthor" />, a code finding through <see cref="Developer" />, and a
 ///     <see cref="VerificationOwner.Tenet" /> finding also through <see cref="Developer" /> — a tenet violation is
-///     fixed by changing code or configuration to conform to <c>CONSTRAINTS.md</c> and the affected contracts,
+///     fixed by changing code or configuration to conform to <c>.anneal/work/constraints.md</c> and the affected contracts,
 ///     which is still a code-shaped fix, and no separate "tenet author" primitive exists — each against its own
 ///     one-shot budget, documentation first, then code, then tenet, when a verdict names more than one.
 ///     <see cref="RepairLoop{TState}" />
@@ -86,8 +86,8 @@ internal sealed class ContractChangeWorker
     private const string VerifierQuestion =
         """
         Judge whether this change conforms to every contract clause it touches, is honestly scoped as Contract
-        Change rather than Structural Change, and leaves docs/architecture/ accurate for what was
-        actually built. Also check the change against CONSTRAINTS.md's Satisfied constraints and the boundaries
+        Change rather than Structural Change, and leaves .anneal/architecture/ accurate for what was
+        actually built. Also check the change against .anneal/work/constraints.md's Satisfied constraints and the boundaries
         of every system contract it touches; report any violation as a concern owned by Tenet, with a FixText
         naming the specific constraint or contract boundary crossed and what must change to stop crossing it.
         Report the verdict 'RerouteRequired', with your reasoning in the advisory notes, when
@@ -140,7 +140,7 @@ internal sealed class ContractChangeWorker
     ///     The most tenet-repair attempts spent when a verdict's concerns name <see cref="VerificationOwner.Tenet" />,
     ///     independent of <paramref name="maxDocumentationRepairAttempts" /> and <paramref name="maxCodeRepairAttempts" />.
     ///     A tenet finding repairs through <see cref="Developer" /> — the same primitive a code finding uses —
-    ///     since fixing a tenet violation means changing code or configuration to conform to <c>CONSTRAINTS.md</c>
+    ///     since fixing a tenet violation means changing code or configuration to conform to <c>.anneal/work/constraints.md</c>
     ///     and the affected contracts, spent from this separate budget rather than <paramref name="maxCodeRepairAttempts" />
     ///     so a tenet finding cannot starve or be starved by a code finding in the same round. Must be zero or
     ///     greater; defaults to 1, per this worker's bound to one tenet repair.
@@ -415,7 +415,7 @@ internal sealed class ContractChangeWorker
                 tenetRepairBudget--;
 
                 // A tenet finding repairs through Developer, the same primitive a code finding uses: fixing a
-                // tenet violation means changing code or configuration to conform to CONSTRAINTS.md and the
+                // tenet violation means changing code or configuration to conform to .anneal/work/constraints.md and the
                 // affected contracts, which is still a code-shaped fix, and no separate "tenet author" primitive
                 // exists - see the Apply Report's judgment call.
                 var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
@@ -531,7 +531,7 @@ internal sealed class ContractChangeWorker
         $"""
          {brief.OriginalWorkItem}
 
-         Update the affected system contract document(s) under docs/architecture/ for this change, and prune
+         Update the affected system contract document(s) under .anneal/architecture/ for this change, and prune
          any section document whose content no longer earns its place. Do not touch code or tests.
 
          Why this worker was selected: {brief.ScopeHint}

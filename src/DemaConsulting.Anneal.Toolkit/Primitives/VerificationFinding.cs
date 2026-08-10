@@ -45,10 +45,10 @@ internal enum VerificationOwner
     Code,
 
     /// <summary>
-    ///     A fix is owned by checking the work against <c>CONSTRAINTS.md</c> and the affected system contracts — a
+    ///     A fix is owned by checking the work against <c>.anneal/work/constraints.md</c> and the affected system contracts — a
     ///     "Tenet Check" — distinct from a documentation fix or a code fix.
     /// </summary>
-    [Description("a tenet-check fix is owned by checking the work against CONSTRAINTS.md and the affected system contracts")]
+    [Description("a tenet-check fix is owned by checking the work against .anneal/work/constraints.md and the affected system contracts")]
     Tenet
 }
 

@@ -35,14 +35,14 @@ Maintenance mode.
   asking no routing oracle and running no `Developer` or `Verifier` pass. It succeeds when a clause was
   authored and a non-strict `check-contracts` run (`TOOLKIT-34`) reports it well-formed; escalates when
   `DocumentAuthor` names a reroute, a protected-path write is refused, or the actual changes reach
-  outside `docs/architecture/` (`TOOLKIT-33`); fails when the staged clause is not well-formed, the
+  outside `.anneal/architecture/` (`TOOLKIT-33`); fails when the staged clause is not well-formed, the
   file-count budget is exceeded, or no model could be reached. A missing work item is a usage error
   under `TOOLKIT-10`.
   *Verified by:* `StageContractRunsWorkItemDirectlyThroughDocumentAuthor`
 
 - **TOOLKIT-33** — After `DocumentAuthor`'s run, `stage-contract` checks the actual files it reports
   having changed and forces escalation, naming the offending file, when any of them falls outside
-  `docs/architecture/` — the mirror image of `ProtectedPathTripwire`'s rule for Maintenance
+  `.anneal/architecture/` — the mirror image of `ProtectedPathTripwire`'s rule for Maintenance
   (`TOOLKIT-31`), since this action's whole job is to touch the architecture tree and nothing else.
   Checked against `DocumentAuthor`'s reported changed-file list, normalized against the repository
   root the same way `ProtectedPathTripwire` normalizes a declared file scope, rather than trusted as a
@@ -82,7 +82,7 @@ two" reasoning `maintain.md` and `route.md` § Decisions already apply to their 
 `stage-contract` is a thinner front door than either, not a second `route`.
 
 **The architecture-tree check is the mirror image of `maintain`'s protected-path tripwire, not the same
-check reused unchanged** — Maintenance may never touch `docs/architecture/`; `stage-contract`'s entire
+check reused unchanged** — Maintenance may never touch `.anneal/architecture/`; `stage-contract`'s entire
 job is to touch nothing else. Reusing `ProtectedPathTripwire` as-is would have answered the wrong
 question, so this operation checks containment directly rather than stretching that type to mean the
 opposite of what its own name says.
@@ -106,5 +106,5 @@ incompatible outcome shape.
 **No separate declared-bound argument, unlike `maintain`** — Maintenance's bound is caller-declared
 because a Maintenance work item could touch almost anywhere in the repository, and the tripwire alone
 cannot say which files a caller actually intended. `stage-contract` has exactly one legal target
-directory by construction (`docs/architecture/`), so there is nothing for a caller to declare that the
+directory by construction (`.anneal/architecture/`), so there is nothing for a caller to declare that the
 architecture-tree check does not already know.

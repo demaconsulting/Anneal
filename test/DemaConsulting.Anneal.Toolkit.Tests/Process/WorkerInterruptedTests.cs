@@ -83,7 +83,7 @@ public class WorkerInterruptedTests
         {
             var endpoint = new QueuedEndpoint(
                 "I updated the contract document.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated the contract"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check is missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -108,7 +108,7 @@ public class WorkerInterruptedTests
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
                 () => Assert.Null(result.Finding),
                 () => Assert.NotNull(result.Interrupted),
-                () => Assert.Contains("docs/architecture/toolkit.md", result.Interrupted!.FilesChanged),
+                () => Assert.Contains(".anneal/architecture/toolkit.md", result.Interrupted!.FilesChanged),
                 () => Assert.Contains("src/Foo.cs", result.Interrupted!.FilesChanged));
         }
         finally
@@ -153,7 +153,7 @@ public class WorkerInterruptedTests
             var endpoint = new QueuedEndpoint(
                 """{"kind":"DirectExecutionIsBetter","why":"simple enough","planSummary":"","planSteps":[]}""",
                 "I updated the docs.",
-                """{"kind":"Authored","why":"","filesChanged":["docs/architecture/toolkit.md"],"summary":"updated docs"}""",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated docs"}""",
                 "I implemented the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"first attempt"}""",
                 """{"verdict":"RepairRequired","concerns":[{"owner":"Code","fixText":"null check missing"}],"advisoryNotes":[],"evidenceSufficient":true}""",
@@ -179,7 +179,7 @@ public class WorkerInterruptedTests
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
                 () => Assert.Null(result.Finding),
                 () => Assert.NotNull(result.Interrupted),
-                () => Assert.Contains("docs/architecture/toolkit.md", result.Interrupted!.FilesChanged),
+                () => Assert.Contains(".anneal/architecture/toolkit.md", result.Interrupted!.FilesChanged),
                 () => Assert.Contains("src/Foo.cs", result.Interrupted!.FilesChanged));
         }
         finally

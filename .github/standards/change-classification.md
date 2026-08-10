@@ -32,7 +32,7 @@ scope.
 
 | Mode | Triggered by | May touch | Scope |
 | --- | --- | --- | --- |
-| **Intake** | someone raises a need or an idea | `BACKLOG.md`, README assumptions; a `CONSTRAINTS.md` proposal | n/a |
+| **Intake** | someone raises a need or an idea | `.anneal/work/backlog.md`, `.anneal/governance/assumptions.md`; a `.anneal/work/constraints.md` proposal | n/a |
 | **Change** | a requested behavior change | code, tests, contracts | Small Fix / Contract Change / Structural Change |
 | **Maintenance** | available capacity, no requested outcome | interior code and interior tests only | Small Fix |
 | **Migration** | an approved architecture restructure | everything, in declared stages | n/a |
@@ -40,32 +40,34 @@ scope.
 ## Intake
 
 Recording that something is wanted. **No code, no tests, no contract change.** Filing to
-`BACKLOG.md` and to the README assumptions is the cheapest step in the process, deliberately — if
-filing a need costs anything, needs stop being filed and those registers go empty. `CONSTRAINTS.md`
+`.anneal/work/backlog.md` and to `.anneal/governance/assumptions.md` is the cheapest step in the
+process, deliberately — if
+filing a need costs anything, needs stop being filed and those registers go empty. `.anneal/work/constraints.md`
 is the one exception, for the reason given under *Only the user admits a constraint* below.
 
 Apply the admission test: *does it hold, or does it complete?*
 
 Something that **completes** is a discrete piece of work, finished and stays finished — "add a
-`--version` flag". Append one bullet to `BACKLOG.md`.
+`--version` flag". Append one bullet to `.anneal/work/backlog.md`.
 
 Something that **holds** is a standing statement, and splits again on who could change it. If it
 could only change by a decision, it is a **constraint** — "runs on Windows", "supports .NET
-Standard 2.0", "starts in under a second". It belongs in `CONSTRAINTS.md` as one bullet:
+Standard 2.0", "starts in under a second". It belongs in `.anneal/work/constraints.md` as one bullet:
 **Satisfied** if the current design already meets it, **Not Yet Satisfied** if it does not. A
 constraint that needs work before it holds is still a constraint, not backlog. **Propose it; do not
 append it** — see below.
 
 If instead reality could prove it wrong without anyone changing their mind, it is an **assumption** —
-"our users have outbound internet access". Append one bullet to the **Assumptions** section of
-`README.md`, per `architecture-documentation.md`. Recording it is all that happens here; judging
+"our users have outbound internet access". Append one bullet to
+`.anneal/governance/assumptions.md`, per `architecture-documentation.md`. Recording it is all that
+happens here; judging
 whether it is load-bearing belongs to `architecture-design` at the next re-cut.
 
 Whichever file it lands in, the item is recorded and nothing else happens.
 
 ### Only the User Admits a Constraint
 
-**No agent, in any mode, appends an entry to `CONSTRAINTS.md` — in either section.** Only the user
+**No agent, in any mode, appends an entry to `.anneal/work/constraints.md` — in either section.** Only the user
 admits one. This binds Change, Maintenance and Migration exactly as it binds Intake; a rule that
 covered only Intake would leave every other path into the file open.
 
@@ -82,7 +84,7 @@ records that the current shape now meets it. `route`'s Structural Change worker 
 a Structural Change. Nothing here restricts it.
 
 **Why this one register and not the others.** The asymmetry is the cost of being wrong, not the cost
-of filing. A wrong `BACKLOG.md` line or README assumption is one stale bullet somebody skips, so
+of filing. A wrong `.anneal/work/backlog.md` line or assumption is one stale bullet somebody skips, so
 those stay frictionless and the argument above holds for them intact. A wrong constraint is a
 barrier every later change has to route around, and the register deliberately makes removal a
 decision rather than bookkeeping — *entries are never deleted for being met* — so anything an agent
@@ -95,7 +97,7 @@ A sentence that binds future work must carry its own reasoning inline. Naming an
 invariant as the reason is not the same as showing that the named rule actually implies the claim —
 a citation can be wrong, and once written it reads with that rule's full authority whether or not
 anyone checked. This applies wherever a binding-sounding claim is written, not only inside
-`CONSTRAINTS.md` — a `MIGRATION.md` stage entry, a Decisions paragraph, a routing table row. Before
+`.anneal/work/constraints.md` — a `MIGRATION.md` stage entry, a Decisions paragraph, a routing table row. Before
 writing "per the X invariant," reread X and confirm the claim actually follows; if it doesn't
 obviously follow, that is evidence the claim doesn't belong, not that it needs a better citation.
 
@@ -127,7 +129,7 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
 
 - **Maintenance is Small Fix by definition.** If the work would change a contract, it has left
   maintenance and must be re-classified as Change and re-approved.
-- **Maintenance may never edit the architecture tree**, `CONSTRAINTS.md`, or `BACKLOG.md`.
+- **Maintenance may never edit the architecture tree**, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`.
   Discovering an architectural problem during maintenance is a *finding to report*, never a license
   to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
@@ -151,7 +153,7 @@ design.
 - The approved proposal lives in **`MIGRATION.md`** at the repository root. It must be tracked,
   because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
   the stages and their exit conditions only; the target tree it approves lives in
-  `docs/architecture/` and is not restated here.
+  `.anneal/architecture/` and is not restated here.
 - Every commit declares Migration mode and references `MIGRATION.md`; splitting work is required
   here, not forbidden.
 - Contract clauses describing systems not yet built are **planned**: written now, and verified by a
@@ -177,7 +179,7 @@ Effort within Change mode, once Scope is known:
 | --- | --- | --- |
 | Small | A few lines; obviously correct | No plan. |
 | Medium | Multiple files, one system; ~50-200 lines | Lightweight plan. |
-| Large | Interiors of multiple systems | Full plan plus a Tenet Check against `CONSTRAINTS.md` and affected contracts. |
+| Large | Interiors of multiple systems | Full plan plus a Tenet Check against `.anneal/work/constraints.md` and affected contracts. |
 | Massive | Cannot execute as one unit | Decompose into phases first — see below. |
 
 Effort and Scope never imply one another. A 300-file mechanical rename is Massive Effort at Small
@@ -194,8 +196,9 @@ checks that apply together:
   move a boundary are a higher-scope change hiding in the decomposition. The periodic Maintenance
   sweep above is a second, complementary layer for drift across separate requests over time; it does
   not substitute for this per-request check, which sees phases the sweep cannot yet.
-- **A deterministic tripwire** — any phase touching `README.md`, `docs/architecture/**`,
-  `CONSTRAINTS.md`, or `BACKLOG.md` escalates to the highest scope and a human, unconditionally,
+- **A deterministic tripwire** — any phase touching `.anneal/governance/`, `.anneal/profile/`,
+  `.anneal/work/`, or `.anneal/architecture/` escalates to the highest scope and a human,
+  unconditionally,
   regardless of the cumulative check's verdict — the same files Maintenance is forbidden from
   touching. The `overview.md` stale-sentence exception below still applies.
 
@@ -228,7 +231,7 @@ restore already-promised behavior, dependency bumps, and test additions.
 
 - **Documentation**: none — unless the change invalidates an existing section document, in which
   case update or delete that one file. A narrow exception: correcting a sentence in
-  `docs/architecture/overview.md` that is factually stale but states or implies no contract-relevant
+  `.anneal/architecture/overview.md` that is factually stale but states or implies no contract-relevant
   fact — one whose correction does not add, remove, or rename a system, or change a system's stated
   relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
   list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
@@ -241,7 +244,7 @@ restore already-promised behavior, dependency bumps, and test additions.
 A clause is added, narrowed, removed, or given different meaning; or the system's internal
 decomposition changes enough that the rationale in its architecture document is now wrong.
 
-- **Documentation**: `docs/architecture/{system}.md` only.
+- **Documentation**: `.anneal/architecture/{system}.md` only.
 - **Agents**: `dispatch`, which runs it through `route` — one worker updates the contract,
   implements, and verifies in a single pass. `dispatch` runs `dotnet anneal stage-contract` directly,
   instead, only when the caller explicitly asks to stage the contract ahead of implementation, as a
@@ -255,7 +258,7 @@ decomposition changes enough that the rationale in its architecture document is 
 A system is added, removed, renamed, split, or merged; or the interaction, data flow, or process
 boundary between systems changes.
 
-- **Documentation**: `docs/architecture/overview.md` **and** every affected `{system}.md`. Update
+- **Documentation**: `.anneal/architecture/overview.md` **and** every affected `{system}.md`. Update
   `README.md` only if the product's purpose or audience changed — usually it has not.
 - **Agents**: `dispatch`, which runs it through the compiled toolkit's `route` action.
 - **Pruning**: prune section documents across every affected system; a removed system's directory is

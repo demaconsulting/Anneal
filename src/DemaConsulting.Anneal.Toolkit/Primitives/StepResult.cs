@@ -9,12 +9,12 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     outcome and finding are peers, never folded into one another, so a composing caller reads a verdict and a
 ///     value without parsing either out of the other. It stays internal because nothing outside the Toolkit
 ///     assembly calls a primitive directly — a primitive is vocabulary a compiled process composes, not a surface
-///     a consumer invokes on its own, per <c>docs/architecture/toolkit.md</c> § Composition.
+///     a consumer invokes on its own, per <c>.anneal/architecture/toolkit.md</c> § Composition.
 ///     <para>
 ///         <see cref="Outcome" /> reuses <see cref="OperationOutcome" /> unchanged rather than growing a
 ///         primitive-specific vocabulary: a typed finding such as a <c>Reroute</c> case is a primitive
 ///         successfully answering its own question, not a new kind of invocation result, which is the same
-///         reasoning <c>docs/architecture/toolkit.md</c> § Decisions gives for the compiled catalog as a whole.
+///         reasoning <c>.anneal/architecture/toolkit.md</c> § Decisions gives for the compiled catalog as a whole.
 ///     </para>
 /// </remarks>
 /// <typeparam name="TFinding">The typed value this step computes.</typeparam>

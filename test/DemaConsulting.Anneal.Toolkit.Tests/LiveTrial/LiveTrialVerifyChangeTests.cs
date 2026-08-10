@@ -35,7 +35,7 @@ public sealed class LiveTrialVerifyChangeTests
         // Arrange: a committed baseline - a system contract document with one real, already-fulfilled clause -
         // so verify-change has a real HEAD to diff the uncommitted change below against.
         fixture.WriteFile(
-            "docs/architecture/overview.md",
+            ".anneal/architecture/overview.md",
             """
             # Overview
 
@@ -44,7 +44,7 @@ public sealed class LiveTrialVerifyChangeTests
             - **Widget** - reads a configuration file and reports whether it is valid.
             """);
         fixture.WriteFile(
-            "docs/architecture/widget.md",
+            ".anneal/architecture/widget.md",
             """
             # Widget
 
