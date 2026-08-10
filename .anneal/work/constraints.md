@@ -62,6 +62,11 @@ quietly.
 Conditions the current decomposition gets in the way of. These are the pressure that argues for a
 re-cut. An entry moves up to **Satisfied** when a change absorbs it.
 
+- **`install.ps1` installs the Toolkit as a real dotnet tool dependency and runs an interactive
+  onboarding step** — the current installer copies payload files but does not register the Toolkit
+  as a dotnet tool in the target repository's tool manifest, and runs no guided first-run step.
+  This is a deliberately deferred future direction, not being built now.
+
 - **Evidence of agent behavior must survive local report cleanup** — today `.agent-logs/` is the only
   record of which agents ran, what verdicts they returned, and where they failed; it is gitignored, so
   fresh clones and CI cannot audit that behavior, but automation must not delete it unless a

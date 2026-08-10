@@ -39,8 +39,8 @@ way to update it and Patch as a fallback.
 | --- | --- |
 | `AGENTS.md` | Process instructions; stored here as `AGENTS.pristine.md`, carries no customization |
 | `README.md` | Level 0 of the architecture tree; product purpose, entry point, and the design's assumptions |
-| `CONSTRAINTS.md` | Conditions the architecture must satisfy, met and unmet (see below) |
-| `BACKLOG.md` | Wanted but unscheduled work (see below) |
+| `BACKLOG.md` | Redirect stub pointing to `.anneal/work/backlog.md` |
+| `CONSTRAINTS.md` | Redirect stub pointing to `.anneal/work/constraints.md` |
 | `.editorconfig` | Code formatting rules |
 | `.cspell.yaml` | Spell-check dictionary and configuration |
 | `.markdownlint-cli2.yaml` | Markdown formatting rules |
@@ -57,32 +57,66 @@ way to update it and Patch as a fallback.
 | `.github/workflows/build.yml` | CI gate; runs `build.ps1` **before** `lint.ps1` so the pass check has results |
 | `{ProjectName}.slnx` | Solution file (.NET repositories) |
 
-## Constraints and Backlog
+## Working Files (`.anneal/`)
 
-Two root-level files. In Intake mode, `helper` invokes compiled `intake`, which writes to
-`BACKLOG.md` and README assumptions; for a constraint, it reports the proposed bullet for user
-admission. The Intake admission test in
-`change-classification.md` decides which path an item takes:
+The `.anneal/` folder holds all working files for the process. These are the canonical locations;
+the root stubs above redirect to them for backward compatibility.
+
+### `.anneal/work/`
 
 | File | What belongs in it | Read by |
 | --- | --- | --- |
-| `CONSTRAINTS.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry states the condition; a Not Yet Satisfied entry may also state why the current shape blocks it. | `helper` before re-cutting; `route`'s Structural Change worker at Structural Change |
-| `BACKLOG.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
+| `.anneal/work/constraints.md` | Durable conditions the architecture must satisfy, split into **Satisfied** and **Not Yet Satisfied**. Each entry states the condition; a Not Yet Satisfied entry may also state why the current shape blocks it. | `helper` before re-cutting; `route`'s Structural Change worker at Structural Change |
+| `.anneal/work/backlog.md` | Wanted, not yet scheduled. Work that completes, rather than a property that holds. | Nobody automatically — it exists so an Intake item is not silently dropped |
+| `.anneal/work/active-plan.md` | The stages of an approved migration; present only while a migration is in flight. | Migration workers, stage by stage |
 
-Neither is a plan, and neither is scheduled. There is deliberately no `ROADMAP.md`: scheduling is
-what milestones and project boards do better, and a scheduled-work file goes stale faster than
-anything else in a repository.
+In Intake mode, `helper` invokes compiled `intake`, which writes to `.anneal/work/backlog.md` and
+`README.md` assumptions; for a constraint, it reports the proposed bullet for user admission. The
+Intake admission test in `change-classification.md` decides which path an item takes.
 
 A constraint is never deleted for being met — it moves to **Satisfied** and stays as the guard rail
 against regressing it. It is removed only when the condition stops being required. Backlog entries
 are deleted when they ship or stop being wanted.
 
-`MIGRATION.md` is a third root-level working file and is **deliberately absent from the map above**.
-It holds the stages of an approved migration, exists only while one is landing, and is deleted in its
-final commit — so scaffolding one into a repository would assert a migration that is not happening.
-`change-classification.md` owns it.
+Neither is a plan, and neither is scheduled. There is deliberately no `ROADMAP.md`: scheduling is
+what milestones and project boards do better, and a scheduled-work file goes stale faster than
+anything else in a repository.
 
-## Architecture Tree
+### `.anneal/governance/`
+
+| File | What belongs in it |
+| --- | --- |
+| `.anneal/governance/assumptions.md` | Curated, disprovable beliefs the design rests on; those that would falsify the whole decomposition if proven wrong. `helper` reads this before re-cutting. |
+| `.anneal/governance/tenets.md` | The values that shape decisions in this repository, in priority order when they conflict. |
+
+### `.anneal/architecture/`
+
+The architecture tree lives here rather than under `docs/`. A separate `docs/` collection compiles
+the tree for publishing, but the source of record is `.anneal/architecture/`.
+
+| File | Level | Required |
+| --- | --- | --- |
+| `.anneal/architecture/overview.md` | 1 | Yes — exactly one |
+| `.anneal/architecture/{system-name}.md` | 2 | Yes — one per system |
+| `.anneal/architecture/{system-name}/{section-name}.md` | 3+ | No — created when subdividing benefits clarity, conformity, or size |
+
+Level 3+ documents are created only when subdividing benefits the organization (clarity, conformity,
+or size), per `architecture-documentation.md`, and are deleted in the same change that obsoletes
+them.
+
+### `.anneal/skills/`
+
+| Path | Purpose |
+| --- | --- |
+| `.anneal/skills/{skill-name}.md` | A loaded-on-demand procedure note; agents load it when the situation it describes arises. |
+
+Skills are created and retired by the process, not scaffolded upfront. A new repository starts with
+no skills files.
+
+## Architecture Document Collection
+
+The publishable document collection under `docs/architecture/` compiles the `.anneal/architecture/`
+source into a PDF.
 
 | File | Level | Required |
 | --- | --- | --- |
@@ -95,7 +129,7 @@ final commit — so scaffolding one into a repository would assert a migration t
 
 Everything under `docs/` is a **document collection** that compiles to a PDF, so only files belonging
 to that document go there. A loose markdown file dropped into `docs/` is part of no document and is
-never published. The intake registers above are working files and live at the root.
+never published.
 
 `technical-documentation.md` owns the shape of a collection. Each one holds:
 

@@ -3,8 +3,8 @@
      sections below are its shape, and each carries its own directive. What may and may not appear
      at this level is owned by `.github/standards/architecture-documentation.md`; read it and
      `technical-documentation.md` before writing. Present tense, no roadmap language - unmet needs
-     belong in CONSTRAINTS.md or BACKLOG.md, not here. Use relative links for files inside this
-     repository and absolute URLs for external resources. Remove this block. -->
+     belong in .anneal/work/constraints.md or .anneal/work/backlog.md, not here. Use relative links
+     for files inside this repository and absolute URLs for external resources. Remove this block. -->
 
 # {ProjectName}
 
@@ -51,8 +51,8 @@ TODO: The parts it is built from - path and one-line role each - and how they me
 
 <!-- TEMPLATE-DIRECTIVE: What this design takes to be true and cannot itself guarantee - about the
      environment, the platform, the people, or the tools. An assumption is a belief the world could
-     falsify; a constraint in CONSTRAINTS.md is a condition you have decided the system must meet.
-     Test: could reality prove this wrong without anyone changing their mind? Then it is an
+     falsify; a constraint in .anneal/work/constraints.md is a condition you have decided the system
+     must meet. Test: could reality prove this wrong without anyone changing their mind? Then it is an
      assumption. Record only load-bearing ones - if it were false, the shape below would be wrong.
      Usually three to six, or omit the section entirely if the design rests on nothing unusual. An
      assumption that is disproved is a re-cut trigger, not a bug. Remove this block. -->
@@ -91,7 +91,7 @@ TODO: its real expected output
 
 ## Architecture
 
-See [Architecture Overview](docs/architecture/overview.md).
+See [Architecture Overview](.anneal/architecture/overview.md).
 
 ## License
 

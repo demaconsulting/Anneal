@@ -30,7 +30,11 @@ change edits Template, and neither dirties the other.
 ### Provides
 
 - **TEMPLATE-01** — Provides a complete repository layout: every file a repository following this
-  process requires, in its canonical location.
+  process requires, in its canonical location. Working files live under `.anneal/`: constraints and
+  backlog under `.anneal/work/`, governance artifacts under `.anneal/governance/`, architecture
+  documents under `.anneal/architecture/`, and skills under `.anneal/skills/`. Root-level
+  `BACKLOG.md` and `CONSTRAINTS.md` are convenience redirect stubs; they are not the canonical
+  locations and carry no content of their own.
   *Verified by:* `LayoutIsComplete`
 
 - **TEMPLATE-02** — Provides `repository-map.md` listing every file in the layout with its role, so an
@@ -71,11 +75,13 @@ change edits Template, and neither dirties the other.
 
 ## Composition
 
-The template splits into three parts with different rates of change. The **root files** — configuration,
-registers, scripts — change rarely and are the part Anneal keeps a working copy of. The **document
-skeletons** under `docs/architecture/` change whenever the standards change, because they encode the
-structure `architecture-documentation.md` describes. The **document pipeline** — `build-doc.ps1`, the
-HTML template, and `collection-links.lua` — changes least of all and is shared by every collection.
+The template splits into four parts with different rates of change. The **root files** — configuration,
+registers, scripts — change rarely and are the part Anneal keeps a working copy of. The **working file
+skeletons** under `.anneal/` — governance, architecture, work, and skills scaffolds — change when the
+process changes the shape it expects. The **document skeletons** under `docs/architecture/` change
+whenever the standards change, because they encode the structure `architecture-documentation.md` describes.
+The **document pipeline** — `build-doc.ps1`, the HTML template, and `collection-links.lua` — changes
+least of all and is shared by every collection.
 
 The pipeline is owned here rather than being its own system because what it promises is a property of the
 layout: put a `definition.yaml` in a folder and that folder becomes a publishable document. There is no
@@ -105,3 +111,9 @@ example that is merely edited leaves its own assumptions behind, and nothing mar
 `definition.yaml`, so the user guide and the architecture tree compile through the same path. A per-
 collection script was rejected because it would drift between collections in exactly the way the
 template drifts from Anneal when maintenance is applied asymmetrically.
+
+**Root stubs are convenience, not canonical** — `BACKLOG.md` and `CONSTRAINTS.md` at the repository
+root are redirect stubs pointing to their canonical locations under `.anneal/work/`. They exist so
+that a reader navigating by familiar root-level names lands in the right place, not because either
+file holds content. The canonical location is `.anneal/work/`; standards and agents that reference
+these files by name should use the `.anneal/work/` paths.
