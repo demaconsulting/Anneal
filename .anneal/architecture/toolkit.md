@@ -17,10 +17,11 @@ system delivers text that something else interprets. If it were rewritten, a con
 through the action names, their exit codes and their output shape, and through nothing else.
 
 Its reason for existing is narrower than "scripts, but in C#". A model call whose response schema is
-supplied at the end of the conversation rather than the beginning is measurably more reliable, and
-that ordering cannot be expressed in an agent prompt at all: by the time the answer is wanted, an
-instruction given at the start is far behind in the context window. Controlling when the schema is
-presented requires owning the conversation, which requires code.
+supplied at the end of the conversation rather than the beginning is measurably more reliable
+([assumptions.md](../governance/assumptions.md)), and that ordering cannot be expressed in an agent
+prompt at all: by the time the answer is wanted, an instruction given at the start is far behind in
+the context window. Controlling when the schema is presented requires owning the conversation, which
+requires code.
 
 ## Contract
 

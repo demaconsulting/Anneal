@@ -140,8 +140,8 @@ Three kinds of edge appear, and confusing them is the failure this diagram exist
   It must not call it, because that agent's method is a live interview and a headless invocation would
   invent the answers.
 
-`scope-check.agent.md` is gone from this diagram entirely — retired at Migration stage S18, following
-the `lint-fix`/`apply`/`architecture-update` precedent below — rather than kept as a Mechanical-zone
+`scope-check.agent.md` is gone from this diagram entirely — retired, following the
+`lint-fix`/`apply`/`architecture-update` precedent below — rather than kept as a Mechanical-zone
 node with nothing left calling it.
 
 The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
@@ -250,7 +250,7 @@ repeated at each decision site.
 
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this
-repository at Migration stage S6, the condition [active-plan.md](../work/active-plan.md) had named for
+repository, satisfying the condition [active-plan.md](../work/active-plan.md) named for
 retiring the prose agent that preceded it, so `.github/agents/lint-fix.agent.md` is retired rather
 than kept as a fallback with nothing left to fall back from. The node is removed rather than
 redrawn as something else in the Mechanical zone, because it was never a sub-agent another agent
@@ -262,9 +262,9 @@ a compiled command" would document machinery this system does not decide, since 
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 
 **`dispatch`'s edges to `architecture-update`, `apply`, and `scope-check` were removed, not redrawn** —
-at Migration stage S11, `dispatch` began calling `route` directly for every Change-mode request instead
-of chaining `architecture-update` → `apply` → `scope-check`; at S15, its Maintenance-mode edge moved to
-`maintain` the same way. At the time, `architecture-update` kept its edge to `Tree` and `scope-check`
+`dispatch` calls `route` directly for every Change-mode request instead of chaining
+`architecture-update` → `apply` → `scope-check`, and its Maintenance-mode edge goes to `maintain` the
+same way. Before that, `architecture-update` kept its edge to `Tree` and `scope-check`
 kept its edge from `Helper`, because each still did a job neither `route` nor `maintain` covered:
 `architecture-update` wrote a contract clause *ahead of* implementation, as a deliberate planned
 obligation — `route`'s Contract Change and Structural Change workers always compose document authoring,
@@ -273,7 +273,7 @@ later" mode. `scope-check` verifies a diff that never went through `route` or `m
 hand-written change, an externally contributed one, or anything predating this migration — where
 `route`'s own verification step only ever judges what its own pass just authored.
 
-**`apply.agent.md` was retired at Migration stage S16**, once its last two callers — `helper`'s "a
+**`apply.agent.md` was retired** once its last two callers — `helper`'s "a
 specific fix already reported" row and `dispatch`'s own stale Migration-mode line — were rewired to
 `dispatch` itself, following exactly the `lint-fix` precedent above: the node is removed once nothing
 calls it, not kept as an unused fallback. Its own removal from the diagram left `architecture-update`
@@ -283,7 +283,7 @@ target once a compiled equivalent for its remaining job existed (a design-only p
 `DocumentAuthor` alone, and a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
-**`architecture-update.agent.md` was retired at Migration stage S17**, once `stage-contract` — the
+**`architecture-update.agent.md` was retired** once `stage-contract` — the
 Toolkit's compiled design-only path, running `DocumentAuthor` alone to stage a contract clause ahead
 of implementation — was live-validated against a real model, the same bar `maintain` cleared before
 `apply.agent.md` retired. `dispatch` gained a **caller-declared** branch for it: Step 1 sends a request
@@ -303,7 +303,7 @@ own charter still instructs pruning; only the itemized report of it did not surv
 equivalent for its job exists (a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
-**`scope-check.agent.md` was retired at Migration stage S18**, once `verify-change` — the compiled
+**`scope-check.agent.md` was retired** once `verify-change` — the compiled
 standalone verify path built from `DiffCheck`, `DeterministicCheck`, and `Verifier`, the same
 primitives `ContractChangeWorker`/`StructuralChangeWorker` already compose for their own verification
 half — was live-validated against a real model, the same bar `stage-contract` cleared before

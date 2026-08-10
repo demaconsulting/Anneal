@@ -27,6 +27,13 @@ quietly.
 - **Every rule has exactly one owning file** — this is `PROCESS-I2` in
   [process.md](../architecture/process.md); that clause is the full statement, and other files
   reference it rather than restating it here.
+- **The cost of keeping documentation trustworthy does not grow with the volume of code change** —
+  interior rearrangement of a system must stay free of documentation cost no matter how often it
+  happens; only a change to what a system promises another may carry one. The current mechanism
+  ([product.md](../profile/product.md): "documentation work is triggered only when you change a
+  promise other code depends on") is one way of satisfying this, not the property itself — a re-cut
+  that found a better mechanism for the same property would still have to hold this constraint,
+  which is why it is recorded here rather than only as the mechanism's own description.
 - **Agent prompts and standards stay within a per-invocation context budget** — the worst-case prompt
   load stays under the ceiling declared and counted in
   [prompt-authoring.md](../architecture/process/prompt-authoring.md).
@@ -49,8 +56,7 @@ quietly.
 - **The basis of a model-backed judgement is captured at the time or lost** — a verdict on unchanged
   input is expected to be stable, but the reasoning behind it, the data the model was shown and the
   exact question it was asked are not recoverable by re-running. Without them a wrong verdict cannot
-  be diagnosed as a bad question rather than a bad answer. `TOOLKIT-11` absorbed this at stage S2 of
-  [active-plan.md](active-plan.md).
+  be diagnosed as a bad question rather than a bad answer. `TOOLKIT-11` absorbs this.
 
 ## Not Yet Satisfied
 
@@ -70,14 +76,14 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   agent never opened reads exactly like a checked finding. The paired belief is in
   [assumptions.md](../governance/assumptions.md); how a prompt demands the basis is owned by
   [prompt-authoring.md](../architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
-  mechanical half at stage S1a of [active-plan.md](active-plan.md) — whether a cited quote really is at the
-  line named — leaving the prompt obligation to state the basis still outstanding.
+  mechanical half — whether a cited quote really is at the line named — leaving the prompt obligation
+  to state the basis still outstanding.
 - **No compiled-in default may name a single external identifier whose retirement breaks every
   repository that has not overridden it** — a default naming one provider-side name works until that
   name is retired, and then fails everywhere at once with only a release to fix it.
 - **A repository's own pinned model names are not guaranteed to stay valid** — `.anneal/config.json`
-  names specific models by string, discovered at stage S1b of [active-plan.md](active-plan.md) when the
-  shipped defaults had already rotted before their first use. This recurs per repository and cannot
+  names specific models by string, and shipped defaults can rot before their first use. This recurs
+  per repository and cannot
   be fixed once: a vendor retiring a name breaks that repository's Toolkit invocations with nothing in
   the process noticing or repairing it, independently of whether Anneal's own compiled defaults (the
   entry above) have been addressed.
