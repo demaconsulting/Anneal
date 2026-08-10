@@ -7,6 +7,18 @@ always satisfy hold rather than complete, so they go in [constraints.md](constra
 where `architecture-design` will read them. See the Intake admission test in
 `change-classification.md`.
 
+- **Retired: a compiled `WorkTypeRouter` ahead of `route`'s `ScopeRouter`.** Considered twice
+  (once mid-session, once independently revisited) and rejected both times for the same reason:
+  `route`'s oracle earns a model call because Scope is genuinely undiscovered until the repository is
+  read — no one states "this touches a published contract" before checking. Mode is not that kind of
+  fact. Whichever agent is holding the conversation with the requester already knows whether this is
+  Intake, Change, Maintenance, or Migration, because the requester said so or it is obvious from
+  context; a separate oracle re-deriving it would spend a model call to reproduce information already
+  in hand, with the added risk of disagreeing with what the requester already stated. The correct
+  pattern is the one `dispatch.agent.md` already used: the conversational agent picks the CLI verb
+  directly (`route`/`maintain`/`stage-contract`/the future `intake`), and that stays true once the
+  conversational agent itself compiles — its own model call, at the moment it decides to act, names
+  the verb and arguments directly, rather than asking a second question of a second component.
 - **Rename the level-3 "section document" concept** — "section" also means a markdown heading block,
   and the two meanings collide throughout the standards and the template.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
