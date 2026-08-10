@@ -35,10 +35,11 @@ public class DocumentAuthorTests
             // Act
             var result = await author.AuthorAsync("clarify this", TestContext.Current.CancellationToken);
 
-            // Assert
+            // Assert: within budget — no oracle call is made (only 2 replies consumed)
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding));
+                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding),
+                () => Assert.Equal(2, endpoint.Calls));
         }
         finally
         {
@@ -47,9 +48,45 @@ public class DocumentAuthorTests
     }
 
     [Fact]
-    public async Task AuthorAsync_AuthoredOverBudget_Fails()
+    public async Task AuthorAsync_AuthoredOverBudget_OracleJudgesProportionate_Succeeds()
     {
-        // Arrange: a one-file budget, but the reply reports three files touched
+        // Arrange: a one-file budget, three files touched; oracle says the list is proportionate
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated three documents.",
+                """
+                {
+                    "kind": "Authored",
+                    "why": "",
+                    "filesChanged": ["a.md", "b.md", "c.md"],
+                    "summary": "a wide but justified change"
+                }
+                """,
+                // Third reply: oracle judges proportionate
+                """{"proportionate": true, "why": "", "hasSufficientEvidence": true}""");
+            var author = new DocumentAuthor(root, "a charter", targetFileCountBudget: 1, endpointFor: _ => endpoint);
+
+            // Act
+            var result = await author.AuthorAsync("clarify this", TestContext.Current.CancellationToken);
+
+            // Assert: oracle said proportionate, so the pass succeeds
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding),
+                () => Assert.Equal(3, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AuthorAsync_AuthoredOverBudget_OracleJudgesDisproportionate_FailsWithOracleReason()
+    {
+        // Arrange: a one-file budget, three files touched; oracle says the list is scope drift
         var root = CreateTemporaryDirectory();
         try
         {
@@ -62,14 +99,21 @@ public class DocumentAuthorTests
                     "filesChanged": ["a.md", "b.md", "c.md"],
                     "summary": "a wide change"
                 }
-                """);
+                """,
+                // Third reply: oracle judges disproportionate with a reason
+                """{"proportionate": false, "why": "b.md and c.md have no connection to the instruction", "hasSufficientEvidence": true}""");
             var author = new DocumentAuthor(root, "a charter", targetFileCountBudget: 1, endpointFor: _ => endpoint);
 
             // Act
             var result = await author.AuthorAsync("clarify this", TestContext.Current.CancellationToken);
 
-            // Assert: the change grew past this primitive's bound
-            Assert.Equal(OperationOutcome.Failed, result.Outcome);
+            // Assert: failed, and the oracle's own reasoning is surfaced as the note
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Null(result.Finding),
+                () => Assert.Contains(
+                    result.Notes,
+                    n => n.Text.Contains("b.md and c.md have no connection", StringComparison.Ordinal)));
         }
         finally
         {

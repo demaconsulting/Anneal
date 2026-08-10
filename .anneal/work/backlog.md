@@ -161,3 +161,4 @@ Toolkit-facing work without asking first.
 - **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
   standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
   per-repository values, so replacing it outright is the intended upgrade path.
+- Add a mid-run periodic self-check to ModelSession's tool-calling loop so that every K edit-tool calls it pauses for a cheap oracle check of whether the work still matches the original instruction, aborting early on detected scope drift; apply it to DocumentAuthor, Developer, and Planner.

@@ -7,10 +7,11 @@ using Xunit;
 namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 
 /// <summary>
-///     Boundary tests for TOOLKIT-32, TOOLKIT-33, and TOOLKIT-34: how <c>stage-contract</c> runs a work item
-///     directly against <c>DocumentAuthor</c> with no routing oracle and no <c>Developer</c>/<c>Verifier</c>
-///     pass, and mechanically enforces that the actual changes stay under <c>.anneal/architecture/</c> and that
-///     the staged clause is well-formed.
+///     Boundary tests for TOOLKIT-32, TOOLKIT-33, TOOLKIT-34, and TOOLKIT-48: how <c>stage-contract</c> runs a
+///     work item directly against <c>DocumentAuthor</c> with no routing oracle and no <c>Developer</c>/<c>Verifier</c>
+///     pass, mechanically enforces that the actual changes stay under <c>.anneal/architecture/</c>, that the staged
+///     clause is well-formed, and that an over-budget file count triggers a proportionality oracle probe rather than
+///     an automatic failure.
 /// </summary>
 /// <remarks>
 ///     Everything here goes through the same surface a caller has: the action name is passed to
@@ -167,6 +168,124 @@ public class StageContractContractTests
             () => Assert.Contains("stage-contract: failed", written, StringComparison.Ordinal),
             () => Assert.Contains("did not pass after staging", written, StringComparison.Ordinal),
             () => Assert.Contains("does not gate", written, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-48 (within-budget path) — a change whose file count is within the configured budget succeeds
+    ///     without any proportionality oracle call: only <c>DocumentAuthor</c>'s own two replies are consumed.
+    ///     Verified by <c>DocumentAuthorWithinBudgetSucceedsWithoutProbe</c>.
+    /// </summary>
+    [Fact]
+    public async Task DocumentAuthorWithinBudgetSucceedsWithoutProbe()
+    {
+        using var repository = new TemporaryRepository();
+        repository.WriteDocument("example.md", WellFormedTodoClause);
+
+        // Two replies only — if DocumentAuthor made a third oracle call the endpoint would run dry and the
+        // run would fail for the wrong reason instead of completing.
+        var endpoint = new QueuedEndpoint(
+            "I staged the clause.",
+            CompletedJson([".anneal/architecture/example.md"], "staged EXAMPLE-01"));
+
+        var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
+
+        var output = new StringWriter();
+        var exitCode = await AnnealTool.RunAsync(
+            ["stage-contract", "stage a clause for the example system"],
+            output,
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.Equal(2, endpoint.Calls));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-48 (over-budget, proportionate) — when <c>DocumentAuthor</c> reports more files than the
+    ///     default budget allows but the proportionality oracle judges the list traceable from the instruction,
+    ///     <c>stage-contract</c> continues and may succeed exactly as an in-budget run does. Verified by
+    ///     <c>DocumentAuthorOverBudgetProportionateSucceeds</c>.
+    /// </summary>
+    [Fact]
+    public async Task DocumentAuthorOverBudgetProportionateSucceeds()
+    {
+        using var repository = new TemporaryRepository();
+        repository.WriteDocument("example.md", WellFormedTodoClause);
+
+        // Four files reported — over the default budget of 3 — plus a third oracle-judgement reply saying
+        // the list is proportionate. If stage-contract failed before asking the oracle, the third reply
+        // would never be consumed and the check-contracts pass would not run; here it does run and the
+        // overall outcome is success.
+        var endpoint = new QueuedEndpoint(
+            "I updated four documents.",
+            CompletedJson(
+                [
+                    ".anneal/architecture/example.md",
+                    ".anneal/architecture/parent.md",
+                    ".anneal/architecture/overview.md",
+                    ".anneal/architecture/related.md"
+                ],
+                "staged EXAMPLE-01 and updated cross-references"),
+            """{"proportionate": true, "why": "", "hasSufficientEvidence": true}""");
+
+        var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
+
+        var output = new StringWriter();
+        var exitCode = await AnnealTool.RunAsync(
+            ["stage-contract", "stage a clause for the example system, updating all cross-references"],
+            output,
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+        var written = output.ToString();
+
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.Contains("stage-contract: completed", written, StringComparison.Ordinal),
+            () => Assert.Equal(3, endpoint.Calls));
+    }
+
+    /// <summary>
+    ///     TOOLKIT-48 (over-budget, disproportionate) — when <c>DocumentAuthor</c> reports more files than the
+    ///     default budget allows and the proportionality oracle judges the list scope drift, <c>stage-contract</c>
+    ///     fails and the oracle's stated reasoning is surfaced as the failure note. Verified by
+    ///     <c>DocumentAuthorOverBudgetDisproportionateFails</c>.
+    /// </summary>
+    [Fact]
+    public async Task DocumentAuthorOverBudgetDisproportionateFails()
+    {
+        using var repository = new TemporaryRepository();
+
+        var endpoint = new QueuedEndpoint(
+            "I updated four documents.",
+            CompletedJson(
+                [
+                    ".anneal/architecture/example.md",
+                    ".anneal/architecture/unrelated-a.md",
+                    ".anneal/architecture/unrelated-b.md",
+                    ".anneal/architecture/unrelated-c.md"
+                ],
+                "staged EXAMPLE-01 and made unrelated edits"),
+            """{"proportionate": false, "why": "unrelated-a.md, unrelated-b.md, and unrelated-c.md have no connection to the instruction", "hasSufficientEvidence": true}""");
+
+        var operation = new StageContractOperation(repository.Root, endpointFor: _ => endpoint);
+
+        var output = new StringWriter();
+        var exitCode = await AnnealTool.RunAsync(
+            ["stage-contract", "stage a clause for the example system"],
+            output,
+            [operation],
+            repository.Root,
+            TestContext.Current.CancellationToken);
+        var written = output.ToString();
+
+        Assert.Multiple(
+            () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
+            () => Assert.Contains("stage-contract: failed", written, StringComparison.Ordinal),
+            () => Assert.Contains("unrelated-a.md", written, StringComparison.Ordinal),
+            () => Assert.Equal(3, endpoint.Calls));
     }
 
     private static string CompletedJson(IReadOnlyList<string> filesChanged, string summary) =>

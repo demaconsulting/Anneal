@@ -33,9 +33,8 @@ Maintenance mode.
   asking no routing oracle and running no `Developer` or `Verifier` pass. It succeeds when a clause was
   authored and a non-strict `check-contracts` run (`TOOLKIT-34`) reports it well-formed; escalates when
   `DocumentAuthor` names a reroute, a protected-path write is refused, or the actual changes reach
-  outside `.anneal/architecture/` (`TOOLKIT-33`); fails when the staged clause is not well-formed, the
-  file-count budget is exceeded, or no model could be reached. A missing work item is a usage error
-  under `TOOLKIT-10`.
+  outside `.anneal/architecture/` (`TOOLKIT-33`); fails when the staged clause is not well-formed or
+  no model could be reached. A missing work item is a usage error under `TOOLKIT-10`.
   *Verified by:* `StageContractRunsWorkItemDirectlyThroughDocumentAuthor`
 
 - **TOOLKIT-33** — After `DocumentAuthor`'s run, `stage-contract` checks the actual files it reports
@@ -62,11 +61,24 @@ Maintenance mode.
   building `check-contracts` a change-scoped mode it does not otherwise need.
   *Verified by:* `StageContractFailsWhenTheStagedClauseIsNotWellFormed`
 
+- **TOOLKIT-48** — When `DocumentAuthor`'s reported changed-file count exceeds the configured budget
+  threshold, `stage-contract` does not fail immediately. Instead it makes one additional independent
+  Light-role oracle probe asking whether the touched file list is proportionate to and traceable from
+  the original work item, or looks like scope drift. The outcome depends solely on that oracle's
+  judgement: if the oracle finds the file list proportionate, `stage-contract` continues and may
+  succeed exactly as an in-budget run does; if the oracle finds the file list disproportionate,
+  `stage-contract` fails and the oracle's stated reasoning is surfaced as the failure note. Changes
+  within the budget threshold are never subject to this probe and pay no extra model call.
+  *Verified by:* `DocumentAuthorWithinBudgetSucceedsWithoutProbe`,
+  `DocumentAuthorOverBudgetProportionateSucceeds`,
+  `DocumentAuthorOverBudgetDisproportionateFails`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built
   from, and the escalation outcome this operation reports through.
-- **[Model Seam](./model-seam.md)** — every model call `DocumentAuthor`'s own authoring pass makes.
+- **[Model Seam](./model-seam.md)** — every model call `DocumentAuthor`'s own authoring pass makes,
+  and the Light-role oracle probe `TOOLKIT-48` adds when the file-count threshold is exceeded.
 - **[Process](../process.md)** — `DocumentAuthor` and `ContractCheckRunner`, both reused unchanged (the
   latter widened with a `strict` parameter, defaulting to its existing behavior) from the machinery
   `route`'s workers already built.
@@ -106,3 +118,12 @@ because a Maintenance work item could touch almost anywhere in the repository, a
 cannot say which files a caller actually intended. `stage-contract` has exactly one legal target
 directory by construction (`.anneal/architecture/`), so there is nothing for a caller to declare that the
 architecture-tree check does not already know.
+
+**The over-budget check is a probe, not a hard fail, because no fixed count is right for every
+legitimate instruction** — the threshold is a cheap signal that the file set might be drifted; it is
+not evidence that it is. A correctly-scoped Contract Change routinely touches a small set of coupled
+files (a system contract doc, a cross-reference in a related parent, the governing standard), and the
+right count for that set depends on the instruction, not on a universal ceiling. The existing budget
+parameter and its plumbing through `StructuralChangeWorker` and `ContractChangeWorker` are unchanged in
+shape — the threshold is still what triggers the extra check, so an ordinary in-budget change pays no
+extra model call.

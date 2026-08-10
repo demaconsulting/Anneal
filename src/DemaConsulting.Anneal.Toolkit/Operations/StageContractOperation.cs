@@ -132,8 +132,8 @@ public sealed class StageContractOperation : IOperation
         "implementation. Succeeds when a clause was authored and a non-strict, repository-wide check-contracts " +
         "run exits clean; escalates when DocumentAuthor names a reroute, a protected-path write is refused, or " +
         "the reported changes reach outside .anneal/architecture/; fails when the repository's contract check " +
-        "does not pass after staging, DocumentAuthor's file-count budget is exceeded, or no model could be " +
-        "reached.";
+        "does not pass after staging, the file-count budget is exceeded and a Light-role oracle judges the file " +
+        "list disproportionate to the instruction, or no model could be reached.";
 
     /// <inheritdoc />
     /// <remarks>
@@ -175,7 +175,11 @@ public sealed class StageContractOperation : IOperation
 
         if (result.Outcome != OperationOutcome.Succeeded || result.Finding is null)
         {
-            output.WriteLine("stage-contract: failed - DocumentAuthor did not complete this work.");
+            var failNote = result.Notes.FirstOrDefault()?.Text;
+            var failMessage = string.IsNullOrWhiteSpace(failNote)
+                ? "DocumentAuthor did not complete this work."
+                : failNote;
+            output.WriteLine($"stage-contract: failed - {failMessage}");
             return new OperationResult(result.Outcome, new StageContractReport([], string.Empty, null, null, null));
         }
 

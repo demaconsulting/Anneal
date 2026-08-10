@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Tools;
 
@@ -19,12 +20,36 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///         a claim the model gets to characterize.
 ///     </para>
 ///     <para>
+///         When the authored change's file count exceeds <c>targetFileCountBudget</c>, an extra cheap
+///         Light-role oracle probe judges whether the touched file list is proportionate to and traceable from
+///         the original instruction, or looks like scope drift. Failure only follows when that oracle judges
+///         the file list disproportionate; a proportionate over-budget change succeeds exactly as an in-budget
+///         change does. Changes within the budget are never probed and pay no extra model call.
+///     </para>
+///     <para>
 ///         Thread safety: instances are immutable and safe to share, but a run edits the working tree, so two
 ///         concurrent runs over one repository race exactly as two workers would.
 ///     </para>
 /// </remarks>
 internal sealed class DocumentAuthor
 {
+    /// <remarks>
+    ///     The charter keeps the oracle focused on proportionality alone: the question is not whether the
+    ///     change is correct, only whether the file list is traceable from the instruction.
+    /// </remarks>
+    private const string ProportionalityOracleCharter =
+        """
+        You are a proportionality judge. You are given an authoring instruction and the list of files that
+        a documentation pass reports having changed. Your only job is to decide whether the file list is
+        proportionate to and traceable from that instruction, or whether it looks like scope drift.
+        Proportionate means: every file in the list can be explained as a direct, necessary consequence of
+        the instruction — a system contract, a cross-reference in a related or parent document, the governing
+        standard that the instruction explicitly concerns. Scope drift means files were touched that have no
+        visible connection to the instruction. Answer with HasSufficientEvidence = true and Proportionate =
+        true when the list is proportionate; HasSufficientEvidence = true and Proportionate = false when it
+        looks like drift, surfacing your reasoning in the Why field so the failure note is useful.
+        """;
+
     private readonly string _repositoryRoot;
     private readonly string _charter;
     private readonly ModelRole _role;
@@ -45,8 +70,9 @@ internal sealed class DocumentAuthor
     /// </param>
     /// <param name="role">The capability tier the pass runs at. Defaults to <see cref="ModelRole.Heavy" />.</param>
     /// <param name="targetFileCountBudget">
-    ///     The most files an authored change may touch before it is treated as having grown past this primitive's
-    ///     bound. Must be greater than zero; defaults to 3.
+    ///     The most files an authored change may touch before a Light-role proportionality oracle is consulted to
+    ///     decide whether the excess is justified by the instruction or looks like scope drift. Must be greater
+    ///     than zero; defaults to 3.
     /// </param>
     /// <param name="maxOutputTokens">
     ///     The ceiling on generated output for every turn. Defaults to <see cref="ModelSession.DefaultMaxOutputTokens" />.
@@ -88,10 +114,11 @@ internal sealed class DocumentAuthor
     ///     path; <see cref="OperationOutcome.Succeeded" /> with the decoded result when a change was authored or
     ///     the pass named a better owner — both are this primitive successfully answering its own question, per
     ///     <c>.anneal/architecture/toolkit.md</c> § Decisions; <see cref="OperationOutcome.Failed" /> with no finding
-    ///     when the authored change exceeded the file-count budget or no model could be reached;
-    ///     <see cref="OperationOutcome.Refused" /> is reserved for the rarer case where ownership cannot be
-    ///     determined honestly enough to answer at all — see the remarks on <see cref="DocumentAuthoringResult" />
-    ///     for why that path is currently unreachable.
+    ///     when no model could be reached, or when the authored change's file count exceeded the budget and the
+    ///     Light-role proportionality oracle judged it disproportionate — in that case the oracle's stated
+    ///     reasoning is the failure note; <see cref="OperationOutcome.Refused" /> is reserved for the rarer case
+    ///     where ownership cannot be determined honestly enough to answer at all — see the remarks on
+    ///     <see cref="DocumentAuthoringResult" /> for why that path is currently unreachable.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="instruction" /> is null, empty or blank.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
@@ -136,11 +163,41 @@ internal sealed class DocumentAuthor
 
             if (envelope.Kind == DocumentAuthoringOutcomeKind.Authored &&
                 envelope.FilesChanged.Count > _targetFileCountBudget)
-                return new StepResult<DocumentAuthoringResult>(
-                    OperationOutcome.Failed,
-                    null,
-                    [new ProcessNote(
-                        $"touched {envelope.FilesChanged.Count} files, over the {_targetFileCountBudget}-file budget")]);
+            {
+                // Over budget: ask a cheap Light-role oracle whether the file list is proportionate to the
+                // instruction before deciding to fail. A correctly-scoped change that legitimately needs more
+                // files (e.g. a contract doc, cross-references in related docs, the governing standard) should
+                // not be rejected by a fixed ceiling; the ceiling's only job is to gate whether the extra model
+                // call is worth making.
+                var oracle = new Oracle<FileScopeJudgement>(
+                    _repositoryRoot,
+                    ProportionalityOracleCharter,
+                    ModelRole.Light,
+                    endpointFor: _endpointFor);
+
+                var fileList = string.Join("\n", envelope.FilesChanged.Select(f => $"- {f}"));
+                var question =
+                    $"""
+                     Instruction given to the documentation pass:
+                     {instruction}
+
+                     Files the pass reports having changed ({envelope.FilesChanged.Count}, over the {_targetFileCountBudget}-file budget):
+                     {fileList}
+
+                     Is this file list proportionate to and traceable from the instruction, or does it look like scope drift?
+                     """;
+
+                var judgement = await oracle.AskAsync(question, [], cancellationToken).ConfigureAwait(false);
+
+                if (judgement.Outcome != OperationOutcome.Succeeded || judgement.Finding?.Proportionate != true)
+                {
+                    var reason = judgement.Finding?.Why;
+                    var note = string.IsNullOrWhiteSpace(reason)
+                        ? $"touched {envelope.FilesChanged.Count} files, over the {_targetFileCountBudget}-file budget, and the proportionality oracle judged the file list disproportionate"
+                        : reason;
+                    return new StepResult<DocumentAuthoringResult>(OperationOutcome.Failed, null, [new ProcessNote(note)]);
+                }
+            }
 
             // Authored or Reroute: both are this primitive successfully answering its own question.
             return new StepResult<DocumentAuthoringResult>(OperationOutcome.Succeeded, Map(envelope), []);
@@ -165,4 +222,19 @@ internal sealed class DocumentAuthor
             new DocumentAuthoringResult.Reroute(envelope.Why),
         _ => throw new ArgumentOutOfRangeException(nameof(envelope), envelope.Kind, "Unknown authoring outcome kind.")
     };
+
+    /// <summary>
+    ///     The typed decision the proportionality oracle answers with when a change exceeds the file-count budget.
+    /// </summary>
+    private sealed record FileScopeJudgement : IOracleDecision
+    {
+        [Description("true when the file list is proportionate to and traceable from the instruction")]
+        public required bool Proportionate { get; init; }
+
+        [Description("the oracle's reasoning when the file list looks like scope drift; empty when proportionate")]
+        public required string Why { get; init; }
+
+        [Description("true when the instruction and file list provided enough information to judge proportionality honestly")]
+        public required bool HasSufficientEvidence { get; init; }
+    }
 }
