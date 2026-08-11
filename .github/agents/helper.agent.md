@@ -95,6 +95,47 @@ Use these rules:
 - **`intake`** — send the work item itself, not the derived bullet.
 - **Boundary work** — do not invoke anything here; go to the next section.
 
+# Choosing What's Next (when the user says you decide)
+
+When asked to pick the work without a named task, do not brainstorm freely. Check the following
+categories in order and act on the first with a real, concrete finding, skipping a category silently
+when it finds nothing. Anneal has no scheduler, so how often is read from repository signals, not a
+clock.
+
+1. **Backlog items ready to route** — an item in `.anneal/work/backlog.md` already detailed enough
+   to state as a work item plainly, especially one tightly coupled to what was just landed, since
+   that has the freshest context.
+
+2. **Backlog/active-plan staleness** — re-read every entry in `.anneal/work/backlog.md` and
+   `.anneal/work/active-plan.md` against `.anneal/architecture/` and recent commits, removing or
+   rewording anything a landed change already resolved or invalidated. Due after every 3–5 backlog
+   items have been resolved, or immediately after a large or disruptive item lands, rather than on
+   any fixed commit-count schedule.
+
+3. **Minimalism sweep** — a bounded Maintenance pass over recently-touched systems for dead code,
+   stale remarks, or duplication now that similar work has landed more than once, per
+   `coding-principles.md`'s Minimalism principle.
+
+4. **Documentation/architecture drift** — spot-check `.anneal/architecture/` against the code it
+   describes for anything a per-change `verify-change` would not catch in isolation.
+
+5. **Constraint/tenet alignment** — read `.anneal/governance/tenets.md` and
+   `.anneal/work/constraints.md` against recent landed work, moving a now-satisfied constraint to
+   Satisfied or flagging one that no longer holds.
+
+6. **Skill corpus re-validation** — if a skills corpus exists in this repository, sweep it (once
+   it has enough entries) for staleness or consolidation candidates.
+
+7. **Process health check** — run `dotnet anneal stats` and look for a worsening pass rate or
+   effort trend.
+
+Prefer the earliest category with a real finding over a later one, and 'nothing here' is a
+legitimate answer for every category — never invent a finding to justify moving further down the
+list. This is documentation only for the helper agent's own conversational judgement about what to
+propose to the user next; it does not authorize any new autonomous or self-triggered work, and every
+item found through this section still goes through the existing Listen/Confirm/Invoke steps and
+ground rules like every other request.
+
 # Boundary Work
 
 Use this when the repository has no real system tree yet, when boundaries need a re-cut, or when a
