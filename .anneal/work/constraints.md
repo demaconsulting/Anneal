@@ -89,14 +89,14 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
 - **Upgrading an installed payload must not silently destroy local customization** — `install.ps1
   -Force` overwrites every payload-owned file with no backup and no diff, including a locally edited
   standard.
-- **A judging agent must show the basis for its verdict before stating it** — no agent prompt in the
-  payload obliges one to, and `dispatch.agent.md`'s own report template places `Result` ahead of every
-  section carrying what that verdict rests on, so a universally-quantified negative about a file the
-  agent never opened reads exactly like a checked finding. The paired belief is in
-  [assumptions.md](../governance/assumptions.md); how a prompt demands the basis is owned by
-  [prompt-authoring.md](../architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
-  mechanical half — whether a cited quote really is at the line named — leaving the prompt obligation
-  to state the basis still outstanding.
+- **A judging agent must show the basis for its verdict before stating it** — the original violation
+  was `dispatch.agent.md` (now retired), whose report template placed `Result` ahead of every section
+  carrying what that verdict rested on. The authoring obligation is now stated as a mandatory rule:
+  every judging prompt must require basis before conclusion, per *Evidence before verdict* in
+  [prompt-authoring.md](../architecture/process/prompt-authoring.md). The paired belief is in
+  [assumptions.md](../governance/assumptions.md). `TOOLKIT-03` absorbs the mechanical half —
+  whether a cited quote really is at the line named — leaving the prompt obligation to demand the
+  basis still outstanding.
 - **No Anneal-shipped default may be a single external-name dead man's switch** — if a compiled-in
   provider, tool, or framework identifier is retired or renamed, a repository still using Anneal's
   shipped default must degrade or redirect rather than every non-overriding repository failing at once

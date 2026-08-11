@@ -123,14 +123,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
   skills, `.anneal/work/backlog.md`, and `active-plan.md` together, or three narrower checks, is exactly the kind of
   question the skills item above says can only be answered once more experience of *doing* one such
   sweep exists — do not design the general version speculatively.
-- **Demote `prompt-authoring.md`'s "What a Judging Prompt Must Demand" apparatus (closed report-template
-  set, advisory-section rule) from mandatory to guidance** — two independent reviews this session found
-  it was shaped by the now-retired `dispatch.agent.md`'s false-claim incident, and the payload now has
-  exactly one prose agent (`helper`), which is mainly a router/interviewer rather than a heavy judging
-  report emitter. Keep evidence-before-verdict and the universally-quantified-negative trap (both still
-  load-bearing per `assumptions.md` and `constraints.md`'s "A judging agent must show the basis"
-  entry); trim the closed-template-set/advisory-section ceremony unless another real judging prompt
-  emerging from the compiled catalog needs it. Needs a `helper` boundary-work look, not a quick edit.
 - **Reconsider `system-contracts.md`'s cross-cutting/shared-intermediate-node placement guidance
   against the current shallow tree** — two independent reviews split on this: the root-vs-child clause
   ownership rule is real and already exercised (`prompt-authoring.md`, `toolkit/*.md` own promises below

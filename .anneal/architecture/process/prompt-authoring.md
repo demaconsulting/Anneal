@@ -113,20 +113,14 @@ spends that reasoning rationalizing toward it, so the ordering is not presentati
 argument from being retrofitted to a conclusion already argued for. A one-word routing field commits no
 argument; a body section does.
 
-**The report template is a closed set.** A prompt that asks an agent to judge must make its report
-template the only body sections that agent may emit, and must say so in the prompt rather than leaving it
-implied by the template's existence. Anything the agent wants to raise beyond them goes in a non-blocking
-advisory section, which by definition cannot carry a pass verdict and cannot contribute to a success
-result. This is independent of `Evidence before verdict` above: that rule governs the *order* of the body
-sections, this one governs the *set*, and an invented section placed dutifully after every templated one
-satisfies the ordering rule completely. The reason the set must be closed is that a section an agent adds
-at judging time is a section whose criteria the agent also authored at judging time. A templated section's
-criteria were fixed in advance by the prompt author, so a reader can audit the verdict against them; a
-self-authored section grades the change against a rule that exists nowhere the caller can read, and a pass
-on it asserts conformance to something unwritten. The advisory section is the counterweight that makes the
-closure survivable rather than an afterthought — an agent that has found something real that no templated
-section covers needs somewhere to put it, or closure only pressures it into forcing the finding into a
-templated section where it does not belong.
+**Closing the report template is guidance, not a hard requirement.** Where a judging prompt defines a
+report template, restricting the agent to that template's body sections and routing invented findings to
+a non-blocking advisory section is a sound practice: a templated section's criteria were fixed in advance,
+so a reader can audit the verdict against them; a self-authored section grades the change against a rule
+that exists nowhere the caller can read. Apply this pattern when a judging prompt in the compiled catalog
+actually benefits from the discipline — the current payload has one prose agent (`helper`), which is
+primarily a router and interviewer rather than a report emitter, so mandating the ceremony universally
+would impose overhead with no benefit.
 
 **The universally-quantified negative is the specific trap.** "Names no sub-agent", "contains no hedging",
 "all bad examples were excluded" — these are the claims an agent asserts from a gist of a file without
@@ -198,9 +192,9 @@ and because each obligation flows from the structural contract in [process.md](.
 - A stated purpose narrow enough that "when not to use this" is obvious
 - Explicit standards to load, by name
 - When the agent judges: a report ordering basis before verdict, demanding the check behind any
-  universal negative, and declared in the prompt as the closed set of body sections with one non-blocking
-  advisory section for anything else — see
-  [What a Judging Prompt Must Demand](#what-a-judging-prompt-must-demand)
+  universal negative — see [What a Judging Prompt Must Demand](#what-a-judging-prompt-must-demand);
+  where the prompt defines a report template, consider restricting body sections to that template
+  with a non-blocking advisory section for anything else (guidance, not a hard requirement)
 
 ### New Standard
 
