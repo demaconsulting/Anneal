@@ -1,6 +1,9 @@
-# Backlog
+---
+description: Wanted, not yet scheduled work items.
+maintenance: Appended by intake when a work item is admitted as backlog-worthy; entries are removed or reworded directly once resolved, invalidated, or groomed.
+---
 
-Wanted, not yet scheduled.
+# Backlog
 
 Items here **complete** — each one finishes and stays finished. Standing properties the system must
 always satisfy hold rather than complete, so they go in [constraints.md](constraints.md) instead,

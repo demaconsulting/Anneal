@@ -1,3 +1,8 @@
+---
+description: The approved Migration proposal in flight, and its current stage.
+maintenance: Written once during boundary work when a Migration proposal is approved; updated as stages land; deleted by the commit landing the final stage.
+---
+
 # Migration: from prose agents to compiled processes
 
 This file is the approved proposal every Migration commit references. It exists only while the
