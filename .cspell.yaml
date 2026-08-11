@@ -59,7 +59,7 @@ ignorePaths:
   - "**/third-party/**"
   - "**/3rd-party/**"
   - "**/generated/**"
-  - "**/.agent-logs/**"
+  - "**/.anneal/logs/**"
   - "**/bin/**"
   - "**/obj/**"
   - package-lock.json

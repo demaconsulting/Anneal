@@ -268,12 +268,12 @@ internal sealed class ContractChangeWorker
             cancellationToken.ThrowIfCancellationRequested();
 
             var buildCheck = await _buildCheck
-                .RunAsync("build.ps1 check", _buildScript, null, cancellationToken)
+                .RunAsync("build.ps1 check", _buildScript, null, cancellationToken, brief.ChangedFileHints)
                 .ConfigureAwait(false);
             RecordStep(parentInvocationId, "DeterministicCheck:build.ps1", buildCheck.Outcome);
 
             var contractCheck = await _contractCheck
-                .RunAsync("check-contracts -Strict check", ContractCheckScript, null, cancellationToken)
+                .RunAsync("check-contracts -Strict check", ContractCheckScript, null, cancellationToken, brief.ChangedFileHints)
                 .ConfigureAwait(false);
             RecordStep(parentInvocationId, "DeterministicCheck:check-contracts", contractCheck.Outcome);
 

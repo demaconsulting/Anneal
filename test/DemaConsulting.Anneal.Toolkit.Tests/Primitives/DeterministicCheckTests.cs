@@ -264,6 +264,68 @@ public class DeterministicCheckTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_TouchedFileHintGiven_MiddleLineWithTouchedFileNameSurvivesTruncation()
+    {
+        // Arrange: build output that exceeds the budget; the critical warning sits in the middle and
+        // would be dropped by plain head+tail, but the touched-file hint names the file it mentions.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var head = new string('a', 900) + "\n";
+            var middle = "WARNING: src/Foo/Bar.cs has an unresolved reference\n";
+            var tail = new string('b', 900) + "\n";
+            // Pad with filler so total clearly exceeds the 2000-character budget
+            var filler = new string('c', 300);
+            var largeOutput = head + filler + middle + filler + tail;
+            var check = new DeterministicCheck(
+                root, runScript: (_, _) => Task.FromResult(new ScriptRun(1, largeOutput)));
+
+            // Act
+            var result = await check.RunAsync(
+                "build", "build.ps1", null, TestContext.Current.CancellationToken,
+                touchedFiles: ["src/Foo/Bar.cs"]);
+
+            // Assert: the touched-file warning from the middle of the output survives in the summary
+            Assert.Contains("Bar.cs has an unresolved reference", result.Finding!.Summary,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_NoTouchedFileHint_FallsBackToPlainHeadTailTruncation()
+    {
+        // Arrange: same oversized output as above, but no touched-file hint; the middle line must
+        // not appear in the summary so the caller sees unmodified head+tail behavior.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var head = new string('a', 1000);
+            var middle = "\nWARNING: src/Foo/Bar.cs has an unresolved reference\n";
+            var tail = new string('b', 1000);
+            var filler = new string('c', 500);
+            var largeOutput = head + filler + middle + filler + tail;
+            var check = new DeterministicCheck(
+                root, runScript: (_, _) => Task.FromResult(new ScriptRun(1, largeOutput)));
+
+            // Act: no touchedFiles argument — default (null) path
+            var result = await check.RunAsync(
+                "build", "build.ps1", null, TestContext.Current.CancellationToken);
+
+            // Assert: summary is pure head+tail — the middle warning is not there
+            Assert.DoesNotContain("Bar.cs has an unresolved reference", result.Finding!.Summary,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-check-" + Guid.NewGuid().ToString("N")[..12]);

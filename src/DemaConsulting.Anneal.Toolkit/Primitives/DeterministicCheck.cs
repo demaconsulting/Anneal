@@ -79,6 +79,12 @@ internal sealed class DeterministicCheck
     ///     <see cref="RunRepositoryScript" /> to act on, exactly as <paramref name="script" /> is.
     /// </param>
     /// <param name="cancellationToken">The caller's signal; cancelling it stops the run without reporting a verdict.</param>
+    /// <param name="touchedFiles">
+    ///     File names or relative paths the current change actually touches. When non-empty and output would be
+    ///     truncated, lines that mention one of these names are promoted ahead of the fixed head+tail selection so
+    ///     a warning about a changed file survives truncation even when it sits in the middle of a large report.
+    ///     Null and empty are equivalent; all existing callers that pass no hint get unmodified head+tail behavior.
+    /// </param>
     /// <returns>
     ///     <see cref="OperationOutcome.UsageError" /> with no finding when <paramref name="name" /> is blank or
     ///     <paramref name="script" /> is empty or blank (but not null); <see cref="OperationOutcome.Succeeded" />
@@ -88,7 +94,8 @@ internal sealed class DeterministicCheck
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
     public async Task<StepResult<CheckFinding>> RunAsync(
-        string name, string? script, string? selector, CancellationToken cancellationToken)
+        string name, string? script, string? selector, CancellationToken cancellationToken,
+        IReadOnlyList<string>? touchedFiles = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -124,8 +131,8 @@ internal sealed class DeterministicCheck
             var logPath = await TryWriteFullOutputAsync(name, run.Output).ConfigureAwait(false);
 
             var summary = logPath is null
-                ? Summarize(run.Output)
-                : Summarize(run.Output) + $"\n\nFull output: {logPath}";
+                ? Summarize(run.Output, touchedFiles)
+                : Summarize(run.Output, touchedFiles) + $"\n\nFull output: {logPath}";
 
             var finding = new CheckFinding(name, passed, run.ExitCode, summary, evidence);
 
@@ -184,14 +191,50 @@ internal sealed class DeterministicCheck
     ///         pages of per-file detail. Blind head-truncation silently drops exactly that signal. Each half is
     ///         1000 characters, preserving the same 2000-character real-content budget.
     ///     </para>
+    ///     <para>
+    ///         When <paramref name="touchedFiles" /> is non-empty and output would be truncated, lines that
+    ///         mention one of the touched file names are promoted ahead of the head+tail selection so a warning
+    ///         about a changed file is not lost to the middle-of-report blind spot. Promoted lines are prepended
+    ///         before the head+tail content, with remaining budget split evenly between head and tail. If the
+    ///         promoted lines alone exhaust the budget the head+tail halves are omitted entirely.
+    ///     </para>
     /// </remarks>
-    private static string Summarize(string output)
+    private static string Summarize(string output, IReadOnlyList<string>? touchedFiles = null)
     {
         const int halfBudget = 1000;
         const int fullBudget = halfBudget * 2;
 
         if (output.Length <= fullBudget)
             return output;
+
+        // Relevance-aware path: when touched-file hints are available, promote any line that mentions
+        // one of those files so it cannot be lost to the middle-of-report blind spot.
+        if (touchedFiles is { Count: > 0 })
+        {
+            var lines = output.Split('\n');
+            var promoted = lines
+                .Where(l => touchedFiles.Any(f =>
+                    l.Contains(Path.GetFileName(f), StringComparison.OrdinalIgnoreCase) ||
+                    l.Contains(f, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (promoted.Count > 0)
+            {
+                var promotedBlock = string.Join('\n', promoted);
+                // Promoted lines consume budget first; remaining budget is split evenly for head+tail.
+                if (promotedBlock.Length >= fullBudget)
+                    return promotedBlock[..fullBudget];
+
+                var remaining = fullBudget - promotedBlock.Length - 1; // -1 for separator newline
+                if (remaining <= 0)
+                    return promotedBlock;
+
+                var eachHalf = remaining / 2;
+                var head = output[..Math.Min(eachHalf, output.Length)];
+                var tail = output[^Math.Min(eachHalf, output.Length)..];
+                return promotedBlock + "\n" + head + $"\n\u2026[truncated]\u2026\n" + tail;
+            }
+        }
 
         var omitted = output.Length - fullBudget;
         return output[..halfBudget] + $"\n\u2026[{omitted} characters omitted]\u2026\n" + output[^halfBudget..];
