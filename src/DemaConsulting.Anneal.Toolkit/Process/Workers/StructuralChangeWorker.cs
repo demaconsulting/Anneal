@@ -60,13 +60,6 @@ internal sealed class StructuralChangeWorker
     private readonly string? _buildScript;
 
     /// <summary>
-    ///     The evidence label recorded for this worker's second deterministic check. Not a file on disk: the
-    ///     default runner calls <see cref="ContractCheckRunner" /> in process, so this names what ran rather
-    ///     than a script path.
-    /// </summary>
-    private const string ContractCheckScript = "check-contracts";
-
-    /// <summary>
     ///     The narrower question a <see cref="Verifier" /> answers once its deterministic evidence has passed.
     ///     Names both the repair verdicts and the two failure classes this worker distinguishes — a
     ///     <see cref="VerificationVerdict.RepairRequired" /> finding with no <see cref="VerificationOwner.Documentation" />,
@@ -96,22 +89,6 @@ internal sealed class StructuralChangeWorker
     ///     guidance most.
     /// </summary>
     private static readonly string[] PlannerStandards = ["change-classification.md"];
-
-    /// <summary>
-    ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call: architecture-document
-    ///     shape and the contract-clause rules, plus general markdown density since a documentation-owner
-    ///     pass routinely touches non-architecture prose (README, user guide) alongside the system doc.
-    /// </summary>
-    private static readonly string[] DocumentAuthorStandards =
-        ["architecture-documentation.md", "system-contracts.md", "technical-documentation.md"];
-
-    /// <summary>
-    ///     The fixed standards injected into every <see cref="Developer" /> call: coding and C# language always,
-    ///     plus testing and C# testing since this worker's own charter has <see cref="Developer" /> "implement code
-    ///     and tests against the plan and documentation the earlier passes just produced".
-    /// </summary>
-    private static readonly string[] DeveloperStandards =
-        ["coding-principles.md", "csharp-language.md", "testing-principles.md", "csharp-testing.md"];
 
     private readonly string _repositoryRoot;
     private readonly Planner _planner;
@@ -338,7 +315,7 @@ internal sealed class StructuralChangeWorker
                 RecordStep(parentInvocationId, "DeterministicCheck:build.ps1", buildCheck.Outcome);
 
                 var contractCheck = await _contractCheck
-                    .RunAsync("check-contracts -Strict check", ContractCheckScript, null, cancellationToken, brief.ChangedFileHints)
+                    .RunAsync("check-contracts -Strict check", WorkerHelpers.ContractCheckScript, null, cancellationToken, brief.ChangedFileHints)
                     .ConfigureAwait(false);
                 RecordStep(parentInvocationId, "DeterministicCheck:check-contracts", contractCheck.Outcome);
 
@@ -356,18 +333,18 @@ internal sealed class StructuralChangeWorker
                 if (verified.Outcome == OperationOutcome.Succeeded &&
                     verified.Finding?.Verdict == VerificationVerdict.Passed)
                     return new WorkerExecutionResult(
-                        OperationOutcome.Succeeded, new WorkerRunResult.Completed(Merge(documentation, code)), null, []);
+                        OperationOutcome.Succeeded, new WorkerRunResult.Completed(WorkerHelpers.Merge(documentation, code)), null, []);
 
                 if (verified.Outcome == OperationOutcome.Escalated)
                     return new WorkerExecutionResult(
                         OperationOutcome.Succeeded,
-                        new WorkerRunResult.Reroute(RerouteReason(verified.Finding), [.. verified.Finding?.AdvisoryNotes ?? []], null),
+                        new WorkerRunResult.Reroute(WorkerHelpers.RerouteReason(verified.Finding), [.. verified.Finding?.AdvisoryNotes ?? []], null),
                         null,
                         []);
 
                 if (verified.Outcome == OperationOutcome.Refused)
                     return new WorkerExecutionResult(
-                        OperationOutcome.Failed, null, MergeInterrupted(documentation, code), verified.Notes);
+                        OperationOutcome.Failed, null, WorkerHelpers.MergeInterrupted(documentation, code), verified.Notes);
 
                 var verdict = verified.Finding?.Verdict;
                 var concerns = verified.Finding?.Concerns ?? [];
@@ -397,14 +374,14 @@ internal sealed class StructuralChangeWorker
                         return new WorkerExecutionResult(
                             OperationOutcome.Failed,
                             null,
-                            MergeInterrupted(documentation, code),
+                            WorkerHelpers.MergeInterrupted(documentation, code),
                             [new ProcessNote(
                                 "the documentation-repair budget was already spent when another documentation finding arrived")]);
 
                     documentationRepairBudget--;
 
                     var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
-                            ComposeRepairInstruction(ComposeDocumentInstruction(brief, plan), documentationFixes),
+                            WorkerHelpers.ComposeRepairInstruction(ComposeDocumentInstruction(brief, plan), documentationFixes),
                             parentInvocationId,
                             "DocumentAuthor:repair",
                             cancellationToken)
@@ -412,7 +389,7 @@ internal sealed class StructuralChangeWorker
                     if (documentRepairTerminal is not null)
                         return documentRepairTerminal with
                         {
-                            Interrupted = documentRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                            Interrupted = documentRepairTerminal.Interrupted ?? WorkerHelpers.MergeInterrupted(documentation, code)
                         };
                     documentation = repairedDocument!;
 
@@ -431,7 +408,7 @@ internal sealed class StructuralChangeWorker
                     if (resyncTerminal is not null)
                         return resyncTerminal with
                         {
-                            Interrupted = resyncTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                            Interrupted = resyncTerminal.Interrupted ?? WorkerHelpers.MergeInterrupted(documentation, code)
                         };
                     code = resyncCode!;
 
@@ -444,14 +421,14 @@ internal sealed class StructuralChangeWorker
                         return new WorkerExecutionResult(
                             OperationOutcome.Failed,
                             null,
-                            MergeInterrupted(documentation, code),
+                            WorkerHelpers.MergeInterrupted(documentation, code),
                             [new ProcessNote(
                                 "the code-repair budget was already spent when another code finding arrived")]);
 
                     codeRepairBudget--;
 
                     var (codeRepairTerminal, repairedCode) = await RunDeveloperAsync(
-                            ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), codeFixes),
+                            WorkerHelpers.ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), codeFixes),
                             parentInvocationId,
                             "Developer:repair",
                             cancellationToken,
@@ -460,7 +437,7 @@ internal sealed class StructuralChangeWorker
                     if (codeRepairTerminal is not null)
                         return codeRepairTerminal with
                         {
-                            Interrupted = codeRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                            Interrupted = codeRepairTerminal.Interrupted ?? WorkerHelpers.MergeInterrupted(documentation, code)
                         };
                     code = repairedCode!;
 
@@ -473,7 +450,7 @@ internal sealed class StructuralChangeWorker
                         return new WorkerExecutionResult(
                             OperationOutcome.Failed,
                             null,
-                            MergeInterrupted(documentation, code),
+                            WorkerHelpers.MergeInterrupted(documentation, code),
                             [new ProcessNote(
                                 "the tenet-repair budget was already spent when another tenet finding arrived")]);
 
@@ -484,7 +461,7 @@ internal sealed class StructuralChangeWorker
                     // affected contracts, which is still a code-shaped fix, and no separate "tenet author"
                     // primitive exists - see the Apply Report's judgment call.
                     var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
-                            ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), tenetFixes),
+                            WorkerHelpers.ComposeRepairInstruction(ComposeCodeInstruction(brief, plan, documentation), tenetFixes),
                             parentInvocationId,
                             "Developer:tenet-repair",
                             cancellationToken,
@@ -493,7 +470,7 @@ internal sealed class StructuralChangeWorker
                     if (tenetRepairTerminal is not null)
                         return tenetRepairTerminal with
                         {
-                            Interrupted = tenetRepairTerminal.Interrupted ?? MergeInterrupted(documentation, code)
+                            Interrupted = tenetRepairTerminal.Interrupted ?? WorkerHelpers.MergeInterrupted(documentation, code)
                         };
                     code = repairedTenetCode!;
 
@@ -515,7 +492,7 @@ internal sealed class StructuralChangeWorker
                 // Every named verdict is handled above; an unnamed one is treated as a blocking failure rather
                 // than silently passing.
                 return new WorkerExecutionResult(
-                    OperationOutcome.Failed, null, MergeInterrupted(documentation, code), verified.Notes);
+                    OperationOutcome.Failed, null, WorkerHelpers.MergeInterrupted(documentation, code), verified.Notes);
             }
 
             // The inner loop above only falls through to here via the replan break above - every other path
@@ -637,20 +614,6 @@ internal sealed class StructuralChangeWorker
         _recordStore?.Append(
             new ProcessStepRecord(DateTimeOffset.UtcNow, parentInvocationId, step, outcome.ToString(), null, null));
 
-    private static ChangeSetSummary Merge(DocumentChangeSet document, ChangeSetSummary code) =>
-        new([.. document.FilesChanged, .. code.FilesChanged], $"{document.Summary} {code.Summary}".Trim());
-
-    private static ChangeSetBeforeStopping MergeInterrupted(DocumentChangeSet documentation, ChangeSetSummary code)
-    {
-        var merged = Merge(documentation, code);
-        return new ChangeSetBeforeStopping(merged.FilesChanged, merged.Summary);
-    }
-
-    private static string RerouteReason(VerificationFinding? finding) =>
-        finding is null || finding.AdvisoryNotes.Count == 0
-            ? "the verifier concluded this change needs to be rerouted, with no further reason recorded"
-            : string.Join("; ", finding.AdvisoryNotes);
-
     private string ComposePlanningQuestion(WorkerBrief brief, IReadOnlyList<string>? priorFindings) =>
         priorFindings is null or []
             ? $"""
@@ -709,7 +672,7 @@ internal sealed class StructuralChangeWorker
          </prior-reroutes>
 
          <standards>
-         {WorkerStandards.Render(_repositoryRoot, DocumentAuthorStandards)}
+         {WorkerStandards.Render(_repositoryRoot, WorkerHelpers.DocumentAuthorStandards)}
          </standards>
 
          <skills>
@@ -735,25 +698,13 @@ internal sealed class StructuralChangeWorker
          </research-findings>
 
          <standards>
-         {WorkerStandards.Render(_repositoryRoot, DeveloperStandards)}
+         {WorkerStandards.Render(_repositoryRoot, WorkerHelpers.DeveloperStandards)}
          </standards>
 
          <skills>
          {WorkerSkills.Render(_repositoryRoot, brief.OriginalWorkItem, brief.ChangedFileHints)}
          </skills>
          """;
-
-    private static string ComposeRepairInstruction(string originalInstruction, IReadOnlyList<string> requiredFixes) =>
-        requiredFixes.Count == 0
-            ? originalInstruction
-            : $"""
-               {originalInstruction}
-
-               The previous attempt's verification reported these required fixes:
-               {string.Join("\n", requiredFixes)}
-
-               Repair the issue.
-               """;
 
     private static string RenderPlan(ImplementationPlan? plan) =>
         plan is null

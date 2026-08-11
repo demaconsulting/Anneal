@@ -48,7 +48,10 @@ public class PowerShellScriptsTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            // Kill is synchronous but OS handle release is not: a grandchild spawned by pwsh
+            // (e.g. Start-Sleep) may still hold the directory open for a brief moment after
+            // WaitForExitAsync on the parent returns, so retry rather than fail the cleanup.
+            await DeleteWithRetryAsync(root);
         }
     }
 
@@ -157,5 +160,25 @@ public class PowerShellScriptsTests
         var path = Path.Combine(Path.GetTempPath(), "anneal-scripts-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    /// <remarks>
+    ///     After <c>Kill(entireProcessTree)</c> the parent process is gone but an OS grandchild may still hold
+    ///     file handles briefly. Retrying avoids a spurious cleanup failure without weakening the kill assertion.
+    /// </remarks>
+    private static async Task DeleteWithRetryAsync(string path)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            try
+            {
+                Directory.Delete(path, recursive: true);
+                return;
+            }
+            catch (IOException) when (attempt < 9)
+            {
+                await Task.Delay(100);
+            }
+        }
     }
 }
