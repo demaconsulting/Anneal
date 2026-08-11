@@ -76,8 +76,8 @@ public class InstallSubprocessTests
                 Directory.Exists(Path.Combine(target.Root, ".github", "template")),
                 ".github/template must exist in the target"),
             () => Assert.True(
-                File.Exists(Path.Combine(target.Root, ".github", "template", "repository-map.md")),
-                ".github/template/repository-map.md must be vendored into the target"));
+                File.Exists(Path.Combine(target.Root, ".github", "template", ".anneal", "architecture", "overview.md")),
+                ".github/template/.anneal/architecture/overview.md must be vendored into the target"));
     }
 
     // ==========================================================================================

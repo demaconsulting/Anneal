@@ -7,10 +7,13 @@
 #   payload path below is its own destination.
 #
 #   The payload is the contents of .github/ PLUS a vendored copy of the template
-#   at .github/template/. Anneal resolves the template from .github/template/
-#   first and from template-url second, so the vendored copy is preferred rather
-#   than required: it needs no network, and it pins the template to the agent
-#   versions installed beside it, so the two cannot drift apart.
+#   at .github/template/. The template now ships only its .anneal/ working-file
+#   skeleton (governance, architecture, work scaffolds) — the full repository
+#   layout it once contained (scripts, docs/, src/, config files) is retired.
+#   Anneal resolves the template from .github/template/ first and from
+#   template-url second, so the vendored copy is preferred rather than required:
+#   it needs no network, and it pins the template to the agent versions installed
+#   beside it, so the two cannot drift apart.
 #
 # USAGE:
 #   pwsh ./install.ps1 -TargetRepository ../my-product

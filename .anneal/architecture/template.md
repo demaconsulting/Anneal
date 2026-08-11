@@ -1,115 +1,58 @@
 ---
 level: system
 covers:
-  - .github/template/**
-  - docs/build-doc.ps1
-  - docs/template/**
+  - .github/template/.anneal/**
 ---
 
 [← Architecture Overview](./overview.md)
 
 # Template
 
-Template defines the repository a product gets, as opposed to the process it follows. It owns the
-canonical layout — which files exist, where they sit, and what shape each has when empty — together with
-the scripts that layout ships with: `lint.ps1`, `fix.ps1`, `build.ps1`, and the
-document pipeline that compiles a folder of markdown into HTML and PDF.
+Template ships the `.anneal/` working-file skeleton a new repository needs to start following the
+Anneal process. It is a resource for a not-yet-built onboarding CLI, not a full repository layout.
 
-It is a system rather than inert content because `repository-map.md` is a promise about the shipped
-layout independent of whether anyone ever runs `install.ps1`: every file the template ships is listed
-there, keeping the map accurate is a property TEMPLATE-02/03 hold whether or not anything is currently
-built to read it mechanically.
+The shipped tree contains governance scaffolds under `.anneal/governance/`, architecture scaffolds
+under `.anneal/architecture/`, and work scaffolds under `.anneal/work/`. Nothing else is shipped:
+scripts, configuration files, source trees, and document pipelines that the template once carried
+have been retired; their guidance lives in `docs/user-guide/repository-scripts.md`.
 
-The boundary against [Process](./process.md) is worth stating precisely: **Process owns what agent
-prompts and standards say; Template owns that a correct layout, including their canonical location,
-is present in the shipped tree.** Content versus placement. A wording change edits Process, a layout
-change edits Template, and neither dirties the other.
+The boundary against [Process](./process.md) is unchanged: **Process owns what agent prompts and
+standards say; Template owns that the `.anneal/` skeleton, including canonical locations, is present
+in the shipped tree.**
 
 ## Contract
 
 ### Provides
 
-- **TEMPLATE-01** — Provides a complete repository layout: every file a repository following this
-  process requires, in its canonical location. Working files live under `.anneal/`: constraints and
-  backlog under `.anneal/work/`, governance artifacts under `.anneal/governance/`, architecture
-  documents under `.anneal/architecture/`, and skills under `.anneal/skills/`. Root-level
-  `BACKLOG.md` and `CONSTRAINTS.md` are convenience redirect stubs; they are not the canonical
-  locations and carry no content of their own.
-  *Verified by:* `LayoutIsComplete`
-
-- **TEMPLATE-02** — Provides `repository-map.md` listing every file in the layout with its role, so an
-  audit can be performed against the map alone.
-  *Verified by:* `RepositoryMapListsEveryFile`
-
-- **TEMPLATE-03** — Ships every file it describes, so no map entry names a file the template does not
-  contain and no template file is absent from the map.
-  *Verified by:* `MapAndTemplateAgree`
-
-- **TEMPLATE-05** — Compiles any folder containing a `definition.yaml` collection into HTML and then PDF,
-  resolving relative links between documents in that collection into cross-references.
-  *Verified by:* `TODO.CollectionCompilesToPdf`
-
-- **TEMPLATE-06** — Ships template documents whose placeholders and directives are machine-recognizable,
-  so an agent filling one in can confirm none remain.
+- **TEMPLATE-06** — Ships template documents whose placeholders and directives are
+  machine-recognizable, so an agent filling one in can confirm none remain.
   *Verified by:* `DirectivesAreRecognizable`
-
-- **TEMPLATE-07** — Ships a .NET tool manifest pinning the [Toolkit](./toolkit.md) version, so a
-  repository can restore the tool.
-  *Verified by:* `ToolManifestIsShipped`
 
 ### Requires
 
-- **[Process](./process.md)** — the standards the layout expects to be installed alongside the agent
-  prompts.
-- **Pandoc** — markdown to HTML and PDF conversion, with Lua filter support.
+- **[Process](./process.md)** — the standards the skeleton expects to be installed alongside the
+  agent prompts.
 
 ### Invariants
 
-- **TEMPLATE-I1** — The layout is valid for a C# product repository regardless of Anneal's own needs; a
-  root file in this repository may diverge from its template counterpart, but never the reverse.
-  *Verified by:* `TODO.TemplateRemainsProductShaped`
+None.
 
 ## Composition
 
-The template splits into four parts with different rates of change. The **root files** — configuration,
-registers, scripts — change rarely and are the part Anneal keeps a working copy of. The **working file
-skeletons** under `.anneal/` — governance, architecture, work, and skills scaffolds — change when the
-process changes the shape it expects. The **document skeletons** under `docs/architecture/` change
-whenever the standards change, because they encode the structure `architecture-documentation.md` describes.
-The **document pipeline** — `build-doc.ps1`, the HTML template, and `collection-links.lua` — changes
-least of all and is shared by every collection.
+The template is a single part: the `.anneal/` working-file skeleton. It contains:
 
-The pipeline is owned here rather than being its own system because what it promises is a property of the
-layout: put a `definition.yaml` in a folder and that folder becomes a publishable document. There is no
-consumer that wants the pipeline without the layout.
+- `.anneal/governance/` — `assumptions.md` and `tenets.md` scaffolds
+- `.anneal/architecture/` — `overview.md` and `system-name.md` scaffolds
+- `.anneal/work/` — `active-plan.md`, `backlog.md`, and `constraints.md` scaffolds
 
-The hazard specific to this system is over-synchronization. Anneal's own root files may legitimately
-differ from their template counterparts when this repository needs behavior a downstream C# product
-should not inherit. Reconciling them by making the template mirror Anneal would break downstream
-repositories while looking like cleanup. The rule is directional and recorded as `TEMPLATE-I1`.
+Each file ships with `TEMPLATE-DIRECTIVE` blocks that instruct an agent filling it in, then are
+deleted. Shipping prose examples was rejected because an example that is merely edited leaves its own
+assumptions behind, and nothing marks where they were.
 
 ## Decisions
 
-**`TEMPLATE-I1` has no mechanical verifier** — the invariant is a directional property: Anneal's own
-root files may diverge from their template counterparts, but the template must remain valid for a C#
-product repository. Verifying "valid for a C# product repository" requires compiling a downstream
-project, running its tests, and judging that nothing Anneal-specific leaked into the generic
-skeleton — a judgement call that depends on what a product repository looks like and is therefore
-owned by `helper`'s boundary-work review rather than a script. The `TODO.TemplateRemainsProductShaped`
-verifier placeholder stands as an obligation reminder, not a gap — if a future constraint makes
-the property mechanical, the placeholder resolves then.
-
-**Skeletons carry directives, not prose** — template documents contain explicit `TEMPLATE-DIRECTIVE`
-blocks that instruct an agent and are then deleted. Shipping prose examples was rejected because an
-example that is merely edited leaves its own assumptions behind, and nothing marks where they were.
-
-**One pipeline, many collections** — `build-doc.ps1` is generic over any folder with a
-`definition.yaml`, so the user guide and the architecture tree compile through the same path. A per-
-collection script was rejected because it would drift between collections in exactly the way the
-template drifts from Anneal when maintenance is applied asymmetrically.
-
-**Root stubs are convenience, not canonical** — `BACKLOG.md` and `CONSTRAINTS.md` at the repository
-root are redirect stubs pointing to their canonical locations under `.anneal/work/`. They exist so
-that a reader navigating by familiar root-level names lands in the right place, not because either
-file holds content. The canonical location is `.anneal/work/`; standards and agents that reference
-these files by name should use the `.anneal/work/` paths.
+**Payload reduced to the `.anneal/` skeleton** — scripts (`build.ps1`, `lint.ps1`, `fix.ps1`),
+configuration files, source trees, document pipelines, and the `repository-map.md` that once
+described them were retired. Their guidance is preserved in `docs/user-guide/repository-scripts.md`.
+The retained skeleton is the resource a future onboarding CLI will read to scaffold a new
+repository's working files.

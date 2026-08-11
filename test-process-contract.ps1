@@ -466,19 +466,19 @@ Test-Case -Name "AgentReferencesResolve" -Body {
         }
     }
 
-    # Regression guard: the shipped-file index must include dot-prefixed files.
-    # It cannot fail on Windows, where a leading dot means nothing and the index is
-    # complete with or without -Force; it fails on Linux, where PowerShell treats
-    # those names as hidden and omits them unless -Force is passed. That asymmetry
-    # is the point - this guard exists because the omission is invisible to the
-    # developer and only ever surfaces in CI.
-    foreach ($dotFile in @(".cspell.yaml", ".editorconfig")) {
-        if (-not $shipped.ContainsKey($dotFile)) {
-            $problems.Add("shipped-file index is missing '$dotFile' (dot-prefixed file not enumerated)")
-        }
-    }
-    if (-not $knownExtensions.Contains(".toml")) {
-        $problems.Add("knownExtensions is missing '.toml' (dot-prefixed .toml files not enumerated)")
+    # Regression guard: the shipped-file index must include files that live inside
+    # dot-prefixed directories. It cannot fail on Windows, where a leading dot means
+    # nothing and the index is complete with or without -Force; it fails on Linux,
+    # where PowerShell treats dot-prefixed names as hidden and omits them unless
+    # -Force is passed. That asymmetry is the point - this guard exists because the
+    # omission is invisible to the developer and only ever surfaces in CI.
+    #
+    # overview.md lives under .github/template/.anneal/architecture/, so reaching it
+    # requires traversing the dot-prefixed .anneal directory. If -Force were removed
+    # from the enumeration above, this file would disappear from $shipped on Linux
+    # and the guard would fire.
+    if (-not $shipped.ContainsKey("overview.md")) {
+        $problems.Add("shipped-file index is missing 'overview.md' (file inside dot-prefixed .anneal directory not enumerated - check -Force on Get-ChildItem)")
     }
 
     return $problems
@@ -893,129 +893,6 @@ Test-Case -Name "NormativeRulesHaveOneOwner" -Body {
 Write-Host ""
 Write-Host "Testing: Template contract (.anneal/architecture/template.md)"
 
-# --- TEMPLATE-01 --------------------------------------------------------------
-# install.ps1's $payload list is the authoritative list of what ships. The check
-# walks what it copies and confirms every destination path resolves.
-Test-Case -Name "LayoutIsComplete" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $destinations = Get-PayloadDestination
-    foreach ($dest in $destinations) {
-        $full = Repo-Path $dest
-        if (-not (Test-Path -LiteralPath $full)) {
-            $problems.Add("install.ps1 lists payload destination '$dest' but it does not exist in this repository")
-        }
-    }
-
-    Add-Note "payload destinations checked: $($destinations.Count)"
-    return $problems
-}
-
-# --- TEMPLATE-02 --------------------------------------------------------------
-# Every file under .github/template/ must be mentioned in repository-map.md.
-# Placeholder-named files (carrying {system-name} etc.) satisfy the requirement
-# when the map names the placeholder pattern rather than a concrete file.
-Test-Case -Name "RepositoryMapListsEveryFile" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $templateRoot = Repo-Path ".github/template"
-    $mapPath = Repo-Path ".github/template/repository-map.md"
-    $mapText = Read-Text $mapPath
-
-    # All concrete names and placeholder patterns present in the map (backticked tokens)
-    $mapTokens = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    foreach ($m in [regex]::Matches($mapText, '`([^`]+)`')) {
-        [void]$mapTokens.Add($m.Groups[1].Value.Trim('/'))
-    }
-
-    $templateFiles = @(Get-ChildItem -LiteralPath $templateRoot -Recurse -File -Force |
-        Where-Object { $_.FullName -notmatch '[/\\](bin|obj|node_modules|\.venv|artifacts)[/\\]' })
-
-    foreach ($file in $templateFiles) {
-        $rel = $file.FullName.Substring($templateRoot.Length).TrimStart('\', '/')
-        $rel = $rel -replace '\\', '/'
-        $bare = $file.Name
-
-        # Direct match: full relative path or bare name appears in map
-        if ($mapTokens.Contains($rel) -or $mapTokens.Contains($bare)) { continue }
-
-        # Placeholder match: the file's parent folder or name matches a {placeholder} pattern
-        # e.g. system-name.md satisfies {system-name}.md
-        $placeholderMatch = $false
-        foreach ($token in $mapTokens) {
-            if ($token -match '[{}]') {
-                # Turn {placeholder} patterns into regexes
-                $pattern = '^' + ([regex]::Escape($token) -replace '\\\{[^}]+\}', '[^/]+') + '$'
-                if ($rel -match $pattern -or $bare -match $pattern) { $placeholderMatch = $true; break }
-            }
-        }
-        if ($placeholderMatch) { continue }
-
-        # Sub-path match: the file is under a directory that the map names
-        $underMapped = $false
-        foreach ($token in $mapTokens) {
-            $cleanToken = $token.TrimEnd('/')
-            if ($rel.StartsWith($cleanToken + '/') -or $rel.StartsWith($cleanToken + '\')) {
-                $underMapped = $true; break
-            }
-            # Placeholder-directory match: src/{SystemName}/ covers src/SystemName/Foo.cs
-            if ($cleanToken -match '[{}]') {
-                $dirPattern = '^' + ([regex]::Escape($cleanToken) -replace '\\\{[^}]+\}', '[^/]+') + '/'
-                if ($rel -match $dirPattern) { $underMapped = $true; break }
-            }
-        }
-        if ($underMapped) { continue }
-
-        $problems.Add("template file '$rel' is not mentioned in repository-map.md")
-    }
-
-    Add-Note "template files checked: $($templateFiles.Count)"
-    return $problems
-}
-
-# --- TEMPLATE-03 --------------------------------------------------------------
-# Every path mentioned in repository-map.md's tables that looks like a concrete
-# file (no placeholders) must exist under .github/template/. Only table rows are
-# scanned: the map's prose deliberately mentions paths it does not own (e.g. the
-# ".github/agents/ ... installed from the payload rather than described by this
-# map" sentence), and those are not claims about .github/template/'s contents.
-Test-Case -Name "MapAndTemplateAgree" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $templateRoot = Repo-Path ".github/template"
-    $mapPath = Repo-Path ".github/template/repository-map.md"
-    $tableLines = (Read-Text $mapPath) -split "`n" | Where-Object { $_ -match '^\s*\|' }
-    $mapText = $tableLines -join "`n"
-
-    # Extract backtick tokens that look like file paths (contain a dot or slash)
-    # and carry no placeholders.
-    $checked = 0
-    foreach ($m in [regex]::Matches($mapText, '`([^`]+)`')) {
-        $token = $m.Groups[1].Value.Trim('/')
-        if ($token -match '[{}]') { continue }
-        if ($token -notmatch '\.' -and $token -notmatch '/') { continue }
-        # Skip things that look like commands, patterns, or prose
-        if ($token -match '\s') { continue }
-        if ($token -match '^-') { continue }
-
-        $full = Join-Path $templateRoot ($token -replace '/', [System.IO.Path]::DirectorySeparatorChar)
-        if (Test-Path -LiteralPath $full) { $checked++; continue }
-
-        # A bare file name (no slash) may be named generically - describing what
-        # every document collection of this shape holds - rather than as a literal
-        # template-root path; a recursive basename search covers that case.
-        if ($token -notmatch '/') {
-            $found = Get-ChildItem -LiteralPath $templateRoot -Recurse -File -Force -Filter $token -ErrorAction SilentlyContinue
-            if ($found) { $checked++; continue }
-        }
-
-        $problems.Add("repository-map.md names '$token' but it does not exist under .github/template/")
-        $checked++
-    }
-
-    Add-Note "map path tokens checked: $checked"
-    return $problems
-}
 
 # --- TEMPLATE-06 --------------------------------------------------------------
 # Every placeholder/directive in a template file must use the recognizable
@@ -1053,41 +930,6 @@ Test-Case -Name "DirectivesAreRecognizable" -Body {
     }
 
     Add-Note "template .md files checked: $($mdFiles.Count)"
-    return $problems
-}
-
-# --- TEMPLATE-07 --------------------------------------------------------------
-# The template must ship a .NET tool manifest that pins the Anneal Toolkit
-# package, so an installed repository can restore the tool with `dotnet tool
-# restore` and no out-of-band installation step.
-Test-Case -Name "ToolManifestIsShipped" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $manifestPath = Repo-Path ".github/template/.config/dotnet-tools.json"
-    if (-not (Test-Path -LiteralPath $manifestPath)) {
-        return @("template .config/dotnet-tools.json does not exist")
-    }
-
-    $json = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    if (-not $json.tools) {
-        return @("template .config/dotnet-tools.json has no 'tools' object")
-    }
-
-    # The Anneal Toolkit package id (lower-cased, as dotnet-tools.json requires)
-    $packageId = "demaconsulting.anneal.toolkit"
-    $toolNames = @($json.tools.PSObject.Properties.Name)
-
-    if ($toolNames -notcontains $packageId) {
-        $problems.Add("template .config/dotnet-tools.json does not pin '$packageId'; tools present: $($toolNames -join ', ')")
-        return $problems
-    }
-
-    $entry = $json.tools.$packageId
-    if (-not $entry.version -or $entry.version -eq "") {
-        $problems.Add("template .config/dotnet-tools.json: '$packageId' entry has no version")
-    }
-
-    Add-Note "tools pinned: $($toolNames -join ', ')"
     return $problems
 }
 

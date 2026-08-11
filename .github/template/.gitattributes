@@ -1,7 +1,0 @@
-# Set default behavior: normalize line endings to LF on checkout for all text files.
-# This keeps file content byte-identical across platforms.
-* text=auto eol=lf
-
-# Windows batch files require CRLF line endings to function correctly.
-*.bat text eol=crlf
-*.cmd text eol=crlf
