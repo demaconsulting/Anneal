@@ -218,14 +218,14 @@ public class WorkerInterruptedTests
         }
     }
 
-    private static WorkerBrief MakeBrief() =>
-        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], []);
+    private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], tenets ?? [], []);
 
-    private static WorkerBrief MakeContractBrief() =>
-        new("parent-1", "add a contract clause", "contract change", [], [], "this touches a contract", [], []);
+    private static WorkerBrief MakeContractBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "add a contract clause", "contract change", [], [], "this touches a contract", [], tenets ?? [], []);
 
-    private static WorkerBrief MakeStructuralBrief() =>
-        new("parent-1", "move a system boundary", "structural change", [], [], "this moves a boundary", [], []);
+    private static WorkerBrief MakeStructuralBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "move a system boundary", "structural change", [], [], "this moves a boundary", [], tenets ?? [], []);
 
     private static string CreateTemporaryDirectory()
     {

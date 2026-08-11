@@ -281,6 +281,115 @@ public class StructuralChangeWorkerTests
     }
 
     [Fact]
+    public async Task RunAsync_PlanTenetCheckViolation_EscalatesWithoutRunningDocumentAuthorOrDeveloper()
+    {
+        // Arrange: the oracle finds a plan step that positively contradicts a tenet
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"add logging","planSteps":["log user emails to stdout"]}""",
+                """{"Violated":true,"TenetText":"Never log PII to stdout","PlanStep":"log user emails to stdout","HasSufficientEvidence":true}""");
+
+            var checkCalls = 0;
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => { checkCalls++; return Task.FromResult(new ScriptRun(0, "all good")); });
+
+            // Act: brief supplies one tenet so the check runs
+            var result = await worker.RunAsync(
+                MakeBrief(["Never log PII to stdout"]), TestContext.Current.CancellationToken);
+
+            // Assert: escalated immediately, no DocumentAuthor/Developer/checks ran
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
+                () => Assert.Null(result.Finding),
+                () => Assert.Equal(0, checkCalls),
+                () => Assert.Equal(2, endpoint.Calls),
+                () => Assert.Contains("Never log PII to stdout",
+                    result.Notes.Select(n => n.Text).FirstOrDefault() ?? ""));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_PlanTenetCheckNoViolation_ContinuesNormalFlow()
+    {
+        // Arrange: the oracle finds no violation; normal flow proceeds
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                """{"Violated":false,"TenetText":"","PlanStep":"update overview.md","HasSufficientEvidence":true}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated docs"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: brief supplies one tenet so the check runs
+            var result = await worker.RunAsync(
+                MakeBrief(["No persistent state outside .anneal/"]), TestContext.Current.CancellationToken);
+
+            // Assert: completes normally after the tenet check passes; 7 calls = planner + oracle + doc + dev + verifier
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
+                () => Assert.Equal(7, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_NoTenetFacts_SkipsPlanTenetCheckEntirely()
+    {
+        // Arrange: brief has empty TenetFacts; the oracle is never called
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated docs"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: MakeBrief() with no tenets = empty TenetFacts
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: 6 calls = planner + doc + dev + verifier (no oracle call for tenet check)
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(6, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_PlannerPrefersDirectExecution_ProceedsWithoutConsumingAPlan()
     {
         // Arrange: DirectExecutionIsBetter still proceeds through DocumentAuthor -> Developer -> checks -> Verifier
@@ -483,7 +592,7 @@ public class StructuralChangeWorkerTests
         try
         {
             var endpoint = new QueuedEndpoint(
-                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["step one"]}""",
+                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update the docs"]}""",
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"first draft"}""",
                 "I implemented the change.",
@@ -773,8 +882,78 @@ public class StructuralChangeWorkerTests
         }
     }
 
-    private static WorkerBrief MakeBrief() =>
-        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], []);
+    [Fact]
+    public async Task RunAsync_VerifierQuestionIncludesTenetSection_WhenTenetFactsPresent()
+    {
+        // Arrange: brief carries a tenet; the verifier's question must include it
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                """{"Violated":false,"TenetText":"","PlanStep":"update overview.md","HasSufficientEvidence":true}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: brief with one tenet
+            await worker.RunAsync(
+                MakeBrief(["No persistent state outside .anneal/"]), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request (index 6, the probe) includes the tenet text
+            var verifierText = string.Join("\n", endpoint.Requests[6].Messages.Select(m => m.Text));
+            Assert.Contains("No persistent state outside .anneal/", verifierText);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_VerifierQuestionOmitsTenetSection_WhenTenetFactsEmpty()
+    {
+        // Arrange: brief has no tenets; the verifier question must not include a tenet section
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root, "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: MakeBrief() with no tenets
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request does not include any tenet section heading
+            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("repository tenets", verifierText);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], tenets ?? [], []);
 
     private static string CreateTemporaryDirectory()
     {

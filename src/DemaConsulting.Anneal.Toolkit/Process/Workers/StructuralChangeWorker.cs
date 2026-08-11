@@ -68,7 +68,7 @@ internal sealed class StructuralChangeWorker
     ///     <see cref="VerificationVerdict.RerouteRequired" /> against either repair path — rather than this worker
     ///     trying to infer which applies from prose.
     /// </summary>
-    private const string VerifierQuestion =
+    private const string VerifierQuestionBase =
         """
         Judge whether this structural change conforms to every contract clause it touches and leaves
         .anneal/architecture/ accurate for what was actually built. Also check the change against .anneal/work/constraints.md's
@@ -83,15 +83,68 @@ internal sealed class StructuralChangeWorker
         a structural worker at all.
         """;
 
-    /// <summary>
-    ///     The fixed standards injected into every <see cref="Planner" /> call — <see cref="Planner" /> is the
+    private static string VerifierQuestion(WorkerBrief brief) =>
+        VerifierQuestionBase + brief.RenderTenetSection();
+
+    /// <summary>The fixed standards injected into every <see cref="Planner" /> call — <see cref="Planner" /> is the
     ///     one place this worker decides scope/plan shape, so it is the place a re-plan needs classification
     ///     guidance most.
     /// </summary>
     private static readonly string[] PlannerStandards = ["change-classification.md"];
 
+    /// <summary>
+    ///     The system message the planning-time tenet oracle carries: who it is, that it judges only the plan text
+    ///     (not a diff), and that refusing is a correct answer when the plan is too thin to evaluate.
+    /// </summary>
+    private const string PlanTenetOracleCharter =
+        """
+        You are a planning-time tenet reviewer. You are given a proposed implementation plan and a list of
+        repository tenets. Judge whether the plan, as written, positively contradicts any tenet — a step that
+        explicitly does something the tenet forbids, or that removes something the tenet requires. Do not
+        speculate about what the implementation might do; require positive evidence in the plan's own text.
+        Refusing to judge is a correct answer when the plan is too sparse to evaluate.
+        """;
+
+    /// <summary>
+    ///     The question asked of the planning-time tenet oracle, built from the plan and the tenet list.
+    /// </summary>
+    private static string PlanTenetQuestion(IEnumerable<string> planSteps, IReadOnlyList<string> tenets)
+    {
+        var steps = string.Join("\n", planSteps.Select((s, i) => $"{i + 1}. {s}"));
+        var bulletTenets = string.Join("\n", tenets.Select(t => $"- {t}"));
+        return $"""
+                Proposed plan:
+                {steps}
+
+                Repository tenets:
+                {bulletTenets}
+
+                Does any plan step positively contradict a tenet? If so, name the exact tenet text and the exact
+                plan step that contradicts it, and set Violated to true. Otherwise set Violated to false and name
+                the nearest candidate step you considered for each tenet even when concluding no violation exists.
+                Set HasSufficientEvidence to false only when the plan is too sparse to evaluate at all.
+                """;
+    }
+
+    /// <summary>The decoded oracle answer for the planning-time tenet check.</summary>
+    private sealed record PlanTenetCheckEnvelope : IOracleDecision
+    {
+        /// <summary>Whether any plan step positively contradicts a tenet.</summary>
+        public required bool Violated { get; init; }
+
+        /// <summary>The tenet text that was contradicted, or empty when <see cref="Violated" /> is false.</summary>
+        public required string TenetText { get; init; }
+
+        /// <summary>The plan step that caused the contradiction, or empty when <see cref="Violated" /> is false.</summary>
+        public required string PlanStep { get; init; }
+
+        /// <inheritdoc />
+        public required bool HasSufficientEvidence { get; init; }
+    }
+
     private readonly string _repositoryRoot;
     private readonly Planner _planner;
+    private readonly Oracle<PlanTenetCheckEnvelope> _planTenetOracle;
     private readonly DocumentAuthor _documentAuthor;
     private readonly Developer _developer;
     private readonly DeterministicCheck _buildCheck;
@@ -228,6 +281,7 @@ internal sealed class StructuralChangeWorker
 
         _repositoryRoot = root;
         _planner = new Planner(root, plannerCharter, maxPlanSteps: maxPlanSteps, endpointFor: endpointFor);
+        _planTenetOracle = new Oracle<PlanTenetCheckEnvelope>(root, PlanTenetOracleCharter, endpointFor: endpointFor);
         _documentAuthor = new DocumentAuthor(
             root, documentAuthorCharter, targetFileCountBudget: documentAuthorTargetFileCountBudget, endpointFor: endpointFor);
         _developer = new Developer(root, developerCharter, endpointFor: endpointFor);
@@ -255,11 +309,12 @@ internal sealed class StructuralChangeWorker
     ///     <see cref="OperationOutcome.Succeeded" /> with <see cref="WorkerRunResult.Reroute" /> when the
     ///     <see cref="Planner" />, <see cref="DocumentAuthor" />, <see cref="Developer" />, or the
     ///     <see cref="Verifier" /> named a better owner; <see cref="OperationOutcome.Escalated" /> when a repair
-    ///     needed a protected path; <see cref="OperationOutcome.Failed" /> when a repair or re-plan budget was
-    ///     spent with its named finding still open, when the verifier judged its evidence insufficient, or when no
-    ///     model could be reached. Both Escalated and Failed populate <see cref="WorkerExecutionResult.Interrupted" />
-    ///     when the enclosing method already holds real documentation/code state, so the caller can see which files
-    ///     were already on disk.
+    ///     needed a protected path, or when the planning-time tenet oracle found a plan step that positively
+    ///     contradicts a repository tenet before any file was touched; <see cref="OperationOutcome.Failed" /> when
+    ///     a repair or re-plan budget was spent with its named finding still open, when the verifier judged its
+    ///     evidence insufficient, or when no model could be reached. Both Escalated and Failed populate
+    ///     <see cref="WorkerExecutionResult.Interrupted" /> when the enclosing method already holds real
+    ///     documentation/code state, so the caller can see which files were already on disk.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="brief" /> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
@@ -276,6 +331,25 @@ internal sealed class StructuralChangeWorker
             .ConfigureAwait(false);
         if (planTerminal is not null)
             return planTerminal;
+
+        // Planning-time tenet check: judge the proposed plan against repository tenets before any file is
+        // touched. A plan-level contradiction is escalated immediately — no repair attempt — because a tenet
+        // violation caught before authoring begins is a decision only a person can make.
+        if (plan is not null && brief.TenetFacts.Count > 0)
+        {
+            var tenetCheck = await _planTenetOracle
+                .AskAsync(PlanTenetQuestion(plan.Steps, brief.TenetFacts), [], cancellationToken)
+                .ConfigureAwait(false);
+            RecordStep(parentInvocationId, "PlanTenetCheck", tenetCheck.Outcome);
+
+            if (tenetCheck.Outcome == OperationOutcome.Succeeded && tenetCheck.Finding?.Violated == true)
+                return new WorkerExecutionResult(
+                    OperationOutcome.Escalated,
+                    null,
+                    null,
+                    [new ProcessNote(
+                        $"Plan-level tenet violation: tenet '{tenetCheck.Finding.TenetText}' is contradicted by plan step '{tenetCheck.Finding.PlanStep}'")]);
+        }
 
         var documentationRepairBudget = _maxDocumentationRepairAttempts;
         var codeRepairBudget = _maxCodeRepairAttempts;
@@ -326,7 +400,7 @@ internal sealed class StructuralChangeWorker
                     evidence.Add(contractCheck.Finding);
 
                 var verified = await _verifier
-                    .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion, cancellationToken)
+                    .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion(brief), cancellationToken)
                     .ConfigureAwait(false);
                 RecordStep(parentInvocationId, "Verifier", verified.Outcome);
 

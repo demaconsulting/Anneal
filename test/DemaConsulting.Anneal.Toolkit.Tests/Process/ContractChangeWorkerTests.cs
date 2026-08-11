@@ -824,8 +824,74 @@ public class ContractChangeWorkerTests
         }
     }
 
-    private static WorkerBrief MakeBrief() =>
-        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], []);
+    [Fact]
+    public async Task RunAsync_VerifierQuestionIncludesTenetSection_WhenTenetFactsPresent()
+    {
+        // Arrange: brief carries a tenet; the verifier's question must include it
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root, "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: brief with one tenet
+            await worker.RunAsync(MakeBrief(["No external I/O outside model seam"]), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request (index 4, the probe) includes the tenet text
+            var verifierText = string.Join("\n", endpoint.Requests[4].Messages.Select(m => m.Text));
+            Assert.Contains("No external I/O outside model seam", verifierText);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_VerifierQuestionOmitsTenetSection_WhenTenetFactsEmpty()
+    {
+        // Arrange: brief has no tenets; the verifier question must not include a tenet section
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root, "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: brief with no tenets
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request does not include any tenet section heading
+            var verifierText = string.Join("\n", endpoint.Requests[4].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("repository tenets", verifierText);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], tenets ?? [], []);
 
     private static string CreateTemporaryDirectory()
     {

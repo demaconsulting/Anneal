@@ -255,8 +255,8 @@ public class SmallFixWorkerTests
         }
     }
 
-    private static WorkerBrief MakeBrief() =>
-        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], []);
+    private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
+        new("parent-1", "fix the flaky test", "small fix", [], [], "this looks small", [], tenets ?? [], []);
 
     private static string CreateTemporaryDirectory()
     {

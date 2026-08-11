@@ -18,6 +18,7 @@ public class WorkerBriefTests
         // Arrange
         var facts = new RepositoryFacts(
             VisionFacts: ["Anneal becomes its own agent CLI"],
+            TenetFacts: ["no persistent state outside .anneal/"],
             MigrationPresent: true,
             MigrationCurrentStage: "S8 — the primitive library",
             RelevantArchitectureNodes: ["toolkit.md"],
@@ -57,6 +58,7 @@ public class WorkerBriefTests
             () => Assert.Equal([reroute], brief.PriorReroutes),
             () => Assert.Equal("this looks like a small fix", brief.ScopeHint),
             () => Assert.Equal(["toolkit.md"], brief.ConstraintRefs),
+            () => Assert.Equal(["no persistent state outside .anneal/"], brief.TenetFacts),
             () => Assert.Equal(["src/Foo.cs"], brief.ChangedFileHints));
     }
 
@@ -67,7 +69,7 @@ public class WorkerBriefTests
         var ledger = new RoutingLedger
         {
             OriginalWorkItem = "look into something",
-            Facts = new RepositoryFacts([], false, null, [], [], RequestImplication.Unknown),
+            Facts = new RepositoryFacts([], [], false, null, [], [], RequestImplication.Unknown),
             InitialContextArtifacts = []
         };
 
@@ -93,7 +95,7 @@ public class WorkerBriefTests
         var ledger = new RoutingLedger
         {
             OriginalWorkItem = "x",
-            Facts = new RepositoryFacts([], false, null, [], [], RequestImplication.Unknown),
+            Facts = new RepositoryFacts([], [], false, null, [], [], RequestImplication.Unknown),
             InitialContextArtifacts = []
         };
 

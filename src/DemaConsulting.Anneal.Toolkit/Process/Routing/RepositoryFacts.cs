@@ -44,6 +44,11 @@ internal enum RequestImplication
 ///     The paragraph-level content of <c>.anneal/governance/vision.md</c> with YAML frontmatter and the top-level
 ///     heading stripped, or empty when the file is absent or its body is blank.
 /// </param>
+/// <param name="TenetFacts">
+///     The bullet-level content of <c>.anneal/governance/tenets.md</c> with YAML frontmatter and the top-level
+///     heading stripped: one entry per bullet line (lines starting with <c>- </c> or <c>* </c>), with the
+///     bullet marker itself removed. Empty when the file is absent, its body is blank, or it contains no bullets.
+/// </param>
 /// <param name="MigrationPresent">Whether <c>.anneal/work/active-plan.md</c> exists in the repository.</param>
 /// <param name="MigrationCurrentStage">
 ///     The heading text of <c>.anneal/work/active-plan.md</c>'s <c>## Current stage</c> entry, or null when the
@@ -57,6 +62,7 @@ internal enum RequestImplication
 /// <param name="Implication">The coarse scope keyword matching implies for this work item.</param>
 internal sealed record RepositoryFacts(
     IReadOnlyList<string> VisionFacts,
+    IReadOnlyList<string> TenetFacts,
     bool MigrationPresent,
     string? MigrationCurrentStage,
     IReadOnlyList<string> RelevantArchitectureNodes,
@@ -84,6 +90,7 @@ internal sealed record RepositoryFacts(
 
         return new RepositoryFacts(
             VisionFacts: ReadVisionFacts(root),
+            TenetFacts: ReadTenetFacts(root),
             MigrationPresent: File.Exists(Path.Combine(root, ".anneal", "work", "active-plan.md")),
             MigrationCurrentStage: ReadMigrationCurrentStage(root),
             RelevantArchitectureNodes: ReadRelevantArchitectureNodes(root, workItem),
@@ -155,6 +162,58 @@ internal sealed record RepositoryFacts(
             facts.Add(string.Join(" ", paragraph));
 
         return facts;
+    }
+
+    /// <remarks>
+    ///     Bullet extraction is appropriate for tenets.md because its structure is a list of discrete,
+    ///     independently-evaluable assertions — unlike vision.md's prose paragraphs, which describe connected
+    ///     intent and lose meaning when split at bullet boundaries. Each bullet becomes exactly one tenet entry,
+    ///     with the leading <c>- </c> or <c>* </c> marker stripped so callers receive plain text.
+    /// </remarks>
+    private static IReadOnlyList<string> ReadTenetFacts(string root)
+    {
+        var path = Path.Combine(root, ".anneal", "governance", "tenets.md");
+        if (!File.Exists(path))
+            return [];
+
+        var lines = File.ReadAllLines(path);
+        var bodyStart = 0;
+
+        // Strip YAML frontmatter block (--- ... ---) if present at the top of the file.
+        if (lines.Length > 0 && lines[0].Trim() == "---")
+        {
+            var fmEnd = -1;
+            for (var i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Trim() != "---")
+                    continue;
+                fmEnd = i;
+                break;
+            }
+
+            if (fmEnd >= 0)
+                bodyStart = fmEnd + 1;
+        }
+
+        // Skip blank lines and then the top-level '# ' heading line.
+        while (bodyStart < lines.Length && string.IsNullOrWhiteSpace(lines[bodyStart]))
+            bodyStart++;
+
+        if (bodyStart < lines.Length && lines[bodyStart].StartsWith("# ", StringComparison.Ordinal))
+            bodyStart++;
+
+        // Collect bullet lines, stripping the leading '- ' or '* ' marker.
+        List<string> tenets = [];
+        for (var i = bodyStart; i < lines.Length; i++)
+        {
+            var line = lines[i];
+            if (line.StartsWith("- ", StringComparison.Ordinal))
+                tenets.Add(line[2..].Trim());
+            else if (line.StartsWith("* ", StringComparison.Ordinal))
+                tenets.Add(line[2..].Trim());
+        }
+
+        return tenets;
     }
 
     private static string? ReadMigrationCurrentStage(string root)

@@ -175,6 +175,7 @@ public sealed class MaintainOperation : IOperation
             $"this Maintenance work is bounded to: {string.Join(", ", declaredBound)}. Read each named path " +
             "directly rather than assuming it is missing.",
             [],
+            [],
             declaredBound);
 
         output.WriteLine(

@@ -277,6 +277,40 @@ one row for it; `AGENTS.md` and its pristine template counterpart gained the mat
 the last named retirement target this file tracked; no further prose agent is queued behind it as of
 this stage.
 
+**Tenet enforcement is repository-agnostic and spans two pipeline stages, not one** —
+`.anneal/governance/tenets.md` bullets are gathered by `RepositoryFacts` into `TenetFacts` at the same
+time `VisionFacts` is gathered, but they serve different questions at different stages. `VisionFacts` —
+the only governance content fed to the Router's routing oracle — answers whether the work item is
+strategically coherent enough to classify and route. `TenetFacts` answers whether the *produced output*
+quietly violates a fundamental repository constraint; consulting them at routing time would conflate two
+independent questions and force the routing oracle to judge implementation evidence it cannot yet see.
+
+`TenetFacts` is gathered deterministically: frontmatter and the top-level heading are stripped the same
+way `ReadVisionFacts` already does, then bullet lines (lines starting with a hyphen or asterisk marker)
+are extracted one tenet per bullet. When `.anneal/governance/tenets.md` is absent or contains no bullets, `TenetFacts`
+is empty and both pipeline checks below are skipped entirely — no behavioral change in a repository
+that has not populated the file.
+
+`StructuralChangeWorker` adds a planning-time tenet check immediately after `Planner` succeeds and
+before `DocumentAuthor` or `Developer` run. The oracle question asks whether the *plan's own text*
+contains positive evidence of a tenet contradiction — a named plan step visibly in conflict with a
+named tenet. Speculation about what implementation *might* do is not a hit. On a hit the worker
+returns `OperationOutcome.Escalated` immediately: no repair attempt, no reroute. A tenet violation
+caught before any file is touched is exactly the kind of decision only a person can make, matching the
+same reasoning the protected-path and scope-drift escalations already apply. `ContractChangeWorker`
+omits this check because it plans nothing — it runs `DocumentAuthor` and `Developer` directly without
+a `Planner` stage.
+
+Both `StructuralChangeWorker` and `ContractChangeWorker` extend their existing `Verifier` question —
+the single question already asked after `build.ps1` and the contract check pass — to also judge the
+actual diff against `TenetFacts`. The appended section requires positive evidence visible in the diff
+(a new statement, a removed declaration, a new dependency, new logging of a named sensitive field, and
+so on) before reporting a tenet violation, and requires the model to name the nearest candidate it
+considered even when concluding no violation exists, making "I found nothing" a grounded conclusion
+rather than a bare assertion. No second `Verifier` call is added. A violation found here is owned by
+`VerificationOwner.Tenet` and repaired through the same `Developer`-based repair budget both workers
+already use for `constraints.md` violations — the existing mechanism extended, not duplicated.
+
 **The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
 — the router asks one narrow typed question per pass (select a worker, ask for bounded research, or
 report no route) against two independent counters, a research budget and a worker-reroute budget,

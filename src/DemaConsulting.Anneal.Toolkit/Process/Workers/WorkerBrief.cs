@@ -27,6 +27,12 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     The architecture documents the router judged relevant to this work item, so a worker knows what to read
 ///     before it starts, not what it must obey — obeying them is the worker's own standards-loading job.
 /// </param>
+/// <param name="TenetFacts">
+///     The bullet-level tenets from <c>.anneal/governance/tenets.md</c>, gathered deterministically alongside
+///     vision and constraint facts. Empty when tenets.md is absent or contains no bullets. Workers use this to
+///     check produced plans and diffs against the repository's fundamental non-negotiable constraints without
+///     re-reading the file on every pass.
+/// </param>
 /// <param name="ChangedFileHints">
 ///     The changed-file hints gathered for the work item, reused for automatic skill lookup so the worker reads
 ///     the same coarse file-scope signal the router already gathered.
@@ -39,6 +45,7 @@ internal sealed record WorkerBrief(
     IReadOnlyList<WorkerReroute> PriorReroutes,
     string ScopeHint,
     IReadOnlyList<string> ConstraintRefs,
+    IReadOnlyList<string> TenetFacts,
     IReadOnlyList<string> ChangedFileHints)
 {
     /// <summary>
@@ -65,6 +72,7 @@ internal sealed record WorkerBrief(
             [.. ledger.WorkerReroutes],
             scopeHint,
             [.. ledger.Facts.RelevantArchitectureNodes],
+            [.. ledger.Facts.TenetFacts],
             [.. ledger.Facts.ChangedFileHints]);
     }
 
@@ -87,4 +95,31 @@ internal sealed record WorkerBrief(
         PriorReroutes.Count == 0
             ? "none"
             : string.Join("\n", PriorReroutes.Select(reroute => $"- from '{reroute.WorkerKey}': {reroute.Why}"));
+
+    /// <summary>
+    ///     Renders <see cref="TenetFacts" /> as a tenet section appended to an existing verifier question, or
+    ///     returns an empty string when <see cref="TenetFacts" /> is empty so the caller's question is unchanged.
+    /// </summary>
+    /// <returns>
+    ///     A newline-leading tenet-check block when <see cref="TenetFacts" /> is non-empty, or an empty string
+    ///     when it is empty — allowing simple string concatenation without a branch at the call site.
+    /// </returns>
+    public string RenderTenetSection()
+    {
+        if (TenetFacts.Count == 0)
+            return string.Empty;
+
+        var bullets = string.Join("\n", TenetFacts.Select(t => $"- {t}"));
+        return $"""
+
+
+               Also judge the diff against these repository tenets:
+               {bullets}
+               For each tenet, identify the nearest candidate in the diff you considered — a new statement, a removed
+               declaration, a new dependency, new logging of a named sensitive field, or similar concrete evidence —
+               and state whether it violates the tenet. Require positive evidence visible in the diff before reporting
+               a violation; name the exact tenet text and the exact diff element causing the contradiction when a
+               violation is found. Report any violation as a concern owned by Tenet.
+               """;
+    }
 }

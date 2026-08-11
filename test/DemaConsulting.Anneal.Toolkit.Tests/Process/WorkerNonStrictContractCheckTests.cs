@@ -127,8 +127,8 @@ public class WorkerNonStrictContractCheckTests
     }
 
     private static WorkerBrief MakeContractBrief() =>
-        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], []);
+        new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], [], []);
 
     private static WorkerBrief MakeStructuralBrief() =>
-        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], []);
+        new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], [], []);
 }

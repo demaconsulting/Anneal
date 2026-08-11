@@ -4,8 +4,9 @@ using Xunit;
 namespace DemaConsulting.Anneal.Toolkit.Tests.Process;
 
 /// <summary>
-///     Interior tests for <see cref="RepositoryFacts.Gather" />'s vision-fact extraction: frontmatter
-///     stripping, heading stripping, and paragraph-level splitting of the remaining body.
+///     Interior tests for <see cref="RepositoryFacts.Gather" />'s vision-fact and tenet-fact extraction:
+///     frontmatter stripping, heading stripping, and paragraph-level splitting of vision.md, plus bullet
+///     extraction from tenets.md.
 /// </summary>
 public class RepositoryFactsTests : IDisposable
 {
@@ -149,5 +150,121 @@ public class RepositoryFactsTests : IDisposable
         Assert.Single(facts.VisionFacts);
         Assert.Contains("First bullet", facts.VisionFacts[0]);
         Assert.Contains("Second bullet", facts.VisionFacts[0]);
+    }
+
+    private void WriteTenets(string content)
+    {
+        var dir = Path.Combine(_root, ".anneal", "governance");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "tenets.md"), content);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_MissingFile_ReturnsEmpty()
+    {
+        // Arrange: no tenets.md on disk
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert
+        Assert.Empty(facts.TenetFacts);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_BulletLines_ReturnsBulletsWithMarkerStripped()
+    {
+        // Arrange: tenets.md with dash-style bullets
+        WriteTenets("""
+            # Tenets
+
+            - No persistent state outside .anneal/
+            - All model calls are bounded by a charter
+            """);
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert: two tenets, bullet markers removed
+        Assert.Equal(2, facts.TenetFacts.Count);
+        Assert.Equal("No persistent state outside .anneal/", facts.TenetFacts[0]);
+        Assert.Equal("All model calls are bounded by a charter", facts.TenetFacts[1]);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_StarBulletLines_ReturnsBulletsWithMarkerStripped()
+    {
+        // Arrange: tenets.md with star-style bullets
+        WriteTenets("""
+            # Tenets
+
+            * Do not write to stdout during tests
+            * Every public API has a doc comment
+            """);
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert: two tenets, bullet markers removed
+        Assert.Equal(2, facts.TenetFacts.Count);
+        Assert.Equal("Do not write to stdout during tests", facts.TenetFacts[0]);
+        Assert.Equal("Every public API has a doc comment", facts.TenetFacts[1]);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_WithYamlFrontmatter_FrontmatterStripped()
+    {
+        // Arrange: tenets.md with YAML frontmatter block
+        WriteTenets("""
+            ---
+            reference: docs/tenets/
+            ---
+
+            # Tenets
+
+            - The only tenet
+            """);
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert: only the bullet body, no frontmatter fields
+        Assert.Single(facts.TenetFacts);
+        Assert.Equal("The only tenet", facts.TenetFacts[0]);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_NoBullets_ReturnsEmpty()
+    {
+        // Arrange: tenets.md exists but has only prose, no bullet lines
+        WriteTenets("""
+            # Tenets
+
+            This repository has no machine-readable tenets yet.
+            """);
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert: no bullets extracted
+        Assert.Empty(facts.TenetFacts);
+    }
+
+    [Fact]
+    public void ReadTenetFacts_HeadingStripped_HeadingNotInTenets()
+    {
+        // Arrange
+        WriteTenets("""
+            # Tenets
+
+            - Keep it simple
+            """);
+
+        // Act
+        var facts = RepositoryFacts.Gather(_root, "fix something", null);
+
+        // Assert: heading itself not present as a tenet
+        Assert.All(facts.TenetFacts, t => Assert.DoesNotContain("# Tenets", t));
+        Assert.Single(facts.TenetFacts);
     }
 }

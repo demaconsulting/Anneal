@@ -60,7 +60,7 @@ internal sealed class ContractChangeWorker
     ///     verdict carries whichever reason applies, rather than this worker trying to detect either condition
     ///     itself from prose.
     /// </summary>
-    private const string VerifierQuestion =
+    private const string VerifierQuestionBase =
         """
         Judge whether this change conforms to every contract clause it touches, is honestly scoped as Contract
         Change rather than Structural Change, and leaves .anneal/architecture/ accurate for what was
@@ -74,6 +74,9 @@ internal sealed class ContractChangeWorker
         not a routine contract change. Otherwise, report 'RepairRequired' with one concern per fix needed, each
         owned by Documentation, Code, or Tenet, or 'Passed' when nothing needs fixing.
         """;
+
+    private static string VerifierQuestion(WorkerBrief brief) =>
+        VerifierQuestionBase + brief.RenderTenetSection();
 
     private readonly string _repositoryRoot;
     private readonly DocumentAuthor _documentAuthor;
@@ -261,7 +264,7 @@ internal sealed class ContractChangeWorker
                 evidence.Add(contractCheck.Finding);
 
             var verified = await _verifier
-                .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion, cancellationToken)
+                .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion(brief), cancellationToken)
                 .ConfigureAwait(false);
             RecordStep(parentInvocationId, "Verifier", verified.Outcome);
 
