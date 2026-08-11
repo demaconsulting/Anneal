@@ -18,3 +18,5 @@ guide covers how to work with it day to day.
   is like.
 - **[Using Helper](using-helper.md)** — how to ask `@helper` for what you want, example prompts, a
   worked example of two changes end to end, and what to do when something comes back unfinished.
+- **[Repository Scripts](repository-scripts.md)** — the fix/build/lint scripts your repository must
+  supply, what each is for, and how to configure non-default names via `.anneal/config.json`.

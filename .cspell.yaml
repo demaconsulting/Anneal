@@ -25,6 +25,7 @@ words:
   - greppable
   - Hmmss
   - Inlines
+  - LASTEXITCODE
   - libc
   - lifecycles
   - Markdig
