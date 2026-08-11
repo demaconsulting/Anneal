@@ -3,14 +3,6 @@ using DemaConsulting.Anneal.Toolkit.Process.Routing;
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>Names one worker in the catalog a <see cref="Router" /> selects from: its key and its one-line role.</summary>
-/// <remarks>
-///     For this pass the catalog has exactly one entry — Small Fix — per <c>.anneal/work/active-plan.md</c>'s S8
-///     entry, which
-///     ships only Small Fix and Contract Change in the migration's first stage. This shape does not need to widen
-///     to add a second entry later: a <see cref="WorkerCatalogEntry" /> pairs one more <see cref="WorkerDescriptor" />
-///     with one more <see cref="WorkerRunner" /> in the list a <see cref="Router" /> is constructed with, nothing
-///     about the type itself changes.
-/// </remarks>
 /// <param name="Key">
 ///     The catalog key a <see cref="RouteDecision.SelectWorker" /> names to select this worker. Never null or blank.
 /// </param>

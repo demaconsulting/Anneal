@@ -9,9 +9,8 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     its first (and any repair) call.
 /// </summary>
 /// <remarks>
-///     Each worker declares its own fixed list per role, decided once at compile time — the same minimal
-///     mechanism <c>.anneal/work/active-plan.md</c>'s S12 entry describes: no oracle call, no dynamic selection
-///     from the work item's own text.
+///     Each worker declares its own fixed list per role, decided once at compile time — no oracle call, no dynamic
+///     selection from the work item's own text.
 ///     <para>
 ///         A standard that does not exist at the expected path is skipped, not a thrown exception — a repository
 ///         that has not installed Anneal's standards (or has renamed one) still gets a worker that runs, just
