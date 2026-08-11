@@ -304,7 +304,7 @@ public sealed class RouteOperation : IOperation
         {
             RouterOutcome.Completed completed when result.Outcome == OperationOutcome.Succeeded =>
                 Completed(output, completed),
-            RouterOutcome.Report report => Reported(output, result.Outcome, report),
+            RouterOutcome.Report report => await ReportedAsync(output, result.Outcome, report, cancellationToken).ConfigureAwait(false),
             // Router.RunAsync's own contract reaches only Succeeded+Completed or Failed/Escalated+Report; this
             // guards against a third RouterOutcome case being added there without this projection following it.
             _ => new OperationResult(OperationOutcome.Failed)
@@ -379,7 +379,9 @@ public sealed class RouteOperation : IOperation
                 [.. completed.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
     }
 
-    private static OperationResult Reported(TextWriter output, OperationOutcome outcome, RouterOutcome.Report report)
+    private async Task<OperationResult> ReportedAsync(
+        TextWriter output, OperationOutcome outcome, RouterOutcome.Report report,
+        CancellationToken cancellationToken)
     {
         output.WriteLine(
             outcome == OperationOutcome.Escalated
@@ -408,6 +410,15 @@ public sealed class RouteOperation : IOperation
             foreach (var file in interrupted.FilesChanged)
                 output.WriteLine($"  {file}");
             output.WriteLine($"route: summary before stopping - {interrupted.Summary}");
+
+            // Write a patch file so this pre-triage state is recoverable even if a subsequent
+            // manual partial-revert decision turns out to be wrong. The snapshot is written before
+            // any human-directed triage begins, not after, because git checkout / rm are one-way
+            // doors for uncommitted changes.
+            var patchPath = await SnapshotInterruptedDiffAsync(
+                interrupted.FilesChanged, cancellationToken).ConfigureAwait(false);
+            if (patchPath is not null)
+                output.WriteLine($"route: pre-triage snapshot written to {patchPath}");
         }
 
         IReadOnlyList<string> filesBeforeStopping = interrupted?.FilesChanged ?? [];
@@ -427,5 +438,42 @@ public sealed class RouteOperation : IOperation
                 report.FailureReport.Effort?.ToString() ?? string.Empty,
                 report.FailureReport.PhaseOutcomes.Count,
                 [.. report.FailureReport.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
+    }
+
+    /// <remarks>
+    ///     Runs <c>git diff HEAD -- &lt;files&gt;</c> and writes the result under <c>.anneal/logs/</c> with a
+    ///     timestamp-based name. Silently returns null rather than throwing when the diff subprocess fails or the
+    ///     log directory cannot be created: snapshot failure must not mask the real escalation/failure being reported.
+    /// </remarks>
+    private async Task<string?> SnapshotInterruptedDiffAsync(
+        IReadOnlyList<string> files, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var git = new Primitives.GitProcess(_repositoryRoot);
+
+            IReadOnlyList<string> arguments = ["diff", "HEAD", "--", .. files];
+            var run = await git.RunAsync(arguments, cancellationToken).ConfigureAwait(false);
+
+            if (run.ExitCode != 0 || string.IsNullOrWhiteSpace(run.Output))
+                return null;
+
+            var logsDir = Path.Combine(_repositoryRoot, ".anneal", "logs");
+            Directory.CreateDirectory(logsDir);
+
+            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
+            var patchFileName = $"interrupted-{timestamp}.patch";
+            var patchPath = Path.Combine(logsDir, patchFileName);
+
+            await File.WriteAllTextAsync(patchPath, run.Output, cancellationToken).ConfigureAwait(false);
+
+            // Return repository-relative forward-slash path for display consistency with the rest
+            // of the tool's output.
+            return $".anneal/logs/{patchFileName}";
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

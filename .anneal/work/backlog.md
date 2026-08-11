@@ -64,9 +64,8 @@ where `helper` will read them during boundary work. See the Intake admission tes
   to triage by eye. That is a real incident risk: reverting or deleting part of it by hand, on an
   unverified assumption about which parts are in scope, can permanently discard real work with no
   recovery path, since nothing was ever committed or staged. `route`/`dispatch` (or the calling agent)
-  should save a snapshot — a stash, or a patch file under `.agent-logs/` or `artifacts/` — before any
-  human-directed partial revert touches an escalated diff, so a wrong call is recoverable rather than
-  destructive.
+  should save a snapshot — a patch file under `.anneal/logs/` — before any human-directed partial
+  revert touches an escalated diff, so a wrong call is recoverable rather than destructive.
 - **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
   list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:

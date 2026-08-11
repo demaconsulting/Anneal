@@ -34,8 +34,16 @@ the report separately from the completion fields.
   Escalated or Failed outcome, if the selected worker had already written files to disk before stopping
   short of completion, `route` reports those files and a summary in
   `RouteReport.FilesChangedBeforeStopping` and `RouteReport.SummaryBeforeStopping`; both fields are
-  never null and are empty when no files were written before the worker stopped.
-  *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`
+  never null and are empty when no files were written before the worker stopped. Additionally, when
+  `FilesChangedBeforeStopping` is non-empty, `route` writes a patch file under `.anneal/logs/` named
+  `interrupted-<timestamp>.patch` containing `git diff HEAD -- <those files>` and prints
+  `route: pre-triage snapshot written to <path>` alongside the before-stopping output. A normal
+  Succeeded run never produces a patch file. The snapshot step is silent and non-throwing when there
+  is no git repository, git is unavailable, or the diff is empty: the reported outcome is unaffected.
+  *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`,
+  `InterruptedRouteContractTests.RouteWritesSnapshotPatchOnInterruptedOutcome`,
+  `InterruptedRouteContractTests.SucceededRunProducesNoSnapshotPatch`,
+  `InterruptedRouteContractTests.SnapshotFailureDoesNotMaskReportedOutcome`
 
 - **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
   the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and
