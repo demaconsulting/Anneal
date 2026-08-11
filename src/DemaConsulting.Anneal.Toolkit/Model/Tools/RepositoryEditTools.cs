@@ -20,7 +20,7 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 ///     </para>
 ///     <para>
 ///         A deletion is always preceded by archiving the file's content to
-///         <c>.anneal/logs/deleted-&lt;timestamp&gt;.patch</c> in unified-diff format. This archive sits alongside
+///         <c>.anneal/logs/deleted/deleted-&lt;timestamp&gt;.patch</c> in unified-diff format. This archive sits alongside
 ///         interrupted-diff snapshots so that any deletion is recoverable regardless of the file's git-tracked state.
 ///     </para>
 ///     <para>
@@ -80,7 +80,7 @@ public static class RepositoryEditTools
                 (string path) => DeleteFile(root, path),
                 "delete_file",
                 "Delete an existing file. 'path' is relative to the repository root. Before deleting, the " +
-                "file's content is archived to .anneal/logs/deleted-<timestamp>.patch so the deletion is " +
+                "file's content is archived to .anneal/logs/deleted/deleted-<timestamp>.patch so the deletion is " +
                 "recoverable. Fails if the file does not exist.")
         ];
     }
@@ -172,12 +172,12 @@ public static class RepositoryEditTools
     /// <returns>The repository-relative path of the written archive patch.</returns>
     private static string ArchiveDeletedFile(string root, string path, string content)
     {
-        var logsDir = Path.Combine(root, ".anneal", "logs");
-        Directory.CreateDirectory(logsDir);
+        var deletedDir = Path.Combine(root, ".anneal", "logs", "deleted");
+        Directory.CreateDirectory(deletedDir);
 
         var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
         var patchFileName = $"deleted-{timestamp}.patch";
-        var patchPath = Path.Combine(logsDir, patchFileName);
+        var patchPath = Path.Combine(deletedDir, patchFileName);
 
         // Unified diff format for a deleted file: git uses this shape so the archive
         // is readable by standard patch tooling without any special knowledge of Anneal.
@@ -192,7 +192,7 @@ public static class RepositoryEditTools
 
         File.WriteAllText(patchPath, patchLines.ToString());
 
-        return $".anneal/logs/{patchFileName}";
+        return $".anneal/logs/deleted/{patchFileName}";
     }
 
     /// <returns>The refusal to return to the model, or null when the write may proceed.</returns>

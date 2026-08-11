@@ -164,16 +164,16 @@ internal sealed class DeterministicCheck
 
         try
         {
-            var logsDir = Path.Combine(_repositoryRoot, ".anneal", "logs");
-            Directory.CreateDirectory(logsDir);
+            var checksDir = Path.Combine(_repositoryRoot, ".anneal", "logs", "checks");
+            Directory.CreateDirectory(checksDir);
 
             var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
             var fileName = $"check-output-{checkName}-{timestamp}.txt";
-            var filePath = Path.Combine(logsDir, fileName);
+            var filePath = Path.Combine(checksDir, fileName);
 
             await File.WriteAllTextAsync(filePath, output).ConfigureAwait(false);
 
-            return $".anneal/logs/{fileName}";
+            return $".anneal/logs/checks/{fileName}";
         }
         catch
         {

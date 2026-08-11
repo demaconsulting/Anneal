@@ -194,7 +194,7 @@ public class DeterministicCheckTests
                 .First(l => l.StartsWith("Full output:", StringComparison.Ordinal));
             var logRelPath = logPathLine["Full output: ".Length..].Trim();
 
-            Assert.StartsWith(".anneal/logs/check-output-my-check-", logRelPath, StringComparison.Ordinal);
+            Assert.StartsWith(".anneal/logs/checks/check-output-my-check-", logRelPath, StringComparison.Ordinal);
             Assert.EndsWith(".txt", logRelPath, StringComparison.Ordinal);
 
             var fullPath = Path.Combine(root, logRelPath.Replace('/', Path.DirectorySeparatorChar));

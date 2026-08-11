@@ -8,7 +8,7 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 /// <summary>
 ///     Boundary tests for TOOLKIT-23's expanded promise: on an Escalated or Failed outcome, if the selected
 ///     worker had already written files before stopping, <c>route</c> reports those files and a summary
-///     separately from the completion fields, writes a <c>.anneal/logs/interrupted-*.patch</c> snapshot file,
+///     separately from the completion fields, writes a <c>.anneal/logs/snapshots/interrupted-*.patch</c> snapshot file,
 ///     and prints <c>pre-triage snapshot written to &lt;path&gt;</c>. A normal Succeeded run produces no patch
 ///     file. The snapshot step is silent when git is unavailable; the reported outcome is unaffected.
 /// </summary>
@@ -114,7 +114,7 @@ public class InterruptedRouteContractTests
 
     /// <summary>
     ///     TOOLKIT-23 (snapshot promise) — when the selected worker stops with files already on disk, <c>route</c>
-    ///     writes a <c>.anneal/logs/interrupted-*.patch</c> file containing the <c>git diff HEAD</c> for those files
+    ///     writes a <c>.anneal/logs/snapshots/interrupted-*.patch</c> file containing the <c>git diff HEAD</c> for those files
     ///     and prints <c>pre-triage snapshot written to</c> so a caller can recover the pre-triage state.
     ///     Verified by <c>RouteWritesSnapshotPatchOnInterruptedOutcome</c>.
     /// </summary>
@@ -162,11 +162,11 @@ public class InterruptedRouteContractTests
                 TestContext.Current.CancellationToken);
             var written = output.ToString();
 
-            // Assert: a patch file exists under .anneal/logs/ and contains the changed line;
+            // Assert: a patch file exists under .anneal/logs/snapshots/ and contains the changed line;
             // the output announces where the snapshot was written.
-            var logsDir = Path.Combine(root, ".anneal", "logs");
-            var patches = Directory.Exists(logsDir)
-                ? Directory.GetFiles(logsDir, "interrupted-*.patch")
+            var snapshotsDir = Path.Combine(root, ".anneal", "logs", "snapshots");
+            var patches = Directory.Exists(snapshotsDir)
+                ? Directory.GetFiles(snapshotsDir, "interrupted-*.patch")
                 : [];
 
             Assert.NotEmpty(patches);
@@ -186,7 +186,7 @@ public class InterruptedRouteContractTests
 
     /// <summary>
     ///     TOOLKIT-23 (snapshot promise — negative) — a normal Succeeded run never produces a patch file under
-    ///     <c>.anneal/logs/</c>. Verified by <c>SucceededRunProducesNoSnapshotPatch</c>.
+    ///     <c>.anneal/logs/snapshots/</c>. Verified by <c>SucceededRunProducesNoSnapshotPatch</c>.
     /// </summary>
     [Fact]
     public async Task SucceededRunProducesNoSnapshotPatch()

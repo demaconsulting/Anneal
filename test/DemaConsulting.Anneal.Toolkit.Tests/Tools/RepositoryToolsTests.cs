@@ -173,7 +173,7 @@ public class RepositoryToolsTests
             var reply = Delete(root, "to-delete.md");
 
             // Assert: file is gone, reply names an archive, archive exists and contains the original content
-            var archiveDir = Path.Combine(root, ".anneal", "logs");
+            var archiveDir = Path.Combine(root, ".anneal", "logs", "deleted");
             var archives = Directory.GetFiles(archiveDir, "deleted-*.patch");
             Assert.Multiple(
                 () => Assert.False(File.Exists(Path.Combine(root, "to-delete.md"))),

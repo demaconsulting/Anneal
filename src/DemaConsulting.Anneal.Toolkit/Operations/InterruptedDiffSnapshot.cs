@@ -16,14 +16,14 @@ internal static class InterruptedDiffSnapshot
 {
     /// <summary>
     ///     Runs <c>git diff HEAD -- &lt;files&gt;</c> and writes the result as
-    ///     <c>.anneal/logs/interrupted-&lt;timestamp&gt;.patch</c>.
+    ///     <c>.anneal/logs/snapshots/interrupted-&lt;timestamp&gt;.patch</c>.
     /// </summary>
     /// <param name="repositoryRoot">Absolute path to the repository root.</param>
     /// <param name="files">The files whose uncommitted diff should be captured. Must not be null.</param>
     /// <param name="cancellationToken">Token observed for cooperative cancellation.</param>
     /// <returns>
     ///     The repository-relative path of the written patch file (e.g.
-    ///     <c>.anneal/logs/interrupted-20260811T140000Z.patch</c>), or <c>null</c> when the diff subprocess
+    ///     <c>.anneal/logs/snapshots/interrupted-20260811T140000Z.patch</c>), or <c>null</c> when the diff subprocess
     ///     produced no output, returned a non-zero exit code, or any I/O failure occurred. Null is a silent
     ///     no-op: snapshot failure must never mask the real escalation or failure being reported.
     /// </returns>
@@ -42,17 +42,17 @@ internal static class InterruptedDiffSnapshot
             if (run.ExitCode != 0 || string.IsNullOrWhiteSpace(run.Output))
                 return null;
 
-            var logsDir = Path.Combine(repositoryRoot, ".anneal", "logs");
-            Directory.CreateDirectory(logsDir);
+            var snapshotsDir = Path.Combine(repositoryRoot, ".anneal", "logs", "snapshots");
+            Directory.CreateDirectory(snapshotsDir);
 
             var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
             var patchFileName = $"interrupted-{timestamp}.patch";
-            var patchPath = Path.Combine(logsDir, patchFileName);
+            var patchPath = Path.Combine(snapshotsDir, patchFileName);
 
             await File.WriteAllTextAsync(patchPath, run.Output, cancellationToken).ConfigureAwait(false);
 
             // Repository-relative forward-slash path for display consistency with the rest of the tool's output.
-            return $".anneal/logs/{patchFileName}";
+            return $".anneal/logs/snapshots/{patchFileName}";
         }
         catch
         {
