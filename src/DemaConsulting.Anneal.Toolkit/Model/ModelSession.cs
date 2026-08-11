@@ -57,6 +57,23 @@ public sealed class ModelSession
 
     private const string ThinkCloseTag = "</think>";
 
+    /// <summary>
+    ///     The charter carried by every scope-drift check. It keeps the oracle focused on alignment with the
+    ///     original instruction and away from judging the quality of the work itself — that question belongs to
+    ///     the calling primitive's own probe.
+    /// </summary>
+    private const string ScopeDriftCheckCharter =
+        """
+        You are a scope-alignment judge. You are given an original instruction and a summary of the
+        work done so far in the current authoring pass. Your only job is to decide whether the work
+        remains aligned with that instruction or has drifted into unrelated territory.
+        Aligned means: every change made so far can be explained as a direct, necessary consequence of
+        the instruction. Drifted means: the pass has begun touching things with no visible connection
+        to the original instruction. Answer with HasSufficientEvidence = true and Aligned = true when
+        the work is on track; HasSufficientEvidence = true and Aligned = false when you see clear
+        scope drift, surfacing your reasoning in the Why field so the failure note is actionable.
+        """;
+
     /// <remarks>
     ///     Closed-enum decode: a value outside the described vocabulary fails the parse and takes the visible
     ///     retry path, rather than being silently mapped to whichever member happens to sit at zero. A probe that
@@ -108,6 +125,17 @@ public sealed class ModelSession
     ///     tell the two apart would report the first as the second.
     /// </remarks>
     public IReadOnlyList<ToolCallTranscript> RefusedProtectedWrites => _toolCalls.ProtectedRefusals;
+
+    /// <summary>
+    ///     The cumulative count of edit-tool calls (create, replace, edit, delete) that completed successfully
+    ///     in this conversation.
+    /// </summary>
+    /// <remarks>
+    ///     Exposed so a calling primitive can compare successive readings against a K-interval to decide when to
+    ///     pause and run a scope-drift check. Refused and faulted edit calls are excluded: they are deliberate
+    ///     non-mutations and should not count toward the interval.
+    /// </remarks>
+    public int SuccessfulEditCallCount => _toolCalls.SuccessfulEditCallCount;
 
     /// <summary>
     ///     Opens a conversation over a role resolver.
@@ -271,6 +299,73 @@ public sealed class ModelSession
     }
 
     /// <summary>
+    ///     Performs a cheap scope-drift check against the original instruction, using a Light-role oracle probe
+    ///     over the conversation accumulated so far.
+    /// </summary>
+    /// <remarks>
+    ///     The check is designed to be called by a primitive after every K successful edit-tool calls to detect
+    ///     whether the authoring pass has drifted beyond the original instruction's scope. The oracle sees the
+    ///     full conversation history so it can reason about what was actually done, but it receives no tools and
+    ///     costs only one Light-role probe call. When the oracle lacks sufficient evidence to judge (e.g. very
+    ///     early in a run), it returns <c>true</c> — the conservative choice is to keep going, not to abort.
+    ///     A parse failure on the oracle's own reply is treated as "aligned" for the same reason.
+    /// </remarks>
+    /// <param name="instruction">The original authoring instruction, used as the alignment baseline. Must not be null or blank.</param>
+    /// <param name="cancellationToken">Token that cancels the call.</param>
+    /// <returns>
+    ///     <c>true</c> when the work is still aligned with the instruction or the oracle could not judge;
+    ///     <c>false</c> with a non-null reason when the oracle detected clear scope drift.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="instruction" /> is null, empty or blank.</exception>
+    public async Task<(bool Aligned, string? DriftReason)> CheckScopeAsync(
+        string instruction, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(instruction);
+
+        var question =
+            $"""
+             Original instruction:
+             {instruction}
+
+             Examine the conversation above — the tool calls made, the files touched, and the changes described —
+             and decide whether the work so far is still aligned with the original instruction, or has drifted
+             into unrelated territory.
+             """;
+
+        // Private working copy: the scope check does not join the main conversation. It is a read-only
+        // oracle over the current state, not a reasoning step the model builds on next turn.
+        List<ChatMessage> working =
+        [
+            new ChatMessage(ChatRole.System, ScopeDriftCheckCharter),
+            .. _conversation,
+            new ChatMessage(ChatRole.User, ComposeProbeMessage<ScopeAlignmentJudgement>(question))
+        ];
+
+        try
+        {
+            var turn = await CompleteAsync(
+                    ModelActivity.Probe, ModelRole.Light, working.ToArray(), [], cancellationToken)
+                .ConfigureAwait(false);
+
+            var judgement = JsonSerializer.Deserialize<ScopeAlignmentJudgement>(
+                ExtractJsonObject(turn.Text), DecodeOptions);
+
+            // Insufficient evidence: conservative default is to keep going.
+            if (judgement is null || !judgement.HasSufficientEvidence)
+                return (true, null);
+
+            return judgement.Aligned
+                ? (true, null)
+                : (false, string.IsNullOrWhiteSpace(judgement.Why) ? "scope drift detected" : judgement.Why);
+        }
+        catch (Exception exception) when (exception is ModelUnavailableException or JsonException)
+        {
+            // A scope check that cannot complete is not grounds to abort: the oracle is a guard, not a gate.
+            return (true, null);
+        }
+    }
+
+    /// <summary>
     ///     Completes one turn through the seam and transcribes it, whatever it produced.
     /// </summary>
     /// <remarks>
@@ -375,5 +470,20 @@ public sealed class ModelSession
         var start = trimmed.IndexOf('{', StringComparison.Ordinal);
         var end = trimmed.LastIndexOf('}');
         return start >= 0 && end > start ? trimmed[start..(end + 1)] : trimmed;
+    }
+
+    /// <summary>
+    ///     The typed decision the scope-drift oracle answers with during a periodic mid-run check.
+    /// </summary>
+    private sealed record ScopeAlignmentJudgement
+    {
+        [System.ComponentModel.Description("true when the work done so far is aligned with the original instruction")]
+        public required bool Aligned { get; init; }
+
+        [System.ComponentModel.Description("the oracle's reasoning when scope drift is detected; empty when aligned")]
+        public required string Why { get; init; }
+
+        [System.ComponentModel.Description("true when the conversation provided enough evidence to judge alignment honestly")]
+        public required bool HasSufficientEvidence { get; init; }
     }
 }

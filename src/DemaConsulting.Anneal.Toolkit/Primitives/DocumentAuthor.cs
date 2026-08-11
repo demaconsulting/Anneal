@@ -27,6 +27,14 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///         change does. Changes within the budget are never probed and pay no extra model call.
 ///     </para>
 ///     <para>
+///         Every <c>scopeDriftCheckInterval</c> successful edit-tool calls, a cheap Light-role scope-drift probe
+///         is run mid-authoring to verify the pass is still working within the original instruction's scope.
+///         When the oracle detects clear drift the run is aborted and reported as <see cref="OperationOutcome.Failed" />;
+///         when the oracle lacks sufficient evidence to judge, execution continues. This is a post-turn check —
+///         it fires after each <see cref="ModelSession.RunAsync" /> turn that crossed the K-boundary — so it can
+///         catch a pass that has started heading in the wrong direction before the probe extraction turn.
+///     </para>
+///     <para>
 ///         After the authoring pass, the self-reported file list is corroborated against a real
 ///         <c>git diff HEAD</c> snapshot: any file the model claims to have changed that has no real diff entry
 ///         is dropped before the proportionality oracle sees the list. When git is unavailable the self-reported
@@ -60,6 +68,7 @@ internal sealed class DocumentAuthor
     private readonly string _charter;
     private readonly ModelRole _role;
     private readonly int _targetFileCountBudget;
+    private readonly int _scopeDriftCheckInterval;
     private readonly int _maxOutputTokens;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunGitCommand? _runGit;
@@ -81,6 +90,11 @@ internal sealed class DocumentAuthor
     ///     decide whether the excess is justified by the instruction or looks like scope drift. Must be greater
     ///     than zero; defaults to 3.
     /// </param>
+    /// <param name="scopeDriftCheckInterval">
+    ///     After every this-many successful edit-tool calls, a cheap Light-role scope-drift probe runs to confirm
+    ///     the pass is still working within the original instruction's scope. Zero disables the periodic check.
+    ///     Defaults to 5.
+    /// </param>
     /// <param name="maxOutputTokens">
     ///     The ceiling on generated output for every turn. Defaults to <see cref="ModelSession.DefaultMaxOutputTokens" />.
     /// </param>
@@ -94,12 +108,16 @@ internal sealed class DocumentAuthor
     /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="charter" /> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="targetFileCountBudget" /> is not greater than zero.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when <paramref name="targetFileCountBudget" /> is not greater than zero, or
+    ///     <paramref name="scopeDriftCheckInterval" /> is negative.
+    /// </exception>
     public DocumentAuthor(
         string repositoryRoot,
         string charter,
         ModelRole role = ModelRole.Heavy,
         int targetFileCountBudget = 3,
+        int scopeDriftCheckInterval = 5,
         int maxOutputTokens = ModelSession.DefaultMaxOutputTokens,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunGitCommand? runGit = null)
@@ -107,11 +125,13 @@ internal sealed class DocumentAuthor
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(charter);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetFileCountBudget);
+        ArgumentOutOfRangeException.ThrowIfNegative(scopeDriftCheckInterval);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _charter = charter;
         _role = role;
         _targetFileCountBudget = targetFileCountBudget;
+        _scopeDriftCheckInterval = scopeDriftCheckInterval;
         _maxOutputTokens = maxOutputTokens;
         _endpointFor = endpointFor;
         _runGit = runGit;
@@ -127,11 +147,12 @@ internal sealed class DocumentAuthor
     ///     path; <see cref="OperationOutcome.Succeeded" /> with the decoded result when a change was authored or
     ///     the pass named a better owner — both are this primitive successfully answering its own question, per
     ///     <c>.anneal/architecture/toolkit.md</c> § Decisions; <see cref="OperationOutcome.Failed" /> with no finding
-    ///     when no model could be reached, or when the authored change's file count exceeded the budget and the
-    ///     Light-role proportionality oracle judged it disproportionate — in that case the oracle's stated
-    ///     reasoning is the failure note; <see cref="OperationOutcome.Refused" /> is reserved for the rarer case
-    ///     where ownership cannot be determined honestly enough to answer at all — see the remarks on
-    ///     <see cref="DocumentAuthoringResult" /> for why that path is currently unreachable.
+    ///     when no model could be reached, when the periodic scope-drift check detected clear scope drift, or when
+    ///     the authored change's file count exceeded the budget and the Light-role proportionality oracle judged it
+    ///     disproportionate — in that case the oracle's stated reasoning is the failure note;
+    ///     <see cref="OperationOutcome.Refused" /> is reserved for the rarer case where ownership cannot be
+    ///     determined honestly enough to answer at all — see the remarks on <see cref="DocumentAuthoringResult" />
+    ///     for why that path is currently unreachable.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="instruction" /> is null, empty or blank.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
@@ -152,6 +173,12 @@ internal sealed class DocumentAuthor
         try
         {
             await session.RunAsync(instruction, _role, cancellationToken).ConfigureAwait(false);
+
+            // After the run, check whether the K-boundary was crossed and the pass looks like it drifted.
+            var driftResult = await CheckScopeDriftAsync(session, instruction, cancellationToken)
+                .ConfigureAwait(false);
+            if (driftResult is not null)
+                return driftResult;
 
             var envelope = await session
                 .ProbeAsync<DocumentAuthoringEnvelope>(
@@ -238,6 +265,24 @@ internal sealed class DocumentAuthor
             return new StepResult<DocumentAuthoringResult>(
                 OperationOutcome.Failed, null, [new ProcessNote(exception.Message)]);
         }
+    }
+
+    /// <returns>
+    ///     A terminal <see cref="StepResult{TFinding}" /> when the scope-drift oracle detected clear drift,
+    ///     or null when the interval was not reached or the work is still aligned.
+    /// </returns>
+    private async Task<StepResult<DocumentAuthoringResult>?> CheckScopeDriftAsync(
+        ModelSession session, string instruction, CancellationToken cancellationToken)
+    {
+        if (_scopeDriftCheckInterval == 0 || session.SuccessfulEditCallCount < _scopeDriftCheckInterval)
+            return null;
+
+        var (aligned, reason) = await session.CheckScopeAsync(instruction, cancellationToken).ConfigureAwait(false);
+        if (aligned)
+            return null;
+
+        var note = string.IsNullOrWhiteSpace(reason) ? "scope drift detected mid-authoring" : reason;
+        return new StepResult<DocumentAuthoringResult>(OperationOutcome.Failed, null, [new ProcessNote(note)]);
     }
 
     /// <returns>

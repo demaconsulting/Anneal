@@ -16,6 +16,11 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     already, and a planner that re-plans on its own answer reintroduces exactly that multiplier under a
 ///     different name.
 ///     <para>
+///         <c>scopeDriftCheckInterval</c> is accepted for API consistency with <see cref="Developer" /> and
+///         <see cref="DocumentAuthor" /> but has no effect here: a planner issues no edit-tool calls and
+///         therefore never crosses the K-boundary that triggers the check.
+///     </para>
+///     <para>
 ///         Thread safety: instances are immutable and safe to share, but each call opens its own conversation.
 ///     </para>
 /// </remarks>
@@ -48,6 +53,11 @@ internal sealed class Planner
     ///     The most steps a <see cref="PlanningDecision.Plan" /> may contain before it is treated as having failed
     ///     to stay narrow. Must be greater than zero; defaults to 8.
     /// </param>
+    /// <param name="scopeDriftCheckInterval">
+    ///     Accepted for API consistency with <see cref="Developer" /> and <see cref="DocumentAuthor" />. A
+    ///     planner issues no edit-tool calls, so this value has no effect regardless of what is passed. Must be
+    ///     zero or greater; defaults to 5.
+    /// </param>
     /// <param name="role">The capability tier the single question is served at. Defaults to <see cref="ModelRole.Medium" />.</param>
     /// <param name="endpointFor">
     ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
@@ -55,18 +65,23 @@ internal sealed class Planner
     /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="charter" /> is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxPlanSteps" /> is not greater than zero.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when <paramref name="maxPlanSteps" /> is not greater than zero, or
+    ///     <paramref name="scopeDriftCheckInterval" /> is negative.
+    /// </exception>
     public Planner(
         string repositoryRoot,
         string charter,
         bool enabled = true,
         int maxPlanSteps = 8,
+        int scopeDriftCheckInterval = 5,
         ModelRole role = ModelRole.Medium,
         Func<ModelRole, IChatEndpoint>? endpointFor = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(charter);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPlanSteps);
+        ArgumentOutOfRangeException.ThrowIfNegative(scopeDriftCheckInterval);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _charter = charter;

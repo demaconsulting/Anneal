@@ -30,9 +30,18 @@ internal sealed class ToolCallRecorder
 {
     private static readonly JsonSerializerOptions ArgumentOptions = new(JsonSerializerDefaults.Web);
 
+    /// <remarks>
+    ///     Compared case-insensitively so a tool name produced by the SDK cannot slip past a case difference.
+    ///     Only successful calls (outcome == <see cref="ToolReply.Returned" />) increment the counter;
+    ///     refusals and faults are deliberate non-mutations and should not count toward a drift-check interval.
+    /// </remarks>
+    private static readonly HashSet<string> EditToolNames =
+        new(RepositoryEditTools.Names, StringComparer.OrdinalIgnoreCase);
+
     private readonly RecordStore _store;
     private readonly Lock _gate = new();
     private readonly List<ToolCallTranscript> _refusals = [];
+    private int _successfulEditCallCount;
 
     /// <param name="store">Where each transcript is appended. Must not be null.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="store" /> is null.</exception>
@@ -77,6 +86,21 @@ internal sealed class ToolCallRecorder
     }
 
     /// <summary>
+    ///     The cumulative count of edit-tool calls (create, replace, edit, delete) that completed successfully
+    ///     — neither refused nor faulted — since this recorder was constructed.
+    /// </summary>
+    internal int SuccessfulEditCallCount
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _successfulEditCallCount;
+            }
+        }
+    }
+
+    /// <summary>
     ///     Wraps every function-backed tool so its invocations are transcribed.
     /// </summary>
     /// <remarks>
@@ -103,6 +127,9 @@ internal sealed class ToolCallRecorder
         {
             if (ToolReply.IsRefusal(result))
                 _refusals.Add(transcript);
+
+            if (result == ToolReply.Returned && EditToolNames.Contains(tool))
+                _successfulEditCallCount++;
         }
 
         _store.Append(transcript);

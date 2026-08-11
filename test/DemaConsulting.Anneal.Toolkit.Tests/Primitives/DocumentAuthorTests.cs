@@ -1,4 +1,6 @@
+using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using Microsoft.Extensions.AI;
 using Xunit;
 
 namespace DemaConsulting.Anneal.Toolkit.Tests.Primitives;
@@ -209,10 +211,141 @@ public class DocumentAuthorTests
         }
     }
 
+    [Fact]
+    public async Task AuthorAsync_IntervalNotReached_SkipsScopeDriftCheck()
+    {
+        // Arrange: interval=5, no tools actually invoked (count=0 < 5) — the drift check never fires.
+        // This exercises the guard condition that prevents unnecessary oracle calls early in a run.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the document.",
+                """{"kind": "Authored", "why": "", "filesChanged": ["docs/a.md"], "summary": "a small update"}""");
+            var author = new DocumentAuthor(root, "a charter", scopeDriftCheckInterval: 5, endpointFor: _ => endpoint);
+
+            // Act
+            var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
+
+            // Assert: succeeds with only 2 endpoint calls (run + probe); no scope-check call was made
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(2, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AuthorAsync_IntervalCrossedAndDriftDetected_FailsWithDriftReason()
+    {
+        // Arrange: interval=1 and the run turn invokes one edit tool, so count reaches 1 and the drift check fires.
+        // The oracle reports clear scope drift, so AuthorAsync aborts before reaching the post-run probe.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new ScopeCheckEndpoint(
+                driftReply: """{"aligned": false, "why": "the pass went outside its declared scope", "hasSufficientEvidence": true}""");
+            var author = new DocumentAuthor(
+                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint);
+
+            // Act
+            var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
+
+            // Assert: aborted by the mid-run scope-drift check; the oracle's reason is surfaced
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Null(result.Finding),
+                () => Assert.Contains(
+                    result.Notes,
+                    n => n.Text.Contains("went outside its declared scope", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AuthorAsync_IntervalCrossedButAligned_ContinuesNormally()
+    {
+        // Arrange: interval=1 and the run invokes one edit tool, so the drift check fires — but the oracle
+        // reports aligned, so execution continues to the post-run probe and the pass succeeds.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new ScopeCheckEndpoint(
+                driftReply: """{"aligned": true, "why": "", "hasSufficientEvidence": true}""",
+                probeReply: """{"kind": "Authored", "why": "", "filesChanged": ["docs/a.md"], "summary": "updated"}""");
+            var author = new DocumentAuthor(
+                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint);
+
+            // Act
+            var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
+
+            // Assert: aligned oracle → pass continues and succeeds
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-doc-author-" + Guid.NewGuid().ToString("N")[..12]);
         Directory.CreateDirectory(root);
         return root;
+    }
+
+    /// <summary>
+    ///     A fake endpoint that invokes a real edit tool during the run call so the session's
+    ///     <see cref="ModelSession.SuccessfulEditCallCount" /> reaches the scope-drift check interval, then answers
+    ///     the scope-check probe with a canned drift judgement, and optionally a post-drift probe reply.
+    /// </summary>
+    private sealed class ScopeCheckEndpoint(
+        string driftReply,
+        string? probeReply = null) : IChatEndpoint
+    {
+        private int _calls;
+
+        public async Task<ChatTurnResult> CompleteAsync(ChatTurnRequest request, CancellationToken cancellationToken)
+        {
+            _calls++;
+
+            if (_calls == 1)
+            {
+                // Simulate the SDK tool loop invoking create_file, incrementing SuccessfulEditCallCount
+                var createFile = request.Tools.OfType<AIFunction>()
+                    .FirstOrDefault(t => t.Name == "create_file");
+                if (createFile is not null)
+                {
+                    var args = new AIFunctionArguments(
+                        new Dictionary<string, object?> { ["path"] = "scope-check-file.txt", ["content"] = "x" });
+                    try
+                    {
+                        await createFile.InvokeAsync(args, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch { /* refusals are recorded, not thrown to callers */ }
+                }
+
+                return new ChatTurnResult("I updated the document.");
+            }
+
+            if (_calls == 2)
+                return new ChatTurnResult(driftReply);
+
+            return probeReply is not null
+                ? new ChatTurnResult(probeReply)
+                : throw new ModelUnavailableException("no further replies queued");
+        }
+
+        public Task<IReadOnlyCollection<string>> AvailableModelsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<string>>([]);
     }
 }

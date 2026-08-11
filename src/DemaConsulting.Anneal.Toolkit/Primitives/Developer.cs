@@ -23,6 +23,13 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///         ran out of budget.
 ///     </para>
 ///     <para>
+///         Every <c>scopeDriftCheckInterval</c> successful edit-tool calls, a cheap Light-role scope-drift probe
+///         runs mid-development to verify the pass is still working within the original instruction's scope.
+///         When the oracle detects clear drift the run is aborted and reported as <see cref="OperationOutcome.Failed" />;
+///         when the oracle lacks sufficient evidence to judge, execution continues. This check fires after each
+///         <see cref="ModelSession.RunAsync" /> turn (initial or repair) that crossed the K-boundary.
+///     </para>
+///     <para>
 ///         After the development pass, the self-reported file list is corroborated against a real
 ///         <c>git diff HEAD</c> snapshot: any file the model claims to have changed that has no real diff entry
 ///         is dropped before the result is returned. When git is unavailable the self-reported list is used
@@ -40,6 +47,7 @@ internal sealed class Developer
     private readonly IReadOnlyList<string> _toolGrantGroups;
     private readonly ModelRole _role;
     private readonly int _maxRepairAttempts;
+    private readonly int _scopeDriftCheckInterval;
     private readonly int _maxOutputTokens;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunRepositoryScript? _buildCheck;
@@ -69,6 +77,11 @@ internal sealed class Developer
     ///     one authoring turn may make as many read or edit calls as the model needs. Must be zero or greater;
     ///     defaults to 3.
     /// </param>
+    /// <param name="scopeDriftCheckInterval">
+    ///     After every this-many successful edit-tool calls, a cheap Light-role scope-drift probe runs to confirm
+    ///     the pass is still working within the original instruction's scope. Zero disables the periodic check.
+    ///     Defaults to 5.
+    /// </param>
     /// <param name="maxOutputTokens">
     ///     The context budget: the ceiling on generated output for every turn. Defaults to
     ///     <see cref="ModelSession.DefaultMaxOutputTokens" />.
@@ -89,13 +102,17 @@ internal sealed class Developer
     /// <exception cref="ArgumentNullException">
     ///     Thrown when <paramref name="charter" /> or <paramref name="toolGrantGroups" /> is null.
     /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxRepairAttempts" /> is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when <paramref name="maxRepairAttempts" /> is negative, or
+    ///     <paramref name="scopeDriftCheckInterval" /> is negative.
+    /// </exception>
     public Developer(
         string repositoryRoot,
         string charter,
         IReadOnlyList<string>? toolGrantGroups = null,
         ModelRole role = ModelRole.Heavy,
         int maxRepairAttempts = 3,
+        int scopeDriftCheckInterval = 5,
         int maxOutputTokens = ModelSession.DefaultMaxOutputTokens,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildCheck = null,
@@ -104,12 +121,14 @@ internal sealed class Developer
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(charter);
         ArgumentOutOfRangeException.ThrowIfNegative(maxRepairAttempts);
+        ArgumentOutOfRangeException.ThrowIfNegative(scopeDriftCheckInterval);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _charter = charter;
         _toolGrantGroups = toolGrantGroups ?? [ToolGroups.Read, ToolGroups.Edit];
         _role = role;
         _maxRepairAttempts = maxRepairAttempts;
+        _scopeDriftCheckInterval = scopeDriftCheckInterval;
         _maxOutputTokens = maxOutputTokens;
         _endpointFor = endpointFor;
         _buildCheck = buildCheck;
@@ -127,7 +146,8 @@ internal sealed class Developer
     ///     the change was completed or the pass named a better owner — both are this primitive successfully
     ///     answering its own question, per <c>.anneal/architecture/toolkit.md</c> § Decisions;
     ///     <see cref="OperationOutcome.Failed" /> with no finding when the build-repair budget was spent with the
-    ///     check still failing, when the check itself faulted, or when no model could be reached;
+    ///     check still failing, when the periodic scope-drift check detected clear scope drift, when the check
+    ///     itself faulted, or when no model could be reached;
     ///     <see cref="OperationOutcome.Refused" /> is reserved for the rarer case where this pass cannot proceed
     ///     honestly enough to answer at all — see the remarks on <see cref="DevelopmentResult" /> for why that
     ///     path is currently unreachable.
@@ -152,9 +172,16 @@ internal sealed class Developer
         {
             await session.RunAsync(instruction, _role, cancellationToken).ConfigureAwait(false);
 
+            // After the initial authoring run, check whether the K-boundary was crossed and the pass drifted.
+            var driftResult = await CheckScopeDriftAsync(session, instruction, cancellationToken)
+                .ConfigureAwait(false);
+            if (driftResult is not null)
+                return driftResult;
+
             if (_buildCheck is not null)
             {
-                var repaired = await RepairAgainstBuildAsync(session, cancellationToken).ConfigureAwait(false);
+                var repaired = await RepairAgainstBuildAsync(session, instruction, cancellationToken)
+                    .ConfigureAwait(false);
                 if (repaired is not null)
                     return repaired;
             }
@@ -208,10 +235,11 @@ internal sealed class Developer
 
     /// <returns>
     ///     A terminal <see cref="StepResult{TFinding}" /> when the repair budget was spent with the check still
-    ///     failing, or null when the check passed and the caller should proceed to report completion.
+    ///     failing, when scope drift was detected after a repair turn, or null when the check passed and the
+    ///     caller should proceed to report completion.
     /// </returns>
     private async Task<StepResult<DevelopmentResult>?> RepairAgainstBuildAsync(
-        ModelSession session, CancellationToken cancellationToken)
+        ModelSession session, string instruction, CancellationToken cancellationToken)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -239,7 +267,31 @@ internal sealed class Developer
                     _role,
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            // Check for scope drift after each repair turn in case the repair went beyond the original scope.
+            var driftResult = await CheckScopeDriftAsync(session, instruction, cancellationToken)
+                .ConfigureAwait(false);
+            if (driftResult is not null)
+                return driftResult;
         }
+    }
+
+    /// <returns>
+    ///     A terminal <see cref="StepResult{TFinding}" /> when the scope-drift oracle detected clear drift,
+    ///     or null when the interval was not reached or the work is still aligned.
+    /// </returns>
+    private async Task<StepResult<DevelopmentResult>?> CheckScopeDriftAsync(
+        ModelSession session, string instruction, CancellationToken cancellationToken)
+    {
+        if (_scopeDriftCheckInterval == 0 || session.SuccessfulEditCallCount < _scopeDriftCheckInterval)
+            return null;
+
+        var (aligned, reason) = await session.CheckScopeAsync(instruction, cancellationToken).ConfigureAwait(false);
+        if (aligned)
+            return null;
+
+        var note = string.IsNullOrWhiteSpace(reason) ? "scope drift detected mid-development" : reason;
+        return new StepResult<DevelopmentResult>(OperationOutcome.Failed, null, [new ProcessNote(note)]);
     }
 
     /// <returns>
