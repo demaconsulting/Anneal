@@ -133,10 +133,22 @@ internal sealed class DeterministicCheck
     ///     Trimmed rather than truncated blindly, so a short pass/fail script's output is not stretched with
     ///     nothing, while a linter's page of findings is bounded to what a reader — human or model — actually
     ///     needs to act.
+    ///     <para>
+    ///         When output exceeds the budget, both head and tail are kept rather than just the head: many
+    ///         build/lint tools print the actionable summary — error count, final verdict — at the end, after
+    ///         pages of per-file detail. Blind head-truncation silently drops exactly that signal. Each half is
+    ///         1000 characters, preserving the same 2000-character real-content budget.
+    ///     </para>
     /// </remarks>
     private static string Summarize(string output)
     {
-        const int maxLength = 2000;
-        return output.Length <= maxLength ? output : output[..maxLength] + "…";
+        const int halfBudget = 1000;
+        const int fullBudget = halfBudget * 2;
+
+        if (output.Length <= fullBudget)
+            return output;
+
+        var omitted = output.Length - fullBudget;
+        return output[..halfBudget] + $"\n\u2026[{omitted} characters omitted]\u2026\n" + output[^halfBudget..];
     }
 }
