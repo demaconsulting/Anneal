@@ -1,6 +1,9 @@
-# Assumptions
+---
+description: Curated, descriptive truths the design rests on, disprovable but not chosen (see docs/user-guide/).
+maintenance: Only edited by the repository author.
+---
 
-Curated, descriptive truths the design rests on, disprovable but not chosen. See `docs/user-guide/` for detail.
+# Assumptions
 
 - **A focused agent is a reliable judge.** An agent given the specific facts and a single clear
   question answers it reliably. Reliability degrades with breadth and vagueness far more than with

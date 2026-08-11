@@ -1,5 +1,6 @@
 ---
-reference: docs/user-guide/
+description: Anneal's long-term strategic destination and the reasoning behind it (see docs/user-guide/).
+maintenance: Only edited by the repository author.
 ---
 
 # Vision

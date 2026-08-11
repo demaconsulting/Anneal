@@ -1,5 +1,6 @@
 ---
-reference: "`helper` reads this before re-cutting system boundaries, and `route`'s Structural Change worker reads it before a Structural Change."
+description: Conditions this architecture must satisfy; read by helper before re-cutting system boundaries and by route's Structural Change worker before a Structural Change.
+maintenance: Appended by admit-constraint after the user approves exact bullet wording; entries are never deleted for being satisfied, only moved between sections.
 ---
 
 # Constraints
