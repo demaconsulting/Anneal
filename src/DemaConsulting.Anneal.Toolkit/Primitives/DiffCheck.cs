@@ -97,6 +97,15 @@ internal sealed partial class DiffCheck
 
         try
         {
+            // Mark untracked files as intent-to-add before the whole-tree diff so 'git diff HEAD'
+            // sees brand-new files as additions rather than silently omitting them ('??' entries in
+            // 'git status' are invisible to 'git diff HEAD' without this step). Skipped for
+            // branch-to-branch diffs because those compare committed content and do not have this
+            // blind spot. Best-effort: a non-zero exit here (e.g. test stub, no repository) does not
+            // abort the diff itself.
+            if (string.IsNullOrWhiteSpace(baseRef))
+                await _runGit(["add", "-N", "."], linked.Token).ConfigureAwait(false);
+
             var run = await _runGit(arguments, linked.Token).ConfigureAwait(false);
 
             if (run.ExitCode != 0)

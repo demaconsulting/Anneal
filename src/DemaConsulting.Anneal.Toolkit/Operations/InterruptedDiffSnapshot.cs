@@ -64,6 +64,14 @@ internal static class InterruptedDiffSnapshot
         {
             var git = new GitProcess(repositoryRoot);
 
+            // For a whole-tree diff, mark untracked files as intent-to-add first so 'git diff HEAD'
+            // sees brand-new files as additions rather than silently omitting them. A named-file diff has the
+            // same blind spot for a brand-new file, but no production call site passes a non-empty list today
+            // (both RouteOperation and MaintainOperation call the whole-tree overload); this overload is kept
+            // for callers that genuinely want a named subset.
+            if (files.Count == 0)
+                await git.RunAsync(["add", "-N", "."], cancellationToken).ConfigureAwait(false);
+
             // An empty files list produces 'git diff HEAD' with no path filter — a whole-tree diff.
             IReadOnlyList<string> arguments = files.Count > 0
                 ? ["diff", "HEAD", "--", .. files]

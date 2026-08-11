@@ -27,6 +27,12 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///         change does. Changes within the budget are never probed and pay no extra model call.
 ///     </para>
 ///     <para>
+///         After the authoring pass, the self-reported file list is corroborated against a real
+///         <c>git diff HEAD</c> snapshot: any file the model claims to have changed that has no real diff entry
+///         is dropped before the proportionality oracle sees the list. When git is unavailable the self-reported
+///         list is used unchanged — the corroboration is a strengthening check, not a hard dependency.
+///     </para>
+///     <para>
 ///         Thread safety: instances are immutable and safe to share, but a run edits the working tree, so two
 ///         concurrent runs over one repository race exactly as two workers would.
 ///     </para>
@@ -56,6 +62,7 @@ internal sealed class DocumentAuthor
     private readonly int _targetFileCountBudget;
     private readonly int _maxOutputTokens;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
+    private readonly RunGitCommand? _runGit;
 
     /// <summary>
     ///     Binds a documentation author to a repository and the charter its authoring pass carries.
@@ -81,6 +88,10 @@ internal sealed class DocumentAuthor
     ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
     ///     Injected so this primitive's whole behavior is exercisable without a network call.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation for the post-authoring corroboration diff, or null to use the real
+    ///     <c>git</c> executable. Injected so the corroboration check is exercisable without a real repository.
+    /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="charter" /> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="targetFileCountBudget" /> is not greater than zero.</exception>
@@ -90,7 +101,8 @@ internal sealed class DocumentAuthor
         ModelRole role = ModelRole.Heavy,
         int targetFileCountBudget = 3,
         int maxOutputTokens = ModelSession.DefaultMaxOutputTokens,
-        Func<ModelRole, IChatEndpoint>? endpointFor = null)
+        Func<ModelRole, IChatEndpoint>? endpointFor = null,
+        RunGitCommand? runGit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(charter);
@@ -102,6 +114,7 @@ internal sealed class DocumentAuthor
         _targetFileCountBudget = targetFileCountBudget;
         _maxOutputTokens = maxOutputTokens;
         _endpointFor = endpointFor;
+        _runGit = runGit;
     }
 
     /// <summary>
@@ -161,8 +174,21 @@ internal sealed class DocumentAuthor
                     Map(envelope),
                     [new ProcessNote("the correct change needs a protected file, which needs your approval")]);
 
-            if (envelope.Kind == DocumentAuthoringOutcomeKind.Authored &&
-                envelope.FilesChanged.Count > _targetFileCountBudget)
+            // Corroborate the self-reported file list against the real working tree diff. A model
+            // may hallucinate files it never actually wrote; feeding a fabricated list to the
+            // proportionality oracle causes false failures. Drop any file the diff shows no entry
+            // for; fall back to the full self-report when git is unavailable so the corroboration
+            // is a strengthening check rather than a new hard dependency.
+            var corroboratedFiles = envelope.Kind == DocumentAuthoringOutcomeKind.Authored
+                ? await CorroborateFilesAsync(envelope.FilesChanged, cancellationToken).ConfigureAwait(false)
+                : envelope.FilesChanged;
+
+            var effectiveEnvelope = corroboratedFiles != envelope.FilesChanged
+                ? envelope with { FilesChanged = corroboratedFiles }
+                : envelope;
+
+            if (effectiveEnvelope.Kind == DocumentAuthoringOutcomeKind.Authored &&
+                effectiveEnvelope.FilesChanged.Count > _targetFileCountBudget)
             {
                 // Over budget: ask a cheap Light-role oracle whether the file list is proportionate to the
                 // instruction before deciding to fail. A correctly-scoped change that legitimately needs more
@@ -175,13 +201,13 @@ internal sealed class DocumentAuthor
                     ModelRole.Light,
                     endpointFor: _endpointFor);
 
-                var fileList = string.Join("\n", envelope.FilesChanged.Select(f => $"- {f}"));
+                var fileList = string.Join("\n", effectiveEnvelope.FilesChanged.Select(f => $"- {f}"));
                 var question =
                     $"""
                      Instruction given to the documentation pass:
                      {instruction}
 
-                     Files the pass reports having changed ({envelope.FilesChanged.Count}, over the {_targetFileCountBudget}-file budget):
+                     Files the pass reports having changed ({effectiveEnvelope.FilesChanged.Count}, over the {_targetFileCountBudget}-file budget):
                      {fileList}
 
                      Is this file list proportionate to and traceable from the instruction, or does it look like scope drift?
@@ -193,14 +219,14 @@ internal sealed class DocumentAuthor
                 {
                     var reason = judgement.Finding?.Why;
                     var note = string.IsNullOrWhiteSpace(reason)
-                        ? $"touched {envelope.FilesChanged.Count} files, over the {_targetFileCountBudget}-file budget, and the proportionality oracle judged the file list disproportionate"
+                        ? $"touched {effectiveEnvelope.FilesChanged.Count} files, over the {_targetFileCountBudget}-file budget, and the proportionality oracle judged the file list disproportionate"
                         : reason;
                     return new StepResult<DocumentAuthoringResult>(OperationOutcome.Failed, null, [new ProcessNote(note)]);
                 }
             }
 
             // Authored or Reroute: both are this primitive successfully answering its own question.
-            return new StepResult<DocumentAuthoringResult>(OperationOutcome.Succeeded, Map(envelope), []);
+            return new StepResult<DocumentAuthoringResult>(OperationOutcome.Succeeded, Map(effectiveEnvelope), []);
         }
         catch (ModelUnavailableException exception)
         {
@@ -211,6 +237,40 @@ internal sealed class DocumentAuthor
         {
             return new StepResult<DocumentAuthoringResult>(
                 OperationOutcome.Failed, null, [new ProcessNote(exception.Message)]);
+        }
+    }
+
+    /// <returns>
+    ///     The subset of <paramref name="selfReported" /> that appears in the actual working-tree diff, or the
+    ///     full <paramref name="selfReported" /> list unchanged when git is unavailable — the corroboration is
+    ///     strengthening, not a hard gate.
+    /// </returns>
+    private async Task<IReadOnlyList<string>> CorroborateFilesAsync(
+        IReadOnlyList<string> selfReported,
+        CancellationToken cancellationToken)
+    {
+        if (selfReported.Count == 0)
+            return selfReported;
+
+        try
+        {
+            var diff = new DiffCheck(_repositoryRoot, runGit: _runGit);
+            var result = await diff.RunAsync(null, cancellationToken).ConfigureAwait(false);
+
+            if (result.Finding is not { Available: true })
+                return selfReported;
+
+            var realFiles = result.Finding.ChangedFiles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var corroborated = selfReported.Where(f => realFiles.Contains(f)).ToList();
+
+            // Return the original reference when nothing was dropped to avoid an unnecessary allocation
+            // and to make the no-change path detectable by reference equality in the caller.
+            return corroborated.Count == selfReported.Count ? selfReported : corroborated;
+        }
+        catch
+        {
+            // Corroboration is best-effort; any unexpected failure falls back to trusting the self-report.
+            return selfReported;
         }
     }
 

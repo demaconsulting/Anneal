@@ -23,6 +23,12 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///         ran out of budget.
 ///     </para>
 ///     <para>
+///         After the development pass, the self-reported file list is corroborated against a real
+///         <c>git diff HEAD</c> snapshot: any file the model claims to have changed that has no real diff entry
+///         is dropped before the result is returned. When git is unavailable the self-reported list is used
+///         unchanged — the corroboration is a strengthening check, not a hard dependency.
+///     </para>
+///     <para>
 ///         Thread safety: instances are immutable and safe to share, but a run edits the working tree, so two
 ///         concurrent runs over one repository race exactly as two workers would.
 ///     </para>
@@ -37,6 +43,7 @@ internal sealed class Developer
     private readonly int _maxOutputTokens;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunRepositoryScript? _buildCheck;
+    private readonly RunGitCommand? _runGit;
 
     /// <summary>
     ///     Binds a developer to a repository and the charter its authoring pass carries.
@@ -74,6 +81,10 @@ internal sealed class Developer
     ///     Runs a local build or test check after each authoring attempt, or null to skip verification and report
     ///     the first attempt as-is. Injected so the repair loop is exercisable without a real build.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation for the post-development corroboration diff, or null to use the real
+    ///     <c>git</c> executable. Injected so the corroboration check is exercisable without a real repository.
+    /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     /// <exception cref="ArgumentNullException">
     ///     Thrown when <paramref name="charter" /> or <paramref name="toolGrantGroups" /> is null.
@@ -87,7 +98,8 @@ internal sealed class Developer
         int maxRepairAttempts = 3,
         int maxOutputTokens = ModelSession.DefaultMaxOutputTokens,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
-        RunRepositoryScript? buildCheck = null)
+        RunRepositoryScript? buildCheck = null,
+        RunGitCommand? runGit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(charter);
@@ -101,6 +113,7 @@ internal sealed class Developer
         _maxOutputTokens = maxOutputTokens;
         _endpointFor = endpointFor;
         _buildCheck = buildCheck;
+        _runGit = runGit;
     }
 
     /// <summary>
@@ -166,8 +179,20 @@ internal sealed class Developer
                     Map(envelope),
                     [new ProcessNote("the correct change needs a protected file, which needs your approval")]);
 
+            // Corroborate the self-reported file list against the real working tree diff. A model
+            // may hallucinate files it never actually wrote; the corrected list is what callers
+            // receive as the authoritative record of what changed. Fall back to the self-report
+            // when git is unavailable so the corroboration is a strengthening check, not a gate.
+            var corroboratedFiles = envelope.Kind == DevelopmentOutcomeKind.Completed
+                ? await CorroborateFilesAsync(envelope.FilesChanged, cancellationToken).ConfigureAwait(false)
+                : envelope.FilesChanged;
+
+            var effectiveEnvelope = corroboratedFiles != envelope.FilesChanged
+                ? envelope with { FilesChanged = corroboratedFiles }
+                : envelope;
+
             // Completed or Reroute: both are this primitive successfully answering its own question.
-            return new StepResult<DevelopmentResult>(OperationOutcome.Succeeded, Map(envelope), []);
+            return new StepResult<DevelopmentResult>(OperationOutcome.Succeeded, Map(effectiveEnvelope), []);
         }
         catch (ModelUnavailableException exception)
         {
@@ -214,6 +239,40 @@ internal sealed class Developer
                     _role,
                     cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    /// <returns>
+    ///     The subset of <paramref name="selfReported" /> that appears in the actual working-tree diff, or the
+    ///     full <paramref name="selfReported" /> list unchanged when git is unavailable — the corroboration is
+    ///     strengthening, not a hard gate.
+    /// </returns>
+    private async Task<IReadOnlyList<string>> CorroborateFilesAsync(
+        IReadOnlyList<string> selfReported,
+        CancellationToken cancellationToken)
+    {
+        if (selfReported.Count == 0)
+            return selfReported;
+
+        try
+        {
+            var diff = new DiffCheck(_repositoryRoot, runGit: _runGit);
+            var result = await diff.RunAsync(null, cancellationToken).ConfigureAwait(false);
+
+            if (result.Finding is not { Available: true })
+                return selfReported;
+
+            var realFiles = result.Finding.ChangedFiles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var corroborated = selfReported.Where(f => realFiles.Contains(f)).ToList();
+
+            // Return the original reference when nothing was dropped to avoid an unnecessary allocation
+            // and to make the no-change path detectable by reference equality in the caller.
+            return corroborated.Count == selfReported.Count ? selfReported : corroborated;
+        }
+        catch
+        {
+            // Corroboration is best-effort; any unexpected failure falls back to trusting the self-report.
+            return selfReported;
         }
     }
 

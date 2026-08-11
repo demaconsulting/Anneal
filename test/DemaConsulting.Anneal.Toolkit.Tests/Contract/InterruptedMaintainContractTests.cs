@@ -43,8 +43,15 @@ public class InterruptedMaintainContractTests
             await RunGitAsync(root, "add", "-A");
             await RunGitAsync(root, "commit", "-m", "initial");
 
-            // Mutate the tracked file so git diff HEAD is non-empty.
+            // Also create and commit a second file so out-of-bound scope drift is real, not hallucinated.
+            var outOfBoundFile = Path.Combine(srcDir, "OutOfBound.cs");
+            File.WriteAllText(outOfBoundFile, "// original out-of-bound\n");
+            await RunGitAsync(root, "add", "-A");
+            await RunGitAsync(root, "commit", "-m", "add out-of-bound file");
+
+            // Mutate both tracked files so git diff HEAD shows real changes for each.
             File.WriteAllText(changedFile, "// changed before stopping\n");
+            File.WriteAllText(outOfBoundFile, "// out-of-bound also changed\n");
 
             // Worker reports it changed a file outside the declared bound, forcing escalation (TOOLKIT-30).
             var endpoint = new QueuedEndpoint(

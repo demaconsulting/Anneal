@@ -6,9 +6,10 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     What a <see cref="DocumentAuthor" /> pass produced: the files it changed, and a summary of the change.
 /// </summary>
 /// <param name="FilesChanged">
-///     The repository-relative paths the pass reports having changed. Self-reported by the authoring model, the
-///     same way <see cref="Operations.RuleOwnerAnswer" />'s evidence is self-reported; checking it against the
-///     actual working tree is a <see cref="Verifier" />'s job, not this primitive's.
+///     The repository-relative paths the pass changed. Corroborated against the real working-tree diff by
+///     <see cref="DocumentAuthor" /> before this record is returned: any file the model self-reported but that
+///     shows no real diff entry has already been dropped. When git is unavailable the list is the model's
+///     self-report unchanged.
 /// </param>
 /// <param name="Summary">What changed and why, in the depth a reviewer needs to judge it without re-reading every file.</param>
 internal sealed record DocumentChangeSet(IReadOnlyList<string> FilesChanged, string Summary);
