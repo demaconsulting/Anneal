@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/IntakeOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/IntakeReport.cs

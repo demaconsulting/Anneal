@@ -417,7 +417,7 @@ Test-Case -Name "AgentReferencesResolve" -Body {
             $bare = $token -replace '/$', ''
 
             # A token carrying a {placeholder} segment describes the SHAPE of a
-            # tree, not a file. .anneal/architecture/{system}/{section}.md is the
+            # tree, not a file. .anneal/architecture/{system}/{subsystem}.md is the
             # documented layout; a concrete path under .anneal/architecture/{system}/
             # is a reference to one repository's document and is a violation.
             if ($token -match '[{}]') { continue }

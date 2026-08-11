@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/IOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/OperationCategory.cs

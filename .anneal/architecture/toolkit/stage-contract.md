@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/StageContractOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/StageContractReport.cs

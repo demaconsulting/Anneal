@@ -16,7 +16,7 @@ exists to keep documentation weight proportional to how slowly a thing changes.
 **Finding your way around this standard.** `Decomposition and Ownership` carries the rule the rest of
 this file elaborates; read it always. Then add only what the task needs: writing or judging a
 `README.md` — `What Each Level Owns` and `Writing Guidelines`; adding or deleting a document — the two
-section-document rules and `Drift Anchors`.
+subsystem-document rules and `Drift Anchors`.
 
 # Levels of the Tree
 
@@ -29,7 +29,7 @@ earning its place.
 | 0 | `README.md` | 50,000 ft | What is this product, what does it give me, and what parts is it built from? |
 | 1 | `.anneal/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `.anneal/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3+ | `.anneal/architecture/{system}/{section}.md` | 2,000 ft+ | How does one non-obvious specific work? |
+| 3+ | `.anneal/architecture/{system}/{subsystem}.md` | 2,000 ft+ | How does one non-obvious specific work? |
 
 **Levels are created when they are earned, never upfront.** A level exists because the level above
 has grown content it cannot hold at its own altitude, or because that growth is already committed in
@@ -156,7 +156,7 @@ internal decomposition and the *rationale* for that decomposition, and the decis
 system. It does **not** restate the interactions already described in `overview.md`, and it does not
 document individual classes.
 
-**`{system}/{section}.md`** — a child node covering one non-obvious specific in depth. It may carry
+**`{system}/{subsystem}.md`** — a child node covering one non-obvious specific in depth. It may carry
 its own `## Contract` for promises specific to it (see `system-contracts.md`), and it does **not**
 restate its parent's contract or decomposition.
 
@@ -177,7 +177,7 @@ documents it links to.
 
 # Drift Anchors (MANDATORY)
 
-Every system document and every section document beneath it, at any depth, begins with front matter
+Every system document and every subsystem document beneath it, at any depth, begins with front matter
 naming the source it describes:
 
 ```yaml
@@ -193,16 +193,16 @@ the document did not — can be spotted. Nothing computes it mechanically; `veri
 model-backed verifier judges it by reading, and it is advisory either way: a review flag, never a
 hard failure. Blocking gates on every file change are precisely what makes evolution expensive.
 
-# When to Create a Section Document
+# When to Create a Subsystem Document
 
-A section document is a child node, so the test is the benefit test that governs every node: create
+A subsystem document is a child node, so the test is the benefit test that governs every node: create
 one when subdividing benefits the organization through **clarity of structure, conformity, or size.**
 A child earns its place when it sharpens structure a reader must navigate, gathers a rule that many
 units must conform to, or lifts material the parent has grown too large to hold at its own altitude —
 or material a migration stage or an admitted backlog/constraint entry has already committed to moving
 there, distinct from speculative "we might need this later" structure.
 
-Do **not** create a section document to:
+Do **not** create a subsystem document to:
 
 - Describe class or module structure — the code and the decomposition section already do this.
 - Restate the public API — that belongs in doc comments on the members themselves.
@@ -211,7 +211,7 @@ Do **not** create a section document to:
   described by `.anneal/work/active-plan.md`.
 - Satisfy a sense that a system "ought to have" documentation.
 
-# When to Delete a Section Document (MANDATORY)
+# When to Delete a Subsystem Document (MANDATORY)
 
 Deletion is a first-class action and is never deferred. Delete in the **same change** that triggers
 it:
@@ -223,7 +223,7 @@ it:
 
 Whichever pass authors the change — `route`'s Contract Change or Structural Change worker, or
 `stage-contract` — MUST perform a prune check on every Contract Change and Structural
-Change: list the section documents under the affected system and confirm each still
+Change: list the subsystem documents under the affected system and confirm each still
 earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
 silently becomes an anchor.
 
@@ -239,8 +239,8 @@ it long**:
 | --- | --- |
 | `README.md` | contract-level capabilities were enumerated, or a part described rather than placed |
 | `overview.md` | a system's contract or interior is restated instead of linked |
-| `{system}.md` | decomposition detail crept in that a section document should own, or the system is too large |
-| `{system}/{section}.md` | it covers more than one thing child nodes should hold, or no longer earns its place |
+| `{system}.md` | decomposition detail crept in that a subsystem document should own, or the system is too large |
+| `{system}/{subsystem}.md` | it covers more than one thing child nodes should hold, or no longer earns its place |
 
 Each is a reason to move material to the level that owns it, or to delete it — never to trim prose
 that earns its place. A short document missing the *why* is the more expensive failure.
@@ -267,7 +267,7 @@ that earns its place. A short document missing the *why* is the more expensive f
   holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
-- [ ] Every system document and section document, at any depth, carries `level` and `covers` front matter
-- [ ] Every section document still earns its place under the benefit test
-- [ ] Section documents whose subject was removed were deleted in the same change
+- [ ] Every system document and subsystem document, at any depth, carries `level` and `covers` front matter
+- [ ] Every subsystem document still earns its place under the benefit test
+- [ ] Subsystem documents whose subject was removed were deleted in the same change
 - [ ] No document is long for a reason that belongs at another level

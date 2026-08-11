@@ -5,7 +5,7 @@ namespace DemaConsulting.Anneal.Toolkit.Architecture;
 ///     they declare.
 /// </summary>
 /// <remarks>
-///     The tree is read recursively. A system's contract may be split across level 3 section documents once
+///     The tree is read recursively. A system's contract may be split across level 3 subsystem documents once
 ///     the system outgrows one file, and a reader that only looked at the top level would silently stop
 ///     checking every clause that moved — the failure mode that makes splitting a large document unsafe.
 ///     <para>

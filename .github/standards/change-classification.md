@@ -216,7 +216,7 @@ If no, it is Contract Change. If yes, it is Structural Change.
 The contract is unchanged. Refactors, performance work, internal restructuring, bug fixes that
 restore already-promised behavior, dependency bumps, and test additions.
 
-- **Documentation**: none — unless the change invalidates an existing section document, in which
+- **Documentation**: none — unless the change invalidates an existing subsystem document, in which
   case update or delete that one file. A narrow exception: correcting a sentence in
   `.anneal/architecture/overview.md` that is factually stale but states or implies no contract-relevant
   fact — one whose correction does not add, remove, or rename a system, or change a system's stated
@@ -250,7 +250,7 @@ boundary between systems changes.
   `README.md` only if the product's purpose or audience changed — usually it has not.
 - **Agents**: the agent holding the request runs the compiled toolkit's `route` action directly;
   `helper` does this conversationally for user-invoked work.
-- **Pruning**: prune section documents across every affected system; a removed system's directory is
+- **Pruning**: prune subsystem documents across every affected system; a removed system's directory is
   deleted entirely.
 
 # Discipline (MANDATORY)

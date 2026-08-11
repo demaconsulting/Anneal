@@ -148,7 +148,7 @@ public sealed class RouteOperation : IOperation
     private const string DocumentAuthorCharter =
         """
         You are updating documentation against the classification the router already decided - a system contract
-        document, its section documents, or both, whichever this change's own scope requires. Prune a section
+        document, its subsystem documents, or both, whichever this change's own scope requires. Prune a subsystem
         document that no longer earns its place rather than leaving it stale.
 
         You have tools to read the repository and to edit files in it. Use them on the real files rather than

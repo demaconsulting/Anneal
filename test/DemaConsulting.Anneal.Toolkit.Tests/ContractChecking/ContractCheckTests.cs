@@ -445,7 +445,7 @@ public class ContractCheckTests
     }
 
     /// <summary>
-    ///     Validates that a clause declared in a section document below the top level is checked, which is
+    ///     Validates that a clause declared in a subsystem document below the top level is checked, which is
     ///     what lets a system's contract be split across several documents.
     /// </summary>
     [Fact]

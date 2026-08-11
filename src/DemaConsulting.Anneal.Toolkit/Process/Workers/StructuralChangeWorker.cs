@@ -656,7 +656,7 @@ internal sealed class StructuralChangeWorker
         $"""
          {brief.OriginalWorkItem}
 
-         Update every system contract document and section document under .anneal/architecture/ this structural
+         Update every system contract document and subsystem document under .anneal/architecture/ this structural
          change affects - creating or pruning a node where the change requires it. Do not touch code or tests.
 
          {RenderPlan(plan)}

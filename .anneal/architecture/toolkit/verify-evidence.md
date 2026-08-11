@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/VerifyEvidenceOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/EvidenceLocator.cs

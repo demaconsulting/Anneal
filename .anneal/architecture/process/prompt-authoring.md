@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - .github/agents/**
   - .github/standards/**

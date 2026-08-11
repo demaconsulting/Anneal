@@ -78,7 +78,7 @@ public static class ContractCheck
                     $"{document.Name}: '{malformed.Label}' under '{malformed.Section}' " +
                     "is not a well-formed clause ID (expected {SYSTEM}-nn or {SYSTEM}-In)");
 
-            // Only a level 2 system document owns a contract; a section document elaborates one system's
+            // Only a level 2 system document owns a contract; a subsystem document elaborates one system's
             // interior and is read for the clauses it carries without being expected to declare a heading.
             if (document is { IsSystemDocument: true, DeclaresContract: false })
                 errors.Add($"{document.Name}: system document has no '## Contract' section");

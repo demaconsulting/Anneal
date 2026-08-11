@@ -253,7 +253,7 @@ caller-declared rather than classified. `architecture-update`'s edge to `Tree` i
 diagram above, following the
 `lint-fix`/`apply` precedent: the node is removed once nothing calls it. One thing did not carry
 forward — `architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table naming
-every section document examined and its verdict; `StageContractReport` carries only the files changed
+every subsystem document examined and its verdict; `StageContractReport` carries only the files changed
 and a summary, since the mechanical checks this stage added verify scope and clause well-formation, not
 which documents `DocumentAuthor` considered pruning. `.anneal/architecture/toolkit/stage-contract.md`'s
 own charter still instructs pruning; only the itemized report of it did not survive.

@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Model/**
   - src/DemaConsulting.Anneal.Toolkit/Recording/ModelTranscript.cs

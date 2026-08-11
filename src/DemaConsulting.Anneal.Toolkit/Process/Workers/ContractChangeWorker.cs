@@ -497,7 +497,7 @@ internal sealed class ContractChangeWorker
          {brief.OriginalWorkItem}
 
          Update the affected system contract document(s) under .anneal/architecture/ for this change, and prune
-         any section document whose content no longer earns its place. Do not touch code or tests.
+         any subsystem document whose content no longer earns its place. Do not touch code or tests.
 
          Why this worker was selected: {brief.ScopeHint}
 

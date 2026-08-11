@@ -58,7 +58,7 @@ public sealed partial class ArchitectureDocument
     public string Name { get; }
 
     /// <summary>
-    ///     Whether this is a level 2 system document, which owns a contract, rather than a level 3 section
+    ///     Whether this is a level 2 system document, which owns a contract, rather than a level 3 subsystem
     ///     document, which elaborates one system's interior and owns no contract of its own.
     /// </summary>
     public bool IsSystemDocument { get; }
@@ -86,7 +86,7 @@ public sealed partial class ArchitectureDocument
     /// <param name="name">The document's file name, used in messages about what was found. Must not be null.</param>
     /// <param name="markdown">The document's Markdown source. Must not be null.</param>
     /// <param name="isSystemDocument">
-    ///     True for a level 2 system document, false for a level 3 section document. Only a system document
+    ///     True for a level 2 system document, false for a level 3 subsystem document. Only a system document
     ///     is expected to declare a contract; the flag is recorded rather than acted on here so the caller
     ///     decides what an absent contract means.
     /// </param>

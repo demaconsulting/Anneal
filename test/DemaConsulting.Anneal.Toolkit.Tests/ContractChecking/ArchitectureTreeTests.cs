@@ -23,7 +23,7 @@ public class ArchitectureTreeTests
                                     """;
 
     /// <summary>
-    ///     Validates that a clause in a section document below the top level is found.
+    ///     Validates that a clause in a subsystem document below the top level is found.
     /// </summary>
     [Fact]
     public void ArchitectureTree_Read_ClauseInASubdirectory_IsFound()
@@ -52,7 +52,7 @@ public class ArchitectureTreeTests
     }
 
     /// <summary>
-    ///     Validates that a section document is not held to the requirement to declare a contract, since it
+    ///     Validates that a subsystem document is not held to the requirement to declare a contract, since it
     ///     elaborates one system's interior rather than owning a contract of its own.
     /// </summary>
     [Fact]

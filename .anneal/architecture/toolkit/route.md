@@ -1,5 +1,5 @@
 ---
-level: section
+level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/RouteOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/RouteReport.cs

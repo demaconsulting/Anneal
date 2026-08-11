@@ -71,7 +71,7 @@ public sealed partial class VerifyChangeOperation : IOperation
            a Contract Change or Structural Change updates the contract before the code that fulfills it, and no
            contract change is split across lower-scope commits?
         3. Does the architecture tree still describe reality at the level it claims for every document the diff
-           touched - no stale document, no level restated at its parent, no orphaned section document, and every
+           touched - no stale document, no level restated at its parent, no orphaned subsystem document, and every
            navigation link still resolving?
 
         Report 'RepairRequired' with one concern per fix needed, each owned by Documentation, Code, or Tenet, or

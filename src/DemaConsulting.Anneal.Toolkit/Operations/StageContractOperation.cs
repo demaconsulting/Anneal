@@ -59,7 +59,7 @@ public sealed class StageContractOperation : IOperation
         - never conclude a file is missing from a text search alone.
 
         Update only the affected system contract document(s) under .anneal/architecture/ for this change, and
-        prune any section document whose content no longer earns its place. Never touch code, tests, or any
+        prune any subsystem document whose content no longer earns its place. Never touch code, tests, or any
         file outside .anneal/architecture/ - that is a different pass's job, run later.
 
         Every clause you add or change must name its verifier in the placeholder form system-contracts.md

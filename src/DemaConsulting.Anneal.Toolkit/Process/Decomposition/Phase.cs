@@ -11,7 +11,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 /// </summary>
 internal enum EditCategory
 {
-    /// <summary>Prose documentation — a README, a user guide, a section document.</summary>
+    /// <summary>Prose documentation — a README, a user guide, a subsystem document.</summary>
     [Description("prose documentation")]
     Documentation,
 

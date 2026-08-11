@@ -144,7 +144,7 @@ re-cut trigger, not a bug.
 | 0 | `README.md` | 50,000 ft | What is this product, what does it give me, how does it work? |
 | 1 | `.anneal/architecture/overview.md` | 20,000 ft | What systems exist and how do they interact? |
 | 2 | `.anneal/architecture/{system}.md` | 10,000 ft | What does this system promise, and how is it composed? |
-| 3 | `.anneal/architecture/{system}/{section}.md` | 2,000 ft | How does this one non-obvious specific work? |
+| 3 | `.anneal/architecture/{system}/{subsystem}.md` | 2,000 ft | How does this one non-obvious specific work? |
 
 Level 3 is exceptional. Most systems have none, and the pass authoring a contract change prunes those
 that stop earning their place.
