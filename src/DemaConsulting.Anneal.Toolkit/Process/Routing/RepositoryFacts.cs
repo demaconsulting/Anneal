@@ -54,7 +54,6 @@ internal enum RequestImplication
 ///     item's text. Empty when none match, which is an honest answer rather than a guess.
 /// </param>
 /// <param name="ChangedFileHints">The changed-file hints a caller supplied, or empty when none were given.</param>
-/// <param name="RequestsTemplateSync">Whether the work item's text names template synchronization explicitly.</param>
 /// <param name="Implication">The coarse scope keyword matching implies for this work item.</param>
 internal sealed record RepositoryFacts(
     IReadOnlyList<string> VisionFacts,
@@ -62,7 +61,6 @@ internal sealed record RepositoryFacts(
     string? MigrationCurrentStage,
     IReadOnlyList<string> RelevantArchitectureNodes,
     IReadOnlyList<string> ChangedFileHints,
-    bool RequestsTemplateSync,
     RequestImplication Implication)
 {
     /// <summary>
@@ -90,7 +88,6 @@ internal sealed record RepositoryFacts(
             MigrationCurrentStage: ReadMigrationCurrentStage(root),
             RelevantArchitectureNodes: ReadRelevantArchitectureNodes(root, workItem),
             ChangedFileHints: changedFileHints ?? [],
-            RequestsTemplateSync: ContainsAll(workItem, "template", "sync"),
             Implication: InferImplication(workItem));
     }
 
@@ -164,9 +161,6 @@ internal sealed record RepositoryFacts(
 
         return matches;
     }
-
-    private static bool ContainsAll(string text, params string[] words) =>
-        words.All(word => text.Contains(word, StringComparison.OrdinalIgnoreCase));
 
     /// <remarks>
     ///     Checked in a fixed order — verification, then research, then writing — because a request naming more

@@ -208,6 +208,6 @@ Write-Host "  1. Fill in README.md."
 Write-Host "  2. Run @helper scaffold the repository structure from the template."
 Write-Host "  3. Ask @helper to establish the architecture tree."
 Write-Host ""
-Write-Host "  @helper is the only agent you invoke yourself; the rest run as sub-agents."
+Write-Host "  @helper is the only agent in the payload; it invokes compiled 'dotnet anneal' operations directly."
 
 exit 0

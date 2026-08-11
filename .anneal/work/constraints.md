@@ -21,9 +21,11 @@ A belief the world could prove wrong is an **assumption** rather than a constrai
 Conditions the current design meets. Breaking one is a regression, not a trade-off to be made
 quietly.
 
-- **Installation is by a provided script** — a target repository adopts the process by running
-  `install.ps1`, not by cloning files into place, hand-editing a project file, or following a
-  multi-step manual setup.
+- **Installation is by a provided script** — a target repository adopts the process by running a
+  single provided command, not by cloning files into place, hand-editing a project file, or following
+  a multi-step manual setup. Today that command is `install.ps1`; a future `dotnet tool install` plus
+  `dotnet anneal --onboarding` (see "Not Yet Satisfied" below) satisfies this identically — the
+  constraint is the single-command property, not the script.
 - **Every rule has exactly one owning file** — this is `PROCESS-I2` in
   [process.md](../architecture/process.md); that clause is the full statement, and other files
   reference it rather than restating it here.
@@ -36,11 +38,22 @@ quietly.
 - **Agent prompts and standards stay within a per-invocation context budget** — the worst-case prompt
   load stays under the ceiling declared and counted in
   [prompt-authoring.md](../architecture/process/prompt-authoring.md).
-- **A removed or renamed Anneal-owned agent must stop being selectable after upgrade** — a target
-  repository updated to a payload that no longer ships an agent must not continue offering that
-  retired agent as an invocation target.
+- **A removed or renamed Anneal-owned agent must stop being selectable after upgrade** — while
+  installation works by copying agent files into a target repository (today's `install.ps1`), a
+  payload that no longer ships an agent must not leave that repository still offering it as an
+  invocation target; `-Prune` is the current mechanism. This condition is scoped to file-copying
+  installation: once distribution moves to `dotnet tool install` plus a `dotnet anneal --onboarding`
+  step (see "Not Yet Satisfied" below), no file is ever copied into a target repository to go stale,
+  and the failure this guards against stops being possible rather than needing a mechanism to catch
+  it. Retire this entry — do not look for a fancier replacement mechanism — when that transition
+  lands.
 - **Installer deletion requires explicit confirmation** — Anneal must not delete a target repository
-  file during installation or upgrade unless the user first confirms that file's deletion.
+  file during installation or upgrade unless the user first confirms that file's deletion; `-Prune`'s
+  per-file confirmation prompt is the current mechanism. Like the entry above, this is scoped to
+  today's file-copying `install.ps1`: once distribution moves to `dotnet tool install` plus a
+  `dotnet anneal --onboarding` step, there is no target-repository file being deleted during install or
+  upgrade to confirm. Retire this entry when that transition lands rather than carrying the
+  confirmation prompt forward into a mechanism that has nothing left to delete.
 - **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
   this is `TEMPLATE-I1` in [template.md](../architecture/template.md); that clause is the full
   statement.

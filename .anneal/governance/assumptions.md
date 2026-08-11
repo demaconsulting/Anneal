@@ -14,3 +14,7 @@ Curated, descriptive truths the design rests on, disprovable but not chosen. See
   every result value is handled, and the context budget holds correlates with reliable behavior.
 - **Where a response schema appears in a conversation changes how reliably it is followed** — a
   schema given after the reasoning is done is followed more closely than one given at the outset.
+- **A model's context should carry only what bears on the decision in front of it, not the full body
+  of rules that could apply somewhere.** Precision of relevance is a reliability property, not merely a
+  cost saving: a correct rule the model is never shown, or is shown buried among irrelevant ones, might
+  as well not exist for that decision.

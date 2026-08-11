@@ -550,7 +550,6 @@ internal sealed class Router
             $".anneal/work/active-plan.md present: {ledger.Facts.MigrationPresent}; current stage: {ledger.Facts.MigrationCurrentStage ?? "none"}",
             $"Relevant architecture nodes: {(ledger.Facts.RelevantArchitectureNodes.Count == 0 ? "none" : string.Join(", ", ledger.Facts.RelevantArchitectureNodes))}",
             $"Changed-file hints: {(ledger.Facts.ChangedFileHints.Count == 0 ? "none" : string.Join(", ", ledger.Facts.ChangedFileHints))}",
-            $"Requests template sync: {ledger.Facts.RequestsTemplateSync}",
             $"Keyword implication: {ledger.Facts.Implication}"
         ];
 
@@ -581,7 +580,6 @@ internal sealed class Router
             ledger.Facts.ChangedFileHints.Count == 0
                 ? "Cleared file scope boundary: none was explicitly declared for the original item. You may still decompose it by naming narrow repository-relative phase scopes; the router will not require a strict-subset comparison against a missing boundary."
                 : $"Cleared file scope boundary: treat this exact changed-file-hint list as the authoritative already-cleared scope for the original item, and make every phase's declared file scope a strict subset of it: {string.Join(", ", ledger.Facts.ChangedFileHints)}",
-            $"Requests template sync: {ledger.Facts.RequestsTemplateSync}",
             $"Keyword implication: {ledger.Facts.Implication}"
         ];
 

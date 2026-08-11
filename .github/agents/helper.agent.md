@@ -86,7 +86,6 @@ Invoke the smallest direct path that matches what the confirmation settled on:
 | Lint noise before a pull request | run `dotnet anneal lint-fix` directly |
 | A report cites evidence (quoted text plus file:line) that should be spot-checked rather than trusted at face value | run `dotnet anneal verify-evidence` directly |
 | About to add or state a rule or standard and it is unclear whether it is already stated elsewhere | run `dotnet anneal probe-rule-owner` directly before writing it |
-| Checking the repository against the template | `template-sync` |
 
 Use these rules:
 

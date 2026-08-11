@@ -43,6 +43,17 @@ where `helper` will read them during boundary work. See the Intake admission tes
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
+- **An atomic, addressable rule library is a candidate future replacement for file-level tiering** —
+  today, relevance to a given invocation is approximated by splitting rules across separate files
+  (agent prompt, standard, skill) and loading whole files on demand, per `prompt-authoring.md`.
+  `PROCESS-I2` (no verbatim rule duplication across files), `PROCESS-03` (`NoOrphanedStandards`, no
+  un-loadable standard), and `PROCESS-06` (the per-invocation budget ceiling) are the curation rules
+  that keep that approximation honest — they exist because the file is the unit of truth today, not
+  because duplication or drift is a goal in itself. A true rule library — atomic, individually
+  addressable and taggable by scope — could inject exactly the relevant subset per invocation and
+  retire all three checks by making the failure they guard against structurally impossible rather than
+  mechanically caught after the fact. Not designed and not scheduled: file-tiering is not yet under
+  real pressure, and this is recorded as a direction, not a plan.
 - **Escalated or out-of-scope worker diffs should be preserved structurally, not left as bare
   working-tree state** — when `route` or a dispatched worker escalates or produces changes beyond
   what was asked, the uncommitted diff currently just sits in the working tree for a human or `helper`
