@@ -123,5 +123,4 @@ recorded, but sit last on purpose; do not schedule ahead of Toolkit-facing work 
   than a list of retired names.
 - **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
   standards, or at minimum report what it replaced.
-- Add a mid-run periodic self-check to ModelSession's tool-calling loop so that every K edit-tool calls it pauses for a cheap oracle check of whether the work still matches the original instruction, aborting early on detected scope drift; apply it to DocumentAuthor, Developer, and Planner.
 - Design and build an anneal onboarding CLI process that replaces install.ps1's template-copy model by using the working-file skeletons under .github/template/.anneal/ as resource data to scaffold a new repository's .anneal/ tree directly.
