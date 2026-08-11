@@ -41,16 +41,6 @@ internal sealed class SmallFixWorker
     /// <summary>The repository-relative build/test script this worker's deterministic check runs, or null.</summary>
     private readonly string? _buildScript;
 
-    /// <summary>
-    ///     The fixed standards this worker injects into every <see cref="Developer" /> call: coding and C#
-    ///     language always, since this worker
-    ///     only ever authors code, plus testing and C# testing — <c>change-classification.md</c>'s own Small Fix
-    ///     entry names "test additions" explicitly, and this worker's single deterministic check already runs
-    ///     <c>build.ps1</c>'s full test suite, so a fix this worker authors routinely touches test files too.
-    /// </summary>
-    private static readonly string[] DeveloperStandards =
-        ["coding-principles.md", "csharp-language.md", "testing-principles.md", "csharp-testing.md"];
-
     private readonly string _repositoryRoot;
     private readonly Developer _developer;
     private readonly DeterministicCheck _check;
@@ -241,7 +231,7 @@ internal sealed class SmallFixWorker
          </prior-reroutes>
 
          <standards>
-         {WorkerStandards.Render(repositoryRoot, DeveloperStandards)}
+         {WorkerStandards.Render(repositoryRoot, WorkerHelpers.DeveloperStandards)}
          </standards>
 
          <skills>

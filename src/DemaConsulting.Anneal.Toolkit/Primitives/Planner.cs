@@ -16,13 +16,6 @@ namespace DemaConsulting.Anneal.Toolkit.Primitives;
 ///     already, and a planner that re-plans on its own answer reintroduces exactly that multiplier under a
 ///     different name.
 ///     <para>
-///         <b>Nothing calls this type yet.</b> This pass implements the primitive in isolation; composing it into
-///         a worker is the Structural Change worker's job, a later, separate stage per
-///         <c>.anneal/work/active-plan.md</c>'s S8 entry. A caller that does not yet exist cannot single-shot
-///         anything, so this
-///         remark is the only guarantee available until one does.
-///     </para>
-///     <para>
 ///         Thread safety: instances are immutable and safe to share, but each call opens its own conversation.
 ///     </para>
 /// </remarks>
