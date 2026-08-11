@@ -132,12 +132,6 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
   to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
   stopping point. Open-ended "improve the code" work with no bound is not a task.
-- **A periodic, eventually self-triggered structural-cohesion sweep is ordinary Maintenance**, bounded
-  as: whole repository, read-only, stopping at a findings report. A sweep that writes nothing has no
-  unbounded scope to forbid. Its report states only what was observed, never a proposed remediation —
-  any fix is separately-bounded work. This is a second, complementary defense against drift
-  accumulating across separate requests over time, a gap the Massive Effort cumulative check (below)
-  cannot see because it only evaluates one request's own phase set. Neither layer replaces the other.
 
 ## Migration
 
@@ -188,9 +182,7 @@ checks that apply together:
 
 - **A mandatory cumulative check** — the whole proposed phase set, evaluated together: does the
   union cross a boundary no single phase crosses alone? Individually low-scope phases that together
-  move a boundary are a higher-scope change hiding in the decomposition. The periodic Maintenance
-  sweep above is a second, complementary layer for drift across separate requests over time; it does
-  not substitute for this per-request check, which sees phases the sweep cannot yet.
+  move a boundary are a higher-scope change hiding in the decomposition.
 - **A deterministic tripwire** — any phase touching `.anneal/governance/`, `.anneal/profile/`,
   `.anneal/work/`, or `.anneal/architecture/` escalates to the highest scope and a human,
   unconditionally,

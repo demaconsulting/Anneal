@@ -39,12 +39,16 @@ where `helper` will read them during boundary work. See the Intake admission tes
   now adopted. `lint.ps1`, `fix.ps1`, `.yamllint.yaml`, `.yamlfix.toml` and `.gitignore` remain
   unexamined. Classify each as flows-to-template, adopt-from-template, or deliberately divergent, and fix
   the first two.
+- **`DeterministicCheck` truncates a check's raw output to 2000 characters before it becomes verifier
+  evidence** — a warning about a clause the current change actually touched could in principle be pushed
+  past that truncation point by other unrelated warnings ahead of it, hiding it from the AI verifier step
+  relied on to catch an unimplemented touched clause. Moved here from `constraints.md`: this is a
+  specific known limitation to fix, not a standing architectural property.
 - **Cache probe results by input hash** — key each model-backed operation's result on a hash of its
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
   scaling with the number of runs.
-- **An atomic, addressable rule library is a candidate future replacement for file-level tiering** —
-  today, relevance to a given invocation is approximated by splitting rules across separate files
+- **An atomic, addressable rule library is a candidate future replacement for file-level tiering** —  today, relevance to a given invocation is approximated by splitting rules across separate files
   (agent prompt, standard, skill) and loading whole files on demand, per `prompt-authoring.md`.
   `PROCESS-I2` (no verbatim rule duplication across files), `PROCESS-03` (`NoOrphanedStandards`, no
   un-loadable standard), and `PROCESS-06` (the per-invocation budget ceiling) are the curation rules
@@ -119,6 +123,20 @@ where `helper` will read them during boundary work. See the Intake admission tes
   skills, `.anneal/work/backlog.md`, and `active-plan.md` together, or three narrower checks, is exactly the kind of
   question the skills item above says can only be answered once more experience of *doing* one such
   sweep exists — do not design the general version speculatively.
+- **Demote `prompt-authoring.md`'s "What a Judging Prompt Must Demand" apparatus (closed report-template
+  set, advisory-section rule) from mandatory to guidance** — two independent reviews this session found
+  it was shaped by the now-retired `dispatch.agent.md`'s false-claim incident, and the payload now has
+  exactly one prose agent (`helper`), which is mainly a router/interviewer rather than a heavy judging
+  report emitter. Keep evidence-before-verdict and the universally-quantified-negative trap (both still
+  load-bearing per `assumptions.md` and `constraints.md`'s "A judging agent must show the basis"
+  entry); trim the closed-template-set/advisory-section ceremony unless another real judging prompt
+  emerging from the compiled catalog needs it. Needs a `helper` boundary-work look, not a quick edit.
+- **Reconsider `system-contracts.md`'s cross-cutting/shared-intermediate-node placement guidance
+  against the current shallow tree** — two independent reviews split on this: the root-vs-child clause
+  ownership rule is real and already exercised (`prompt-authoring.md`, `toolkit/*.md` own promises below
+  their system root), but the deeper elaboration for cross-cutting promises shared by siblings at an
+  intermediate machinery node may be ahead of Anneal's current shallow, mostly-flat tree. Revisit once
+  the tree actually grows a case that needs it, rather than trimming blind.
 
 ## Lower priority: `install.ps1`'s own payload is being retired
 

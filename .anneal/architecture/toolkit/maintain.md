@@ -11,8 +11,7 @@ covers:
 
 `maintain` is the compiled front door for Maintenance mode — `change-classification.md`'s "available
 capacity, no requested outcome" work: renaming for clarity, extracting helpers, deleting dead code,
-tidying interior tests, bumping a dependency, and the periodic self-triggered structural-cohesion
-sweep. It is that compiled path, and it is deliberately narrower than `route`: helper or any other
+tidying interior tests, and bumping a dependency. It is that compiled path, and it is deliberately narrower than `route`: helper or any other
 caller that has already fixed the work to Maintenance mode invokes this action directly instead of
 routing through a second classifier.
 

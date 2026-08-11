@@ -97,15 +97,16 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   [prompt-authoring.md](../architecture/process/prompt-authoring.md). `TOOLKIT-03` absorbs the
   mechanical half — whether a cited quote really is at the line named — leaving the prompt obligation
   to state the basis still outstanding.
-- **No compiled-in default may name a single external identifier whose retirement breaks every
-  repository that has not overridden it** — a default naming one provider-side name works until that
-  name is retired, and then fails everywhere at once with only a release to fix it.
-- **A repository's own pinned model names are not guaranteed to stay valid** — `.anneal/config.json`
-  names specific models by string, and shipped defaults can rot before their first use. This recurs
-  per repository and cannot
-  be fixed once: a vendor retiring a name breaks that repository's Toolkit invocations with nothing in
-  the process noticing or repairing it, independently of whether Anneal's own compiled defaults (the
-  entry above) have been addressed.
+- **No Anneal-shipped default may be a single external-name dead man's switch** — if a compiled-in
+  provider, tool, or framework identifier is retired or renamed, a repository still using Anneal's
+  shipped default must degrade or redirect rather than every non-overriding repository failing at once
+  until a Toolkit release lands.
+- **Repository-owned model pins remain a per-repository staleness risk independent of the entry above**
+  — `.anneal/config.json` can name candidates that later stop being offered even when Anneal's shipped
+  defaults are healthy. That failure is local to the repository and is repaired by updating that
+  repository's own configuration, never by an Anneal release: the two entries share a mitigation
+  mechanism (an ordered candidate list, resolved to the first the account is offered) but not an owner
+  or a fix path, so both are kept.
 - **A prose claim about current behavior is not checked by either verification path** — the split in
   [overview.md](../architecture/overview.md) covers structural properties of files (checked by
   script) and behavioral properties of agents (established by inspection or a sandbox run), but a
@@ -114,8 +115,9 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   change under review happens to touch that sentence. Found twice in one session (a routing table and
   a diagram both went stale when `dispatch` was rewritten at S11, undetected by `scope-check` at the
   time) before a later, unrelated review caught both by hand.
-- **`DeterministicCheck` truncates a check's raw output to 2000 characters before it becomes verifier
-  evidence** — a warning about a clause the current change actually touched could in principle be pushed
-  past that truncation point by other unrelated warnings ahead of it, hiding it from the AI verifier step
-  relied on to catch an unimplemented touched clause. Not being fixed now, just recorded.
-- No agent, in any mode, writes to a file under .anneal/governance/ -- an agent proposes exact wording and escalates; only a human edits assumptions.md, vision.md, or tenets.md by hand. .anneal/work/constraints.md is the sole exception: it sits outside governance/, is a plain append-only bullet list, and once a human confirms exact wording the deterministic admit-constraint action performs the write.
+- **The user's admission is required before an agent may append to `.anneal/work/constraints.md` or
+  any file under `.anneal/governance/`** — the full rule, including the deterministic `admit-constraint`
+  action once wording is confirmed, is owned by
+  [change-classification.md](../../.github/standards/change-classification.md); this entry exists only
+  so a re-cut reading this file does not miss that the write path itself is a standing property, not
+  merely a procedural note.
