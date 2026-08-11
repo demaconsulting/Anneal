@@ -1,7 +1,10 @@
+---
+reference: "`helper` reads this before re-cutting system boundaries, and `route`'s Structural Change worker reads it before a Structural Change."
+---
+
 # Constraints
 
-Conditions this architecture must satisfy. `helper` reads this before re-cutting system
-boundaries, and `route`'s Structural Change worker reads it before a Structural Change.
+Conditions this architecture must satisfy.
 
 A satisfied constraint is not finished business — it is the reason the current shape is the shape it
 is, and the guard rail that stops the next re-cut from silently regressing it. Entries are never

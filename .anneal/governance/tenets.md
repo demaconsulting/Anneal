@@ -1,6 +1,10 @@
+---
+reference: docs/user-guide/
+---
+
 # Tenets
 
-Core facts about what Anneal always is. See `docs/user-guide/` for detail.
+Core facts about what Anneal always is.
 
 - Anneal is an AI system for autonomous development and maintenance of source repositories.
 - Anneal ships as a .NET tool, installable and updatable through NuGet.

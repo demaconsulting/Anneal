@@ -1,6 +1,8 @@
-# Vision
+---
+reference: docs/user-guide/
+---
 
-Anneal's long-term strategic destination and the reasoning behind it. See `docs/user-guide/` for detail.
+# Vision
 
 Anneal is a CLI coding agent: it maintains its own understanding of a repository, maintains and
 improves the code in it, and works with the owner to add new functionality — from a small fix to a

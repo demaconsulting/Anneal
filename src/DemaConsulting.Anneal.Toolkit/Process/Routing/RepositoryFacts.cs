@@ -41,8 +41,8 @@ internal enum RequestImplication
 ///     Decisions draws for the Toolkit as a whole, applied to how a <see cref="RoutingLedger" /> is assembled.
 /// </remarks>
 /// <param name="VisionFacts">
-///     The bullet-level lines in <c>.anneal/governance/vision.md</c>, or empty when the file is absent or carries
-///     none.
+///     The paragraph-level content of <c>.anneal/governance/vision.md</c> with YAML frontmatter and the top-level
+///     heading stripped, or empty when the file is absent or its body is blank.
 /// </param>
 /// <param name="MigrationPresent">Whether <c>.anneal/work/active-plan.md</c> exists in the repository.</param>
 /// <param name="MigrationCurrentStage">
@@ -91,17 +91,70 @@ internal sealed record RepositoryFacts(
             Implication: InferImplication(workItem));
     }
 
+    /// <remarks>
+    ///     Bullet extraction was the original approach, but vision.md is prose paragraphs — there are no bullets
+    ///     to extract, so the old code silently returned an empty list every time. The correct extraction strips
+    ///     a leading YAML frontmatter block (--- ... ---) and the top-level '# ' heading, then splits the
+    ///     remaining body on blank-line boundaries and returns each non-empty paragraph as one fact string.
+    ///     This lets the whole document body reach the route oracle without any structural assumption about
+    ///     whether the author chose bullets, numbered lists, or prose.
+    /// </remarks>
     private static IReadOnlyList<string> ReadVisionFacts(string root)
     {
         var path = Path.Combine(root, ".anneal", "governance", "vision.md");
         if (!File.Exists(path))
             return [];
 
-        return [.. File.ReadAllLines(path)
-            .Select(line => line.Trim())
-            .Where(line => line.StartsWith("- ", StringComparison.Ordinal) ||
-                           line.StartsWith("* ", StringComparison.Ordinal))
-            .Select(line => line[2..].Trim())];
+        var lines = File.ReadAllLines(path);
+        var bodyStart = 0;
+
+        // Strip YAML frontmatter block (--- ... ---) if present at the top of the file.
+        if (lines.Length > 0 && lines[0].Trim() == "---")
+        {
+            var fmEnd = -1;
+            for (var i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Trim() != "---")
+                    continue;
+                fmEnd = i;
+                break;
+            }
+
+            if (fmEnd >= 0)
+                bodyStart = fmEnd + 1;
+        }
+
+        // Skip blank lines and then the top-level '# ' heading line.
+        while (bodyStart < lines.Length && string.IsNullOrWhiteSpace(lines[bodyStart]))
+            bodyStart++;
+
+        if (bodyStart < lines.Length && lines[bodyStart].StartsWith("# ", StringComparison.Ordinal))
+            bodyStart++;
+
+        // Collect remaining non-empty paragraphs, splitting on blank lines.
+        List<string> facts = [];
+        List<string> paragraph = [];
+
+        for (var i = bodyStart; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i]))
+            {
+                if (paragraph.Count > 0)
+                {
+                    facts.Add(string.Join(" ", paragraph));
+                    paragraph.Clear();
+                }
+            }
+            else
+            {
+                paragraph.Add(lines[i].Trim());
+            }
+        }
+
+        if (paragraph.Count > 0)
+            facts.Add(string.Join(" ", paragraph));
+
+        return facts;
     }
 
     private static string? ReadMigrationCurrentStage(string root)
