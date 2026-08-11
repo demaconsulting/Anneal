@@ -440,40 +440,7 @@ public sealed class RouteOperation : IOperation
                 [.. report.FailureReport.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
     }
 
-    /// <remarks>
-    ///     Runs <c>git diff HEAD -- &lt;files&gt;</c> and writes the result under <c>.anneal/logs/</c> with a
-    ///     timestamp-based name. Silently returns null rather than throwing when the diff subprocess fails or the
-    ///     log directory cannot be created: snapshot failure must not mask the real escalation/failure being reported.
-    /// </remarks>
-    private async Task<string?> SnapshotInterruptedDiffAsync(
-        IReadOnlyList<string> files, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var git = new Primitives.GitProcess(_repositoryRoot);
-
-            IReadOnlyList<string> arguments = ["diff", "HEAD", "--", .. files];
-            var run = await git.RunAsync(arguments, cancellationToken).ConfigureAwait(false);
-
-            if (run.ExitCode != 0 || string.IsNullOrWhiteSpace(run.Output))
-                return null;
-
-            var logsDir = Path.Combine(_repositoryRoot, ".anneal", "logs");
-            Directory.CreateDirectory(logsDir);
-
-            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
-            var patchFileName = $"interrupted-{timestamp}.patch";
-            var patchPath = Path.Combine(logsDir, patchFileName);
-
-            await File.WriteAllTextAsync(patchPath, run.Output, cancellationToken).ConfigureAwait(false);
-
-            // Return repository-relative forward-slash path for display consistency with the rest
-            // of the tool's output.
-            return $".anneal/logs/{patchFileName}";
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    private Task<string?> SnapshotInterruptedDiffAsync(
+        IReadOnlyList<string> files, CancellationToken cancellationToken) =>
+        InterruptedDiffSnapshot.WriteAsync(_repositoryRoot, files, cancellationToken);
 }

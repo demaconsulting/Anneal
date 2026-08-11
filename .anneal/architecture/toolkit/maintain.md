@@ -65,6 +65,17 @@ what the worker actually changed, so neither rule depends on a model's good beha
   stand as a completed Maintenance run.
   *Verified by:* `MaintainEscalatesWhenActualChangesTripTheProtectedPathCheck`
 
+- **TOOLKIT-49** — When `maintain` escalates or fails and the worker had already written files to disk
+  before stopping, `maintain` writes a patch file under `.anneal/logs/` named
+  `interrupted-<timestamp>.patch` — via the shared `InterruptedDiffSnapshot` helper, the same one
+  `TOOLKIT-23` uses — containing `git diff HEAD -- <those files>`, and prints
+  `maintain: pre-triage snapshot written to <path>` alongside the escalation or failure output. A
+  completed run never produces a patch file. The snapshot step is silent and non-throwing when there
+  is no git repository, git is unavailable, or the diff is empty: the reported outcome is unaffected.
+  *Verified by:* `InterruptedMaintainContractTests.MaintainWritesSnapshotPatchOnInterruptedOutcome`,
+  `InterruptedMaintainContractTests.SucceededMaintainRunProducesNoSnapshotPatch`,
+  `InterruptedMaintainContractTests.MaintainSnapshotFailureDoesNotMaskReportedOutcome`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built

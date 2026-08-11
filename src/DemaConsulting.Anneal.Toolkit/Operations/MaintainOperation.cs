@@ -194,6 +194,9 @@ public sealed class MaintainOperation : IOperation
             output.WriteLine(
                 $"maintain: escalated - the actual changes touched the protected path '{trippedPath}'; a person " +
                 "must review this run.");
+
+            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+
             return new OperationResult(
                 OperationOutcome.Escalated,
                 new MaintainReport(actualChanged, actualSummary, declaredBound, null, trippedPath, null, null));
@@ -208,6 +211,9 @@ public sealed class MaintainOperation : IOperation
             output.WriteLine(
                 $"maintain: escalated - '{outOfBoundsFile}' falls outside the declared bound " +
                 $"({string.Join("; ", declaredBound)}); a person must review this run.");
+
+            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+
             return new OperationResult(
                 OperationOutcome.Escalated,
                 new MaintainReport(actualChanged, actualSummary, declaredBound, outOfBoundsFile, null, null, null));
@@ -220,6 +226,9 @@ public sealed class MaintainOperation : IOperation
         if (result.Finding is WorkerRunResult.Reroute reroute)
         {
             output.WriteLine($"maintain: escalated - the worker named a better owner: {reroute.Why}");
+
+            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+
             return new OperationResult(
                 OperationOutcome.Escalated,
                 new MaintainReport(
@@ -243,6 +252,8 @@ public sealed class MaintainOperation : IOperation
             result.Outcome == OperationOutcome.Escalated
                 ? "maintain: escalated - this needs a decision only you can make."
                 : "maintain: failed - the worker did not complete this work.");
+
+        await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
 
         return new OperationResult(
             result.Outcome,
@@ -272,4 +283,17 @@ public sealed class MaintainOperation : IOperation
     private static bool IsContainedByBound(string file, IReadOnlyList<string> declaredBound) =>
         declaredBound.Any(entry =>
             string.Equals(entry, file, StringComparison.OrdinalIgnoreCase) || GlobPattern.Parse(entry).Matches(file));
+
+    private async Task WriteSnapshotIfChangedAsync(
+        IReadOnlyList<string> files, TextWriter output, CancellationToken cancellationToken)
+    {
+        if (files.Count == 0)
+            return;
+
+        var patchPath = await InterruptedDiffSnapshot.WriteAsync(
+            _repositoryRoot, files, cancellationToken).ConfigureAwait(false);
+
+        if (patchPath is not null)
+            output.WriteLine($"maintain: pre-triage snapshot written to {patchPath}");
+    }
 }
