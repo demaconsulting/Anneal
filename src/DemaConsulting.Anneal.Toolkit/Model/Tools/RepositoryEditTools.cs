@@ -3,19 +3,25 @@ using Microsoft.Extensions.AI;
 namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 
 /// <summary>
-///     The privileged tool grant: create a file, replace a file, make a targeted edit — and nothing else.
+///     The privileged tool grant: create a file, replace a file, make a targeted edit, delete a file — and nothing
+///     else.
 /// </summary>
 /// <remarks>
 ///     This is the group that makes a writing process possible, and it is deliberately the smallest surface that
-///     does. There is no tool here that runs a command, moves or deletes a file, or reaches the network: a worker
-///     that can run commands can do anything and then report plausibly that it did not, which is the failure the
-///     whole system exists to remove. Control flow — running <c>fix.ps1</c> and <c>lint.ps1</c> — belongs to the
-///     operation, not to the model.
+///     does. There is no tool here that runs a command, moves a file, or reaches the network: a worker that can run
+///     commands can do anything and then report plausibly that it did not, which is the failure the whole system
+///     exists to remove. Control flow — running <c>fix.ps1</c> and <c>lint.ps1</c> — belongs to the operation, not
+///     to the model.
 ///     <para>
 ///         Every path is resolved through <see cref="RepositoryPath" /> and refused if it escapes, and every
 ///         write is checked against <see cref="ProtectedPaths" /> and refused if it lands on a protected
 ///         configuration file or repository script. Both refusals come back to the model as readable text, so a
 ///         worker that was denied knows it was denied and can say so — which is what an operation escalates on.
+///     </para>
+///     <para>
+///         A deletion is always preceded by archiving the file's content to
+///         <c>.anneal/logs/deleted-&lt;timestamp&gt;.patch</c> in unified-diff format. This archive sits alongside
+///         interrupted-diff snapshots so that any deletion is recoverable regardless of the file's git-tracked state.
 ///     </para>
 ///     <para>
 ///         Thread safety: the returned functions hold no mutable state, but they write the filesystem; two
@@ -32,7 +38,7 @@ public static class RepositoryEditTools
     ///     surface without constructing the tools, and so a new tool cannot be added without its name appearing
     ///     here where it will be noticed.
     /// </remarks>
-    public static IReadOnlyList<string> Names { get; } = ["create_file", "replace_file", "edit_file"];
+    public static IReadOnlyList<string> Names { get; } = ["create_file", "replace_file", "edit_file", "delete_file"];
 
     /// <summary>
     ///     Builds the complete edit tool set bound to a repository root.
@@ -68,7 +74,14 @@ public static class RepositoryEditTools
                 "edit_file",
                 "Make a targeted edit to an existing file: replace the single occurrence of 'oldStr' - an " +
                 "exact, verbatim snippet copied from a prior read_file result - with 'newStr'. Fails if oldStr " +
-                "is absent or matches more than once. This is a plain text replacement, not a diff applier.")
+                "is absent or matches more than once. This is a plain text replacement, not a diff applier."),
+
+            AIFunctionFactory.Create(
+                (string path) => DeleteFile(root, path),
+                "delete_file",
+                "Delete an existing file. 'path' is relative to the repository root. Before deleting, the " +
+                "file's content is archived to .anneal/logs/deleted-<timestamp>.patch so the deletion is " +
+                "recoverable. Fails if the file does not exist.")
         ];
     }
 
@@ -132,6 +145,54 @@ public static class RepositoryEditTools
             string.Concat(content.AsSpan(0, index), replacement, content.AsSpan(index + oldStr.Length)));
 
         return $"edit_file: applied to '{path}' ({oldStr.Length} chars replaced with {replacement.Length}).";
+    }
+
+    /// <remarks>
+    ///     The archive is written before the delete so that a crash or power loss between the two leaves the file
+    ///     intact on disk — the worst outcome is a stale archive, not a silent data loss. The patch uses unified
+    ///     diff format with a /dev/null target header, matching the shape git produces for a deleted file, so it
+    ///     can be inspected and applied with standard patch tooling.
+    /// </remarks>
+    private static string DeleteFile(string root, string? path)
+    {
+        if (Deny("delete_file", root, path) is { } denial)
+            return denial;
+
+        RepositoryPath.TryResolveFile(root, path, out var full);
+        if (!File.Exists(full))
+            return $"delete_file: '{path}' does not exist.";
+
+        var content = File.ReadAllText(full!);
+        var archivePath = ArchiveDeletedFile(root, path!, content);
+
+        File.Delete(full!);
+        return $"delete_file: deleted '{path}' (archived to '{archivePath}').";
+    }
+
+    /// <returns>The repository-relative path of the written archive patch.</returns>
+    private static string ArchiveDeletedFile(string root, string path, string content)
+    {
+        var logsDir = Path.Combine(root, ".anneal", "logs");
+        Directory.CreateDirectory(logsDir);
+
+        var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
+        var patchFileName = $"deleted-{timestamp}.patch";
+        var patchPath = Path.Combine(logsDir, patchFileName);
+
+        // Unified diff format for a deleted file: git uses this shape so the archive
+        // is readable by standard patch tooling without any special knowledge of Anneal.
+        var forwardSlashPath = path.Replace('\\', '/');
+        var lines = content.Split('\n');
+        var patchLines = new System.Text.StringBuilder();
+        patchLines.AppendLine($"--- a/{forwardSlashPath}");
+        patchLines.AppendLine("+++ /dev/null");
+        patchLines.AppendLine($"@@ -1,{lines.Length} +0,0 @@");
+        foreach (var line in lines)
+            patchLines.AppendLine($"-{line}");
+
+        File.WriteAllText(patchPath, patchLines.ToString());
+
+        return $".anneal/logs/{patchFileName}";
     }
 
     /// <returns>The refusal to return to the model, or null when the write may proceed.</returns>

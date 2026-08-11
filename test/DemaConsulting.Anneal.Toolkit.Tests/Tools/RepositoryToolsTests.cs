@@ -161,6 +161,64 @@ public class RepositoryToolsTests
     }
 
     [Fact]
+    public void DeleteRemovesTheFileAndWritesAnArchivePatch()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange: a file with known content
+            File.WriteAllText(Path.Combine(root, "to-delete.md"), "line one\nline two\n");
+
+            // Act
+            var reply = Delete(root, "to-delete.md");
+
+            // Assert: file is gone, reply names an archive, archive exists and contains the original content
+            var archiveDir = Path.Combine(root, ".anneal", "logs");
+            var archives = Directory.GetFiles(archiveDir, "deleted-*.patch");
+            Assert.Multiple(
+                () => Assert.False(File.Exists(Path.Combine(root, "to-delete.md"))),
+                () => Assert.Contains("deleted", reply, StringComparison.Ordinal),
+                () => Assert.Single(archives),
+                () => Assert.Contains("line one", File.ReadAllText(archives[0]), StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DeleteRefusesAMissingFile()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange / Act / Assert
+            Assert.Contains("does not exist", Delete(root, "absent.md"), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DeleteRefusesAPathOutsideTheRepository()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange / Act / Assert
+            var reply = Delete(root, "../escape.md");
+            Assert.Contains("refused", reply, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ContractFailuresAreFoundStructurallyInLintOutput()
     {
         var output = string.Join(
@@ -195,6 +253,9 @@ public class RepositoryToolsTests
             root,
             "edit_file",
             new Dictionary<string, object?> { ["path"] = path, ["oldStr"] = oldStr, ["newStr"] = newStr });
+
+    private static string Delete(string root, string path) =>
+        InvokeTool(root, "delete_file", new Dictionary<string, object?> { ["path"] = path });
 
     private static string InvokeTool(string root, string name, Dictionary<string, object?> arguments)
     {
