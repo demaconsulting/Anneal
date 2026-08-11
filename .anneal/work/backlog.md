@@ -19,10 +19,28 @@ where `helper` will read them during boundary work. See the Intake admission tes
   directly (`route`/`maintain`/`stage-contract`/the future `intake`), and that stays true once the
   conversational agent itself compiles — its own model call, at the moment it decides to act, names
   the verb and arguments directly, rather than asking a second question of a second component.
-- **Rename the level-3 "section document" concept** — "section" also means a markdown heading block,
-  and the two meanings collide throughout the standards and the template.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
   a general repair pass, but each agent's INCOMPLETE and FAILED outcomes deserve worked examples.
+- **A worker that resolves a backlog item has no legitimate way to remove it** — `backlog.md` is a
+  protected path for good reason, so a worker's own attempt to edit it out on completion is refused,
+  and repeatedly retrying that refusal can burn its repair budget and fail an otherwise-successful
+  change (observed directly: a Contract Change that correctly renamed "section document" to
+  "subsystem document" throughout the standards also tried to delete the now-resolved backlog entry
+  for that rename, was refused, and failed the whole run rather than just leaving the entry alone).
+  A worker should either never attempt this edit at all — reporting resolved items as content for a
+  human or the conversational agent to prune afterward — or the operation layer needs a narrow,
+  separate mechanism for backlog pruning specifically, outside the worker's own tool budget and
+  refusal-retry loop. Undesigned; needs its own look before the next worker trips on it again.
+- **The interrupted-diff snapshot can silently fail to fire on a real failure** — `RouteOperation`
+  and `MaintainOperation` only write a `.anneal/logs/snapshots/interrupted-*.patch` when the
+  worker's own self-reported `ChangeBeforeStopping.FilesChanged` is non-empty, but that list is a
+  model-supplied claim, not an independent `git diff` read. Observed directly: a `route` run left 18
+  files with real uncommitted diffs in the working tree, reported plain `Failed` with an empty
+  `ChangeBeforeStopping`, and wrote no snapshot at all — silently defeating the exact safety net this
+  mechanism exists to provide, on the run that needed it most. The fix is almost certainly the same
+  one `DiffCheck` already models for `verify-change`: read `git diff HEAD` as a fact instead of
+  trusting the worker's own report, on every Failed/Escalated exit, not only when the worker happens
+  to have populated `ChangeBeforeStopping`.
 - **Check the mechanical architecture rules in `dotnet anneal check-contracts`** — `level:`/`covers:`
   front matter presence and `definition.yaml` agreeing with the markdown files beside it are both
   MANDATORY, both deterministic, and both have drifted in practice. Extend the existing check rather
