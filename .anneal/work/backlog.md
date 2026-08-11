@@ -39,11 +39,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
   now adopted. `lint.ps1`, `fix.ps1`, `.yamllint.yaml`, `.yamlfix.toml` and `.gitignore` remain
   unexamined. Classify each as flows-to-template, adopt-from-template, or deliberately divergent, and fix
   the first two.
-- **`DeterministicCheck` truncates a check's raw output to 2000 characters before it becomes verifier
-  evidence** — a warning about a clause the current change actually touched could in principle be pushed
-  past that truncation point by other unrelated warnings ahead of it, hiding it from the AI verifier step
-  relied on to catch an unimplemented touched clause. Moved here from `constraints.md`: this is a
-  specific known limitation to fix, not a standing architectural property.
 - **Cache probe results by input hash** — key each model-backed operation's result on a hash of its
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
