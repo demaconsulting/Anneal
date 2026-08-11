@@ -53,14 +53,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
   retire all three checks by making the failure they guard against structurally impossible rather than
   mechanically caught after the fact. Not designed and not scheduled: file-tiering is not yet under
   real pressure, and this is recorded as a direction, not a plan.
-- **Escalated or out-of-scope worker diffs should be preserved structurally, not left as bare
-  working-tree state** — when `route` or a dispatched worker escalates or produces changes beyond
-  what was asked, the uncommitted diff currently just sits in the working tree for a human or `helper`
-  to triage by eye. That is a real incident risk: reverting or deleting part of it by hand, on an
-  unverified assumption about which parts are in scope, can permanently discard real work with no
-  recovery path, since nothing was ever committed or staged. `route`/`dispatch` (or the calling agent)
-  should save a snapshot — a patch file under `.anneal/logs/` — before any human-directed partial
-  revert touches an escalated diff, so a wrong call is recoverable rather than destructive.
 - **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
   list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:
