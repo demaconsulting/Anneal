@@ -38,6 +38,7 @@ internal sealed class DeterministicCheck
 {
     private readonly RunRepositoryScript _runScript;
     private readonly TimeSpan _timeout;
+    private readonly string _repositoryRoot;
 
     /// <summary>
     ///     Binds a deterministic check to a repository and, optionally, a substituted script runner.
@@ -60,7 +61,8 @@ internal sealed class DeterministicCheck
         _timeout = timeout ?? TimeSpan.FromMinutes(5);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_timeout, TimeSpan.Zero);
 
-        _runScript = runScript ?? new PowerShellScripts(Path.GetFullPath(repositoryRoot)).RunAsync;
+        _repositoryRoot = Path.GetFullPath(repositoryRoot);
+        _runScript = runScript ?? new PowerShellScripts(_repositoryRoot).RunAsync;
     }
 
     /// <summary>
@@ -116,7 +118,16 @@ internal sealed class DeterministicCheck
         {
             var run = await _runScript(script, linked.Token).ConfigureAwait(false);
             var passed = run.ExitCode == 0;
-            var finding = new CheckFinding(name, passed, run.ExitCode, Summarize(run.Output), evidence);
+
+            // Write the full output to a log file only when Summarize would actually truncate it,
+            // so a human can inspect signal that the trimmed evidence may hide.
+            var logPath = await TryWriteFullOutputAsync(name, run.Output).ConfigureAwait(false);
+
+            var summary = logPath is null
+                ? Summarize(run.Output)
+                : Summarize(run.Output) + $"\n\nFull output: {logPath}";
+
+            var finding = new CheckFinding(name, passed, run.ExitCode, summary, evidence);
 
             return new StepResult<CheckFinding>(
                 passed ? OperationOutcome.Succeeded : OperationOutcome.Failed, finding, []);
@@ -126,6 +137,40 @@ internal sealed class DeterministicCheck
             var finding = new CheckFinding(name, false, -1, $"timed out after {_timeout}", evidence);
             return new StepResult<CheckFinding>(
                 OperationOutcome.Failed, finding, [new ProcessNote($"'{script}' did not finish within {_timeout}")]);
+        }
+    }
+
+    /// <remarks>
+    ///     Best-effort: any failure (e.g. the logs directory cannot be created, the disk is full) is
+    ///     swallowed rather than propagated, because this is a diagnostic aid and must never change the
+    ///     check's reported outcome. Returns null when no file was written.
+    ///     <para>
+    ///         Only writes when output would actually be truncated by <see cref="Summarize" />, so callers
+    ///         who see a log path in the summary know the file always contains more than the trimmed evidence.
+    ///     </para>
+    /// </remarks>
+    private async Task<string?> TryWriteFullOutputAsync(string checkName, string output)
+    {
+        const int fullBudget = 2000;
+        if (output.Length <= fullBudget)
+            return null;
+
+        try
+        {
+            var logsDir = Path.Combine(_repositoryRoot, ".anneal", "logs");
+            Directory.CreateDirectory(logsDir);
+
+            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddTHHmmssZ");
+            var fileName = $"check-output-{checkName}-{timestamp}.txt";
+            var filePath = Path.Combine(logsDir, fileName);
+
+            await File.WriteAllTextAsync(filePath, output).ConfigureAwait(false);
+
+            return $".anneal/logs/{fileName}";
+        }
+        catch
+        {
+            return null;
         }
     }
 
