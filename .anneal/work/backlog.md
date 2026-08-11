@@ -33,12 +33,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
-- **Reconcile the paired root and template files once** — moving to a self-hosted layout made the
-  pairing visible but did not audit it. `.cspell.yaml` and `.markdownlint-cli2.yaml` have been examined;
-  the former's divergence was real drift, the latter's was the template already ahead (`MD013: false`),
-  now adopted. `lint.ps1`, `fix.ps1`, `.yamllint.yaml`, `.yamlfix.toml` and `.gitignore` remain
-  unexamined. Classify each as flows-to-template, adopt-from-template, or deliberately divergent, and fix
-  the first two.
 - **Cache probe results by input hash** — key each model-backed operation's result on a hash of its
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
@@ -116,13 +110,15 @@ where `helper` will read them during boundary work. See the Intake admission tes
   intermediate machinery node may be ahead of Anneal's current shallow, mostly-flat tree. Revisit once
   the tree actually grows a case that needs it, rather than trimming blind.
 
-## Lower priority: `install.ps1`'s own payload is being retired
+## Lower priority: the prose-agent half of `install.ps1`'s payload is being retired
 
-`install.ps1`'s entire payload — `.github/agents`, `.github/skills` (the prose CLI-harness kind, not
-`.anneal/skills`), and `.github/template` — is infrastructure for the prose-agent system
-the Toolkit is absorbing. Investing further in the installer polishes a shrinking surface rather than
-growing the compiled one. These stay recorded, but sit last on purpose; do not schedule ahead of
-Toolkit-facing work without asking first.
+`install.ps1` still copies three things: `.github/agents`, `.github/skills` (the prose CLI-harness
+kind, not `.anneal/skills`), and `.github/template`. Only the first two are infrastructure for the
+prose-agent system the Toolkit is absorbing — investing further in *them* polishes a shrinking
+surface rather than growing the compiled one. `.github/template` is no longer part of that shrinking
+surface: it was cut down to just its `.anneal/` working-file skeleton, which is the future
+`--onboarding` CLI's resource data (see the backlog item below), not legacy weight. These stay
+recorded, but sit last on purpose; do not schedule ahead of Toolkit-facing work without asking first.
 
 - **Write a version marker on install** — record the Anneal version into the target repository so an
   upgrade knows what it is upgrading from, and so `-Prune` can match an installed manifest rather
