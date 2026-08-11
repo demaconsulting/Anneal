@@ -410,13 +410,14 @@ public sealed class RouteOperation : IOperation
             foreach (var file in interrupted.FilesChanged)
                 output.WriteLine($"  {file}");
             output.WriteLine($"route: summary before stopping - {interrupted.Summary}");
+        }
 
-            // Write a patch file so this pre-triage state is recoverable even if a subsequent
-            // manual partial-revert decision turns out to be wrong. The snapshot is written before
-            // any human-directed triage begins, not after, because git checkout / rm are one-way
-            // doors for uncommitted changes.
-            var patchPath = await SnapshotInterruptedDiffAsync(
-                interrupted.FilesChanged, cancellationToken).ConfigureAwait(false);
+        // Always attempt a whole-tree snapshot at every Failed/Escalated exit, regardless of what the
+        // worker self-reported: a worker that under-reports its FilesChanged (or reports a plain Failed
+        // with an empty ChangeBeforeStopping) cannot silently suppress a recovery snapshot for real
+        // uncommitted diffs. 'git diff HEAD' is a fact read from the repository, not a model self-report.
+        {
+            var patchPath = await SnapshotInterruptedDiffAsync(cancellationToken).ConfigureAwait(false);
             if (patchPath is not null)
                 output.WriteLine($"route: pre-triage snapshot written to {patchPath}");
         }
@@ -440,7 +441,6 @@ public sealed class RouteOperation : IOperation
                 [.. report.FailureReport.PhaseOutcomes.Select(phase => $"{phase.WorkItem}: {phase.Outcome} - {phase.Summary}")]));
     }
 
-    private Task<string?> SnapshotInterruptedDiffAsync(
-        IReadOnlyList<string> files, CancellationToken cancellationToken) =>
-        InterruptedDiffSnapshot.WriteAsync(_repositoryRoot, files, cancellationToken);
+    private Task<string?> SnapshotInterruptedDiffAsync(CancellationToken cancellationToken) =>
+        InterruptedDiffSnapshot.WriteAsync(_repositoryRoot, cancellationToken);
 }

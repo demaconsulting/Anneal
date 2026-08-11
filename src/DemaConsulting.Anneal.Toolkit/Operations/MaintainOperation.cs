@@ -195,7 +195,7 @@ public sealed class MaintainOperation : IOperation
                 $"maintain: escalated - the actual changes touched the protected path '{trippedPath}'; a person " +
                 "must review this run.");
 
-            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -212,7 +212,7 @@ public sealed class MaintainOperation : IOperation
                 $"maintain: escalated - '{outOfBoundsFile}' falls outside the declared bound " +
                 $"({string.Join("; ", declaredBound)}); a person must review this run.");
 
-            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -227,7 +227,7 @@ public sealed class MaintainOperation : IOperation
         {
             output.WriteLine($"maintain: escalated - the worker named a better owner: {reroute.Why}");
 
-            await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -253,7 +253,7 @@ public sealed class MaintainOperation : IOperation
                 ? "maintain: escalated - this needs a decision only you can make."
                 : "maintain: failed - the worker did not complete this work.");
 
-        await WriteSnapshotIfChangedAsync(actualChanged, output, cancellationToken).ConfigureAwait(false);
+        await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
 
         return new OperationResult(
             result.Outcome,
@@ -284,14 +284,15 @@ public sealed class MaintainOperation : IOperation
         declaredBound.Any(entry =>
             string.Equals(entry, file, StringComparison.OrdinalIgnoreCase) || GlobPattern.Parse(entry).Matches(file));
 
-    private async Task WriteSnapshotIfChangedAsync(
-        IReadOnlyList<string> files, TextWriter output, CancellationToken cancellationToken)
+    /// <remarks>
+    ///     Always attempts a whole-tree 'git diff HEAD' rather than gating on the worker-supplied file list:
+    ///     a worker that under-reports its own changed files cannot silently suppress a recovery snapshot for
+    ///     real uncommitted diffs. If git reports no diff, writes nothing — the same no-op as before.
+    /// </remarks>
+    private async Task WriteSnapshotIfChangedAsync(TextWriter output, CancellationToken cancellationToken)
     {
-        if (files.Count == 0)
-            return;
-
         var patchPath = await InterruptedDiffSnapshot.WriteAsync(
-            _repositoryRoot, files, cancellationToken).ConfigureAwait(false);
+            _repositoryRoot, cancellationToken).ConfigureAwait(false);
 
         if (patchPath is not null)
             output.WriteLine($"maintain: pre-triage snapshot written to {patchPath}");
