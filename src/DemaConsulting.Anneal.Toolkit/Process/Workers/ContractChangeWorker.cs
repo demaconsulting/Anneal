@@ -62,15 +62,15 @@ internal sealed class ContractChangeWorker
     private const string ContractCheckScript = "check-contracts";
 
     /// <summary>
-    ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call, mirroring <c>AGENTS.md</c>'s
-    ///     own "Standards Application" table for the documentation half of this worker's split.
+    ///     The fixed standards injected into every <see cref="DocumentAuthor" /> call: architecture-document
+    ///     shape and the contract-clause rules, plus general markdown density since a documentation-owner
+    ///     pass routinely touches non-architecture prose (README, user guide) alongside the system doc.
     /// </summary>
     private static readonly string[] DocumentAuthorStandards =
-        ["architecture-documentation.md", "system-contracts.md"];
+        ["architecture-documentation.md", "system-contracts.md", "technical-documentation.md"];
 
     /// <summary>
-    ///     The fixed standards injected into every <see cref="Developer" /> call, mirroring <c>AGENTS.md</c>'s own
-    ///     "Standards Application" table for the code half of this worker's split: coding and C# language always,
+    ///     The fixed standards injected into every <see cref="Developer" /> call: coding and C# language always,
     ///     plus testing and C# testing since this worker's own charter has <see cref="Developer" /> "implement code
     ///     and tests against the clauses that just changed".
     /// </summary>

@@ -90,7 +90,7 @@ public class VerifyChangeOperationTests
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
                 contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(
                     1,
-                    "  error: process.md: clause PROCESS-05 has an unfulfilled test obligation 'TODO.Something'")));
+                    "  error: process.md: clause PROCESS-07 has an unfulfilled test obligation 'TODO.Something'")));
 
             var result = await operation.ExecuteAsync([], new StringWriter(), TestContext.Current.CancellationToken);
 
@@ -132,7 +132,7 @@ public class VerifyChangeOperationTests
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
                 contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(
                     1,
-                    "  error: process.md: clause PROCESS-05 has an unfulfilled test obligation 'TODO.Something'")));
+                    "  error: process.md: clause PROCESS-07 has an unfulfilled test obligation 'TODO.Something'")));
 
             var result = await operation.ExecuteAsync([], new StringWriter(), TestContext.Current.CancellationToken);
 
@@ -162,7 +162,7 @@ public class VerifyChangeOperationTests
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
                 contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(
                     1,
-                    "  error: process.md: clause PROCESS-05 has an unfulfilled test obligation 'TODO.Something'")));
+                    "  error: process.md: clause PROCESS-07 has an unfulfilled test obligation 'TODO.Something'")));
 
             var result = await operation.ExecuteAsync([], new StringWriter(), TestContext.Current.CancellationToken);
 

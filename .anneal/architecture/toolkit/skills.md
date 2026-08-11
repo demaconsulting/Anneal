@@ -26,8 +26,8 @@ one need know about the other:
 
 - **Repository-local skills** are files an agent writes at runtime, under `.anneal/skills/` in the
   repository it is working in, capturing something true about *that* repository. They are never
-  scraped from `.agent-logs/` or telemetry — the same mistake `agent-metrics.ps1`'s pending retirement
-  in `.anneal/work/backlog.md` already names — only filed by deliberate choice.
+  scraped from telemetry or a report corpus — the same mistake `agent-metrics.ps1` made before its
+  retirement — only filed by deliberate choice.
 - **Toolkit-wide skills** are markdown files with the same front matter, embedded as data in the
   Toolkit assembly at build time — the same mechanism a sibling internal project
   (`DemaConsulting.Jeeves`) already uses for its own knowledge-card catalog — and hand-authored in

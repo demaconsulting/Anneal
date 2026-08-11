@@ -2,7 +2,7 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 
 /// <summary>
 ///     The files a granted edit tool refuses to write, whatever a model asks: the protected configuration files
-///     and repository scripts named in <c>AGENTS.md</c> § Key Configuration Files.
+///     and repository scripts this repository's process treats as needing the user's explicit approval to change.
 /// </summary>
 /// <remarks>
 ///     These files decide what the checks themselves check. A worker that may edit them can make a failing lint
@@ -22,12 +22,11 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 public static class ProtectedPaths
 {
     /// <summary>
-    ///     The repository-relative paths no granted tool may write, in the order <c>AGENTS.md</c> lists them.
+    ///     The repository-relative paths no granted tool may write, in the order this list was decided.
     /// </summary>
     /// <remarks>
-    ///     Written out rather than derived from a pattern, because the list is a decision recorded in
-    ///     <c>AGENTS.md</c> and a pattern would silently acquire or lose members as the repository grows files
-    ///     that happen to match it.
+    ///     Written out rather than derived from a pattern, because the list is a deliberate decision, and a
+    ///     pattern would silently acquire or lose members as the repository grows files that happen to match it.
     /// </remarks>
     public static IReadOnlyList<string> Names { get; } =
     [
@@ -46,8 +45,8 @@ public static class ProtectedPaths
     ///     States whether a repository-relative path names a protected configuration file or repository script.
     /// </summary>
     /// <remarks>
-    ///     Matched case-insensitively and only at the repository root, which is where <c>AGENTS.md</c> places
-    ///     every one of them. A same-named file deeper in the tree — a nested <c>.editorconfig</c> under a
+    ///     Matched case-insensitively and only at the repository root, which is where every protected file
+    ///     lives. A same-named file deeper in the tree — a nested <c>.editorconfig</c> under a
     ///     sample directory, say — is ordinary content, and refusing it would be a rule this repository never
     ///     stated.
     /// </remarks>

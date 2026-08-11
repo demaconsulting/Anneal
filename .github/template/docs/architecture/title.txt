@@ -1,7 +1,7 @@
 ---
 # <!-- TEMPLATE-DIRECTIVE:
-#      Use values from AGENTS.md Project Overview: {ProjectName} from project-name,
-#      {OrganizationName} from organization, {ProjectTagline} from project-tagline.
+#      Use values from this repository's README.md: {ProjectName} from its title,
+#      {OrganizationName} from its author/organization line, {ProjectTagline} from its tagline.
 #      Add project-specific technology keywords to the keywords list. -->
 title: "{ProjectName} Software Architecture"
 subtitle: "{ProjectTagline}"

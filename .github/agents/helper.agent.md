@@ -59,13 +59,12 @@ Then ask for a yes, and wait for it.
 
 For every direct compiled call below, use this table exactly:
 
-- **Exit 0 (Succeeded)** — go to Step 4 and report SUCCEEDED, using the reported files changed and
-  summary.
+- **Exit 0 (Succeeded)** — tell the user it succeeded, using the reported files changed and summary.
 - **Exit 4 (Escalated)** — a step only a person can take was named (an unapproved Migration, a
-  declared bound tripped, a write outside the permitted path, an unclassifiable request). Go to
-  Step 4 and report INCOMPLETE, quoting the reason verbatim.
-- **Exit 1 (Failed) or Exit 3 (Refused)** — nothing completed. Go to Step 4 and report FAILED,
-  including what was tried, what was learned, and the recommended next step from the output.
+  declared bound tripped, a write outside the permitted path, an unclassifiable request). Tell the
+  user it needs their input, quoting the reason verbatim.
+- **Exit 1 (Failed) or Exit 3 (Refused)** — nothing completed. Tell the user it failed, including
+  what was tried, what was learned, and the recommended next step from the output.
 - **Exit 2 (UsageError)** — your own invocation was malformed (empty or missing arguments). Correct
   the command and retry once before treating a repeat failure as your own defect to report.
 
@@ -134,7 +133,7 @@ Migration needs its approved proposal.
 
 - If `.anneal/work/active-plan.md` does not exist, boundary work is required first; the approved
   proposal lives there.
-- If it exists and `## Current stage` says `None open.`, report INCOMPLETE saying there is no
+- If it exists and `## Current stage` says `None open.`, tell the user there is no
   approved stage to implement yet.
 - Otherwise, read the first `###` heading under `## Current stage` and use that entry as the bound
   for the current Migration work.
@@ -150,66 +149,8 @@ the report.
 
 # Stop Conditions
 
-- The user is undecided after the conversation has stopped making progress. Report INCOMPLETE with
-  what remains open.
-- Boundary work hit an authority gate or a missing fact only the user can supply. Report
-  INCOMPLETE.
+- The user is undecided after the conversation has stopped making progress. Say plainly what remains
+  open and wait.
+- Boundary work hit an authority gate or a missing fact only the user can supply. Say so and ask.
 - The user asks you to make the change yourself outside the boundary deliverables. Decline and invoke
   the right compiled path instead.
-
-# Report Template
-
-```markdown
-# Helper Report
-
-**Result**: (SUCCEEDED|FAILED|INCOMPLETE)
-**Report**: `.agent-logs/helper-{subject}-{unique-id}.md`
-**Mode**: (Intake|Change|Maintenance|Migration)
-**Scope**: (Small Fix|Contract Change|Structural Change|n/a)
-**Rationale**: {mode and why}
-**Breaking**: (yes|no)
-**Residual**: (none|escalated|gate)
-
-## Contract Impact
-
-{Clauses added, changed, or removed — or "none"}
-
-## Work Performed
-
-- **Intake**: {exit code and summary, or "not run"}
-- **Route**: {exit code and summary, or "not run"}
-- **Stage Contract**: {exit code and summary, or "not run"}
-- **Maintain**: {exit code, bound, and summary, or "not run"}
-- **Migration**: {approved proposal or open stage, or "not run"}
-- **Boundary Work**: {bootstrap|re-cut|not run, plus summary}
-
-## Documentation and Register Changes
-
-{Registers or architecture files changed, or "none"}
-
-## Systems (boundary work only)
-
-| System | Responsibility | Clauses | Section Docs |
-|--------|----------------|---------|--------------|
-| {name} | {one line} | {count} | {count, usually 0} |
-
-## Files Written (boundary work only)
-
-{Every file created, updated, or deleted}
-
-## Implementation Obligations (boundary work only)
-
-{Every planned contract test and the behavior it must prove, or "none"}
-
-## Stages (boundary work only)
-
-{Re-cut only: stage count and first landing, or "none — bootstrap"}
-
-## Open Concerns (boundary work only)
-
-{Outstanding concerns, or "none"}
-
-## Unknowns (only when Result is INCOMPLETE)
-
-{Each question the user must answer, or "none"}
-```

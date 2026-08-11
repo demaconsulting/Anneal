@@ -43,7 +43,7 @@ quietly.
   file during installation or upgrade unless the user first confirms that file's deletion.
 - **The template must stay valid for a C# product repository regardless of Anneal's own needs** —
   this is `TEMPLATE-I1` in [template.md](../architecture/template.md); that clause is the full
-  statement, and `AGENTS.md` § Template Stewardship references it rather than restating it here.
+  statement.
 - **An installed payload must be identifiable by version** — a payload states which Anneal version it
   was built from, so what an upgrade is upgrading from is read rather than inferred from the payload's
   contents, and a record a run leaves behind can be attributed to the version that produced it.
@@ -56,6 +56,11 @@ quietly.
   input is expected to be stable, but the reasoning behind it, the data the model was shown and the
   exact question it was asked are not recoverable by re-running. Without them a wrong verdict cannot
   be diagnosed as a bad question rather than a bad answer. `TOOLKIT-11` absorbs this.
+- **Evidence of agent behavior persists across sessions without auto-erasure** — `.anneal/logs/records/`
+  and `.anneal/logs/transcripts/` accumulate every invocation and model interaction; nothing in the
+  toolchain ever clears them, and `dotnet anneal stats` reads the record store directly rather than
+  scraping prose reports. This does not require the evidence be committed or visible to a fresh
+  clone — only that a running repository's own history is never silently discarded.
 - A back-end operation never blocks waiting on interactive input mid-run -- every operation resolves to a terminal report. Ambiguity is returned as data (an Unknowns list) for whatever front-end is calling it to resolve and re-invoke with; it is never surfaced as a prompt the operation itself waits on. This holds regardless of whether front-end and back-end share an executable: the dependency direction is fixed -- back-end has no dependency on a front-end being present to complete an operation.
 
 ## Not Yet Satisfied
@@ -68,13 +73,9 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   as a dotnet tool in the target repository's tool manifest, and runs no guided first-run step.
   This is a deliberately deferred future direction, not being built now.
 
-- **Evidence of agent behavior must survive local report cleanup** — today `.agent-logs/` is the only
-  record of which agents ran, what verdicts they returned, and where they failed; it is gitignored, so
-  fresh clones and CI cannot audit that behavior, but automation must not delete it unless a
-  user-admitted replacement records the same facts.
 - **Upgrading an installed payload must not silently destroy local customization** — `install.ps1
-  -Force` overwrites every payload-owned file with no backup and no diff, including a customized
-  `AGENTS.md` and any locally edited standard.
+  -Force` overwrites every payload-owned file with no backup and no diff, including a locally edited
+  standard.
 - **A judging agent must show the basis for its verdict before stating it** — no agent prompt in the
   payload obliges one to, and `dispatch.agent.md`'s own report template places `Result` ahead of every
   section carrying what that verdict rests on, so a universally-quantified negative about a file the

@@ -4,8 +4,8 @@
 #   Verifies the contract clauses of the Process system, as declared in
 #   .anneal/architecture/process.md.
 #
-#   The Process system is the payload this repository ships: the agent prompts,
-#   the standards, the skills, and AGENTS.md. Almost every rule in it is held by
+#   The Process system is the payload this repository ships: the agent prompt,
+#   the standards, and the skills. Almost every rule in it is held by
 #   prompt and review rather than by a mechanism, so the few properties that CAN
 #   be checked mechanically are checked here - a dangling reference or a renamed
 #   standard degrades an agent silently in whichever repository the payload was
@@ -228,7 +228,6 @@ function Get-PayloadTextFile {
     foreach ($file in $skills) { $paths.Add($file.FullName) }
     $template = @(Get-ChildItem -LiteralPath (Repo-Path ".github/template") -Filter "*.md" -File -Recurse | Sort-Object FullName)
     foreach ($file in $template) { $paths.Add($file.FullName) }
-    $paths.Add((Repo-Path "AGENTS.md"))
     return $paths
 }
 
@@ -403,7 +402,7 @@ Test-Case -Name "AgentReferencesResolve" -Body {
         ".anneal/governance/assumptions.md", ".anneal/governance/tenets.md", ".anneal/governance/vision.md",
         ".anneal/work/active-plan.md", ".anneal/architecture/overview.md"
     )
-    # The layout the Project Structure section of AGENTS.md requires of every
+    # The layout the profile's layout.md requires of every
     # installed repository. A directory names a location rather than a file, so it
     # is checked against this list rather than against the file list above.
     $requiredDirs = @(
@@ -486,89 +485,33 @@ Test-Case -Name "AgentReferencesResolve" -Body {
 }
 
 # --- PROCESS-03 ---------------------------------------------------------------
-# Two loading surfaces count. Five of the eight standards are matrix-only, which
-# process.md Composition records as correct: they are product-code standards that
-# no process agent names at authoring time.
+# Two loading surfaces count: an agent prompt naming a standard, or a compiled
+# worker's fixed standards array in source. Five of the eight standards are
+# worker-array-only, which process.md Composition records as correct: they are
+# product-code standards that the one process agent never names at authoring time.
 Test-Case -Name "NoOrphanedStandards" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
     $agentText = @{}
     foreach ($file in Get-AgentFile) { $agentText[$file.Name] = Read-Text $file.FullName }
 
-    $agents = Read-Text (Repo-Path "AGENTS.md")
-    $lines = $agents -split "`n"
-    $start = -1
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^#+\s*Standards Application') { $start = $i; break }
-    }
-    if ($start -lt 0) {
-        $problems.Add("AGENTS.md has no Standards Application section, so the matrix surface cannot be read")
-        return $problems
-    }
-    $end = $lines.Count
-    for ($i = $start + 1; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^#\s') { $end = $i; break }
-    }
-    $matrix = ($lines[$start..($end - 1)] -join "`n")
+    $workerFiles = @(Get-ChildItem -LiteralPath (Repo-Path "src") -Filter "*.cs" -File -Recurse |
+        Where-Object { $_.DirectoryName -match '[\\/]Workers[\\/]?$' } | Sort-Object FullName)
+    $workerText = ($workerFiles | ForEach-Object { Read-Text $_.FullName }) -join "`n"
 
     foreach ($standard in Get-StandardFile) {
         $reached = @()
-        if ($matrix -match [regex]::Escape($standard.Name)) { $reached += "the Standards Application matrix" }
+        if ($workerText -match [regex]::Escape($standard.Name)) { $reached += "a compiled worker's standards array" }
         foreach ($name in ($agentText.Keys | Sort-Object)) {
             if ($agentText[$name] -match [regex]::Escape($standard.Name)) { $reached += $name }
         }
 
         if ($reached.Count -eq 0) {
-            $problems.Add("$($standard.Name) is named by no agent prompt and by no entry in the Standards Application matrix, so nothing loads it")
+            $problems.Add("$($standard.Name) is named by no agent prompt and by no compiled worker's standards array, so nothing loads it")
         }
     }
 
-    Add-Note "$((Get-StandardFile).Count) standards checked against $($agentText.Count) prompts and the matrix"
-    return $problems
-}
-
-# --- PROCESS-04 ---------------------------------------------------------------
-# Only the first field is asserted. The enumerated values are owned by AGENTS.md
-# and are not what this clause promises.
-Test-Case -Name "ReportTemplateShapeIsUniform" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    foreach ($file in Get-AgentFile) {
-        $lines = (Read-Text $file.FullName) -split "`n"
-
-        $heading = -1
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '^#+\s*Report Template\s*$') { $heading = $i; break }
-        }
-        if ($heading -lt 0) {
-            $problems.Add("$($file.Name): no '# Report Template' section")
-            continue
-        }
-
-        $open = -1
-        for ($i = $heading + 1; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '^#\s') { break }
-            if ($lines[$i] -match '^\s*```') { $open = $i; break }
-        }
-        if ($open -lt 0) {
-            $problems.Add("$($file.Name): the Report Template section contains no fenced code block")
-            continue
-        }
-
-        $first = $null
-        for ($i = $open + 1; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '^\s*```') { break }
-            if ($lines[$i] -match '^\*\*([^*]+)\*\*\s*:') { $first = $Matches[1].Trim(); break }
-        }
-
-        if (-not $first) {
-            $problems.Add("$($file.Name): the report template declares no bolded metadata field")
-        }
-        elseif ($first -ne "Result") {
-            $problems.Add("$($file.Name): the first metadata field is '**$first**'; the contract requires '**Result**'")
-        }
-    }
-
+    Add-Note "$((Get-StandardFile).Count) standards checked against $($agentText.Count) prompts and $($workerFiles.Count) worker source files"
     return $problems
 }
 
@@ -603,7 +546,6 @@ Test-Case -Name "WorstCaseInvocationWithinBudget" -Body {
     $standards = @(Get-StandardFile | ForEach-Object { [pscustomobject]@{ Name = $_.Name; Tokens = (Get-TokenCount $_.FullName) } })
 
     $selected = [System.Collections.Generic.List[object]]::new()
-    $selected.Add([pscustomobject]@{ Name = "AGENTS.md"; Tokens = (Get-TokenCount (Repo-Path "AGENTS.md")) })
     foreach ($item in @($agents | Sort-Object Tokens -Descending | Select-Object -First 1)) { $selected.Add($item) }
     foreach ($item in @($standards | Sort-Object Tokens -Descending | Select-Object -First 4)) { $selected.Add($item) }
 
@@ -692,54 +634,6 @@ Test-Case -Name "ModeVocabularyIsClosed" -Body {
 
     Add-Note "modes: $($modes -join ', ')"
     Add-Note "payload files scanned: $($files.Count)"
-    return $problems
-}
-
-# --- PROCESS-08 ---------------------------------------------------------------
-# The same comparison lint.ps1 makes, including its trimming; a different trim
-# reports a phantom one-line drift.
-Test-Case -Name "AgentsFileMatchesPristine" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $marker = "# Template Stewardship (This Repository Only)"
-    $rootPath = Repo-Path "AGENTS.md"
-    $pristinePath = Repo-Path ".github/template/AGENTS.pristine.md"
-
-    foreach ($path in @($rootPath, $pristinePath)) {
-        if (-not (Test-Path -LiteralPath $path)) {
-            $problems.Add("expected $path to exist")
-        }
-    }
-    if ($problems.Count -gt 0) { return $problems }
-
-    $rootLines = @(Get-Content -LiteralPath $rootPath)
-    $index = $rootLines.IndexOf($marker)
-    if ($index -lt 0) {
-        $problems.Add("AGENTS.md is missing the '$marker' section, so what is shared with the pristine copy is undefined")
-        return $problems
-    }
-
-    $shared = @($rootLines[0..($index - 1)])
-    while ($shared.Count -gt 0 -and $shared[-1] -eq "") { $shared = $shared[0..($shared.Count - 2)] }
-
-    $pristineLines = @(Get-Content -LiteralPath $pristinePath)
-    while ($pristineLines.Count -gt 0 -and $pristineLines[-1] -eq "") {
-        $pristineLines = $pristineLines[0..($pristineLines.Count - 2)]
-    }
-
-    $limit = [math]::Min($shared.Count, $pristineLines.Count)
-    for ($i = 0; $i -lt $limit; $i++) {
-        if ($shared[$i] -cne $pristineLines[$i]) {
-            $problems.Add("AGENTS.md and AGENTS.pristine.md first differ at line $($i + 1): '$($shared[$i])' versus '$($pristineLines[$i])'")
-            return $problems
-        }
-    }
-    if ($shared.Count -ne $pristineLines.Count) {
-        $longer = if ($shared.Count -gt $pristineLines.Count) { "AGENTS.md" } else { "AGENTS.pristine.md" }
-        $extra = if ($shared.Count -gt $pristineLines.Count) { $shared[$limit] } else { $pristineLines[$limit] }
-        $problems.Add("AGENTS.md and AGENTS.pristine.md agree for $limit lines, then $longer continues with '$extra'")
-    }
-
     return $problems
 }
 
@@ -863,9 +757,9 @@ Test-Case -Name "EffortVocabularyIsClosed" -Body {
 }
 
 # --- PROCESS-I1 ---------------------------------------------------------------
-# A count alone would pass a repository where the one entry point had swapped
-# with the AGENTS.md name as non-delegatable, so the identities are checked
-# against that section rather than assumed.
+# Only one agent file exists in the payload today, so the check is exactly what
+# the contract requires: every agent's front matter declares user-invocable
+# true or false, and exactly one is true.
 Test-Case -Name "EntryPointsAreExactlyOne" -Body {
     $problems = [System.Collections.Generic.List[string]]::new()
 
@@ -893,142 +787,11 @@ Test-Case -Name "EntryPointsAreExactlyOne" -Body {
         }
     }
 
-    # The AGENTS.md names as undelegatable, read from the section that says so.
-    $lines = (Read-Text (Repo-Path "AGENTS.md")) -split "`n"
-    $start = -1
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^#+\s*Agent Delegation Guidelines') { $start = $i; break }
-    }
-    if ($start -lt 0) {
-        $problems.Add("AGENTS.md has no Agent Delegation Guidelines section to cross-check the entry points against")
-        return $problems
-    }
-    $end = $lines.Count
-    for ($i = $start + 1; $i -lt $lines.Count; $i++) {
-        if ($lines[$i] -match '^#\s') { $end = $i; break }
-    }
-    $section = ($lines[$start..($end - 1)] -join " ")
-
-    if ($section -notmatch 'cannot be delegated to[^.]*') {
-        $problems.Add("the Agent Delegation Guidelines section names no agents as undelegatable, so the entry points cannot be cross-checked")
-        return $problems
-    }
-    $sentence = $Matches[0]
-    $declared = @([regex]::Matches($sentence, '`([a-z0-9-]+)`') | ForEach-Object { $_.Groups[1].Value })
-
-    $onlyFront = @($entryPoints | Where-Object { $declared -notcontains $_ })
-    $onlyAgents = @($declared | Where-Object { $entryPoints -notcontains $_ })
-
-    foreach ($name in $onlyFront) {
-        $problems.Add("'$name' is user-invocable in front matter but AGENTS.md does not name it as undelegatable")
-    }
-    foreach ($name in $onlyAgents) {
-        $problems.Add("AGENTS.md names '$name' as undelegatable but its front matter is not user-invocable: true")
-    }
-
     if ($entryPoints.Count -ne 1) {
         $problems.Add("$($entryPoints.Count) agents are user-invocable ($($entryPoints -join ', ')); the contract allows exactly one")
     }
 
     Add-Note "entry points: $($entryPoints -join ', ')"
-    return $problems
-}
-
-# --- PROCESS-05 ---------------------------------------------------------------
-# The invocation graph is read from the agents' own text rather than listed, so
-# a new delegation relationship is covered the day it is added. "Handles" is
-# checked structurally: the calling agent must either (a) include the result
-# value in its own declared Result enumeration, or (b) have a named section
-# whose heading references failure, recovery, or the result value, so the
-# author at minimum documented a response path. This is the weakest defensible
-# bar for a clause about prose-driven agents.
-Test-Case -Name "HandoffCoverageIsComplete" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    # Read each agent's declared result values from its Report Template block.
-    $agentResults = @{}
-    foreach ($file in Get-AgentFile) {
-        $name = $file.Name -replace '\.agent\.md$', ''
-        $text = Read-Text $file.FullName
-        $lines = $text -split "`n"
-
-        $inTemplate = $false
-        $inFence = $false
-        $resultValues = [System.Collections.Generic.List[string]]::new()
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '^#+\s*Report Template\s*$') { $inTemplate = $true; continue }
-            if ($inTemplate -and $lines[$i] -match '^#\s') { break }
-            if (-not $inTemplate) { continue }
-            if ($lines[$i] -match '^\s*```') { $inFence = -not $inFence; continue }
-            if (-not $inFence) { continue }
-            if ($lines[$i] -match '^\*\*Result\*\*\s*:.*\(([^)]+)\)') {
-                foreach ($val in ($Matches[1] -split '\|')) { $resultValues.Add($val.Trim()) }
-            }
-        }
-        $agentResults[$name] = $resultValues
-    }
-
-    # For each agent, find which other agents it invokes (named with backticks in
-    # its routing body, not in a "hand off, never call" or "not as a sub-agent"
-    # exclusion sentence). Invocations in the Report Template are skipped.
-    foreach ($file in Get-AgentFile) {
-        $callerName = $file.Name -replace '\.agent\.md$', ''
-        $text = Read-Text $file.FullName
-        $lines = $text -split "`n"
-
-        # Strip the Report Template section
-        $bodyLines = [System.Collections.Generic.List[string]]::new()
-        $inReport = $false
-        foreach ($line in $lines) {
-            if ($line -match '^#+\s*Report Template\s*$') { $inReport = $true }
-            if (-not $inReport) { $bodyLines.Add($line) }
-        }
-        $body = $bodyLines -join "`n"
-
-        $invoked = [System.Collections.Generic.HashSet[string]]::new()
-        foreach ($otherName in $agentResults.Keys) {
-            if ($otherName -eq $callerName) { continue }
-            $escapedName = [regex]::Escape($otherName)
-            foreach ($m in [regex]::Matches($body, "``$escapedName``")) {
-                $before = $body.Substring(0, $m.Index)
-                $lineStart = $before.LastIndexOf("`n") + 1
-                $lineEnd = $body.IndexOf("`n", $m.Index)
-                if ($lineEnd -lt 0) { $lineEnd = $body.Length }
-                $matchLine = $body.Substring($lineStart, $lineEnd - $lineStart)
-                if ($matchLine -match 'never call|not as a sub-agent|hand off') { continue }
-                [void]$invoked.Add($otherName)
-            }
-        }
-
-        # Collect section headings from the body — they name documented response paths.
-        $sectionHeadings = @([regex]::Matches($body, '^#+\s+(.+)$', [System.Text.RegularExpressions.RegexOptions]::Multiline) |
-            ForEach-Object { $_.Groups[1].Value.ToLower() })
-
-        foreach ($invokedName in $invoked) {
-            $declared = $agentResults[$invokedName]
-            foreach ($resultVal in $declared) {
-                # "Handles" = the caller declares this result value in its own
-                # Result enumeration, OR the caller's body or a section heading
-                # mentions the value, OR a section heading references failure/
-                # recovery (which covers FAILED for interactive agents).
-                $handled = $false
-                if ($agentResults[$callerName] -contains $resultVal) { $handled = $true }
-                if (-not $handled -and $body -match [regex]::Escape($resultVal)) { $handled = $true }
-                if (-not $handled -and $resultVal -eq "FAILED") {
-                    # An agent may absorb FAILED into INCOMPLETE via a recovery
-                    # section rather than re-emitting FAILED.
-                    foreach ($heading in $sectionHeadings) {
-                        if ($heading -match 'fail|recover|error') { $handled = $true; break }
-                    }
-                }
-                if (-not $handled) {
-                    $problems.Add("$($file.Name): invokes '$invokedName' which can emit '$resultVal', but the caller neither declares it in its own Result nor documents a response path for it")
-                }
-            }
-        }
-    }
-
-    Add-Note "agents checked: $($agentResults.Count)"
     return $problems
 }
 
@@ -1054,7 +817,6 @@ Test-Case -Name "NormativeRulesHaveOneOwner" -Body {
     $files = [System.Collections.Generic.List[object]]::new()
     foreach ($f in Get-AgentFile)   { $files.Add([pscustomobject]@{ Name = $f.Name; Path = $f.FullName }) }
     foreach ($f in Get-StandardFile) { $files.Add([pscustomobject]@{ Name = $f.Name; Path = $f.FullName }) }
-    $files.Add([pscustomobject]@{ Name = "AGENTS.md"; Path = (Repo-Path "AGENTS.md") })
 
     # Extract bolded rule phrases (** ... **) longer than five words per file,
     # excluding fenced code block content where bold is markup, not prose.
@@ -1235,10 +997,6 @@ Test-Case -Name "MapAndTemplateAgree" -Body {
         # Skip things that look like commands, patterns, or prose
         if ($token -match '\s') { continue }
         if ($token -match '^-') { continue }
-        # AGENTS.md is documented, by the map's own Root table, as stored under a
-        # different name (AGENTS.pristine.md) precisely so a second literal
-        # AGENTS.md is never picked up as instructions for the template itself.
-        if ($token -eq "AGENTS.md") { $token = "AGENTS.pristine.md" }
 
         $full = Join-Path $templateRoot ($token -replace '/', [System.IO.Path]::DirectorySeparatorChar)
         if (Test-Path -LiteralPath $full) { $checked++; continue }
@@ -1256,57 +1014,6 @@ Test-Case -Name "MapAndTemplateAgree" -Body {
     }
 
     Add-Note "map path tokens checked: $checked"
-    return $problems
-}
-
-# --- TEMPLATE-04 --------------------------------------------------------------
-# The pristine AGENTS.md must not contain product-specific placeholders left
-# unfilled, nor any value that would embed a particular project's identity and
-# require editing after install. The two classes of violation are:
-# (1) A {placeholder} token from repository-map.md that is present verbatim in
-#     the file, meaning it was never filled in, OR
-# (2) A product-identity marker that should not be generic — verified by
-#     checking that the file does not accidentally contain any project-specific
-#     source-namespace or solution-name patterns.
-# The template-url pointing to Anneal's own repository is expected and correct;
-# it is not a product-specific value because it names the tool, not the product.
-Test-Case -Name "PristineCarriesNoProjectValues" -Body {
-    $problems = [System.Collections.Generic.List[string]]::new()
-
-    $pristinePath = Repo-Path ".github/template/AGENTS.pristine.md"
-    if (-not (Test-Path -LiteralPath $pristinePath)) {
-        return @("AGENTS.pristine.md does not exist")
-    }
-
-    $text = Read-Text $pristinePath
-
-    # Read the canonical placeholder names from the map, and verify none appear
-    # verbatim in the pristine file (they must already be resolved or absent).
-    $mapPath = Repo-Path ".github/template/repository-map.md"
-    $mapText = Read-Text $mapPath
-    $placeholders = @([regex]::Matches($mapText, '\{([A-Za-z][A-Za-z0-9-]+)\}') |
-        ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
-
-    foreach ($ph in $placeholders) {
-        if ($text -match [regex]::Escape("{$ph}")) {
-            $problems.Add("AGENTS.pristine.md contains unfilled placeholder: '{$ph}'")
-        }
-    }
-
-    # Also verify no .NET namespace-style identifier matching Anneal's own product
-    # source tree appears (e.g. 'DemaConsulting.Anneal.Toolkit' or 'src/DemaConsulting')
-    # — those would be Anneal's own project values, not the installed product's.
-    $productNamespaceMarkers = @(
-        "DemaConsulting.Anneal.Toolkit",
-        "src/DemaConsulting"
-    )
-    foreach ($marker in $productNamespaceMarkers) {
-        if ($text -match [regex]::Escape($marker)) {
-            $problems.Add("AGENTS.pristine.md contains project-specific namespace marker: '$marker'")
-        }
-    }
-
-    Add-Note "placeholders checked: $($placeholders -join ', ')"
     return $problems
 }
 

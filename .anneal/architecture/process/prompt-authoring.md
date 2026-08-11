@@ -3,7 +3,6 @@ level: section
 covers:
   - .github/agents/**
   - .github/standards/**
-  - AGENTS.md
 ---
 
 [← Process](../process.md)
@@ -18,7 +17,7 @@ It is the one place in this repository where writing style is a correctness conc
 ## What a Prompt Costs
 
 Prompt text is paid for on **every invocation**, unlike documentation a human reads once. The load for a
-single agent invocation is `AGENTS.md`, plus one agent prompt, plus the two to four standards that agent
+single agent invocation is one agent prompt, plus the two to four standards that agent
 selects — nothing else.
 
 **The context budget is 20,000 tokens**, and this document is where that number is declared; `PROCESS-06`
@@ -27,13 +26,12 @@ post-merge payload:
 
 | File | Tokens |
 | --- | --- |
-| `AGENTS.md` | 2,998 |
-| `helper.agent.md` — largest agent prompt | 2,702 |
+| `helper.agent.md` — largest agent prompt | 2,303 |
 | `architecture-documentation.md` | 4,127 |
-| `change-classification.md` | 5,146 |
+| `change-classification.md` | 5,004 |
 | `system-contracts.md` | 2,643 |
-| `technical-documentation.md` | 2,304 |
-| **Worst case** | **19,920** |
+| `technical-documentation.md` | 2,342 |
+| **Worst case** | **16,419** |
 
 The measurement is recorded beside the ceiling on purpose. 20,000 leaves under a tenth headroom: it
 does not fire today, but the margin is thin enough that the next standard or agent prompt added to this
@@ -55,7 +53,6 @@ Conciseness is about attention, which no clause can measure.
 
 The practical consequence is that content belongs at the cheapest level that still guarantees it is read:
 
-- `AGENTS.md` — loaded always. Routing and classification only; it must never explain.
 - An agent prompt — loaded when that agent runs. Its procedure and its stop conditions.
 - A standard — loaded on demand by task. The single definition of a subject.
 - A skill — loaded only in the situation it describes. Repeatable procedures with worked failures.
@@ -95,7 +92,7 @@ An instruction is actionable when an agent can tell, without judgement, whether 
 - **Imperative and concrete.** Name the file, the command, the exact section to edit.
 - **A stated outcome.** What must be true when the step is done.
 - **An explicit failure branch.** What to do when it is not — every result an agent can emit must be
-  something its caller handles, which is why `PROCESS-05` exists.
+  something its caller handles.
 
 Avoid hedging inside a mandatory instruction. "Consider", "if appropriate" and "try to" convert a rule
 into a preference, and an agent under pressure will read them exactly that way. If the instruction is
@@ -109,8 +106,8 @@ are easy to conflate, and keeping them apart matters because a perfectly actiona
 be answered with a bare verdict — which is precisely how a judging agent fails here.
 
 **Evidence before verdict.** A prompt that asks an agent to judge must require the basis first and the
-conclusion second, and its report template must order its *body sections* that way — the `**Result**`
-metadata field required by `PROCESS-04` still comes first, so a caller can route on the outcome without
+conclusion second, and its report template must order its *body sections* that way — a routing field
+naming the outcome still comes first, so a caller can route on the outcome without
 parsing the report. An agent that writes out its reasoning *after* the section stating its conclusion
 spends that reasoning rationalizing toward it, so the ordering is not presentation: it is what stops the
 argument from being retrofitted to a conclusion already argued for. A one-word routing field commits no
@@ -200,21 +197,19 @@ and because each obligation flows from the structural contract in [process.md](.
   actor. Check the name against modes, other agents, scripts, and host built-in agent names
 - A stated purpose narrow enough that "when not to use this" is obvious
 - Explicit standards to load, by name
-- A report template with `**Result**` as the first metadata field
-- When the agent judges: a report template ordering basis before verdict, demanding the check behind any
+- When the agent judges: a report ordering basis before verdict, demanding the check behind any
   universal negative, and declared in the prompt as the closed set of body sections with one non-blocking
   advisory section for anything else — see
   [What a Judging Prompt Must Demand](#what-a-judging-prompt-must-demand)
-- Listed in `AGENTS.md` under **Agent Delegation Guidelines**
-- `AGENTS.md` is kept in sync with `.github/template/AGENTS.pristine.md` — any edit to it must be made
-  in both copies, because `lint.ps1` enforces the match and `PROCESS-08` contracts it
 
 ### New Standard
 
 - Front matter: `name`, `description`, optional `globs`
 - Every MANDATORY rule states **why**
 - Quality gates at the end as a checklist
-- Listed in the **Standards Application** matrix in `AGENTS.md` (same pristine-copy obligation applies)
+- Named by an agent prompt that loads it, or by a compiled worker's fixed standards list in source
+  (`WorkerStandards`-backed arrays under `src/DemaConsulting.Anneal.Toolkit/Process/Workers/`) — a
+  standard neither names, `PROCESS-03` fails
 
 ### New Skill
 
@@ -222,4 +217,3 @@ and because each obligation flows from the structural contract in [process.md](.
 - Describes a procedure, not a parameter list
 - Says what to do when its subject is absent
 - The agent prompts that carried the procedure now reference the skill instead
-- Listed in the **Skills** section of `AGENTS.md` (same pristine-copy obligation applies)

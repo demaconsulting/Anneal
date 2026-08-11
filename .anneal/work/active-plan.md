@@ -70,8 +70,8 @@ Contract clauses this migration cannot keep as written, and what holds in their 
 to a **condition**, never to a stage number, so that replanning cannot strand one.
 
 The register is deliberately short. Most of the structural contract is unaffected by this migration
-and is doing useful work throughout it: `PROCESS-01` through `PROCESS-04`, `PROCESS-07` and
-`PROCESS-09` keep passing across a rename and are precisely what catches a botched one, and
+and is doing useful work throughout it: `PROCESS-01` through `PROCESS-03`, `PROCESS-06`, `PROCESS-07`
+and `PROCESS-09` keep passing across a rename and are precisely what catches a botched one, and
 `PROCESS-I1` is untouched because the mechanical agents were never entry points. They are not
 suspended, and suspending them would remove the migration's safety net at the moment it is most
 needed. `TOOLKIT-I1` is no longer listed here either: [model-seam.md](../architecture/toolkit/model-seam.md)

@@ -117,20 +117,17 @@ pwsh ./install.ps1 -TargetRepository ../my-product
 ```
 
 This copies the payload into the target repository and vendors the template to `.github/template/`.
-The vendored copy matters: `AGENTS.md` resolves the template from there first, which pins it to the
-agent versions installed beside it.
 
-There is nothing to fill in afterwards. `AGENTS.md` holds no project-specific values — what your
-product is and what it is written in belong in your own `README.md`, which agents read as level 0 of
-the architecture tree — so an upgrade can replace it outright with `-Force`.
+There is nothing to fill in afterwards. What your product is and what it is written in belong in
+your own `README.md`, which agents read as level 0 of the architecture tree.
 
 For a new repository, run `@helper scaffold the repository structure from the template` to lay down
 the layout, then ask `@helper` to interview you and generate the architecture tree.
 
-The payload installs two agent prompts and the standards they load. You invoke one: `@helper` is
+The payload installs one agent prompt and the standards it loads. `@helper` is
 the front door for anything you want done, including the boundary interview when system boundaries
-need establishing or re-cutting. `template-sync` runs only when layout-versus-template work is the
-thing being done.
+need establishing or re-cutting, or the classified compiled work (`intake`, `route`, `maintain`,
+`stage-contract`, `verify-change`, and peers) it invokes directly once Mode is known.
 [Process](.anneal/architecture/process.md) describes the full composition.
 
 ## Assumptions
@@ -155,12 +152,11 @@ that stop earning their place.
 ## Repository Layout
 
 This repository is laid out exactly as a repository that has installed Anneal, so the process can be
-maintained using its own agents.
+maintained using its own tooling.
 
 - **`.github/agents/`, `.github/skills/`, `.github/standards/`** — the payload, live here and shipped
   unchanged
-- **`.github/template/`** — the canonical repository layout and file templates, including the
-  pristine `AGENTS.md`
+- **`.github/template/`** — the canonical repository layout and file templates
 - **`docs/user-guide/`** — how to use and maintain this process
 - **`docs/template/`** — shared Pandoc inputs: HTML template and the collection link filter
 - **`docs/build-doc.ps1`** — compiles one document collection into HTML and then PDF
@@ -172,14 +168,11 @@ maintained using its own agents.
   mapping, the arguments a self-hosted run's contract check is invoked with), `skills/`, where
   `file-skill` writes deliberately curated, committed lessons about this repository (see
   [Skills](.anneal/architecture/toolkit/skills.md)), and `logs/`, where invocation and
-  model-interaction records are written
+  model-interaction records are written (read by `dotnet anneal stats`)
 - **`test-process-contract.ps1`** — a fixture suite holding the payload itself to its documented
   behavior; `dotnet anneal check-contracts` is held to its own contract by
   `CheckContractsSubprocessTests` under `test/`, a compiled C# suite that spawns the tool as a
   real subprocess
-- **`.agent-logs/`** — agent report corpus (gitignored, local only); `AGENTS.md` already requires
-  every agent to write a report here, making the corpus automatic; `agent-metrics.ps1` harvests it
-  into a bounded behavioral summary
 
 ## Technology
 

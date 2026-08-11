@@ -148,8 +148,9 @@ design.
 - Requires an **approved proposal** before any file changes. The proposal is the output of
   `helper`'s boundary-work interview — the target decomposition, the stages, and what each stage
   leaves working — and the user approves it.
-- The approved proposal lives in **`.anneal/work/active-plan.md`**. It must be tracked,
-  because every commit below points at it and agent reports in `.agent-logs/` are not kept. It holds
+- The approved proposal lives in **`.anneal/work/active-plan.md`**. It must be tracked in git,
+  because it is the only durable record of what was approved and which stage is current — a commit
+  message alone does not carry the whole plan. It holds
   the stages and their exit conditions only; the target tree it approves lives in
   `.anneal/architecture/` and is not restated here.
 - Every commit declares Migration mode and references `.anneal/work/active-plan.md`; splitting work is required

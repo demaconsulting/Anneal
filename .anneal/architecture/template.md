@@ -15,14 +15,14 @@ canonical layout — which files exist, where they sit, and what shape each has 
 the scripts that layout ships with: `lint.ps1`, `fix.ps1`, `build.ps1`, and the
 document pipeline that compiles a folder of markdown into HTML and PDF.
 
-It is a system rather than inert content because it has a consumer that never installs anything. The
-`template-sync` agent reads `repository-map.md` to audit an existing repository against the canonical
-layout, and to patch what is missing. That consumer depends on the map being complete and accurate, which
-is a promise independent of whether anyone ever runs `install.ps1`.
+It is a system rather than inert content because `repository-map.md` is a promise about the shipped
+layout independent of whether anyone ever runs `install.ps1`: every file the template ships is listed
+there, keeping the map accurate is a property TEMPLATE-02/03 hold whether or not anything is currently
+built to read it mechanically.
 
-The boundary against [Process](./process.md) is worth stating precisely, because the two systems both
-touch `AGENTS.pristine.md`: **Process owns what that file says; Template owns that a correct, unmodified
-copy of it is present in the layout.** Content versus placement. A wording change edits Process, a layout
+The boundary against [Process](./process.md) is worth stating precisely: **Process owns what agent
+prompts and standards say; Template owns that a correct layout, including their canonical location,
+is present in the shipped tree.** Content versus placement. A wording change edits Process, a layout
 change edits Template, and neither dirties the other.
 
 ## Contract
@@ -45,10 +45,6 @@ change edits Template, and neither dirties the other.
   contain and no template file is absent from the map.
   *Verified by:* `MapAndTemplateAgree`
 
-- **TEMPLATE-04** — Ships `AGENTS.pristine.md` containing no project-specific values, so a target
-  repository needs no post-install editing and an upgrade may replace it outright.
-  *Verified by:* `PristineCarriesNoProjectValues`
-
 - **TEMPLATE-05** — Compiles any folder containing a `definition.yaml` collection into HTML and then PDF,
   resolving relative links between documents in that collection into cross-references.
   *Verified by:* `TODO.CollectionCompilesToPdf`
@@ -63,8 +59,8 @@ change edits Template, and neither dirties the other.
 
 ### Requires
 
-- **[Process](./process.md)** — the content of `AGENTS.pristine.md` and of the standards the layout
-  expects to be installed alongside it.
+- **[Process](./process.md)** — the standards the layout expects to be installed alongside the agent
+  prompts.
 - **Pandoc** — markdown to HTML and PDF conversion, with Lua filter support.
 
 ### Invariants

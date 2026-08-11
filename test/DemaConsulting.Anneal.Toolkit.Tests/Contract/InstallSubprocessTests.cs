@@ -39,9 +39,6 @@ public class InstallSubprocessTests
         Assert.Multiple(
             () => Assert.True(result.ExitCode == 0, $"expected exit 0, got {result.ExitCode}. Output:\n{result.Output}"),
             () => Assert.True(
-                File.Exists(Path.Combine(target.Root, "AGENTS.md")),
-                "AGENTS.md must be installed"),
-            () => Assert.True(
                 File.Exists(Path.Combine(target.Root, ".github", "agents", "helper.agent.md")),
                 ".github/agents/helper.agent.md must be installed"),
             () => Assert.True(
@@ -84,34 +81,6 @@ public class InstallSubprocessTests
     }
 
     // ==========================================================================================
-    // INSTALLER-03
-    // ==========================================================================================
-
-    /// <summary>
-    ///     INSTALLER-03 — <c>AGENTS.pristine.md</c> is installed as <c>AGENTS.md</c> at the target
-    ///     root, so the target receives a file carrying no project-specific values.
-    /// </summary>
-    [Fact]
-    public void PristineIsInstalledAsAgentsFile()
-    {
-        // Arrange
-        using var target = new TargetFixture();
-
-        // Act
-        var result = Run(target);
-
-        // Assert: AGENTS.md exists at target root; AGENTS.pristine.md does not
-        Assert.Multiple(
-            () => Assert.True(result.ExitCode == 0, $"expected exit 0, got {result.ExitCode}. Output:\n{result.Output}"),
-            () => Assert.True(
-                File.Exists(Path.Combine(target.Root, "AGENTS.md")),
-                "AGENTS.md must exist at the target root"),
-            () => Assert.False(
-                File.Exists(Path.Combine(target.Root, "AGENTS.pristine.md")),
-                "AGENTS.pristine.md must not appear at the target root — only AGENTS.md"));
-    }
-
-    // ==========================================================================================
     // INSTALLER-04
     // ==========================================================================================
 
@@ -128,7 +97,7 @@ public class InstallSubprocessTests
         var firstRun = Run(target);
         Assert.True(firstRun.ExitCode == 0, $"setup install failed. Output:\n{firstRun.Output}");
 
-        var agentsPath = Path.Combine(target.Root, "AGENTS.md");
+        var agentsPath = Path.Combine(target.Root, ".github", "agents", "helper.agent.md");
         var originalContent = File.ReadAllText(agentsPath);
         File.WriteAllText(agentsPath, originalContent + "\n<!-- local edit -->");
 
@@ -252,7 +221,7 @@ public class InstallSubprocessTests
         var firstRun = Run(target);
         Assert.True(firstRun.ExitCode == 0, $"setup install failed. Output:\n{firstRun.Output}");
 
-        File.AppendAllText(Path.Combine(target.Root, "AGENTS.md"), "\n<!-- local edit -->");
+        File.AppendAllText(Path.Combine(target.Root, ".github", "agents", "helper.agent.md"), "\n<!-- local edit -->");
         var blockedRun = Run(target);
         Assert.True(blockedRun.ExitCode == 1, "expected collision to block the install");
 

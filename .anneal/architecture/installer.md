@@ -34,10 +34,6 @@ likely to damage somebody's repository.
   template resolves locally and is pinned to the agents installed beside it.
   *Verified by:* `InstallSubprocessTests.TemplateIsVendoredLocally`
 
-- **INSTALLER-03** — Installs `AGENTS.pristine.md` as `AGENTS.md`, so the target receives a file
-  carrying no project-specific values.
-  *Verified by:* `InstallSubprocessTests.PristineIsInstalledAsAgentsFile`
-
 - **INSTALLER-04** — Detects collisions with existing files and reports them before writing anything, so
   a partial install cannot leave a repository half-converted.
   *Verified by:* `InstallSubprocessTests.CollisionsAreDetectedBeforeAnyWrite`
@@ -86,16 +82,14 @@ rename at all.
 The contract is verified by a compiled fixture suite, `InstallSubprocessTests`
 (`test/DemaConsulting.Anneal.Toolkit.Tests/Contract/`), modeled on `CheckContractsSubprocessTests`.
 It builds throw-away target-repository fixtures and spawns the real `install.ps1` as a subprocess to
-verify the payload table (including the `AGENTS.pristine.md` to `AGENTS.md` rename), collision
+verify the payload table, collision
 detection before any write, `-Prune` behavior against `retired-payload.txt`, and installed-layout
 parity against this repository.
 
 ## Decisions
 
 **Copy, never generate** — installation performs no substitution and leaves nothing to fill in.
-Template expansion with project values was rejected because it makes every upgrade a merge; the
-alternative chosen instead was to remove project-specific content from `AGENTS.md` entirely, so replacing
-it outright is safe.
+Template expansion with project values was rejected because it makes every upgrade a merge.
 
 **Refuse rather than merge on collision** — the installer stops and reports instead of attempting to
 reconcile. Merging was rejected because a bad merge into an agent prompt is silent and its damage surfaces

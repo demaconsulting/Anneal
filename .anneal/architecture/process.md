@@ -4,7 +4,6 @@ covers:
   - .github/agents/**
   - .github/skills/**
   - .github/standards/**
-  - AGENTS.md
 ---
 
 [← Architecture Overview](./overview.md)
@@ -45,30 +44,20 @@ is written.
   produces rather than the layout defines is outside this promise.
   *Verified by:* `AgentReferencesResolve`
 
-- **PROCESS-03** — Every standard in `.github/standards/` is reachable by an agent — named by an agent
-  prompt, or by the Standards Application matrix in `AGENTS.md` that every agent loads — so no standard
+- **PROCESS-03** — Every standard in `.github/standards/` is reachable — named by an agent
+  prompt, or by a compiled worker's fixed standards list in source — so no standard
   ships that nothing loads.
   *Verified by:* `NoOrphanedStandards`
 
-- **PROCESS-04** — Every agent prompt defines a report template whose first metadata field is `**Result**`.
-  *Verified by:* `ReportTemplateShapeIsUniform`
-
-- **PROCESS-05** — Every agent handles each result value that any agent it invokes is able to emit.
-  *Verified by:* `HandoffCoverageIsComplete`
-
-- **PROCESS-06** — The worst-case single invocation — `AGENTS.md`, the largest agent prompt, and the four
+- **PROCESS-06** — The worst-case single invocation — the largest agent prompt, and the four
   largest standards — stays within the context budget declared in
   [Prompt Authoring](./process/prompt-authoring.md), counted by the method declared there.
   *Verified by:* `WorstCaseInvocationWithinBudget`
 
-- **PROCESS-07** — Every work mode the payload names — in a report template's mode field, in the
-  classification vocabulary `AGENTS.md` carries, or in the phrase form `{Name} mode` — is one that
+- **PROCESS-07** — Every work mode the payload names — in a report's mode field, or in the
+  phrase form `{Name} mode` — is one that
   `change-classification.md` defines, so no agent can act on a classification no other agent recognizes.
   *Verified by:* `ModeVocabularyIsClosed`
-
-- **PROCESS-08** — The repository's `AGENTS.md` equals `.github/template/AGENTS.pristine.md` plus its
-  Template Stewardship section, so process content cannot drift between the working and shipped copies.
-  *Verified by:* `AgentsFileMatchesPristine`
 
 - **PROCESS-09** — Every Scope value the payload's report-template fields name is one that
   `change-classification.md` defines, so the vocabulary agents route on cannot be extended or
@@ -85,14 +74,12 @@ is written.
 
 - **[ContractCheck](./toolkit/contract-check.md)** — mechanical verification of clause-to-test links, and a
   failure taxonomy stable enough for a skill to explain.
-- **[Template](./template.md)** — presence of an unmodified `AGENTS.pristine.md` in the shipped layout,
-  and of the repository scripts the agent prompts instruct an agent to run together with the tooling
-  configuration those scripts read.
+- **[Template](./template.md)** — presence of the repository scripts the agent prompt instructs a
+  developer to run together with the tooling configuration those scripts read.
 
 ### Invariants
 
-- **PROCESS-I1** — Exactly one agent is user-invocable; every other agent is reachable only as a
-  sub-agent.
+- **PROCESS-I1** — Exactly one agent file exists in the payload, and it is user-invocable.
   *Verified by:* `EntryPointsAreExactlyOne`
 
 - **PROCESS-I2** — No normative rule is stated in more than one payload file; other files reference the
@@ -101,77 +88,59 @@ is written.
 
 ## Composition
 
-Process divides into two zones with a single crossing point: one interactive entry point and one
-mechanical zone. That division is still the most important thing about its interior.
+Process has a single conversational entry point. Everything else it triggers is compiled Toolkit
+work, not a second prose agent.
 
 ```mermaid
 flowchart TD
     User(["Developer"])
-
-    subgraph Interactive["Interactive zone — converses, writes boundary deliverables only"]
-        Helper[helper]
-    end
-
-    subgraph Mechanical["Mechanical zone — routed, never converses"]
-        TemplateSync[template-sync]
-    end
-
+    Helper[helper]
+    Toolkit[["dotnet anneal ..."]]
     Tree[(".anneal/architecture/")]
 
     User --> Helper
-    Helper --> TemplateSync
+    Helper --> Toolkit
     Helper ==> Tree
 ```
 
 Two kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
 
-- **Solid — invocation.** One agent calls another as a sub-agent and consumes its report.
-- **Thick — artifact.** No call occurs. `helper` writes the tree during boundary work, and other
-  agents read it later, possibly in a different session.
+- **Solid — invocation.** `helper` runs a compiled Toolkit operation and reads its exit code and
+  report.
+- **Thick — artifact.** No call occurs. `helper` writes the tree during boundary work, and a later
+  session — human or compiled — reads it.
 
-The old dotted hand-off is gone. Boundary work stays inside `helper`, so no second user entry point
-remains.
+Every other prose agent this repository ever hosted (`dispatch`, `apply`, `tier-check`,
+`architecture-update`, `scope-check`, `lint-fix`, `template-sync`) is retired; each was removed from
+this diagram in turn as the compiled path replacing its job was proven, per the Decisions entries
+below. `helper` is what remains: it classifies a request's Mode itself and invokes the matching
+Toolkit operation (`intake`, `route`, `maintain`, `stage-contract`, `verify-change`, `lint-fix`,
+and peers) directly, or, for boundary work — the repository's first architecture tree, a re-cut, or
+a Migration proposal — writes the tree itself rather than handing off to a second entry point.
 
-`scope-check.agent.md` is gone from this diagram entirely — retired, following the
-`lint-fix`/`apply`/`architecture-update` precedent below — rather than kept as a Mechanical-zone
-node with nothing left calling it.
-
-The zones exist because the two kinds of agent fail differently. An interactive agent fails by assuming
-instead of asking; a mechanical one fails by widening its scope or misreporting its result. The
-mechanical zone is therefore where the structural contract above earns its place, and the interactive
-zone is where behavioral verification is spent.
-
-For the span of the migration [active-plan.md](../work/active-plan.md) carries, a third shape
-coexists with these two rather than replacing either: compiled Toolkit actions (`intake`, `route`,
-`maintain`, `stage-contract`, `verify-change`, and peers) do the bounded mechanical work without
-appearing here as sub-agent nodes. `helper` invokes `intake`, `route`, `maintain`, and
-`stage-contract` directly once Mode is known; verifying a diff that never went through any of those
-authoring paths at all — a hand-written change, an externally contributed one, or anything predating
-this migration — is `verify-change`, likewise run directly rather than through an agent. The diagram
-shows only conversational entry points and report-consuming sub-agent calls; Toolkit owns the direct
-command surface.
+The seam that must not move is the one between `helper`'s conversation and the compiled work it
+triggers. Everything upstream of it talks to a person; everything downstream is classified, bounded,
+and mechanical. If that seam ever widens — if `helper` starts performing ordinary implementation work
+instead of only boundary deliverables, or a compiled operation starts asking the developer questions —
+the boundary this file draws has moved and Process needs to say so explicitly, not absorb it silently.
 
 The **standards** are cross-cutting rather than owned by any agent: each is the single definition of its
-subject, and agents load two to four by task. This is why PROCESS-02 and PROCESS-03 are contract clauses —
+subject, and `helper` loads two to four by task; a compiled worker loads its own fixed list from
+source. This is why PROCESS-02 and PROCESS-03 are contract clauses —
 a payload whose references do not resolve is not a smaller payload, it is a broken one. The **skills** sit
 below the standards and carry repeatable procedures that would otherwise bloat a prompt paid for on every
 invocation.
 
 The standards divide into two populations, and PROCESS-03 admits two loading surfaces because of it. The
 **process** standards — architecture documentation, change classification, system contracts — are named
-directly by the agent prompts, because every agent here does process work and knows at authoring time
-which of them it needs. The **product-code** standards — coding, C# language, C# testing, technical
-documentation, testing principles — are named by no prompt at all, and reached only through the Standards
-Application matrix keyed on the file types an agent discovers at runtime. That indirection is deliberate:
-requiring each prompt to name them would hard-code a product technology into agents that must stay
-technology-neutral, and would enlarge every prompt against the budget PROCESS-06 defends.
-
-The seam that must not move is the one between `helper`'s conversation and the compiled or
-mechanical paths it triggers. Everything upstream of it talks to a person; everything downstream is
-classified, bounded work. If that seam ever widens — if `helper` starts performing ordinary
-implementation work instead of only boundary deliverables, or a mechanical path starts asking the
-developer questions — the interactive zone has become a system in its own right and should be split
-out of Process.
+directly by `helper`'s own prompt, because that is the only agent prompt left and it does process work
+throughout. The **product-code** standards — coding, C# language, C# testing, technical
+documentation, testing principles — are named by no prompt at all, and reached only through the fixed
+per-worker standards arrays each compiled Toolkit worker carries in source
+(`WorkerStandards.cs` and the `*Standards` arrays under `src/DemaConsulting.Anneal.Toolkit/Process/Workers/`).
+That indirection is deliberate: requiring `helper`'s prompt to name them would hard-code a product
+technology into the one prose agent that must stay technology-neutral, and would enlarge it against
+the budget PROCESS-06 defends.
 
 ## Decisions
 
@@ -330,6 +299,25 @@ retire until Template Sync existed too, citing the one-way invariant as authorit
 nothing about sequencing unrelated work, and later migration stages retired individual prose agents
 as their own proven conditions were met. Corrected here rather than left standing as an unchecked
 decree.)
+
+**`AGENTS.md`, `.github/template/AGENTS.pristine.md`, and `template-sync.agent.md` were retired
+together, without a compiled replacement.** Anneal moved from a multi-prompt bootstrap — a shared
+rule file every prose agent loaded, kept byte-identical to a template copy by a dedicated sync agent —
+to a single self-contained prose agent (`helper`) plus compiled Toolkit operations. Once `helper`
+was the only prose agent left, a shared cross-agent rule file had nothing left to coordinate: its
+routing and classification content already lived in `helper.agent.md` and `change-classification.md`,
+and its Standards Application matrix duplicated what each compiled worker's own fixed standards array
+already states more precisely in source. Carrying it forward would have meant maintaining a second,
+looser description of a mechanism the code already enforces exactly. `template-sync.agent.md` had no
+remaining job once there was no `AGENTS.md` copy to reconcile and no other agent-authored payload file
+drifting from the template on a schedule this repository could not otherwise check; `PROCESS-08`
+(byte-equality) and `INSTALLER-03`/`TEMPLATE-04` (pristine-copy install/patch) retired with it,
+following the same "removed once nothing calls it" precedent as every prose-agent retirement above,
+rather than being kept as unused fallback machinery. One real, unrelated defect surfaced while
+untangling this: `technical-documentation.md` had been reachable only through `AGENTS.md`'s Standards
+Application matrix and was an orphaned standard the moment that matrix went away — it is now listed
+directly in `DocumentAuthorStandards` for both `ContractChangeWorker` and `StructuralChangeWorker`,
+closing the gap `NoOrphanedStandards` exists to catch.
 
 **Effort joins Scope as a second classification axis, and Migration is preserved rather than
 dissolved into it** — `change-classification.md` now classifies Change-mode work along Scope

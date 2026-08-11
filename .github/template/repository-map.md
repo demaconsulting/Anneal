@@ -1,28 +1,12 @@
 # Repository Map
 
-Authoritative list of files the template provides. The `template-sync` agent uses this map to audit
-and scaffold repositories.
+Authoritative list of files the template provides.
 
 Files present in a repository but absent from this map are **not** deviations — repositories are
 expected to contain content the template does not describe.
 
 `.github/agents/`, `.github/skills/`, and `.github/standards/` are installed from the payload rather
-than described by this map. They are deliberately absent from it and out of scope for
-`template-sync`.
-
-`AGENTS.md` **is** in the map, so `template-sync` can carry process updates into a repository that
-already has one. Two things about it are unlike every other mapped file:
-
-- It is stored here as `AGENTS.pristine.md`. A second file literally named `AGENTS.md` inside a
-  repository can be picked up as instructions for that repository, which is exactly wrong for a
-  template artifact full of placeholders. It installs to the root under its real name.
-- It carries **no per-repository customization** — project facts live in `README.md` — so unlike
-  every other mapped file it is safe to overwrite wholesale, and `install.ps1 -Force` does.
-
-That last point matters, because the Patch operation only inserts **missing sections**: it cannot
-update content that changed inside a section which already exists. For most mapped files that is
-the safe behavior. For `AGENTS.md` it is not sufficient, so treat a wholesale replacement as the
-way to update it and Patch as a fallback.
+than described by this map. They are deliberately absent from it.
 
 ## Placeholders
 
@@ -37,7 +21,6 @@ way to update it and Patch as a fallback.
 
 | File | Purpose |
 | --- | --- |
-| `AGENTS.md` | Process instructions; stored here as `AGENTS.pristine.md`, carries no customization |
 | `README.md` | Level 0 of the architecture tree; product purpose, entry point, and the design's assumptions |
 | `BACKLOG.md` | Redirect stub pointing to `.anneal/work/backlog.md` |
 | `CONSTRAINTS.md` | Redirect stub pointing to `.anneal/work/constraints.md` |

@@ -85,7 +85,7 @@ compiler's — and separately writes the human text it writes today (`TOOLKIT-14
 The forcing case is composition: the verdict auditor [active-plan.md](../../work/active-plan.md) carries as
 a candidate re-checks verdicts another
 operation reported, and if the only channel out of an operation is a `TextWriter`, composing means
-re-parsing prose — the exact mistake `agent-metrics.ps1` makes today, scraping
+re-parsing prose — the exact mistake `agent-metrics.ps1` made before its retirement, scraping
 reports with regular expressions. The evidence that the channel is wrong rather than merely narrow is
 that `probe-rule-owner` already computes a typed answer and flattens it to lines at the boundary: the
 structure exists and is being thrown away one layer before the caller. Two alternatives were rejected. A

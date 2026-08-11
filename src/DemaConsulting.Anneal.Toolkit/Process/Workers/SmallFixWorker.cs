@@ -42,8 +42,8 @@ internal sealed class SmallFixWorker
     private readonly string? _buildScript;
 
     /// <summary>
-    ///     The fixed standards this worker injects into every <see cref="Developer" /> call, mirroring
-    ///     <c>AGENTS.md</c>'s own "Standards Application" table: coding and C# language always, since this worker
+    ///     The fixed standards this worker injects into every <see cref="Developer" /> call: coding and C#
+    ///     language always, since this worker
     ///     only ever authors code, plus testing and C# testing — <c>change-classification.md</c>'s own Small Fix
     ///     entry names "test additions" explicitly, and this worker's single deterministic check already runs
     ///     <c>build.ps1</c>'s full test suite, so a fix this worker authors routinely touches test files too.

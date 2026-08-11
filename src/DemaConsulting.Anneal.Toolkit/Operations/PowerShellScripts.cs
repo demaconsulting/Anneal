@@ -35,7 +35,8 @@ public delegate Task<ScriptRun> RunRepositoryScript(string script, CancellationT
 ///     else in this process.
 /// </summary>
 /// <remarks>
-///     <c>pwsh</c> rather than <c>powershell</c>, matching every invocation in <c>AGENTS.md</c> and in CI, so a
+///     <c>pwsh</c> rather than <c>powershell</c>, matching every invocation elsewhere in this repository
+///     and in CI, so a
 ///     script that works when a person runs it works when an operation does. Standard error is folded into
 ///     standard output because the linters write findings to both and a reader — human or model — needs them in
 ///     the order they were produced rather than sorted by stream.

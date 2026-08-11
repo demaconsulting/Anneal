@@ -23,9 +23,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
   and the two meanings collide throughout the standards and the template.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
   a general repair pass, but each agent's INCOMPLETE and FAILED outcomes deserve worked examples.
-- **Check sub-agent handoff coverage mechanically** — parse each agent's `**Result**` values and
-  verify every calling agent handles all of them. The one defect class in the prompt files that a
-  script can catch; a missing INCOMPLETE branch in `dispatch` survived five manual review rounds.
 - **Check the mechanical architecture rules in `dotnet anneal check-contracts`** — `level:`/`covers:`
   front matter presence and `definition.yaml` agreeing with the markdown files beside it are both
   MANDATORY, both deterministic, and both have drifted in practice. Extend the existing check rather
@@ -33,43 +30,15 @@ where `helper` will read them during boundary work. See the Intake admission tes
   relationship" is asserted in six files and would all need revisiting. The navigation rules are not
   candidates: a child linking its parent is a SHOULD, and no rule yet forbids linking more than one
   level down.
-- **Detect drift between paired root and template files** — Anneal now keeps most root files twice,
-  and the `AGENTS.md` pair is checked mechanically because it is the one pair that must be exactly
-  equal. The rest legitimately differ, so identity comparison is useless and an allowlist of permitted
-  divergences would not help either: `.cspell.yaml` would sit on that list, and the drift found in
-  it was a missing policy comment inside a file that was supposed to differ. Until something
-  better exists, the **Template Stewardship** section of `AGENTS.md` carries this as prose, and prose
-  is exactly what failed the first time.
-- **Update `AGENTS.md` downstream without a reinstall** — `template-sync` Patch inserts missing
-  sections but cannot update content that changed inside a section that already exists, which is most
-  process edits. `AGENTS.md` now carries no customization, so `install.ps1 -Force` replaces it safely
-  and is the recommended route; a `template-sync` mode that refreshes an uncustomized mapped file
-  wholesale would remove the need to know that.
+- **No release packaging** — `install.ps1` covers installation from a clone, and
+  `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
+  artifact.
 - **Reconcile the paired root and template files once** — moving to a self-hosted layout made the
   pairing visible but did not audit it. `.cspell.yaml` and `.markdownlint-cli2.yaml` have been examined;
   the former's divergence was real drift, the latter's was the template already ahead (`MD013: false`),
   now adopted. `lint.ps1`, `fix.ps1`, `.yamllint.yaml`, `.yamlfix.toml` and `.gitignore` remain
   unexamined. Classify each as flows-to-template, adopt-from-template, or deliberately divergent, and fix
   the first two.
-- **No release packaging** — `install.ps1` covers installation from a clone, and
-  `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
-  artifact.
-- **Decide whether a narrow class of trivial edits may run inline in `dispatch`** — Step 3 is now
-  unconditional: `dispatch` always calls `apply` and never edits directly. That is the safe default,
-  because `dispatch` cannot know *in advance* that a sub-agent would add nothing — `apply` selects
-  standards by file type and descends the architecture tree, neither of which `dispatch` does, so
-  "it added nothing" is only ever available after the work and cannot gate the decision to skip it.
-  The reason to revisit it is cost: `fix.ps1` takes 11.3s and `lint.ps1` 7.5s in this repository, so
-  a three-agent chain spends the large majority of its wall-clock on model reasoning in separate
-  contexts rather than on tooling, and a two-line change measured 4m53s end to end; `helper` also
-  routed a five-line Small Fix change through the full `dispatch` chain that `AGENTS.md` says goes to
-  `apply` alone. Any exemption must be checkable before the work rather than after; the shape
-  discussed was mode is Maintenance or Change/Small Fix, the routed request already names the exact
-  files and the exact final text, no file created or deleted, no test touched, nothing under `src/`,
-  plus a requirement that `dispatch` record `performed inline` with its reason and run the gates
-  itself. Weigh against the risk that decided the default in the first place: a self-granted exemption
-  does not stay narrow, and unless the boundary is stated precisely it degrades into "whenever
-  `dispatch` is confident", which is how a process quietly stops being followed.
 - **Cache probe results by input hash** — key each model-backed operation's result on a hash of its
   inputs so a CI re-run replays the previous answer instead of re-asking. That makes a
   non-deterministic operation reproducible inside a gate, and stops the cost of re-running the gate
@@ -91,13 +60,6 @@ where `helper` will read them during boundary work. See the Intake admission tes
   list whose every entry has been retired. Those repositories keep the old list until then, which
   still sits awkwardly beside the *Model configuration is data, not code* decision in `toolkit.md`.
   Narrowed, not solved.
-- **Retire `agent-metrics.ps1` once its corpus is empty** — it scrapes `.agent-logs/*.md` prose
-  reports with regular expressions, a pattern `toolkit/runtime.md` already names as the mistake
-  `TOOLKIT-08`'s structured `InvocationRecord` exists to avoid. It is not gated by CI, lint, or
-  build, and has no recorded retirement condition anywhere, unlike `lint-fix.agent.md`'s. The
-  condition: once every remaining prose agent is absorbed into a compiled operation, nothing writes
-  `.agent-logs/*.md` anymore and `dotnet anneal stats` covers the whole corpus `InvocationRecord`
-  already carries. Delete the script and this backlog item together at that point.
 - **Give the remaining single-name compiled-in defaults a rearguard** — two shipped defaults still
   name one external identifier each, so each is a dead man's switch of the kind the *No compiled-in
   default may name a single external identifier* constraint describes. The Copilot SDK's
@@ -150,15 +112,14 @@ where `helper` will read them during boundary work. See the Intake admission tes
 ## Lower priority: `install.ps1`'s own payload is being retired
 
 `install.ps1`'s entire payload — `.github/agents`, `.github/skills` (the prose CLI-harness kind, not
-`.anneal/skills`), `.github/template`, and `AGENTS.md` — is infrastructure for the prose-agent system
+`.anneal/skills`), and `.github/template` — is infrastructure for the prose-agent system
 the Toolkit is absorbing. Investing further in the installer polishes a shrinking surface rather than
 growing the compiled one. These stay recorded, but sit last on purpose; do not schedule ahead of
 Toolkit-facing work without asking first.
 
 - **Write a version marker on install** — record the Anneal version into the target repository so an
-  upgrade knows what it is upgrading from, so `template-sync` can report drift against a known
-  baseline, and so `-Prune` can match an installed manifest rather than a list of retired names.
+  upgrade knows what it is upgrading from, and so `-Prune` can match an installed manifest rather
+  than a list of retired names.
 - **Back up or diff before overwriting** — give `install.ps1 -Force` a way to preserve locally edited
-  standards, or at minimum report what it replaced. `AGENTS.md` no longer needs this: it carries no
-  per-repository values, so replacing it outright is the intended upgrade path.
+  standards, or at minimum report what it replaced.
 - Add a mid-run periodic self-check to ModelSession's tool-calling loop so that every K edit-tool calls it pauses for a cheap oracle check of whether the work still matches the original instruction, aborting early on detected scope drift; apply it to DocumentAuthor, Developer, and Planner.
