@@ -26,8 +26,11 @@ the report separately from the completion fields.
 ### Provides
 
 - **TOOLKIT-23** — `route` routes a real work item to this repository's own compiled worker catalog —
-  `small-fix`, `contract-change`, `structural-change` — through a real Router, and runs whichever
-  worker the routing oracle selects. It succeeds when a selected worker completes the work, escalates
+  `small-fix`, `contract-change`, `structural-change`, and the additive `general-large` entry —
+  through a real Router, and runs whichever
+  worker the routing oracle selects. The existing three remain the default routes for ordinary work;
+  `general-large` is an independently selectable Large-effort capability-superset path, not a
+  replacement for them in this stage. It succeeds when a selected worker completes the work, escalates
   when the routing oracle or a worker names a step only a person can take, and fails when no route
   exists, a routing budget is exhausted, or the selected worker could not complete the work. On an
   Escalated or Failed outcome, `Router.GroundInterruptedAsync` reconciles the worker's
@@ -52,7 +55,8 @@ the report separately from the completion fields.
   *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`,
   `InterruptedRouteContractTests.RouteWritesSnapshotPatchOnInterruptedOutcome`,
   `InterruptedRouteContractTests.SucceededRunProducesNoSnapshotPatch`,
-  `InterruptedRouteContractTests.SnapshotFailureDoesNotMaskReportedOutcome`
+  `InterruptedRouteContractTests.SnapshotFailureDoesNotMaskReportedOutcome`,
+  `RouteCatalogCanSelectGeneralLarge`
 
 - **TOOLKIT-54** — Whenever `TOOLKIT-23` writes a patch file, `route` also writes a companion JSON
   file at the same path stem with a `.json` extension (e.g. `interrupted-<timestamp>.json` alongside
@@ -115,7 +119,7 @@ the report separately from the completion fields.
   from, and the escalation outcome this operation reports through.
 - **[Model Seam](./model-seam.md)** — every model call the route oracle, any research pass, and the
   selected worker make.
-- **[Process](../process.md)** — `Router`, `WorkerDescriptor`/`WorkerCatalogEntry`, and the three
+- **[Process](../process.md)** — `Router`, `WorkerDescriptor`/`WorkerCatalogEntry`, and the four
   compiled workers this operation assembles into a production catalog.
 - **ArchitectureCoverage** — `MatchingFiles` and `PatchTouchesContractSection`, used by the
   finish-time agreement gate `TOOLKIT-56` runs after `SmallFixWorker` completes.
@@ -155,9 +159,15 @@ successful edit, so a whole-file overwrite that deletes unrelated content is cau
 than only after several edits accumulate.
 
 **The production catalog registers workers under the same keys their own interior tests already use** —
-`small-fix`, `contract-change`, `structural-change` — so a worker's own test fixtures, this operation's
-catalog, and the route charter's own prose all name the same three strings. No fourth key was invented
-and none was renamed.
+`small-fix`, `contract-change`, `structural-change`, and `general-large` — so a worker's own test
+fixtures, this operation's catalog, and the route charter's own prose all name the same strings.
+
+**`general-large` is additive and preference-ordered behind the established three** — this stage adds a
+fourth selectable catalog entry because the capability-complete Large path now exists, but it does not
+reclassify the work the existing Small Fix, Contract Change, and Structural Change workers already own.
+The route charter therefore names `general-large` explicitly while also instructing the oracle to prefer
+those established workers for their ordinary cases, keeping live routing stable while still making the
+new path reachable when a Large capability-superset run is specifically what the work calls for.
 
 **This operation declares `OperationCategory.Authoring` unconditionally** — including on a run that ends
 up only researching, refusing to route, or escalating — because the action as a whole is capable of

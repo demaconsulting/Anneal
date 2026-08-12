@@ -148,6 +148,12 @@ That indirection is deliberate: requiring `helper`'s prompt to name them would h
 technology into the one prose agent that must stay technology-neutral, and would enlarge it against
 the budget PROCESS-06 defends.
 
+Within that compiled catalog, three workers still line up one-for-one with the Scope vocabulary
+`change-classification.md` defines — `SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker`
+— and an additive fourth, `GeneralWorker`'s Large tier, now exists beside them as a capability-complete
+path whose capability is not itself a Scope value. Scope still names the three established change
+classes; the fourth worker is a catalog entry, not a fourth Scope.
+
 ## Decisions
 
 **Boundary work stayed inside `helper` rather than remaining a second entry point** — the rejected
@@ -218,6 +224,15 @@ no numeral to misread, that scaffolding is redundant weight rather than a safegu
 be raised mid-flight, never silently lowered** — `change-classification.md` states the order the three
 names carry — but nothing about that ordering depends on a digit or a parenthetical qualifier being
 repeated at each decision site.
+
+**The new capability-complete worker is additive to that Scope vocabulary, not a redefinition of it** —
+the Large `GeneralWorker` added in S24 exists to prove that capability and verification obligations do
+not have to be welded together: one worker may touch code, contracts, and architecture docs in one run
+while deterministic preflight and postflight selectors decide which heavier obligations actually fire.
+That does **not** retract the decision above for the three established Scope values, because those
+values still name the existing Small Fix / Contract Change / Structural Change lanes unchanged in this
+stage. What changed is only that the catalog now also contains one capability-superset entry whose
+selection is governed by Effort and obligation shape, not by becoming a fourth Scope word.
 
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this

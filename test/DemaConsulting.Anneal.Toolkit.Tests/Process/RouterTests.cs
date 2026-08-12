@@ -452,10 +452,10 @@ public class RouterTests
     }
 
     [Fact]
-    public async Task RunAsync_TwoEntryCatalog_RoutesToContractChangeWithoutDisturbingSmallFix()
+    public async Task RunAsync_FourEntryCatalog_RoutesToContractChangeWithoutDisturbingExistingWorkers()
     {
-        // Arrange: a catalog with both worker keys pass 3 introduces, confirming the second entry does not
-        // shadow or otherwise disturb small-fix's own existing routing
+        // Arrange: a catalog containing the three established workers plus general-large; selecting one of the
+        // established entries must not accidentally run the new additive path.
         var root = CreateTemporaryDirectory();
         try
         {
@@ -485,9 +485,35 @@ public class RouterTests
                     []));
             };
 
+            var structuralChangeCalls = 0;
+            WorkerRunner structuralChangeRunner = (_, _) =>
+            {
+                structuralChangeCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/overview.md"], "updated the overview")),
+                    null,
+                    []));
+            };
+
+            var generalLargeCalls = 0;
+            WorkerRunner generalLargeRunner = (_, _) =>
+            {
+                generalLargeCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["src/General.cs"], "ran the general worker")),
+                    null,
+                    []));
+            };
+
             WorkerCatalogEntry smallFix = new(new WorkerDescriptor("small-fix", "the cheap path"), smallFixRunner);
             WorkerCatalogEntry contractChange =
                 new(new WorkerDescriptor("contract-change", "contract clause changes"), contractChangeRunner);
+            WorkerCatalogEntry structuralChange =
+                new(new WorkerDescriptor("structural-change", "moves a system boundary"), structuralChangeRunner);
+            WorkerCatalogEntry generalLarge =
+                new(new WorkerDescriptor("general-large", "capability-complete large worker"), generalLargeRunner);
 
             var router = new Router(
                 root,
@@ -495,7 +521,7 @@ public class RouterTests
                 "research charter",
                 "decomposition charter",
                 "cumulative check charter",
-                [smallFix, contractChange],
+                [smallFix, contractChange, structuralChange, generalLarge],
                 recordStore,
                 maxResearchIterations: 3,
                 maxWorkerReroutes: 2,
@@ -509,10 +535,102 @@ public class RouterTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
                 () => Assert.Equal(1, contractChangeCalls),
-                () => Assert.Equal(0, smallFixCalls));
+                () => Assert.Equal(0, smallFixCalls),
+                () => Assert.Equal(0, structuralChangeCalls),
+                () => Assert.Equal(0, generalLargeCalls));
 
             var records = ReadRecords(root);
             Assert.Contains(records, record => record.Step == "Worker:contract-change");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_FourEntryCatalog_GeneralLargeIsReachable()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general-large", "this needs the capability-complete worker", effort: "Large"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            var smallFixCalls = 0;
+            WorkerRunner smallFixRunner = (_, _) =>
+            {
+                smallFixCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
+                    null,
+                    []));
+            };
+
+            var contractChangeCalls = 0;
+            WorkerRunner contractChangeRunner = (_, _) =>
+            {
+                contractChangeCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/toolkit.md"], "updated the contract")),
+                    null,
+                    []));
+            };
+
+            var structuralChangeCalls = 0;
+            WorkerRunner structuralChangeRunner = (_, _) =>
+            {
+                structuralChangeCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/overview.md"], "updated the overview")),
+                    null,
+                    []));
+            };
+
+            var generalLargeCalls = 0;
+            WorkerRunner generalLargeRunner = (_, _) =>
+            {
+                generalLargeCalls++;
+                return Task.FromResult(new WorkerExecutionResult(
+                    OperationOutcome.Succeeded,
+                    new WorkerRunResult.Completed(new ChangeSetSummary(["src/General.cs"], "ran the general worker")),
+                    null,
+                    []));
+            };
+
+            var router = new Router(
+                root,
+                "route charter",
+                "research charter",
+                "decomposition charter",
+                "cumulative check charter",
+                [
+                    new WorkerCatalogEntry(new WorkerDescriptor("small-fix", "the cheap path"), smallFixRunner),
+                    new WorkerCatalogEntry(new WorkerDescriptor("contract-change", "contract clause changes"), contractChangeRunner),
+                    new WorkerCatalogEntry(new WorkerDescriptor("structural-change", "moves a system boundary"), structuralChangeRunner),
+                    new WorkerCatalogEntry(new WorkerDescriptor("general-large", "capability-complete large worker"), generalLargeRunner)
+                ],
+                recordStore,
+                maxResearchIterations: 3,
+                maxWorkerReroutes: 2,
+                endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
+
+            var result = await router.RunAsync("run the capability-complete worker", null, TestContext.Current.CancellationToken);
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
+                () => Assert.Equal(0, smallFixCalls),
+                () => Assert.Equal(0, contractChangeCalls),
+                () => Assert.Equal(0, structuralChangeCalls),
+                () => Assert.Equal(1, generalLargeCalls));
+
+            var records = ReadRecords(root);
+            Assert.Contains(records, record => record.Step == "Worker:general-large");
         }
         finally
         {

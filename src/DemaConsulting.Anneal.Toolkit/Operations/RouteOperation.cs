@@ -8,9 +8,9 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Routes a real work item to this repository's own compiled worker catalog — Small Fix, Contract Change, or
-///     Structural Change — through a real <see cref="Router" />, and runs whichever worker the routing oracle
-///     selects.
+///     Routes a real work item to this repository's own compiled worker catalog — Small Fix, Contract Change,
+///     Structural Change, or the additive General Large path — through a real <see cref="Router" />, and runs
+///     whichever worker the routing oracle selects.
 /// </summary>
 /// <remarks>
 ///     This is the first action that ever constructs a <see cref="Router" /> outside a throwaway test harness.
@@ -52,7 +52,7 @@ public sealed class RouteOperation : IOperation
         and repository facts gathered deterministically, and you answer one narrow question: which worker should
         run this work, whether a bounded look-around is needed first, or that no route exists.
 
-        The catalog has exactly three workers, named by these exact keys:
+        The catalog has four workers, named by these exact keys:
 
         - "small-fix": the cheap path for an interior change bounded to files nobody outside them depends on - no
           contract clause changes, no architecture document changes. It gets one local repair pass against a
@@ -63,6 +63,11 @@ public sealed class RouteOperation : IOperation
         - "structural-change": a change that moves a system boundary itself - splitting, merging, or creating a
           system, or otherwise reshaping .anneal/architecture/ beyond one system's own contract. It plans before
           authoring, and its documentation budget is wider than contract-change's.
+        - "general-large": an additive capability-complete Large-effort worker that may author code, contract
+          clauses, and architecture documents in one run, deciding its preflight and postflight obligations from
+          the request framing and the actual diff. Use this only when the work item specifically needs that
+          capability-complete Large path; for ordinary small-fix, contract-change, and structural-change cases,
+          prefer the three established workers above so existing routing stays stable.
 
         Naming no route is a correct answer, not a failure, when the work item names a Migration proposal this
         repository has not yet approved, needs an interactive conversation only a person can hold (for example
@@ -193,6 +198,34 @@ public sealed class RouteOperation : IOperation
         deterministic evidence first. Only reach for your own judgement once every supplied check has passed, and
         only to answer what the deterministic evidence cannot: whether the work is otherwise correct for its
         declared intent. Refusing to judge on insufficient evidence is a correct answer.
+        """;
+
+    /// <summary>The system message a <see cref="Planner" /> call inside <see cref="GeneralWorker" /> carries.</summary>
+    private const string GeneralPlannerCharter =
+        """
+        You are planning a Large, capability-complete worker run. Decide whether the work needs an explicit plan
+        because it already frames a multi-system or architecture-shaping change, or whether direct execution is
+        still better. Do not reroute simply because the work touches contracts or architecture documents: this
+        worker already owns that capability.
+        """;
+
+    /// <summary>The system message a documentation pass inside <see cref="GeneralWorker" /> carries.</summary>
+    private const string GeneralDocumentAuthorCharter =
+        """
+        You are updating architecture documents for a Large, capability-complete worker run. Author whatever
+        contract-clause or architecture-document changes the request needs under .anneal/architecture/, pruning an
+        obsolete subsystem document rather than leaving it stale. Prefer the smallest targeted edit over a whole-
+        file rewrite. Do not touch code or tests in this pass.
+        """;
+
+    /// <summary>The system message a developer pass inside <see cref="GeneralWorker" /> carries.</summary>
+    private const string GeneralDeveloperCharter =
+        """
+        You are implementing a Large, capability-complete worker run. Read files before editing them, use the real
+        repository rather than reasoning from memory, and keep any contract or architecture edits consistent with
+        the request and any documentation pass that already ran. Do not reroute simply because the change touches
+        contracts or architecture documents: this worker already owns that capability. If the correct change needs
+        a protected file outside the architecture tree, say so plainly and stop.
         """;
 
     private readonly string _repositoryRoot;
@@ -332,10 +365,9 @@ public sealed class RouteOperation : IOperation
     }
 
     /// <remarks>
-    ///     Assembles the production worker catalog: all three landed workers (<see cref="SmallFixWorker" />,
-    ///     <see cref="ContractChangeWorker" />, <see cref="StructuralChangeWorker" />), each registered under the
-    ///     exact catalog key its own interior tests and <see cref="RouteCharter" /> already use, replacing the
-    ///     single-entry catalogs every prior worker's own tests built in isolation.
+    ///     Assembles the production worker catalog: the three established workers plus the additive
+    ///     <see cref="GeneralWorker" /> Large tier, each registered under the exact catalog key its own tests and
+    ///     <see cref="RouteCharter" /> use.
     /// </remarks>
     private WorkerCatalogEntry[] BuildCatalog(RecordStore recordStore)
     {
@@ -363,6 +395,19 @@ public sealed class RouteOperation : IOperation
             contractCheckRunScript: _contractCheckRunScript,
             recordStore: recordStore);
 
+        var generalLarge = new GeneralWorker(
+            _repositoryRoot,
+            Effort.Large,
+            GeneralPlannerCharter,
+            GeneralDocumentAuthorCharter,
+            GeneralDeveloperCharter,
+            VerifierCharter,
+            endpointFor: _endpointFor,
+            buildRunScript: _buildRunScript,
+            contractCheckRunScript: _contractCheckRunScript,
+            runGit: _runGit,
+            recordStore: recordStore);
+
         return
         [
             new WorkerCatalogEntry(
@@ -373,7 +418,10 @@ public sealed class RouteOperation : IOperation
                 contractChange.RunAsync),
             new WorkerCatalogEntry(
                 new WorkerDescriptor("structural-change", "a change that moves a system boundary itself, planned before it is authored"),
-                structuralChange.RunAsync)
+                structuralChange.RunAsync),
+            new WorkerCatalogEntry(
+                new WorkerDescriptor("general-large", "a capability-complete Large worker that may plan, update contracts or architecture docs, and implement code in one run"),
+                generalLarge.RunAsync)
         ];
     }
 

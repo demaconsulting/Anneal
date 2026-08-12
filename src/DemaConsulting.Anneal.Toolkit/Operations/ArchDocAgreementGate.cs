@@ -125,7 +125,7 @@ internal sealed class ArchDocAgreementGate
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="output" /> is null.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
-    public async Task<IReadOnlyList<ArchDocDisagreementFinding>> RunAsync(
+    public async Task<ArchDocAgreementOutcome> RunAsync(
         TextWriter output,
         string operationName,
         CancellationToken cancellationToken)
@@ -140,15 +140,16 @@ internal sealed class ArchDocAgreementGate
             .ConfigureAwait(false);
 
         if (diffFinding is not { Available: true } || diffFinding.ChangedFiles.Count == 0)
-            return [];
+            return new ArchDocAgreementOutcome([], []);
 
         // Load the architecture tree and find which documents cover any of the changed files.
         var architectureRoot = Path.Combine(_repositoryRoot, ".anneal", "architecture");
         var matchedDocuments = FindMatchedDocuments(_repositoryRoot, architectureRoot, diffFinding.ChangedFiles);
         if (matchedDocuments.Count == 0)
-            return [];
+            return new ArchDocAgreementOutcome([], []);
 
         var findings = new List<ArchDocDisagreementFinding>();
+        var correctedDocuments = new List<string>();
 
         foreach (var (relativePath, markdown) in matchedDocuments)
         {
@@ -197,6 +198,10 @@ internal sealed class ArchDocAgreementGate
                                 $"{relativePath} was rejected and reverted; finding persisted to {rejectedFinding.FindingPath}");
                         }
                     }
+                    else
+                    {
+                        correctedDocuments.Add(relativePath);
+                    }
 
                     break;
                 }
@@ -223,7 +228,7 @@ internal sealed class ArchDocAgreementGate
             }
         }
 
-        return findings;
+        return new ArchDocAgreementOutcome(findings, correctedDocuments);
     }
 
     /// <summary>
@@ -231,7 +236,7 @@ internal sealed class ArchDocAgreementGate
     ///     file in <paramref name="changedFiles" /> under their <c>covers:</c> globs, returning the
     ///     repository-relative path and full markdown source of each matched document.
     /// </summary>
-    private static IReadOnlyList<(string RelativePath, string Markdown)> FindMatchedDocuments(
+    internal static IReadOnlyList<(string RelativePath, string Markdown)> FindMatchedDocuments(
         string repositoryRoot,
         string architectureRoot,
         IReadOnlyList<string> changedFiles)
@@ -490,6 +495,14 @@ internal sealed record AgreementOracleDecision(
 
 /// <summary>Internal classification result from the agreement oracle, with the verdict and its supporting reason.</summary>
 internal sealed record AgreementClassification(AgreementVerdict Verdict, string? Reason);
+
+/// <summary>
+///     Structured result of one architecture-doc agreement pass: the neutral findings it persisted, and which
+///     documents it corrected inline as wording-only mismatches.
+/// </summary>
+internal sealed record ArchDocAgreementOutcome(
+    IReadOnlyList<ArchDocDisagreementFinding> Findings,
+    IReadOnlyList<string> CorrectedDocuments);
 
 /// <summary>
 ///     A neutral disagreement finding persisted under <c>.anneal/logs/findings/</c> when an architecture document

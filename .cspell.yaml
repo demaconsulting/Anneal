@@ -35,6 +35,8 @@ words:
   - Pandoc
   - pandoctool
   - paramref
+  - postflight
+  - preflight
   - reqstream
   - retargeted
   - reviewmark
@@ -43,6 +45,7 @@ words:
   - sysml
   - thirdparty
   - unbuilt
+  - ungradeable
   - unpromised
   - venv
   - WeasyPrint
