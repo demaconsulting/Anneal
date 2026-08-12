@@ -129,6 +129,16 @@ clock.
 7. **Process health check** — run `dotnet anneal stats` and look for a worsening pass rate or
    effort trend.
 
+When a major or disruptive change has just landed, treat categories 2, 3, and 4 as a combined
+sweep rather than stopping at whichever is checked first. These three are different symptoms of the
+same underlying cause: a functional change moved code and behavior, and the surrounding record —
+backlog entries, near-duplicate logic, and architecture prose — did not automatically follow. After
+a major change all three deserve a deliberate look together, because a resolved backlog item, a
+newly duplicated helper, and a stale architecture paragraph are likely to appear at the same time
+and for the same reason. This combined sweep applies only in that specific situation; the ordinary
+'stop at the first real finding' rule remains in place for routine day-to-day picks where no recent
+major change has landed.
+
 Prefer the earliest category with a real finding over a later one, and 'nothing here' is a
 legitimate answer for every category — never invent a finding to justify moving further down the
 list. This is documentation only for the helper agent's own conversational judgement about what to
