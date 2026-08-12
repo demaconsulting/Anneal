@@ -104,45 +104,4 @@ retire it with the agent — never to silence the clause.
 
 ## Current stage
 
-### S26 — Prove Medium live, then retire the three legacy workers and stage-contract
-
-S25 made `GeneralWorker` fact-driven across Small/Medium/Large on one pipeline, but only Small and
-Large have been live-validated against a real model — Medium's budgets and role defaults are still an
-untested guess. Retiring the fallback path (the three original workers) before closing that gap would
-leave nothing proven standing behind Medium if it turns out wrong. Once Medium is proven, nothing left
-justifies keeping `SmallFixWorker`, `ContractChangeWorker`, and `StructuralChangeWorker` as separate
-capability-walled code paths, or `stage-contract` as a separate action: `GeneralWorker` already covers
-every case they did, with capability decided by evidence rather than a static wall. Scope finishes its
-move to purely descriptive/reported metadata; Effort becomes the one thing routing selects.
-
-**This stage, in order:**
-
-1. Add a Medium-Effort live trial (following the existing `LiveTrialGeneralWorkerTests.cs` pattern)
-   proving Medium's specific repair-budget and producing-step role defaults against a real model. This
-   must pass before any deletion below begins.
-2. Delete `SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker` (source and their
-   dedicated test files) and the `stage-contract` action (`StageContractOperation` and its dedicated
-   tests) — `GeneralWorker` already covers every case they handled, per S24/S25.
-3. Collapse `RouteOperation`'s worker catalog to a single `general` entry. The routing oracle now
-   selects **Effort** (Small/Medium/Large — already-closed vocabulary) rather than choosing among
-   worker names; Scope is reported for logs/commit messages only, never a routing input.
-4. Update every reference/doc naming the old four-worker catalog: `.anneal/architecture/toolkit/route.md`,
-   `general-worker.md`, `process.md` (Composition + Decisions), `toolkit.md`, `maintain.md`,
-   `verify-change.md`; delete `stage-contract.md`.
-5. Record in the landing commit message exactly what is deliberately dropped rather than silently lost
-   per this file's own invariant — e.g., `SmallFixWorker`'s structural forbid and the dedicated
-   contract-first/plan-first orderings, all superseded by `GeneralWorker`'s preflight/postflight, not
-   quietly lost.
-
-**Reference and contract updates this stage must carry:**
-
-- `.anneal/architecture/toolkit/route.md`, `general-worker.md`, `process.md`, `toolkit.md`,
-  `maintain.md`, `verify-change.md` as listed above; `stage-contract.md` deleted.
-- Any clause naming a test in a file being deleted must be relocated or retired with the file, never
-  left dangling (`PROCESS-03`'s reachability check and the clause-to-test link check both catch this
-  if missed).
-
-**Exit conditions:** Medium's live trial passes against a real model; `SmallFixWorker`,
-`ContractChangeWorker`, `StructuralChangeWorker`, and `stage-contract` no longer exist in source or
-docs; `RouteOperation`'s catalog contains only `general`, selected by Effort; no orphaned standards;
-`pwsh ./build.ps1` and `pwsh ./lint.ps1` pass.
+None open.
