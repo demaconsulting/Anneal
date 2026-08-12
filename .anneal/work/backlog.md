@@ -30,8 +30,16 @@ where `helper` will read them during boundary work. See the Intake admission tes
   **only** mechanically enforced relationship" is asserted in six files and would all need revisiting
   if this became a second one. (Retired from this item: `level:` front matter no longer exists —
   removed as fully redundant with path depth — and `covers:` staleness is being addressed separately
-  via an automatic verified-fingerprint ledger under `.anneal/logs/`, not by extending
-  `check-contracts`.)
+  via a finish-time doc/code agreement check in `route` and `maintain`, not by extending
+  `check-contracts` and not via any persisted ledger.)
+- **Research Roslyn-inspection-based software structure comprehension** — a compiled analyzer over
+  the C# solution could mechanically derive a structural map (namespaces, classes, call relationships)
+  the way `.anneal/architecture/`'s Purpose/Behavior prose does today by hand, if forced-accurate
+  XmlDoc on namespaces and classes existed as the anchor. That would not replace the requirements layer
+  — a promise like "this stays idempotent" is a decision no analyzer can derive by reading code, so a
+  contract store would still be needed — but it could remove the hand-authorship burden from the
+  comprehension half of today's architecture docs entirely, leaving them a pure requirements store.
+  Exploratory only; no decision to build this yet.
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
