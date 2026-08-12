@@ -64,6 +64,7 @@ public sealed class MaintainOperation : IOperation
     private readonly string _repositoryRoot;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunRepositoryScript? _buildRunScript;
+    private readonly RunGitCommand? _runGit;
 
     /// <summary>
     ///     Creates an operation over the current working directory, running the repository's own <c>build.ps1</c>
@@ -90,17 +91,23 @@ public sealed class MaintainOperation : IOperation
     ///     Runs the repository's <c>build.ps1</c> for the worker's deterministic check, or null to run it through
     ///     the PowerShell host. Injected so the whole run is exercisable without a real build.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation for the finish-time agreement gate's diff step, or null to use the real
+    ///     <c>git</c> executable. Injected so the gate is exercisable without a real repository.
+    /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     public MaintainOperation(
         string repositoryRoot,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
-        RunRepositoryScript? buildRunScript = null)
+        RunRepositoryScript? buildRunScript = null,
+        RunGitCommand? runGit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _endpointFor = endpointFor;
         _buildRunScript = buildRunScript;
+        _runGit = runGit;
     }
 
     /// <inheritdoc />
@@ -246,6 +253,13 @@ public sealed class MaintainOperation : IOperation
             foreach (var file in completed.Summary.FilesChanged)
                 output.WriteLine($"  {file}");
             output.WriteLine($"maintain: completed - {completed.Summary.Summary}");
+
+            // TOOLKIT-57: run the finish-time architecture doc/code agreement gate after SmallFixWorker
+            // completes. Only the wording-only-outside-Contract correction is an actual edit; contract
+            // disagreements and cannot-classify findings are persisted as neutral findings but never edited.
+            var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
+            await gate.RunAsync(output, "maintain", allowCorrections: true, cancellationToken).ConfigureAwait(false);
+
             return new OperationResult(
                 OperationOutcome.Succeeded,
                 new MaintainReport(

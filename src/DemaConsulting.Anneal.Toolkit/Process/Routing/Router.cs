@@ -29,7 +29,15 @@ internal abstract record RouterOutcome
     ///     Each decomposed phase's own outcome, in the order the phases were routed, when this item was Massive and
     ///     was decomposed. Never null; empty when this item was not decomposed.
     /// </param>
-    internal sealed record Completed(ChangeSetSummary Summary, Effort Effort, IReadOnlyList<PhaseOutcome>? PhaseOutcomes = null) : RouterOutcome
+    /// <param name="SelectedWorkerKey">
+    ///     The catalog key of the worker that completed this item (e.g. <c>"small-fix"</c>), or null when the
+    ///     item was decomposed into phases and multiple workers may have been involved.
+    /// </param>
+    internal sealed record Completed(
+        ChangeSetSummary Summary,
+        Effort Effort,
+        IReadOnlyList<PhaseOutcome>? PhaseOutcomes = null,
+        string? SelectedWorkerKey = null) : RouterOutcome
     {
         /// <summary>Each decomposed phase's own outcome. Never null; empty when this item was not decomposed.</summary>
         public IReadOnlyList<PhaseOutcome> PhaseOutcomes { get; init; } = PhaseOutcomes ?? [];
@@ -315,7 +323,10 @@ internal sealed class Router
                         case WorkerRunResult.Completed completed when workerResult.Outcome == OperationOutcome.Succeeded:
                             return new StepResult<RouterOutcome>(
                                 OperationOutcome.Succeeded,
-                                new RouterOutcome.Completed(completed.Summary, selectWorker.Effort), []);
+                                new RouterOutcome.Completed(
+                                    completed.Summary, selectWorker.Effort,
+                                    SelectedWorkerKey: selectWorker.WorkerKey),
+                                []);
 
                         case WorkerRunResult.Reroute reroute:
                             if (rerouteBudget <= 0)

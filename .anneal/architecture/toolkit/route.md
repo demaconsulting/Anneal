@@ -91,6 +91,25 @@ the report separately from the completion fields.
   `TOOLKIT-23` defines, with a recommended next step, instead of decomposing it.
   *Verified by:* `DecompositionContractTests.SecondLevelMassivePhaseEscalatesInsteadOfDecomposing`
 
+- **TOOLKIT-56** — After `SmallFixWorker` completes on the small-fix path, `route` runs a
+  model-backed verifier pass — separate from the worker that authored the fix — against each
+  architecture document covering any file in the actual git diff (grounded on `git diff` against the
+  base ref, never on the worker's self-reported changed-file list). The check runs once per matched
+  document. A wording-only mismatch outside the document's `## Contract` section is corrected with a
+  narrow inline edit; the edit itself is then mechanically re-checked against the actual diff it
+  produced — never trusted on the correcting model's own good behavior — and reverted in favor of a
+  neutral finding if it touched `## Contract` despite being told not to. If the mismatch cannot be
+  confidently classified as wording-only, `route`
+  escalates rather than guessing. A disagreement touching `## Contract` substance, or one that cannot
+  be confidently classified as wording-only, is recorded as a neutral finding — neither document nor
+  code is presumed at fault — and persisted under `.anneal/logs/` so the run cannot present as a
+  silent success. This gate does not run on Contract Change or Structural Change paths.
+  *Verified by:* `ArchDocAgreementGateContractTests.RouteSmallFixGateSkipsWhenNoArchDocCoversChangedFiles`,
+  `ArchDocAgreementGateContractTests.RouteSmallFixGateRunsOncePerMatchedDocument`,
+  `ArchDocAgreementGateContractTests.RouteSmallFixGateCorrectsWordingOnlyMismatch`,
+  `ArchDocAgreementGateContractTests.RouteSmallFixGatePersistsContractDisagreementFinding`,
+  `ArchDocAgreementGateContractTests.RouteSmallFixGateRevertsCorrectionThatTouchesContract`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built
@@ -99,6 +118,8 @@ the report separately from the completion fields.
   selected worker make.
 - **[Process](../process.md)** — `Router`, `WorkerDescriptor`/`WorkerCatalogEntry`, and the three
   compiled workers this operation assembles into a production catalog.
+- **ArchitectureCoverage** — `MatchingFiles` and `PatchTouchesContractSection`, used by the
+  finish-time agreement gate `TOOLKIT-56` runs after `SmallFixWorker` completes.
 
 ## Decisions
 

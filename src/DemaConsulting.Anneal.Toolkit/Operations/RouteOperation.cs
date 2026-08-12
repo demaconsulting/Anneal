@@ -323,7 +323,7 @@ public sealed class RouteOperation : IOperation
         return result.Finding switch
         {
             RouterOutcome.Completed completed when result.Outcome == OperationOutcome.Succeeded =>
-                Completed(output, completed),
+                await CompletedAsync(output, completed, cancellationToken).ConfigureAwait(false),
             RouterOutcome.Report report => await ReportedAsync(output, result.Outcome, report, cancellationToken).ConfigureAwait(false),
             // Router.RunAsync's own contract reaches only Succeeded+Completed or Failed/Escalated+Report; this
             // guards against a third RouterOutcome case being added there without this projection following it.
@@ -377,7 +377,8 @@ public sealed class RouteOperation : IOperation
         ];
     }
 
-    private static OperationResult Completed(TextWriter output, RouterOutcome.Completed completed)
+    private async Task<OperationResult> CompletedAsync(
+        TextWriter output, RouterOutcome.Completed completed, CancellationToken cancellationToken)
     {
         output.WriteLine($"route: completed - {completed.Summary.Summary}");
         foreach (var file in completed.Summary.FilesChanged)
@@ -389,6 +390,15 @@ public sealed class RouteOperation : IOperation
             output.WriteLine($"route: decomposed into {completed.PhaseOutcomes.Count} phase(s):");
             foreach (var phase in completed.PhaseOutcomes)
                 output.WriteLine($"  {phase.WorkItem}: {phase.Outcome} - {phase.Summary}");
+        }
+
+        // TOOLKIT-56: run the finish-time architecture doc/code agreement gate on the small-fix path only.
+        // Contract Change and Structural Change already carry DocumentAuthor + a Verifier question; this gate
+        // is the equivalent check for the cheap small-fix path, which has no such pass of its own.
+        if (string.Equals(completed.SelectedWorkerKey, "small-fix", StringComparison.OrdinalIgnoreCase))
+        {
+            var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
+            await gate.RunAsync(output, "route", allowCorrections: true, cancellationToken).ConfigureAwait(false);
         }
 
         return new OperationResult(

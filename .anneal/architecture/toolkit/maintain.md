@@ -25,7 +25,7 @@ for Effort. No worker type is new; `maintain` composes machinery that already ex
 
 What `maintain` *does* add, because nothing else in the Toolkit already enforces it: `change-
 classification.md` requires Maintenance to be "bounded before it starts" — a declared file set, before
-any file is touched — and to "never edit the architecture tree, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`",
+any file is touched — and to "never change what an architecture document promises,"
 naming an architectural finding a *report*, never a license to act on it. Today both of those rules
 are prose a model is trusted to follow. `maintain` makes each one a mechanical, post-run check against
 what the worker actually changed, so neither rule depends on a model's good behavior to hold.
@@ -58,8 +58,10 @@ what the worker actually changed, so neither rule depends on a model's good beha
   existing form, reused exactly as `TOOLKIT-27` already uses it — against the worker's actual
   changed-file list rather than only the declared bound, and forces the same escalation outcome
   whenever it trips, naming the tripped path, regardless of what the containment check (`TOOLKIT-30`)
-  concludes for the same run. This is the mechanical enforcement of `change-classification.md`'s
-  "Maintenance may never edit the architecture tree, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`" rule: a finding
+  concludes for the same run. This is the mechanical enforcement of `change-classification.md`'s rule
+  that Maintenance may never edit `.anneal/work/constraints.md` or `.anneal/work/backlog.md`, and that
+  `SmallFixWorker` itself — as distinct from the separate, mechanically-verified correction `TOOLKIT-57`
+  makes afterward — may never touch the architecture tree at all: a finding
   the tripwire reports is escalated to a person, never silently discarded and never silently allowed to
   stand as a completed Maintenance run.
   *Verified by:* `MaintainEscalatesWhenActualChangesTripTheProtectedPathCheck`
@@ -85,6 +87,20 @@ what the worker actually changed, so neither rule depends on a model's good beha
   reported outcome or the patch file written by `TOOLKIT-49`.
   *Verified by:* `InterruptedMaintainContractTests.MaintainWritesTriageContextJsonAlongsidePatch`
 
+- **TOOLKIT-57** — After `SmallFixWorker` completes, `maintain` runs the same finish-time
+  architecture doc/code agreement gate `TOOLKIT-56` defines for `route`'s small-fix path, with one
+  narrowing: only the wording-only-outside-Contract correction is ever an actual edit, and that edit
+  is itself mechanically re-checked against the actual diff it produced and reverted if it touched
+  `## Contract` despite being told not to; a
+  disagreement touching `## Contract` substance, or one that cannot be confidently classified as
+  wording-only, is recorded as a neutral finding and durably persisted under `.anneal/logs/` —
+  never an edit, regardless of which other post-run checks conclude for the same run.
+  *Verified by:* `ArchDocAgreementGateContractTests.MaintainArchGateSkipsWhenNoArchDocCoversChangedFiles`,
+  `ArchDocAgreementGateContractTests.MaintainArchGateRunsOncePerMatchedDocument`,
+  `ArchDocAgreementGateContractTests.MaintainArchGateCorrectsWordingOnlyMismatchOutsideContract`,
+  `ArchDocAgreementGateContractTests.MaintainArchGatePersistsContractDisagreementFindingWithoutEditing`,
+  `ArchDocAgreementGateContractTests.MaintainArchGateRevertsCorrectionThatTouchesContract`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built
@@ -93,6 +109,8 @@ what the worker actually changed, so neither rule depends on a model's good beha
   `DeterministicCheck` steps make.
 - **[Process](../process.md)** — `SmallFixWorker` and `ProtectedPathTripwire`, both reused unchanged
   from the machinery `route` and its Massive decomposition already built.
+- **ArchitectureCoverage** — `MatchingFiles` and `PatchTouchesContractSection`, used by the
+  finish-time agreement gate `TOOLKIT-57` runs after `SmallFixWorker` completes.
 
 ## Decisions
 
@@ -105,8 +123,9 @@ reclassify a decision the caller already made — the same "one oracle pass, not
 worker runs at all. `maintain` is a thinner front door than `route`, not a second router.
 
 **The two post-run checks are mechanical, not model-judged, because that is what `change-
-classification.md` itself requires of them** — "bounded before it starts" and "never edit the
-architecture tree" are both *what*, not *how*, and a model asked "did this stay in bounds?" is exactly
+classification.md` itself requires of them** — "bounded before it starts" and "never edit
+`.anneal/work/constraints.md` or `.anneal/work/backlog.md`" are both *what*, not *how*, and a model asked
+"did this stay in bounds?" is exactly
 the self-report `TOOLKIT-27`'s own precedent already rejected for a different question: a refusal or a
 containment violation is checked against what actually happened on disk, never against what the worker
 says happened. `TOOLKIT-30` reuses `Router.RunAsync`'s existing strict-subset containment logic
@@ -134,8 +153,10 @@ skipped because an earlier one happened to pass.
 
 **No separate permitted-edit-category argument** — `change-classification.md` bounds Maintenance by
 file set and by the "interior code and interior tests only" restriction the mode definition already
-carries, and `TOOLKIT-31`'s tripwire is exactly the mechanical form of the one edit category Maintenance
-can never touch (the architecture tree, `.anneal/work/constraints.md`, `.anneal/work/backlog.md`). A second, separate
+carries, and `TOOLKIT-31`'s tripwire is exactly the mechanical form of the one edit category
+`SmallFixWorker` itself can never touch (the architecture tree, `.anneal/work/constraints.md`,
+`.anneal/work/backlog.md`) — `TOOLKIT-57`'s later, separate, mechanically-verified wording-only
+correction is a distinct mechanism, not a widening of this tripwire. A second, separate
 edit-category argument alongside the file-scope bound would let a caller declare a category
 `SmallFixWorker` already has no way to violate differently than the file-scope bound already
 constrains, duplicating a constraint the file-scope argument and the tripwire together already cover

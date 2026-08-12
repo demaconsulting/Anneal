@@ -127,9 +127,11 @@ helpers, deleting dead code, tidying interior tests, bumping a dependency.
 
 - **Maintenance is Small Fix by definition.** If the work would change a contract, it has left
   maintenance and must be re-classified as Change and re-approved.
-- **Maintenance may never edit the architecture tree**, `.anneal/work/constraints.md`, or `.anneal/work/backlog.md`.
-  Discovering an architectural problem during maintenance is a *finding to report*, never a license
-  to act on it.
+- **Maintenance may never change what an architecture document promises**, and may never edit
+  `.anneal/work/constraints.md` or `.anneal/work/backlog.md` at all. A wording or illustrative
+  correction that does not touch a document's promise is in bounds; anything that touches the
+  promise, or cannot be confidently told apart from touching it, is a *finding to report*, never a
+  license to act on it.
 - **Bounded before it starts.** Declare the file set, the categories of edit permitted, and a
   stopping point. Open-ended "improve the code" work with no bound is not a task.
 
