@@ -33,12 +33,6 @@ quietly.
 - **Every rule has exactly one owning file** — this is `PROCESS-I2` in
   [process.md](../architecture/process.md); that clause is the full statement, and other files
   reference it rather than restating it here.
-- **The cost of keeping documentation trustworthy does not grow with the volume of code change** —
-  interior rearrangement of a system must stay free of documentation cost no matter how often it
-  happens; only a change to what a system promises another may carry one. The current mechanism —
-  documentation work is triggered only when a promise other code depends on changes — is one way of
-  satisfying this, not the property itself: a re-cut that found a better mechanism for the same
-  property would still have to hold this constraint.
 - **Agent prompts and standards stay within a per-invocation context budget** — the worst-case prompt
   load stays under the ceiling declared and counted in
   [prompt-authoring.md](../architecture/process/prompt-authoring.md).
@@ -111,14 +105,17 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   repository's own configuration, never by an Anneal release: the two entries share a mitigation
   mechanism (an ordered candidate list, resolved to the first the account is offered) but not an owner
   or a fix path, so both are kept.
-- **A prose claim about current behavior is not checked by either verification path** — the split in
-  [overview.md](../architecture/overview.md) covers structural properties of files (checked by
-  script) and behavioral properties of agents (established by inspection or a sandbox run), but a
-  sentence describing what another file currently does — a routing table row, a diagram edge — falls
-  in neither: no script parses it against the behavior it names, and inspection only catches it if the
-  change under review happens to touch that sentence. Found twice in one session (a routing table and
-  a diagram both went stale when `dispatch` was rewritten at S11, undetected by `scope-check` at the
-  time) before a later, unrelated review caught both by hand.
+- **A prose claim about current behavior, living outside any `covers:`-matched architecture document,
+  is not checked by either verification path** — narrowed from its original scope: a `covers:`-matched
+  architecture document's own claims about the code it names are now checked mechanically for Small
+  Fix and Maintenance by the finish-time agreement gate (`TOOLKIT-56`/`TOOLKIT-57`), and for Contract
+  Change and Structural Change by `DocumentAuthor`/`Verifier` as part of the change itself. What
+  remains open is a claim that lives somewhere `covers:` does not reach — a routing table row, a
+  diagram edge, a cross-reference in a standard — where no script parses it against the behavior it
+  names, and inspection only catches it if the change under review happens to touch that sentence.
+  Found twice in one session (a routing table and a diagram both went stale when `dispatch` was
+  rewritten at S11, undetected by `scope-check` at the time) before a later, unrelated review caught
+  both by hand.
 - **The user's admission is required before an agent may append to `.anneal/work/constraints.md` or
   any file under `.anneal/governance/`** — the full rule, including the deterministic `admit-constraint`
   action once wording is confirmed, is owned by
