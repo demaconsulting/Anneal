@@ -80,10 +80,13 @@ it would have to reason about and never use. Judging "did this diff touch that s
 deterministic, mechanical fact, so `verify-change` resolves it itself, constructing a single `CheckFinding`
 already classified as passed or failed by the time `Verifier` ever sees it.
 
-**`DiffCheck` runs the full diff, not a file list** — `Verifier` is granted no tools, so a model judging
-scope honesty and tree accuracy can only see what is embedded in its question text. Scope honesty needs
-to see actual boundary-diff content, not just which files changed, so the patch (trimmed) is threaded
-through the verifier's question alongside the changed-file list.
+**`diffEvidence` is shared `Verifier` plumbing, not something `verify-change` introduced** — all three
+callers (`ContractChangeWorker`, `StructuralChangeWorker`, and `VerifyChangeOperation`) pass a
+`DiffFinding` as the `diffEvidence` parameter to `Verifier.VerifyAsync`, so the model always sees the
+actual patch text alongside the changed-file list rather than a caller-supplied hint. `verify-change`'s
+own distinguishing need is narrower: it is the only caller that reads the diff against a non-`HEAD` base
+reference, because it judges a change a worker did not itself just make and the caller must be able to
+name any declared base ref.
 
 **Declared `OperationCategory.Advisory`, not `Enforcement`** — matching how `scope-check.agent.md` was
 used before its retirement: it reports back and its caller decides. Making this operation `Enforcement`
