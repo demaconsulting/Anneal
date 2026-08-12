@@ -78,7 +78,7 @@ is written.
 
 ### Invariants
 
-- **PROCESS-I1** — Exactly one agent file exists in the payload, and it is user-invocable.
+- **PROCESS-I1** — Exactly one agent file in the payload is user-invocable.
   *Verified by:* `EntryPointsAreExactlyOne`
 
 - **PROCESS-I2** — No normative rule is stated in more than one payload file; other files reference the
@@ -87,35 +87,42 @@ is written.
 
 ## Composition
 
-Process has a single conversational entry point. Everything else it triggers is compiled Toolkit
-work, not a second prose agent.
+Process has a single conversational entry point for developers. `helper` is that entry point; it
+classifies requests and delegates — to compiled Toolkit operations for ordinary work, to
+`autonomous` as a sub-agent when unattended multi-item work is authorized. `autonomous` is never
+invoked directly by a developer; it is a second prose agent reachable only through `helper`.
 
 ```mermaid
 flowchart TD
     User(["Developer"])
     Helper[helper]
+    Autonomous[autonomous]
     Toolkit[["dotnet anneal ..."]]
     Tree[(".anneal/architecture/")]
 
     User --> Helper
     Helper --> Toolkit
+    Helper --> Autonomous
+    Autonomous --> Toolkit
     Helper ==> Tree
 ```
 
 Two kinds of edge appear, and confusing them is the failure this diagram exists to prevent:
 
 - **Solid — invocation.** `helper` runs a compiled Toolkit operation and reads its exit code and
-  report.
+  report. `helper` also invokes `autonomous` as a sub-agent for unattended runs; `autonomous` in
+  turn invokes the same compiled operations.
 - **Thick — artifact.** No call occurs. `helper` writes the tree during boundary work, and a later
   session — human or compiled — reads it.
 
 Every other prose agent this repository ever hosted (`dispatch`, `apply`, `tier-check`,
 `architecture-update`, `scope-check`, `lint-fix`, `template-sync`) is retired; each was removed from
 this diagram in turn as the compiled path replacing its job was proven, per the Decisions entries
-below. `helper` is what remains: it classifies a request's Mode itself and invokes the matching
-Toolkit operation (`intake`, `route`, `maintain`, `stage-contract`, `verify-change`, `lint-fix`,
-and peers) directly, or, for boundary work — the repository's first architecture tree, a re-cut, or
-a Migration proposal — writes the tree itself rather than handing off to a second entry point.
+below. `helper` and `autonomous` are what remain: `helper` classifies a request's Mode itself and
+invokes the matching Toolkit operation (`intake`, `route`, `maintain`, `stage-contract`,
+`verify-change`, `lint-fix`, and peers) directly, or hands off to `autonomous` for unattended
+multi-item work, or — for boundary work — writes the tree itself rather than handing off to a second
+developer-facing entry point.
 
 The seam that must not move is the one between `helper`'s conversation and the compiled work it
 triggers. Everything upstream of it talks to a person; everything downstream is classified, bounded,
@@ -131,9 +138,9 @@ below the standards and carry repeatable procedures that would otherwise bloat a
 invocation.
 
 The standards divide into two populations, and PROCESS-03 admits two loading surfaces because of it. The
-**process** standards — architecture documentation, change classification, system contracts — are named
-directly by `helper`'s own prompt, because that is the only agent prompt left and it does process work
-throughout. The **product-code** standards — coding, C# language, C# testing, technical
+**process** standards — architecture documentation, change classification, system contracts, and
+operation dispatch — are named directly by `helper`'s (and `autonomous`'s) prompts, because those agents
+do process work throughout. The **product-code** standards — coding, C# language, C# testing, technical
 documentation, testing principles — are named by no prompt at all, and reached only through the fixed
 per-worker standards arrays each compiled Toolkit worker carries in source
 (`WorkerStandards.cs` and the `*Standards` arrays under `src/DemaConsulting.Anneal.Toolkit/Process/Workers/`).
@@ -154,9 +161,11 @@ tree, `README.md`, governance files, and `.anneal/work/active-plan.md` when a Mi
 what the repository needs. Letting `helper` implement ordinary code or maintenance directly was
 rejected because a self-granted exemption does not stay narrow.
 
-**Exactly one entry point** — every other agent is a sub-agent or compiled action, so there are no
-trigger words to learn and no separate boundary-design front door to guess. The rejected alternative
-was exposing multiple prompts to the developer, which pushes classification onto the person least
+**Exactly one developer-facing entry point** — `autonomous` is a sub-agent `helper` hands off to,
+never a second thing a developer invokes. PROCESS-I1 protects this by counting user-invocable agents,
+not total agent files. Every other agent is a sub-agent or compiled action, so there are no trigger
+words to learn and no separate boundary-design front door to guess. The rejected alternative was
+exposing multiple prompts to the developer, which pushes classification onto the person least
 equipped to do it consistently.
 
 **Standards are loaded on demand, never bundled** — recorded here because it is the design choice the
