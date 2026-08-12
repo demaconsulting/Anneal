@@ -95,7 +95,6 @@ explicit name is trusted as given and never checked for existence: a repository 
 which does not exist finds out when the check tries to run it, the same way it would find out by hand.
 This is what makes the skip honest rather than merely absent — `DeterministicCheck.RunAsync` given a
 null script returns a real `CheckFinding` marked `Passed: true` with an explanatory summary, not a null
-finding, because every worker that feeds a build check into a `Verifier` as evidence
-(`SmallFixWorker`/`ContractChangeWorker`/`StructuralChangeWorker`) and `verify-change`'s own report
-field read `Finding?.Passed ?? false` — a null finding there would silently read as an untested build,
-not a repository honestly reporting it has none.
+finding, because `GeneralWorker`, `verify-change`, and every other caller that threads a build finding
+into later evidence handling reads `Finding?.Passed ?? false` — a null finding there would silently read
+as an untested build, not a repository honestly reporting it has none.

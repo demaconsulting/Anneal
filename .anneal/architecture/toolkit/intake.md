@@ -10,8 +10,8 @@ covers:
 # Intake
 
 `intake` is the compiled front door for Intake mode — filing something that is wanted, believed, or
-constraining without implementing it. `route`, `maintain`, and `stage-contract` already covered every
-post-classification path `dispatch` needed once Mode was known; this action fills the last gap by
+constraining without implementing it. `route`, `maintain`, `verify-change`, and the other compiled
+actions already covered every post-classification path once Mode was known; this action fills the last gap by
 compiling the admission test itself. It asks one narrow typed question — backlog, assumption, or
 constraint — and then applies the one hard boundary Intake has mechanically: a constraint or assumption
 is proposed, never auto-admitted.

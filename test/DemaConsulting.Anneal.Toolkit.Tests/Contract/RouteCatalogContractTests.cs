@@ -12,13 +12,13 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 public class RouteCatalogContractTests
 {
     [Fact]
-    public async Task RouteCatalogCanSelectGeneralLarge()
+    public async Task RouteCatalogCanSelectGeneralWorker()
     {
-        var root = CreateTemporaryDirectory("route-general-large");
+        var root = CreateTemporaryDirectory("route-general");
         try
         {
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"this needs the capability-complete large path","workerKey":"general-large","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Large","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"this needs the capability-complete path","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Large","hasSufficientEvidence":true}""",
                 "I implemented the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Internal.cs"],"summary":"implemented the worker"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -43,7 +43,7 @@ public class RouteCatalogContractTests
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
-                ["route", "implement the capability-complete worker"],
+                ["route", "implement the capability-complete general worker"],
                 output,
                 [operation],
                 root,

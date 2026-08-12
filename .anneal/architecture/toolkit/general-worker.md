@@ -3,110 +3,117 @@ covers:
   - src/DemaConsulting.Anneal.Toolkit/Process/Workers/GeneralWorker.cs
 ---
 
-[← Toolkit](../toolkit.md)
+[← Process](../process.md)
 
-# General Worker
+# GeneralWorker
 
-`GeneralWorker` is the additive, capability-complete Effort-parameterized worker in the compiled
-catalog. Unlike
-`SmallFixWorker`, it is not structurally forbidden from touching `.anneal/architecture/`: one run may
-plan, author contract clauses or architecture documents, implement code and tests, and then verify only
-the heavier obligations the actual diff proved were needed.
+`GeneralWorker` is the one production worker in Anneal's compiled process. `route` always selects this
+worker and supplies an Effort classification; `maintain` calls the same worker directly at
+`Effort.Small`.
 
-Small, Medium, and Large all run the same pipeline. Effort now tunes the repair budgets and the initial
-producing-step model-tier suggestion rather than gating capability or forking the worker into separate
-implementations.
+The worker is capability-complete. It is not a safer sidecar beside narrower worker identities. Instead,
+it takes the same role trio every time — optional planner, document author, developer — and uses
+deterministic preflight and postflight selectors to decide which heavier obligations actually fire for the
+specific request and resulting diff.
+
+Effort controls depth, not capability:
+
+- **Small** — narrow, low-risk work; no planner by default and the smallest repair budget.
+- **Medium** — typical changes; still no planner by default, but allows one documentation-linked repair
+  cycle before completion.
+- **Large** — structural or multi-system work; enables planner-first work and the deepest repair budget.
 
 ## Contract
 
 ### Provides
 
-- **TOOLKIT-58** — `GeneralWorker` is capability-complete on one pipeline across Small, Medium, and
+- **TOOLKIT-64** — `GeneralWorker` is capability-complete on one pipeline across Small, Medium, and
   Large Effort: one run may plan, author contract clauses, update architecture documents, and
   implement code and tests, returning one merged change summary rather than forcing the work onto
-  separate worker types for those capabilities. Effort tunes budgets and producing-step model-tier
-  suggestions; it does not select a different control-flow shape.
-  *Verified by:* `GeneralWorkerCanAuthorContractArchitectureAndCodeInOneRun`,
-  `GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
+  separate worker identities for those capabilities. Effort tunes depth; it does not select a different
+  worker or a different top-level control-flow shape.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerCanAuthorContractArchitectureAndCodeInOneRun`,
+  `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
 
-- **TOOLKIT-59** — Before any file is touched, `GeneralWorker` runs a deterministic preflight selector
+- **TOOLKIT-65** — Before any file is touched, `GeneralWorker` runs a deterministic preflight selector
   over the request framing and changed-file hints. When that framing already implies a contract or
   architecture-document change, `DocumentAuthor` runs before `Developer`; when it implies a multi-system
   or architecture-shaping change, `Planner` runs before both. A request whose framing implies neither
   begins directly at `Developer`.
-  *Verified by:* `GeneralWorkerPreflightRunsPlannerAndDocumentAuthorBeforeDeveloperWhenFramingImpliesStructuralShape`
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerPreflightRunsPlannerAndDocumentAuthorBeforeDeveloperWhenFramingImpliesStructuralShape`,
+  `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
 
-- **TOOLKIT-60** — After authoring, `GeneralWorker` reads the actual git diff and fires only the heavier
-  obligations that diff proves were needed: a touched `## Contract` section runs the contract check, a
-  touched or coverage-matched architecture document runs the absorbed architecture-agreement obligation,
-  and a plausibly-public API signature change widens the verifier question into a tenet check.
-  `Verifier` itself is skipped only when, after excluding Anneal's own `.anneal/logs/` bookkeeping,
-  every changed path is documentation-only (`docs/`, `.anneal/architecture/`, or Markdown) and no
-  `.anneal/architecture/` `## Contract` section was touched; any code file, test file, mixed surface,
-  or unclassified path still runs `Verifier`.
-  *Verified by:* `GeneralWorkerPostflightFiresOnlyTriggeredChecks`,
-  `GeneralWorkerPostflightSkipsChecksForUntouchedSurfaces`,
-  `GeneralWorkerDocsOnlyMarkdownWithoutContractTouchSkipsVerifier`,
-  `GeneralWorkerDocsOnlyContractTouchStillRunsVerifier`,
-  `GeneralWorkerCodeOrTestDiffAlwaysRunsVerifier`,
-  `GeneralWorkerMixedOrAmbiguousSurfaceStillRunsVerifier`
+- **TOOLKIT-66** — After authoring, `GeneralWorker` reads the actual git diff and fires only the heavier
+  obligations that diff proves were needed: a touched `.anneal/architecture/` `## Contract` section runs
+  the contract check, a touched or `covers:`-matched architecture document runs the absorbed
+  architecture-agreement obligation, and a plausibly public API signature change widens the verifier
+  question into a tenet check. Untouched surfaces do not trigger those checks speculatively.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerPostflightFiresOnlyTriggeredChecks`,
+  `GeneralWorkerContractTests.GeneralWorkerPostflightSkipsChecksForUntouchedSurfaces`
 
-- **TOOLKIT-61** — `GeneralWorker` fails closed on postflight classification. If the diff cannot be read,
+- **TOOLKIT-67** — `GeneralWorker` skips `Verifier` only when, after excluding Anneal's own
+  `.anneal/logs/` bookkeeping, every changed path is documentation-only (`docs/`, Markdown, or
+  `.anneal/architecture/`) and no `.anneal/architecture/` `## Contract` section was touched. A
+  documentation-only change that *does* touch `## Contract`, any code file, any test file, or any mixed
+  or unclassified surface still runs `Verifier`.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerDocsOnlyMarkdownWithoutContractTouchSkipsVerifier`,
+  `GeneralWorkerContractTests.GeneralWorkerDocsOnlyContractTouchStillRunsVerifier`,
+  `GeneralWorkerContractTests.GeneralWorkerCodeOrTestDiffAlwaysRunsVerifier`,
+  `GeneralWorkerContractTests.GeneralWorkerMixedOrAmbiguousSurfaceStillRunsVerifier`
+
+- **TOOLKIT-68** — `GeneralWorker` fails closed on postflight classification. If the diff cannot be read,
   or carries patch content but no parseable changed-file headers, the worker escalates rather than
-  silently concluding no heavier obligation applied. It also re-checks the actual changed-file list
-  against the dangerous protected-path tripwire (`.anneal/governance/`, `.anneal/profile/`,
-  `.anneal/work/`) before completing, so a dangerous edit still escalates even though this worker may
-  legitimately touch `.anneal/architecture/`.
-  *Verified by:* `GeneralWorkerAmbiguousDiffAnalysisFailsClosed`,
-  `GeneralWorkerProtectedPathBackstopStillEscalatesDangerousEdit`
+  silently concluding that no heavier obligation applied.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerAmbiguousDiffAnalysisFailsClosed`
 
-- **TOOLKIT-62** — The architecture-doc/code agreement check is a built-in `GeneralWorker` obligation
-  rather than a separate finish-time pass: when the postflight selector fires it, the worker runs the
-  same classify/correct/revert machinery `ArchDocAgreementGate` already provides, captures any wording-
-  only correction into the completed change summary, and persists neutral findings for contract-level or
-  unclassifiable disagreements without silently treating them as agreement.
-  *Verified by:* `GeneralWorkerAbsorbedArchGateCorrectsWordingOnlyMismatch`,
-  `GeneralWorkerAbsorbedArchGateRevertsCorrectionThatTouchesContract`
+- **TOOLKIT-69** — `GeneralWorker` re-checks the actual changed-file list against the dangerous
+  protected-path tripwire (`.anneal/governance/`, `.anneal/profile/`, `.anneal/work/`) before
+  completing, so a dangerous edit still escalates even though this worker may legitimately touch
+  `.anneal/architecture/`.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerProtectedPathBackstopStillEscalatesDangerousEdit`
 
-- **TOOLKIT-63** — `GeneralWorker` may lower the initial model tier only for producing steps
-  (`Planner`, `DocumentAuthor`, `Developer`), according to its Effort-tuned preflight suggestion. A
-  `RepairRequired` verdict may escalate only the next repair attempt for the same owner category, never
-  speculatively before a failed attempt exists. `Verifier` keeps its fixed trusted tier and is never
-  downgraded by Effort or by any preflight suggestion.
-  *Verified by:* `GeneralWorkerVerifierRoleNeverDowngradesAcrossEfforts`,
-  `GeneralWorkerRepairEscalatesProducingRoleOnlyAfterRepairRequired`
+- **TOOLKIT-70** — Architecture doc/code agreement is a built-in `GeneralWorker` obligation rather than a
+  separate finish-time pass: when the postflight selector fires it, the worker runs the same
+  classify/correct/revert machinery `ArchDocAgreementGate` provides. Wording-only drift may be corrected
+  inline and merged into the completed summary; a correction that touches `## Contract` is reverted; and
+  contract-level or unclassifiable disagreements persist as neutral findings rather than being silently
+  treated as agreement.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerAbsorbedArchGateCorrectsWordingOnlyMismatch`,
+  `ArchDocAgreementGateContractTests.MaintainArchGateCorrectsWordingOnlyMismatchOutsideContract`,
+  `ArchDocAgreementGateContractTests.MaintainArchGateRevertsCorrectionThatTouchesContract`,
+  `ArchDocAgreementGateContractTests.MaintainArchGatePersistsContractDisagreementFindingWithoutEditing`
+
+- **TOOLKIT-71** — `GeneralWorker` may lower the initial model tier only for producing steps
+  (`Planner`, `DocumentAuthor`, `Developer`), according to its Effort-tuned suggestion. `Verifier`
+  keeps its fixed trusted tier and is never downgraded by Effort, and a `RepairRequired` verdict may
+  escalate only the next repair attempt for the same owner category, never speculatively before a failed
+  attempt exists.
+  *Verified by:* `GeneralWorkerContractTests.GeneralWorkerVerifierRoleNeverDowngradesAcrossEfforts`,
+  `GeneralWorkerContractTests.GeneralWorkerRepairEscalatesProducingRoleOnlyAfterRepairRequired`
 
 ### Requires
 
-- **[Runtime](./runtime.md)** — the outcome vocabulary and process notes the worker reports through.
-- **[Model Seam](./model-seam.md)** — every `Planner`, `DocumentAuthor`, `Developer`, `Verifier`, and
-  absorbed architecture-agreement oracle call the worker composes.
-- **[Process](../process.md)** — the catalog, worker brief projection, and protected-path tripwire the
-  worker sits inside.
-- **ArchitectureCoverage** — `PatchTouchesContractSection` and coverage matching used by the postflight
-  selector and the absorbed architecture-agreement obligation.
+- **[Process](../process.md)** — worker briefs, accumulated facts, and Router ownership.
+- **[Model Seam](./model-seam.md)** — planner, document author, developer, and verifier model calls.
+- **ArchitectureCoverage** — matching changed files to governing architecture documents.
 
 ## Decisions
 
-**Preflight is deterministic in this stage** — the stage needs the one capability-complete pipeline
-proven, not a second model-backed classification seam to be designed and contracted. The selector
-therefore uses conservative text matching over the request framing and changed-file hints to decide
-whether documentation-first or plan-first ordering is already obviously required. The rejected
-alternative — a fresh oracle question — would have added a new model-backed judgement surface in the
-same stage whose main point is to absorb a previously separate finish-time obligation into the worker.
+**Capability and depth are separate choices** — S26 keeps one capability-complete worker and moves the
+live choice to Effort. This avoids the old static wall where the wrong worker key could block a needed
+repair step even after the run proved that step was necessary.
 
-**Effort tunes cost, not control flow** — Small, Medium, and Large all take the same steps, but they
-start with different repair budgets and producing-step role suggestions. The defaults are Small
-documentation/code/tenet budgets `0/1/0` with suggested Planner/DocumentAuthor/Developer roles
-`Light/Medium/Medium`; Medium budgets `1/1/0` with `Medium/Medium/Medium`; Large budgets `1/1/1`
-with `Medium/Heavy/Heavy`. The rejected alternative was separate Small/Medium worker designs, which
-would have duplicated the deterministic postflight selector that already proves when the expensive
-checks are actually needed.
+**Deterministic selectors, model-authored content** — the worker does not ask the model which obligations
+it is allowed to run. Models author plans, docs, code, and verification responses; the compiled worker
+decides when those passes are required.
 
-**The dangerous-path backstop excludes `.anneal/architecture/`, and that exception is explicit rather
-than implicit** — `GeneralWorker` exists precisely to make architecture and contract edits possible in one
-compiled path, so reusing `ProtectedPathTripwire` unchanged over the actual changed-file list would
-escalate every successful run that exercised the worker's new capability. The backstop keeps the same
-path-matching primitive and the same fail-closed posture for `.anneal/governance/`, `.anneal/profile/`,
-and `.anneal/work/`, while leaving the architecture tree governed instead by the absorbed agreement gate
-and the contract check.
+**Maintenance is an explicit exception around the same worker** — the worker stays reusable enough for
+`maintain`, which wraps Small-effort execution with different front-door checks instead of forking worker
+identity again.
+
+**TOOLKIT-58 through TOOLKIT-63 are retired here and superseded explicitly, not silently** — the
+intermediate S26 collapse into `PROCESS-12`/`PROCESS-13` lost too much contract altitude. The current
+mapping restores that precision in-place: `TOOLKIT-58` → `TOOLKIT-64`, `TOOLKIT-59` → `TOOLKIT-65`,
+`TOOLKIT-60` → `TOOLKIT-66` + `TOOLKIT-67`, `TOOLKIT-61` → `TOOLKIT-68` + `TOOLKIT-69`,
+`TOOLKIT-62` → `TOOLKIT-70`, and `TOOLKIT-63` → `TOOLKIT-71`. The old IDs are no longer listed as
+active clauses because these new clauses are the current invariant set.

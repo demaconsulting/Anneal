@@ -223,7 +223,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
     /// <remarks>
     ///     Same rationale as <see cref="RunRouteAsync" />: the worker's deterministic build check is stubbed
     ///     (<see cref="StubScriptRunner" />) since this throwaway fixture ships no real <c>build.ps1</c>, while
-    ///     every other path — <see cref="Operations.MaintainOperation" />, <c>SmallFixWorker</c>'s real reasoning,
+    ///     every other path — <see cref="Operations.MaintainOperation" />, <c>GeneralWorker</c>'s real reasoning,
     ///     and the grading oracle — runs for real, against a real endpoint.
     /// </remarks>
     public async Task<(int ExitCode, string Output)> RunMaintainAsync(
@@ -277,6 +277,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         var brief = new WorkerBrief(
             "live-trial-general-worker",
             workItem,
+            effort,
             "general-worker",
             [],
             [],
@@ -290,34 +291,6 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         var stepsPath = RecordStore.ProcessStepsPathFor(RepositoryRoot);
         IReadOnlyList<string> steps = File.Exists(stepsPath) ? File.ReadAllLines(stepsPath) : [];
         return (result, steps);
-    }
-
-    /// <summary>
-    ///     Runs a real, in-process <c>stage-contract</c> invocation against this fixture's working tree.
-    /// </summary>
-    /// <param name="workItem">The work item text describing the clause to stage. Must not be null or blank.</param>
-    /// <param name="cancellationToken">The caller's signal, carried unchanged into the run.</param>
-    /// <returns>The exit code <see cref="AnnealTool" /> reached, and everything it wrote to its output.</returns>
-    /// <remarks>
-    ///     Unlike <see cref="RunRouteAsync" /> and <see cref="RunMaintainAsync" />, no script stub is needed:
-    ///     <see cref="Operations.StageContractOperation" /> takes no build-script override, and its own
-    ///     post-run <c>check-contracts</c> pass already runs in process
-    ///     (<see cref="Process.ContractCheckRunner" />), never shelling out to a repository script this
-    ///     throwaway fixture does not ship.
-    /// </remarks>
-    public async Task<(int ExitCode, string Output)> RunStageContractAsync(
-        string workItem, CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workItem);
-
-        var operation = new StageContractOperation(RepositoryRoot);
-        var writer = new StringWriter();
-
-        var exitCode = await AnnealTool
-            .RunAsync([operation.Name, workItem], writer, [operation], RepositoryRoot, cancellationToken)
-            .ConfigureAwait(false);
-
-        return (exitCode, writer.ToString());
     }
 
     /// <summary>

@@ -43,16 +43,17 @@ public class WorkerBriefTests
         };
         ledger.ResearchHistory.Add(finding);
 
-        var reroute = new WorkerReroute("contract-change", "needs a contract clause", ["toolkit.md"], "contract-change");
+        var reroute = new WorkerReroute("general", "needs a contract clause", ["toolkit.md"], "general");
         ledger.WorkerReroutes.Add(reroute);
 
         // Act
-        var brief = WorkerBrief.FromLedger(ledger, "parent-123", "this looks like a small fix");
+        var brief = WorkerBrief.FromLedger(ledger, "parent-123", "this looks like a small fix", Effort.Small);
 
         // Assert: every field reads back exactly what the ledger held, with no oracle call made
         Assert.Multiple(
             () => Assert.Equal("parent-123", brief.ParentInvocationId),
             () => Assert.Equal("fix the flaky test", brief.OriginalWorkItem),
+            () => Assert.Equal(Effort.Small, brief.Effort),
             () => Assert.Equal("small fix", brief.ClassificationHypothesis),
             () => Assert.Equal([finding], brief.RelevantResearchFindings),
             () => Assert.Equal([reroute], brief.PriorReroutes),
@@ -74,11 +75,12 @@ public class WorkerBriefTests
         };
 
         // Act
-        var brief = WorkerBrief.FromLedger(ledger, "parent-456", "unclear yet");
+        var brief = WorkerBrief.FromLedger(ledger, "parent-456", "unclear yet", Effort.Medium);
 
         // Assert
         Assert.Multiple(
             () => Assert.Null(brief.ClassificationHypothesis),
+            () => Assert.Equal(Effort.Medium, brief.Effort),
             () => Assert.Empty(brief.RelevantResearchFindings),
             () => Assert.Empty(brief.PriorReroutes));
     }
@@ -86,7 +88,7 @@ public class WorkerBriefTests
     [Fact]
     public void FromLedger_NullLedger_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => WorkerBrief.FromLedger(null!, "parent", "hint"));
+        Assert.Throws<ArgumentNullException>(() => WorkerBrief.FromLedger(null!, "parent", "hint", Effort.Small));
     }
 
     [Fact]
@@ -99,6 +101,6 @@ public class WorkerBriefTests
             InitialContextArtifacts = []
         };
 
-        Assert.Throws<ArgumentException>(() => WorkerBrief.FromLedger(ledger, "  ", "hint"));
+        Assert.Throws<ArgumentException>(() => WorkerBrief.FromLedger(ledger, "  ", "hint", Effort.Small));
     }
 }

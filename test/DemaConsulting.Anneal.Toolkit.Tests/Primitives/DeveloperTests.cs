@@ -52,7 +52,7 @@ public class DeveloperTests
         {
             var endpoint = new QueuedEndpoint(
                 "This belongs elsewhere.",
-                """{"kind": "Reroute", "why": "structural change needed", "suggestedWorker": "structural-change", "filesChanged": [], "summary": ""}""");
+                """{"kind": "Reroute", "why": "broader capability needed", "suggestedWorker": "general", "filesChanged": [], "summary": ""}""");
             var developer = new Developer(root, "a charter", endpointFor: _ => endpoint);
 
             // Act
@@ -63,7 +63,7 @@ public class DeveloperTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(
-                    "structural-change", ((DevelopmentResult.Reroute)result.Finding!).SuggestedWorker));
+                    "general", ((DevelopmentResult.Reroute)result.Finding!).SuggestedWorker));
         }
         finally
         {

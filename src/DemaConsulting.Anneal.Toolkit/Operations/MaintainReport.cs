@@ -1,8 +1,9 @@
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     What a <c>maintain</c> run concluded, as data beside its outcome: what <c>SmallFixWorker</c> actually
-///     changed, and — on escalation — which mechanical check tripped and on what it tripped.
+///     What a <c>maintain</c> run concluded, as data beside its outcome: what the Small-effort
+///     <c>GeneralWorker</c> path actually changed, and — on escalation — which mechanical check tripped and on
+///     what it tripped.
 /// </summary>
 /// <remarks>
 ///     A new record projecting the internal <c>Process.WorkerExecutionResult</c> directly, never routing through
@@ -23,7 +24,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     <para>Thread safety: immutable and safe to share.</para>
 /// </remarks>
 /// <param name="FilesChanged">
-///     The files <c>SmallFixWorker</c> actually reports having changed — from its completed change set, or from
+///     The files the Small-effort <c>GeneralWorker</c> path actually reports having changed — from its completed change set, or from
 ///     what it had already written before an escalated or failed run stopped it short. Never null; empty when
 ///     nothing was written.
 /// </param>

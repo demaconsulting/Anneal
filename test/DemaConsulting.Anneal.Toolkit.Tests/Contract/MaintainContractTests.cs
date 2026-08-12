@@ -1,5 +1,6 @@
 using DemaConsulting.Anneal.Toolkit;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
@@ -7,41 +8,42 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 
 /// <summary>
 ///     Boundary tests for TOOLKIT-29, TOOLKIT-30, and TOOLKIT-31: how <c>maintain</c> runs a declared Maintenance
-///     work item directly against <c>SmallFixWorker</c> with no routing oracle, and mechanically enforces the
+///     work item directly against <c>GeneralWorker</c> with no routing oracle, and mechanically enforces the
 ///     declared file-scope bound and the protected-path prohibition against the worker's actual output.
 /// </summary>
 /// <remarks>
 ///     Everything here goes through the same surface a caller has: the action name is passed to
 ///     <see cref="AnnealTool.RunAsync(IReadOnlyList{string}, TextWriter, CancellationToken)" /> and assertions
 ///     are on the exit code and the written output. Nothing here reaches inside <see cref="MaintainOperation" />
-///     or <c>Process.SmallFixWorker</c>.
+///     or <c>Process.GeneralWorker</c>.
 /// </remarks>
 public class MaintainContractTests
 {
     /// <summary>
     ///     TOOLKIT-29 — <c>maintain</c> takes a Maintenance work item and a declared file-scope bound and runs it
-    ///     directly against <c>SmallFixWorker</c>, asking no routing oracle: only <c>SmallFixWorker</c>'s own two
-    ///     replies (a free-text authoring turn, then its structured decision) are queued, so if <c>maintain</c>
-    ///     asked a route oracle first, the endpoint would report itself unavailable and the run would fail for
-    ///     the wrong reason instead of completing. Naming no file-scope entry is a usage error. Verified by
-    ///     <c>MaintainRunsDeclaredBoundDirectlyThroughSmallFixWorker</c>.
+    ///     directly against <c>GeneralWorker</c> at Small effort, asking no routing oracle: only the worker's own
+    ///     replies are queued, so if <c>maintain</c> asked a route oracle first, the endpoint would report itself
+    ///     unavailable and the run would fail for the wrong reason instead of completing. Naming no file-scope
+    ///     entry is a usage error. Verified by <c>MaintainRunsDeclaredBoundDirectlyThroughGeneralWorker</c>.
     /// </summary>
     [Fact]
-    public async Task MaintainRunsDeclaredBoundDirectlyThroughSmallFixWorker()
+    public async Task MaintainRunsDeclaredBoundDirectlyThroughGeneralWorker()
     {
-        // Scenario 1: a declared work item and bound runs directly against SmallFixWorker and completes, with
+        // Scenario 1: a declared work item and bound runs directly against Small-effort GeneralWorker and completes, with
         // no routing-oracle reply queued at all.
         var root = CreateTemporaryDirectory();
         try
         {
             var endpoint = new QueuedEndpoint(
                 "I made the change.",
-                CompletedJson(["src/a.cs"], "tidied the interior helper"));
+                CompletedJson(["src/a.cs"], "tidied the interior helper"),
+                PassedVerifierJson());
 
             var operation = new MaintainOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/a.cs"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -56,7 +58,7 @@ public class MaintainContractTests
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("maintain: completed", written, StringComparison.Ordinal),
                 () => Assert.Contains("src/a.cs", written, StringComparison.Ordinal),
-                () => Assert.Equal(2, endpoint.Calls));
+                () => Assert.Equal(3, endpoint.Calls));
         }
         finally
         {
@@ -104,12 +106,14 @@ public class MaintainContractTests
             // The worker reports it changed a file outside the declared bound (only "src/a.cs" was declared).
             var endpoint = new QueuedEndpoint(
                 "I made the change.",
-                CompletedJson(["src/a.cs", "src/out-of-bounds.cs"], "tidied more than declared"));
+                CompletedJson(["src/a.cs", "src/out-of-bounds.cs"], "tidied more than declared"),
+                PassedVerifierJson());
 
             var operation = new MaintainOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/a.cs", "src/out-of-bounds.cs"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -150,12 +154,14 @@ public class MaintainContractTests
             // so the containment check (TOOLKIT-30) alone would clear this run; only the tripwire must fire.
             var endpoint = new QueuedEndpoint(
                 "I made the change.",
-                CompletedJson(["src/a.cs", ".anneal/work/backlog.md"], "tidied and updated the backlog"));
+                CompletedJson(["src/a.cs", ".anneal/work/backlog.md"], "tidied and updated the backlog"),
+                PassedVerifierJson());
 
             var operation = new MaintainOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/a.cs", ".anneal/work/backlog.md"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -182,6 +188,18 @@ public class MaintainContractTests
         $$"""
           {"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[{{string.Join(",", filesChanged.Select(file => $"\"{file}\""))}}],"summary":"{{summary}}"}
           """;
+
+    private static string PassedVerifierJson() =>
+        """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";
+
+    private static RunGitCommand CodeOnlyDiff(params string[] files) =>
+        (_, _) => Task.FromResult(new ScriptRun(0, BuildDiff(files)));
+
+    private static string BuildDiff(IReadOnlyList<string> files) =>
+        string.Join(
+            "\n",
+            files.Select(file =>
+                $"diff --git a/{file} b/{file}\n--- a/{file}\n+++ b/{file}\n@@ -1 +1 @@\n-old\n+new"));
 
     private static string CreateTemporaryDirectory()
     {

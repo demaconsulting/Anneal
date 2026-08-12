@@ -31,7 +31,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "this is a small fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "this is a small fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -61,7 +61,7 @@ public class RouterTests
             Assert.Multiple(
                 () => Assert.Equal(2, records.Count),
                 () => Assert.Equal("RouteOracle", records[0].Step),
-                () => Assert.Equal("Worker:small-fix", records[1].Step),
+                () => Assert.Equal("Worker:general", records[1].Step),
                 () => Assert.Equal(records[0].ParentInvocationId, records[1].ParentInvocationId),
                 () => Assert.False(string.IsNullOrWhiteSpace(records[0].ParentInvocationId)));
         }
@@ -79,8 +79,8 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "looks small"),
-                SelectWorkerJson("small-fix", "still the right worker"));
+                SelectWorkerJson("general", "looks small"),
+                SelectWorkerJson("general", "still the right worker"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -92,7 +92,7 @@ public class RouterTests
                     runnerCalls == 1
                         ? new WorkerExecutionResult(
                             OperationOutcome.Succeeded,
-                            new WorkerRunResult.Reroute("needs a contract change", [], "contract-change"),
+                            new WorkerRunResult.Reroute("needs a contract change", [], "general"),
                             null,
                             [])
                         : new WorkerExecutionResult(
@@ -137,7 +137,7 @@ public class RouterTests
             var oracleEndpoint = new QueuedEndpoint(
                 NeedResearchJson("what changed recently?", "not enough context yet"),
                 ResearchFindingJson("what changed recently?", "nothing unusual", sufficientForNextDecision: true),
-                SelectWorkerJson("small-fix", "now it is clear"));
+                SelectWorkerJson("general", "now it is clear"));
             var researchEndpoint = new QueuedEndpoint("Looking around.");
             var recordStore = new RecordStore(root);
 
@@ -161,7 +161,7 @@ public class RouterTests
                 () => Assert.Equal("RouteOracle", records[0].Step),
                 () => Assert.Equal("Research", records[1].Step),
                 () => Assert.Equal("RouteOracle", records[2].Step),
-                () => Assert.Equal("Worker:small-fix", records[3].Step));
+                () => Assert.Equal("Worker:general", records[3].Step));
         }
         finally
         {
@@ -183,7 +183,7 @@ public class RouterTests
             var oracleEndpoint = new QueuedEndpoint(
                 NeedResearchJson("what changed recently?", "not enough context yet", hasSufficientEvidence: false),
                 ResearchFindingJson("what changed recently?", "nothing unusual", sufficientForNextDecision: true),
-                SelectWorkerJson("small-fix", "now it is clear"));
+                SelectWorkerJson("general", "now it is clear"));
             var researchEndpoint = new QueuedEndpoint("Looking around.");
             var recordStore = new RecordStore(root);
 
@@ -210,7 +210,7 @@ public class RouterTests
                 () => Assert.Equal("RouteOracle", records[0].Step),
                 () => Assert.Equal("Research", records[1].Step),
                 () => Assert.Equal("RouteOracle", records[2].Step),
-                () => Assert.Equal("Worker:small-fix", records[3].Step));
+                () => Assert.Equal("Worker:general", records[3].Step));
         }
         finally
         {
@@ -228,7 +228,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "maybe this", hasSufficientEvidence: false));
+                SelectWorkerJson("general", "maybe this", hasSufficientEvidence: false));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -288,7 +288,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "looks small"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "looks small"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -298,7 +298,7 @@ public class RouterTests
                 runnerCalls++;
                 return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
-                    new WorkerRunResult.Reroute("needs a contract change", [], "contract-change"),
+                    new WorkerRunResult.Reroute("needs a contract change", [], "general"),
                     null,
                     []));
             };
@@ -329,7 +329,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "this is a small fix", effort: "Large"));
+                SelectWorkerJson("general", "this is a small fix", effort: "Large"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -452,54 +452,19 @@ public class RouterTests
     }
 
     [Fact]
-    public async Task RunAsync_FourEntryCatalog_RoutesToContractChangeWithoutDisturbingExistingWorkers()
+    public async Task RunAsync_SingleEntryCatalog_RoutesToGeneral()
     {
-        // Arrange: a catalog containing the three established workers plus general-large; selecting one of the
-        // established entries must not accidentally run the new additive path.
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("contract-change", "this touches a contract"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "this touches a contract", effort: "Medium"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
-            var smallFixCalls = 0;
-            WorkerRunner smallFixRunner = (_, _) =>
+            var generalCalls = 0;
+            WorkerRunner generalRunner = (_, _) =>
             {
-                smallFixCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
-                    null,
-                    []));
-            };
-
-            var contractChangeCalls = 0;
-            WorkerRunner contractChangeRunner = (_, _) =>
-            {
-                contractChangeCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/toolkit.md"], "updated the contract")),
-                    null,
-                    []));
-            };
-
-            var structuralChangeCalls = 0;
-            WorkerRunner structuralChangeRunner = (_, _) =>
-            {
-                structuralChangeCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/overview.md"], "updated the overview")),
-                    null,
-                    []));
-            };
-
-            var generalLargeCalls = 0;
-            WorkerRunner generalLargeRunner = (_, _) =>
-            {
-                generalLargeCalls++;
+                generalCalls++;
                 return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Completed(new ChangeSetSummary(["src/General.cs"], "ran the general worker")),
@@ -507,40 +472,28 @@ public class RouterTests
                     []));
             };
 
-            WorkerCatalogEntry smallFix = new(new WorkerDescriptor("small-fix", "the cheap path"), smallFixRunner);
-            WorkerCatalogEntry contractChange =
-                new(new WorkerDescriptor("contract-change", "contract clause changes"), contractChangeRunner);
-            WorkerCatalogEntry structuralChange =
-                new(new WorkerDescriptor("structural-change", "moves a system boundary"), structuralChangeRunner);
-            WorkerCatalogEntry generalLarge =
-                new(new WorkerDescriptor("general-large", "capability-complete large worker"), generalLargeRunner);
-
             var router = new Router(
                 root,
                 "route charter",
                 "research charter",
                 "decomposition charter",
                 "cumulative check charter",
-                [smallFix, contractChange, structuralChange, generalLarge],
+                [new WorkerCatalogEntry(new WorkerDescriptor("general", "capability-complete worker"), generalRunner)],
                 recordStore,
                 maxResearchIterations: 3,
                 maxWorkerReroutes: 2,
                 endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
 
-            // Act
             var result = await router.RunAsync("add a contract clause", null, TestContext.Current.CancellationToken);
 
-            // Assert: routed to the newly-added worker, and small-fix's own runner was never invoked
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
-                () => Assert.Equal(1, contractChangeCalls),
-                () => Assert.Equal(0, smallFixCalls),
-                () => Assert.Equal(0, structuralChangeCalls),
-                () => Assert.Equal(0, generalLargeCalls));
+                () => Assert.Equal(1, generalCalls),
+                () => Assert.Equal(Effort.Medium, ((RouterOutcome.Completed)result.Finding!).Effort));
 
             var records = ReadRecords(root);
-            Assert.Contains(records, record => record.Step == "Worker:contract-change");
+            Assert.Contains(records, record => record.Step == "Worker:general");
         }
         finally
         {
@@ -549,52 +502,20 @@ public class RouterTests
     }
 
     [Fact]
-    public async Task RunAsync_FourEntryCatalog_GeneralLargeIsReachable()
+    public async Task RunAsync_SingleEntryCatalog_LargeEffortStillRoutesToGeneral()
     {
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general-large", "this needs the capability-complete worker", effort: "Large"));
+            var oracleEndpoint = new QueuedEndpoint(
+                SelectWorkerJson("general", "this needs the capability-complete worker", effort: "Large"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
-            var smallFixCalls = 0;
-            WorkerRunner smallFixRunner = (_, _) =>
+            var generalCalls = 0;
+            WorkerRunner generalRunner = (_, _) =>
             {
-                smallFixCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed it")),
-                    null,
-                    []));
-            };
-
-            var contractChangeCalls = 0;
-            WorkerRunner contractChangeRunner = (_, _) =>
-            {
-                contractChangeCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/toolkit.md"], "updated the contract")),
-                    null,
-                    []));
-            };
-
-            var structuralChangeCalls = 0;
-            WorkerRunner structuralChangeRunner = (_, _) =>
-            {
-                structuralChangeCalls++;
-                return Task.FromResult(new WorkerExecutionResult(
-                    OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(new ChangeSetSummary([".anneal/architecture/overview.md"], "updated the overview")),
-                    null,
-                    []));
-            };
-
-            var generalLargeCalls = 0;
-            WorkerRunner generalLargeRunner = (_, _) =>
-            {
-                generalLargeCalls++;
+                generalCalls++;
                 return Task.FromResult(new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
                     new WorkerRunResult.Completed(new ChangeSetSummary(["src/General.cs"], "ran the general worker")),
@@ -608,12 +529,7 @@ public class RouterTests
                 "research charter",
                 "decomposition charter",
                 "cumulative check charter",
-                [
-                    new WorkerCatalogEntry(new WorkerDescriptor("small-fix", "the cheap path"), smallFixRunner),
-                    new WorkerCatalogEntry(new WorkerDescriptor("contract-change", "contract clause changes"), contractChangeRunner),
-                    new WorkerCatalogEntry(new WorkerDescriptor("structural-change", "moves a system boundary"), structuralChangeRunner),
-                    new WorkerCatalogEntry(new WorkerDescriptor("general-large", "capability-complete large worker"), generalLargeRunner)
-                ],
+                [new WorkerCatalogEntry(new WorkerDescriptor("general", "capability-complete worker"), generalRunner)],
                 recordStore,
                 maxResearchIterations: 3,
                 maxWorkerReroutes: 2,
@@ -624,13 +540,11 @@ public class RouterTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.IsType<RouterOutcome.Completed>(result.Finding),
-                () => Assert.Equal(0, smallFixCalls),
-                () => Assert.Equal(0, contractChangeCalls),
-                () => Assert.Equal(0, structuralChangeCalls),
-                () => Assert.Equal(1, generalLargeCalls));
+                () => Assert.Equal(1, generalCalls),
+                () => Assert.Equal(Effort.Large, ((RouterOutcome.Completed)result.Finding!).Effort));
 
             var records = ReadRecords(root);
-            Assert.Contains(records, record => record.Step == "Worker:general-large");
+            Assert.Contains(records, record => record.Step == "Worker:general");
         }
         finally
         {
@@ -645,7 +559,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -684,7 +598,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -723,7 +637,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -759,7 +673,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 CannotDecomposeJson("still cannot split this honestly"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
@@ -804,7 +718,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 CannotDecomposeJson("still cannot split this honestly"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
@@ -851,7 +765,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 DecomposedJson([], [], []));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
@@ -885,10 +799,10 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 DecomposedJson(["do the one part"], ["a.cs"], ["Code"]),
                 ClearJson("no boundary crossed"),
-                SelectWorkerJson("small-fix", "this is the one phase"));
+                SelectWorkerJson("general", "this is the one phase"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -930,7 +844,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 DecomposedJson(["do part A", "do part B"], ["a.cs", "b.cs"], ["Code", "Code"]),
                 EscalateJson("the union quietly moves a system boundary", "a person should review this decomposition"));
             var researchEndpoint = new QueuedEndpoint();
@@ -966,7 +880,7 @@ public class RouterTests
         try
         {
             var oracleEndpoint = new QueuedEndpoint(
-                SelectWorkerJson("small-fix", "too large for one unit", effort: "Massive"),
+                SelectWorkerJson("general", "too large for one unit", effort: "Massive"),
                 DecomposedJson(
                     ["do part A", "update the constraints", "do part C"],
                     ["a.cs", ".anneal/work/constraints.md", "c.cs"],
@@ -1002,7 +916,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -1038,7 +952,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -1074,7 +988,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -1108,7 +1022,7 @@ public class RouterTests
         var root = CreateTemporaryDirectory();
         try
         {
-            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("general", "simple fix"));
             var researchEndpoint = new QueuedEndpoint();
             var recordStore = new RecordStore(root);
 
@@ -1152,7 +1066,7 @@ public class RouterTests
             var oracleEndpoint = new QueuedEndpoint(
                 NeedResearchJson("who owns this?", "need to understand ownership"),
                 ResearchFindingJson("who owns this?", "the toolkit", sufficientForNextDecision: true),
-                SelectWorkerJson("small-fix", "now I know"));
+                SelectWorkerJson("general", "now I know"));
 
             var researchEndpoint = new QueuedEndpoint("I looked around.");
 
@@ -1200,7 +1114,7 @@ public class RouterTests
             var oracleEndpoint = new QueuedEndpoint(
                 NeedResearchJson("scope?", "need scope clarity"),
                 ResearchFindingJson("scope?", "very broad", sufficientForNextDecision: true),
-                SelectWorkerJson("small-fix", "massive item", effort: "Massive"),
+                SelectWorkerJson("general", "massive item", effort: "Massive"),
                 CannotDecomposeJson("cannot split"));
 
             var researchEndpoint = new QueuedEndpoint("I looked around.");
@@ -1243,7 +1157,7 @@ public class RouterTests
         int maxWorkerReroutes = 2,
         RunGitCommand? runGit = null)
     {
-        WorkerCatalogEntry entry = new(new WorkerDescriptor("small-fix", "the cheap path"), runner);
+        WorkerCatalogEntry entry = new(new WorkerDescriptor("general", "the cheap path"), runner);
 
         return new Router(
             root,

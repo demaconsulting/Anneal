@@ -19,7 +19,7 @@ where `helper` will read them during boundary work. See the Intake admission tes
   context; a separate oracle re-deriving it would spend a model call to reproduce information already
   in hand, with the added risk of disagreeing with what the requester already stated. The correct
   pattern is the one `dispatch.agent.md` already used: the conversational agent picks the CLI verb
-  directly (`route`/`maintain`/`stage-contract`/the future `intake`), and that stays true once the
+  directly (`route`/`maintain`/`verify-change`/`intake`), and that stays true once the
   conversational agent itself compiles — its own model call, at the moment it decides to act, names
   the verb and arguments directly, rather than asking a second question of a second component.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and

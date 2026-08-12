@@ -97,12 +97,11 @@ from.
   call, no classification. Everything under `.anneal/governance/` (assumptions, vision, tenets) has no
   admit action; the agent proposes and escalates, and a human edits the file by hand. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
   operation built on Process rather than the Model Seam alone: it constructs a real Router over the
-  production worker catalog and runs whichever compiled worker the routing oracle selects.
-  [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, writes
-  to the repository, and runs a declared-bound Maintenance work item directly against `SmallFixWorker`,
-  with no routing oracle and no Router of its own. [StageContract](./toolkit/stage-contract.md) is model-backed and writes to the
-  repository, but runs `DocumentAuthor` alone — no `Developer`, no `Verifier`, and no Router — to stage
-  a contract clause ahead of implementation. [VerifyChange](./toolkit/verify-change.md) is model-backed
+  production worker catalog and always runs `GeneralWorker`, with the routing oracle classifying
+  Effort to choose that worker's depth. [Maintain](./toolkit/maintain.md) is also built on Process
+  rather than the Model Seam alone, writes to the repository, and runs a declared-bound Maintenance
+  work item directly against `GeneralWorker` at `Effort.Small`, with no routing oracle and no Router
+  of its own. [VerifyChange](./toolkit/verify-change.md) is model-backed
   and built on Process, but writes nothing: it runs `DiffCheck`, `DeterministicCheck`, and `Verifier`
   alone, judging a change already made rather than authoring one. [Skills](./toolkit/skills.md) is
   built: `file-skill` writes a repository-local skill file, `search-skills` runs lexical matching over
@@ -280,12 +279,9 @@ withdrawal breaks the build as a compile error rather than the bound silently ev
   the deterministic approved write for constraints (governance files have no admit action and are
   hand-edited by a human)
 - [Maintain](./toolkit/maintain.md) — how `maintain` runs a declared-bound Maintenance work item
-  directly against `SmallFixWorker`, and how the containment and protected-path checks escalate a run
-  whose actual changes exceeded the bound it declared
-- [StageContract](./toolkit/stage-contract.md) — how `stage-contract` runs `DocumentAuthor` alone to
-  stage a contract clause ahead of implementation, and how the architecture-tree check and the
-  well-formed-clause check escalate or fail a run that reached outside its bound or left the clause
-  malformed
+  directly against `GeneralWorker` at `Effort.Small`, and how the containment, protected-path, and
+  explicit architecture-agreement checks escalate a run whose actual changes exceeded the bound it
+  declared
 - [VerifyChange](./toolkit/verify-change.md) — how `verify-change` judges a completed change against its
   declared scope without authoring anything, and how it sets aside a pre-existing, unrelated
   `check-contracts` gap as advisory rather than blocking

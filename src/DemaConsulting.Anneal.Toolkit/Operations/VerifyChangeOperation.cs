@@ -13,15 +13,14 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 /// <remarks>
 ///     <c>.anneal/architecture/toolkit/verify-change.md</c> is the contract this implements. It gives
 ///     <c>scope-check.agent.md</c>'s standalone review job a compiled equivalent, composed from the same
-///     primitives <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" />
-///     already use for their own verification half — <see cref="DiffCheck" />, <see cref="DeterministicCheck" />,
+///     primitives <see cref="Process.Workers.GeneralWorker" /> now uses for its own verification half — <see cref="DiffCheck" />, <see cref="DeterministicCheck" />,
 ///     and <see cref="Verifier" /> — run here alone, for a change a worker did not itself just make, instead of
 ///     composed with <see cref="DocumentAuthor" /> and <see cref="Developer" />. <c>scope-check.agent.md</c>
 ///     itself retires once this action is live-validated.
 ///     <para>
 ///         <b>Why this needed one genuinely new primitive.</b> <see cref="Verifier" /> hard-fails on any failing
 ///         deterministic <see cref="CheckFinding" /> before a model is ever consulted — exactly right for
-///         <see cref="Process.Workers.ContractChangeWorker" /> and <see cref="Process.Workers.StructuralChangeWorker" />, which
+///         <see cref="Process.Workers.GeneralWorker" />, which
 ///         only ever run their strict contract check against a change they just authored themselves. A standalone
 ///         review is different: <c>scope-check.agent.md</c> treats an unfulfilled test obligation in a system the
 ///         change did not touch as a pre-existing, advisory issue rather than a failure of this change. Judging
@@ -160,7 +159,7 @@ public sealed partial class VerifyChangeOperation : IOperation
     /// <remarks>
     ///     <see cref="Verifier" /> runs at <see cref="ModelRole.Light" /> by default, and this operation
     ///     substitutes no other role, so <see cref="ModelRole.Light" /> is the most demanding role its one path
-    ///     can reach - the same reasoning <see cref="StageContractOperation" /> states for its own declaration.
+    ///     can reach.
     /// </remarks>
     public ModelRole? RequiredRole => ModelRole.Light;
 

@@ -620,6 +620,7 @@ public class GeneralWorkerContractTests
                 ---
                 covers:
                   - src/Widget.cs
+                  - .anneal/architecture/toolkit/widget.md
                 ---
                 # Widget
                 Refers to OldWidget in an introductory sentence.
@@ -647,8 +648,10 @@ public class GeneralWorkerContractTests
                 endpointFor: _ => endpoint,
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
                 runGit: SequencedGitStub(
-                    "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n",
-                    "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n",
+                    "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n" +
+                    "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n-Refers to OldWidget in an introductory sentence.\n+Refers to NewWidget in an introductory sentence.\n ## Contract\n ### Provides\n",
+                    "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n" +
+                    "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n-Refers to OldWidget in an introductory sentence.\n+Refers to NewWidget in an introductory sentence.\n ## Contract\n ### Provides\n",
                     "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n-Refers to OldWidget in an introductory sentence.\n+Refers to NewWidget in an introductory sentence.\n ## Contract\n ### Provides\n",
                     "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n-Refers to OldWidget in an introductory sentence.\n+Refers to NewWidget in an introductory sentence.\n ## Contract\n ### Provides\n",
                     "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n"));
@@ -657,96 +660,12 @@ public class GeneralWorkerContractTests
                 MakeBrief("Rename the widget type."),
                 TestContext.Current.CancellationToken);
 
+            var notes = string.Join("\n", result.Notes.Select(note => note.Text));
             var completed = Assert.IsType<WorkerRunResult.Completed>(result.Finding);
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Contains(".anneal/architecture/toolkit/widget.md", completed.Summary.FilesChanged),
-                () => Assert.Contains("corrected stale wording", string.Join("\n", result.Notes.Select(note => note.Text)), StringComparison.OrdinalIgnoreCase));
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-        }
-    }
-
-    [Fact]
-    public async Task GeneralWorkerAbsorbedArchGateRevertsCorrectionThatTouchesContract()
-    {
-        var root = CreateTemporaryDirectory("gw-revert");
-        try
-        {
-            CreateArchDoc(
-                root,
-                "toolkit/widget.md",
-                """
-                ---
-                covers:
-                  - src/Widget.cs
-                ---
-                # Widget
-                Refers to OldWidget in an introductory sentence.
-                ## Contract
-                ### Provides
-                - **WIDGET-1** — does something.
-                  *Verified by:* `SomeBoundaryTest`
-                """);
-
-            var endpoint = new QueuedEndpoint(
-                "I updated Widget.cs.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Widget.cs"],"summary":"renamed the widget"}""",
-                """{"verdict":"WordingOnly","reason":"'OldWidget' should now be 'NewWidget' in the introductory sentence","hasSufficientEvidence":true}""",
-                "I corrected the wording.",
-                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit/widget.md"],"summary":"corrected stale wording"}""",
-                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
-
-            var checkoutCalled = false;
-            var correctionDiffCalls = 0;
-            RunGitCommand runGit = (args, _) =>
-            {
-                var joined = string.Join(" ", args);
-                if (joined.Contains("checkout", StringComparison.Ordinal))
-                {
-                    checkoutCalled = true;
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-                }
-
-                if (!joined.Contains("diff", StringComparison.Ordinal))
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-
-                var diff = correctionDiffCalls++ switch
-                {
-                    0 => "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n",
-                    1 => "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n",
-                    2 => "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n-Refers to OldWidget in an introductory sentence.\n+Refers to NewWidget in an introductory sentence.\n ## Contract\n ### Provides\n",
-                    3 => "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n@@ -1,4 +1,4 @@\n # Widget\n ## Contract\n-- **WIDGET-1** — does something.\n+- **WIDGET-1** — does a new thing.\n",
-                    _ => "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget {}\n+class NewWidget {}\n"
-                };
-
-                return Task.FromResult(new ScriptRun(0, diff));
-            };
-
-            var worker = new GeneralWorker(
-                root,
-                Effort.Large,
-                "planner charter",
-                "document charter",
-                "developer charter",
-                "verifier charter",
-                endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
-                runGit: runGit);
-
-            var result = await worker.RunAsync(
-                MakeBrief("Rename the widget type."),
-                TestContext.Current.CancellationToken);
-
-            Assert.Multiple(
-                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.True(checkoutCalled),
-                () => Assert.Contains(
-                    "touched the ## Contract section and was reverted",
-                    string.Join("\n", result.Notes.Select(note => note.Text)),
-                    StringComparison.OrdinalIgnoreCase));
+                () => Assert.Contains("corrected stale wording", notes, StringComparison.OrdinalIgnoreCase));
         }
         finally
         {
@@ -758,7 +677,17 @@ public class GeneralWorkerContractTests
         string workItem,
         IReadOnlyList<string>? tenets = null,
         IReadOnlyList<string>? changedFileHints = null) =>
-        new("parent-1", workItem, "general-large", [], [], "the route selected the capability-complete large worker", [], tenets ?? [], changedFileHints ?? []);
+        new(
+            "parent-1",
+            workItem,
+            Effort.Large,
+            "general",
+            [],
+            [],
+            "the route selected the capability-complete general worker",
+            [],
+            tenets ?? [],
+            changedFileHints ?? []);
 
     private static string PassedVerifierJson() =>
         """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";

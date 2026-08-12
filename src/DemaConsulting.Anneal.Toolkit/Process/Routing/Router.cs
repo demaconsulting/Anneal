@@ -30,17 +30,25 @@ internal abstract record RouterOutcome
     ///     was decomposed. Never null; empty when this item was not decomposed.
     /// </param>
     /// <param name="SelectedWorkerKey">
-    ///     The catalog key of the worker that completed this item (e.g. <c>"small-fix"</c>), or null when the
+    ///     The catalog key of the worker that completed this item (e.g. <c>"general"</c>), or null when the
     ///     item was decomposed into phases and multiple workers may have been involved.
+    /// </param>
+    /// <param name="Notes">
+    ///     Supplemental notes a completing worker surfaced even on success — for example a neutral finding that was
+    ///     persisted during a postflight agreement check. Empty when the worker had nothing extra to report.
     /// </param>
     internal sealed record Completed(
         ChangeSetSummary Summary,
         Effort Effort,
         IReadOnlyList<PhaseOutcome>? PhaseOutcomes = null,
-        string? SelectedWorkerKey = null) : RouterOutcome
+        string? SelectedWorkerKey = null,
+        IReadOnlyList<ProcessNote>? Notes = null) : RouterOutcome
     {
         /// <summary>Each decomposed phase's own outcome. Never null; empty when this item was not decomposed.</summary>
         public IReadOnlyList<PhaseOutcome> PhaseOutcomes { get; init; } = PhaseOutcomes ?? [];
+
+        /// <summary>Supplemental successful-run notes. Never null; empty when there were none.</summary>
+        public IReadOnlyList<ProcessNote> Notes { get; init; } = Notes ?? [];
     }
 
     /// <summary>The run could not route or complete the work; see the failure report for why.</summary>
@@ -311,7 +319,7 @@ internal sealed class Router
                             ledger,
                             $"the route oracle selected worker '{selectWorker.WorkerKey}', which is not in this router's catalog");
 
-                    var brief = WorkerBrief.FromLedger(ledger, parentInvocationId, selectWorker.Why);
+                    var brief = WorkerBrief.FromLedger(ledger, parentInvocationId, selectWorker.Why, selectWorker.Effort);
                     var workerResult = await entry.Runner(brief, cancellationToken).ConfigureAwait(false);
 
                     RecordStep(
@@ -325,7 +333,8 @@ internal sealed class Router
                                 OperationOutcome.Succeeded,
                                 new RouterOutcome.Completed(
                                     completed.Summary, selectWorker.Effort,
-                                    SelectedWorkerKey: selectWorker.WorkerKey),
+                                    SelectedWorkerKey: selectWorker.WorkerKey,
+                                    Notes: workerResult.Notes),
                                 []);
 
                         case WorkerRunResult.Reroute reroute:

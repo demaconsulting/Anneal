@@ -127,7 +127,7 @@ the layout, then ask `@helper` to interview you and generate the architecture tr
 The payload installs one agent prompt and the standards it loads. `@helper` is
 the front door for anything you want done, including the boundary interview when system boundaries
 need establishing or re-cutting, or the classified compiled work (`intake`, `route`, `maintain`,
-`stage-contract`, `verify-change`, and peers) it invokes directly once Mode is known.
+`verify-change`, and peers) it invokes directly once Mode is known.
 [Process](.anneal/architecture/process.md) describes the full composition.
 
 ## Assumptions

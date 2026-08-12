@@ -119,10 +119,9 @@ Every other prose agent this repository ever hosted (`dispatch`, `apply`, `tier-
 `architecture-update`, `scope-check`, `lint-fix`, `template-sync`) is retired; each was removed from
 this diagram in turn as the compiled path replacing its job was proven, per the Decisions entries
 below. `helper` and `autonomous` are what remain: `helper` classifies a request's Mode itself and
-invokes the matching Toolkit operation (`intake`, `route`, `maintain`, `stage-contract`,
-`verify-change`, `lint-fix`, and peers) directly, or hands off to `autonomous` for unattended
-multi-item work, or — for boundary work — writes the tree itself rather than handing off to a second
-developer-facing entry point.
+invokes the matching Toolkit operation (`intake`, `route`, `maintain`, `verify-change`, `lint-fix`,
+and peers) directly, or hands off to `autonomous` for unattended multi-item work, or — for boundary
+work — writes the tree itself rather than handing off to a second developer-facing entry point.
 
 The seam that must not move is the one between `helper`'s conversation and the compiled work it
 triggers. Everything upstream of it talks to a person; everything downstream is classified, bounded,
@@ -148,11 +147,9 @@ That indirection is deliberate: requiring `helper`'s prompt to name them would h
 technology into the one prose agent that must stay technology-neutral, and would enlarge it against
 the budget PROCESS-06 defends.
 
-Within that compiled catalog, three workers still line up one-for-one with the Scope vocabulary
-`change-classification.md` defines — `SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker`
-— and an additive fourth, `GeneralWorker`'s Large tier, now exists beside them as a capability-complete
-path whose capability is not itself a Scope value. Scope still names the three established change
-classes; the fourth worker is a catalog entry, not a fourth Scope.
+Within that compiled catalog, production routing now exposes one worker entry only: `GeneralWorker`.
+Scope still classifies the kind of change being made, but it no longer chooses worker identity. The
+Router always selects `general`, and Effort chooses how deep that one worker should go.
 
 ## Decisions
 
@@ -178,14 +175,13 @@ equipped to do it consistently.
 budget PROCESS-06 protects depends on. [Prompt Authoring](./process/prompt-authoring.md) owns the
 mechanism and why bundling into `AGENTS.md` was rejected.
 
-**Bounded repairs, no planning phase** — the compiled authoring paths allow one documentation repair
-and one code repair per change, because a documentation finding has to be fixed before implementation
-can use it, but grinding a finding that will not clear means the change was misunderstood at the
-start. The rejected alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three
-retries, which multiplied every cost by up to four and made the process expensive rather than the
-design. What was refused was the multiplier — cost paid on every subsequent change — not
-orchestration itself; sequencing bounded work is what `route`, `maintain`, and `stage-contract`
-already do.
+**Bounded repairs, no planning phase** — the compiled authoring paths allow bounded documentation and
+code repair per change, because a documentation finding has to be fixed before implementation can use
+it, but grinding a finding that will not clear means the change was misunderstood at the start. The
+rejected alternative was a PLANNING → DEVELOPMENT → QUALITY state machine with three retries, which
+multiplied every cost by up to four and made the process expensive rather than the design. What was
+refused was the multiplier — cost paid on every subsequent change — not orchestration itself;
+sequencing bounded work is what `route` and `maintain` already do.
 
 **The classification vocabulary is contracted as two clauses, not one** — modes and scope are one idea
 to a reader and two different problems to a checker, and PROCESS-07 spent a release as an unfulfilled
@@ -212,35 +208,22 @@ in [overview.md](./overview.md) and is established by inspection. Mechanizing it
 text alone whether a mention of `.anneal/work/constraints.md` authorizes a write or merely points at it —
 a judgement the four files that legitimately name the register would defeat.
 
-**Scope values are bare names, not qualified ordinals** — S10 retired the numeric ordinal scale in
-favor of naming each value directly after the toolkit's own compiled worker
-(`SmallFixWorker`, `ContractChangeWorker`, `StructuralChangeWorker`), so the vocabulary humans read and
-the vocabulary the code already runs became the same words. The ordinal-plus-qualifier apparatus this
-entry used to describe existed only to keep a bare numeric scale readable and correctly ordered — a
-name alone carries no direction, and the priors a model brings about a bare `0`, `1`, `2` scale point
-the wrong way in this domain, where its lowest ordinal was the trivial class rather than the severe
-one incident and security usage would suggest. Once the scope vocabulary is itself a set of names with
-no numeral to misread, that scaffolding is redundant weight rather than a safeguard: **Scope may still
-be raised mid-flight, never silently lowered** — `change-classification.md` states the order the three
-names carry — but nothing about that ordering depends on a digit or a parenthetical qualifier being
-repeated at each decision site.
+**Scope stays descriptive; worker identity is gone** — Scope still names the kind of change
+(`Small Fix`, `Contract Change`, `Structural Change`) and may still be raised mid-flight rather than
+silently lowered, but S26 retracts the older "scope name equals worker name" framing. The routing
+catalog no longer mirrors those scope labels with separate worker identities.
 
-**The new capability-complete worker is additive to that Scope vocabulary, not a redefinition of it** —
-the Large `GeneralWorker` added in S24 exists to prove that capability and verification obligations do
-not have to be welded together: one worker may touch code, contracts, and architecture docs in one run
-while deterministic preflight and postflight selectors decide which heavier obligations actually fire.
-That does **not** retract the decision above for the three established Scope values, because those
-values still name the existing Small Fix / Contract Change / Structural Change lanes unchanged in this
-stage. What changed is only that the catalog now also contains one capability-superset entry whose
-selection is governed by Effort and obligation shape, not by becoming a fourth Scope word.
+**Capability is not statically gated by worker key** — S24 and S25 already proved that one
+capability-complete worker can touch code, contracts, and architecture docs in one run while
+deterministic preflight and postflight selectors decide which heavier obligations actually fire. S26
+finishes that collapse: `GeneralWorker` is not additive beside narrower production workers anymore; it
+is the production worker.
 
-**GeneralWorker's Effort now tunes one pipeline rather than gating it** — S25 removes the old
-Large-only capability gate and keeps one control-flow path for Small, Medium, and Large. The defaults
-vary only the repair budgets and initial producing-step tiers: Small uses documentation/code/tenet
-budgets `0/1/0`, Medium `1/1/0`, and Large `1/1/1` (with correspondingly more aggressive cheap-tier
-starting roles at the smaller efforts). The rejected alternative was separate Small/Medium
-implementations, which would have duplicated the deterministic diff-backed obligation selector already
-proving when the heavier checks are actually needed.
+**Effort tunes depth, not identity** — the live routing choice is now Effort. Small, Medium, and Large
+choose repair budgets, suggested producing roles, and whether planner-first work is enabled; they do
+not choose a different worker. The rejected alternative was keeping separate worker implementations for
+each capability slice, which would duplicate control flow the deterministic diff-backed obligation
+selector already proves when necessary.
 
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this
@@ -256,12 +239,12 @@ a compiled command" would document machinery this system does not decide, since 
 that boundary in [overview.md](./overview.md) and `toolkit/lint-fix.md`.
 
 **`dispatch.agent.md` was retired once `intake` compiled its last remaining job** — after `route`,
-`maintain`, `stage-contract`, `lint-fix`, and `verify-change` were already direct Toolkit paths, the
-only mechanical work still living in prose was Intake filing. `intake` compiles that admission test,
-so `helper` now owns Mode selection itself and invokes `intake`, `route`, `maintain`, or
-`stage-contract` directly. One behavior did not carry forward: `dispatch`'s hidden "recreate a
-missing register from template" fallback was dropped. A missing Intake register now escalates so
-layout repair stays explicit rather than being buried inside unrelated filing work.
+`maintain`, `lint-fix`, and `verify-change` were already direct Toolkit paths, the only mechanical work
+still living in prose was Intake filing. `intake` compiles that admission test, so `helper` now owns
+Mode selection itself and invokes `intake`, `route`, or `maintain` directly while keeping boundary work
+in the tree when no compiled action should own it. One behavior did not carry forward: `dispatch`'s
+hidden "recreate a missing register from template" fallback was dropped. A missing Intake register now
+escalates so layout repair stays explicit rather than being buried inside unrelated filing work.
 
 **`apply.agent.md` was retired** once its last two callers — `helper`'s "a
 specific fix already reported" row and the stale Migration-mode routing that predated direct Toolkit
@@ -274,39 +257,27 @@ target once a compiled equivalent for its remaining job existed (a design-only p
 `DocumentAuthor` alone, and a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
-**`architecture-update.agent.md` was retired** once `stage-contract` — the
-Toolkit's compiled design-only path, running `DocumentAuthor` alone to stage a contract clause ahead
-of implementation — was live-validated against a real model, the same bar `maintain` cleared before
-`apply.agent.md` retired. `helper` gained a **caller-declared** direct branch for it: Step 1 sends a
-request to `stage-contract` only when the user explicitly asked to stage a clause rather than build
-it now, never inferred from a request's size or difficulty, mirroring how Maintenance mode is
-caller-declared rather than classified. `architecture-update`'s edge to `Tree` is removed from the
-diagram above, following the
-`lint-fix`/`apply` precedent: the node is removed once nothing calls it. One thing did not carry
-forward — `architecture-update.agent.md`'s Step 5 produced an explicit `Prune Results` table naming
-every subsystem document examined and its verdict; `StageContractReport` carries only the files changed
-and a summary, since the mechanical checks this stage added verify scope and clause well-formation, not
-which documents `DocumentAuthor` considered pruning. `.anneal/architecture/toolkit/stage-contract.md`'s
-own charter still instructs pruning; only the itemized report of it did not survive.
+**Boundary design editing stayed in-tree once no compiled staging action remained** — earlier stages
+proved a compiled design-staging path could replace `architecture-update.agent.md`; S26 removes that
+specialized action because routed work now uses `GeneralWorker` directly and planned obligations remain a
+boundary-edit convention owned by `system-contracts.md`, not a separate CLI surface. `helper` therefore
+keeps caller-declared boundary work in the tree instead of dispatching it to another developer-facing
+entry point.
 
 `scope-check` is not exempt from the same fate — it is the one remaining named target once a compiled
 equivalent for its job exists (a standalone verify path built from `Verifier` and the existing
 `DeterministicCheck` pair), not a permanent carve-out from the destination this file states.
 
-**`scope-check.agent.md` was retired** once `verify-change` — the compiled
-standalone verify path built from `DiffCheck`, `DeterministicCheck`, and `Verifier`, the same
-primitives `ContractChangeWorker`/`StructuralChangeWorker` already compose for their own verification
-half — was live-validated against a real model, the same bar `stage-contract` cleared before
-`architecture-update.agent.md` retired. Unlike `stage-contract`, `helper` invokes it directly:
+**`scope-check.agent.md` was retired** once `verify-change` — the compiled standalone verify path built
+from `DiffCheck`, `DeterministicCheck`, and `Verifier`, the same primitives routed work already composes
+for its own verification half — was live-validated against a real model. `helper` invokes it directly:
 `verify-change` declares `OperationCategory.Advisory`, edits nothing, and produces no change for a
 separate routing agent to classify or register, so there is nothing here for a prose middle layer to
-do — the same "developer runs a compiled command" relationship `lint-fix` already has to this
-diagram, not the `stage-contract` precedent's sub-agent call. `helper`'s Step 3 table gained
-one row for it; `AGENTS.md` and its pristine template counterpart gained the matching bullet.
-`scope-check`'s own edge from `Helper` is removed from the diagram above, following the
-`lint-fix`/`apply`/`architecture-update` precedent: the node is removed once nothing calls it. This was
-the last named retirement target this file tracked; no further prose agent is queued behind it as of
-this stage.
+do — the same "developer runs a compiled command" relationship `lint-fix` already has to this diagram.
+`helper`'s Step 3 table gained one row for it, and `scope-check`'s own edge from `Helper` is removed
+from the diagram above, following the `lint-fix`/`apply`/boundary-retirement precedent: the node is
+removed once nothing calls it. This was the last named retirement target this file tracked; no further
+prose agent is queued behind it as of this stage.
 
 **Tenet enforcement is repository-agnostic and spans two pipeline stages, not one** —
 `.anneal/governance/tenets.md` bullets are gathered by `RepositoryFacts` into `TenetFacts` at the same
@@ -322,28 +293,26 @@ are extracted one tenet per bullet. When `.anneal/governance/tenets.md` is absen
 is empty and both pipeline checks below are skipped entirely — no behavioral change in a repository
 that has not populated the file.
 
-`StructuralChangeWorker` adds a planning-time tenet check immediately after `Planner` succeeds and
-before `DocumentAuthor` or `Developer` run. The oracle question asks whether the *plan's own text*
-contains positive evidence of a tenet contradiction — a named plan step visibly in conflict with a
-named tenet. Speculation about what implementation *might* do is not a hit. On a hit the worker
-returns `OperationOutcome.Escalated` immediately: no repair attempt, no reroute. A tenet violation
-caught before any file is touched is exactly the kind of decision only a person can make, matching the
-same reasoning the protected-path and scope-drift escalations already apply. `ContractChangeWorker`
-omits this check because it plans nothing — it runs `DocumentAuthor` and `Developer` directly without
-a `Planner` stage.
+Whenever `GeneralWorker` enables planner-first work, it adds a planning-time tenet check immediately
+after `Planner` succeeds and before `DocumentAuthor` or `Developer` run. The oracle question asks
+whether the *plan's own text* contains positive evidence of a tenet contradiction — a named plan step
+visibly in conflict with a named tenet. Speculation about what implementation *might* do is not a hit.
+On a hit the worker returns `OperationOutcome.Escalated` immediately: no repair attempt, no reroute. A
+tenet violation caught before any file is touched is exactly the kind of decision only a person can
+make, matching the same reasoning the protected-path and scope-drift escalations already apply.
 
-Both `StructuralChangeWorker` and `ContractChangeWorker` extend their existing `Verifier` question —
-the single question already asked after `build.ps1` and the contract check pass — to also judge the
-actual diff against `TenetFacts`. The appended section requires positive evidence visible in the diff
-(a new statement, a removed declaration, a new dependency, new logging of a named sensitive field, and
-so on) before reporting a tenet violation, and requires the model to name the nearest candidate it
-considered even when concluding no violation exists, making "I found nothing" a grounded conclusion
-rather than a bare assertion. No second `Verifier` call is added. A violation found here is owned by
-`VerificationOwner.Tenet` and repaired through the same `Developer`-based repair budget both workers
-already use for `constraints.md` violations — the existing mechanism extended, not duplicated.
+`GeneralWorker` also extends its existing `Verifier` question — the single question already asked after
+`build.ps1` and any triggered contract check pass — to judge the actual diff against `TenetFacts`. The
+appended section requires positive evidence visible in the diff (a new statement, a removed
+declaration, a new dependency, new logging of a named sensitive field, and so on) before reporting a
+tenet violation, and requires the model to name the nearest candidate it considered even when
+concluding no violation exists, making "I found nothing" a grounded conclusion rather than a bare
+assertion. No second `Verifier` call is added. A violation found here is owned by
+`VerificationOwner.Tenet` and repaired through the same `Developer`-based repair budget the worker
+already uses for other repairable findings — the existing mechanism extended, not duplicated.
 
-**The compiled catalog is a Router choosing a bounded worker, not a generic plan-build-review loop**
-— the router asks one narrow typed question per pass (select a worker, ask for bounded research, or
+**The compiled catalog is a Router choosing bounded depth, not a generic plan-build-review loop** —
+the router asks one narrow typed question per pass (select `general`, ask for bounded research, or
 report no route) against two independent counters, a research budget and a worker-reroute budget,
 because the two are different failures: research means the router lacked facts, reroute means the
 selected worker learned mid-execution that the classification was wrong, and sharing one counter
@@ -353,17 +322,12 @@ a person can take. The rejected alternative, considered directly against a compa
 planner-developer-quality implementation agent elsewhere, was a universal three-phase loop with fixed
 retries on every change — rejected for the same reason **Bounded repairs, no planning phase** above
 already rejected it once: the multiplier is paid on every subsequent change regardless of whether the
-change needed it. Planner and Verifier are **route-selected per worker**, not universal — a Small Fix
-worker (`Developer` → `DeterministicCheck`, one local repair pass) pays for neither, while a Structural
-Change worker spends at most two `Planner` calls: an initial plan, and — only against a
+change needed it. Planner and Verifier are **route-selected obligations**, not universal phases: the
+Small/Medium direct path pays for neither unless the request or diff proves it needs them, while the
+Large structural path spends at most two `Planner` calls: an initial plan, and — only against a
 `VerificationVerdict.StrategyRevisionRequired` finding, never a documentation or code repair finding —
 one re-plan from its own independent, non-resetting budget, counted and exhausted separately from the
-documentation and code repair budgets. Only Template Sync now remains deferred; Small Fix, Contract
-Change, and Structural Change all ship. (An earlier draft of this entry claimed no prose agent could
-retire until Template Sync existed too, citing the one-way invariant as authority — the invariant says
-nothing about sequencing unrelated work, and later migration stages retired individual prose agents
-as their own proven conditions were met. Corrected here rather than left standing as an unchecked
-decree.)
+documentation and code repair budgets.
 
 **`AGENTS.md`, `.github/template/AGENTS.pristine.md`, and `template-sync.agent.md` were retired
 together, without a compiled replacement.** Anneal moved from a multi-prompt bootstrap — a shared
@@ -381,8 +345,8 @@ following the same "removed once nothing calls it" precedent as every prose-agen
 rather than being kept as unused fallback machinery. One real, unrelated defect surfaced while
 untangling this: `technical-documentation.md` had been reachable only through `AGENTS.md`'s Standards
 Application matrix and was an orphaned standard the moment that matrix went away — it is now listed
-directly in `DocumentAuthorStandards` for both `ContractChangeWorker` and `StructuralChangeWorker`,
-closing the gap `NoOrphanedStandards` exists to catch.
+directly in the compiled worker standards arrays, closing the gap `NoOrphanedStandards` exists to
+catch.
 
 **Effort joins Scope as a second classification axis, and Migration is preserved rather than
 dissolved into it** — `change-classification.md` now classifies Change-mode work along Scope

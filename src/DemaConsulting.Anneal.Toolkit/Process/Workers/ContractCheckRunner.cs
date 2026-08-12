@@ -4,8 +4,9 @@ using DemaConsulting.Anneal.Toolkit.Operations;
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
-///     The default way <see cref="ContractChangeWorker" /> and <see cref="StructuralChangeWorker" /> run their
-///     non-strict contract-check step when a caller supplies no <see cref="RunRepositoryScript" /> override.
+///     The default way callers such as <see cref="GeneralWorker" /> and <see cref="Operations.VerifyChangeOperation" />
+///     run the repository's contract-check step when a caller supplies no <see cref="RunRepositoryScript" />
+///     override.
 /// </summary>
 /// <remarks>
 ///     Calls <see cref="CheckContractsOperation" /> in process rather than shelling out to a repository script,
@@ -34,11 +35,11 @@ internal static class ContractCheckRunner
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
     /// <param name="strict">
     ///     Whether to run the repository's configured arguments as-is, or with any <c>-Strict</c> entry filtered
-    ///     out first. Pass <see langword="false" /> — as <see cref="ContractChangeWorker" /> and
-    ///     <see cref="StructuralChangeWorker" /> do by default — so that pre-existing staged TODO obligations
-    ///     unrelated to the current change are warnings rather than errors, while real test failures still fail
-    ///     the check. Pass <see langword="true" /> only from a context that has verified all staged obligations
-    ///     are fulfilled, such as <see cref="Operations.StageContractOperation" />'s own post-stage check.
+    ///     out first. Pass <see langword="false" /> — as <see cref="GeneralWorker" /> does by default during an
+    ///     authoring run — so that pre-existing staged TODO obligations unrelated to the current change are
+    ///     warnings rather than errors, while real test failures still fail the check. Pass
+    ///     <see langword="true" /> from a context that is judging a completed change, such as
+    ///     <see cref="Operations.VerifyChangeOperation" />.
     /// </param>
     /// <returns>
     ///     A <see cref="ScriptRun" /> whose exit code is zero when the check succeeded and non-zero otherwise,

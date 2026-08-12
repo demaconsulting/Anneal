@@ -59,6 +59,8 @@ internal sealed class GeneralWorker
     private readonly int _documentAuthorTargetFileCountBudget;
     private readonly int _maxPlanSteps;
     private readonly RecordStore? _recordStore;
+    private readonly GeneralWorkerPreflightBehavior _preflightBehavior;
+    private readonly bool _runArchDocAgreementGate;
 
     public GeneralWorker(
         string repositoryRoot,
@@ -72,6 +74,8 @@ internal sealed class GeneralWorker
         int? maxTenetRepairAttempts = null,
         int documentAuthorTargetFileCountBudget = 8,
         int maxPlanSteps = 12,
+        GeneralWorkerPreflightBehavior preflightBehavior = GeneralWorkerPreflightBehavior.Automatic,
+        bool runArchDocAgreementGate = true,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildRunScript = null,
         RunRepositoryScript? contractCheckRunScript = null,
@@ -113,6 +117,8 @@ internal sealed class GeneralWorker
         _documentAuthorTargetFileCountBudget = documentAuthorTargetFileCountBudget;
         _maxPlanSteps = maxPlanSteps;
         _recordStore = recordStore;
+        _preflightBehavior = preflightBehavior;
+        _runArchDocAgreementGate = runArchDocAgreementGate;
         _buildScript = ScriptConfiguration.Load(_repositoryRoot).Build;
     }
 
@@ -188,13 +194,14 @@ internal sealed class GeneralWorker
             var diffResult = await _diffCheck.RunAsync(null, cancellationToken).ConfigureAwait(false);
             RecordStep(parentInvocationId, "DiffCheck", diffResult.Outcome);
 
-            if (diffResult.Outcome != OperationOutcome.Succeeded || diffResult.Finding is not { Available: true } diff)
+            if (diffResult.Outcome != OperationOutcome.Succeeded || diffResult.Finding is not { Available: true } observedDiff)
                 return new WorkerExecutionResult(
                     OperationOutcome.Escalated,
                     null,
                     ComposeInterrupted(documentation, code),
                     [new ProcessNote("the postflight diff could not be read, so required obligations could not be classified honestly")]);
 
+            var diff = DiffCheck.ExcludingAnnealBookkeeping(observedDiff);
             var assessment = AssessPostflight(diff);
             if (assessment.HasAmbiguousDiffSurface)
                 return new WorkerExecutionResult(
@@ -215,7 +222,7 @@ internal sealed class GeneralWorker
 
             List<ProcessNote> gateNotes = [];
             IReadOnlyList<string> gateCorrectedFiles = [];
-            if (assessment.RunArchDocAgreement)
+            if (_runArchDocAgreementGate && assessment.RunArchDocAgreement)
             {
                 var output = new StringWriter();
                 var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
@@ -236,7 +243,7 @@ internal sealed class GeneralWorker
                             ComposeInterrupted(documentation, code),
                             [.. gateNotes, new ProcessNote("the diff after the architecture-agreement obligation could not be read honestly")]);
 
-                    diff = refreshed;
+                    diff = DiffCheck.ExcludingAnnealBookkeeping(refreshed);
                 }
             }
 
@@ -566,10 +573,11 @@ internal sealed class GeneralWorker
             role: role,
             targetFileCountBudget: _documentAuthorTargetFileCountBudget,
             scopeDriftCheckInterval: 1,
-            endpointFor: _endpointFor);
+            endpointFor: _endpointFor,
+            runGit: _runGit);
 
     private Developer CreateDeveloper(ModelRole role) =>
-        new(_repositoryRoot, _developerCharter, role: role, endpointFor: _endpointFor);
+        new(_repositoryRoot, _developerCharter, role: role, endpointFor: _endpointFor, runGit: _runGit);
 
     private string ComposePlanningQuestion(WorkerBrief brief, PreflightObligationDecision preflight) =>
         $"""
@@ -682,6 +690,14 @@ internal sealed class GeneralWorker
 
     private PreflightObligationDecision SelectPreflightObligations(WorkerBrief brief)
     {
+        if (_preflightBehavior == GeneralWorkerPreflightBehavior.CodeOnly)
+            return new PreflightObligationDecision(
+                NeedsDocumentationFirst: false,
+                NeedsPlan: false,
+                Reason: "the caller fixed this run to code-only authoring before GeneralWorker started",
+                StepName: "CodeOnly",
+                SuggestedRoles: _effortProfile.SuggestedRoles);
+
         var subject = string.Join("\n", new[] { brief.OriginalWorkItem }.Concat(brief.ChangedFileHints)).ToLowerInvariant();
         var suggestedRoles = _effortProfile.SuggestedRoles;
 
@@ -756,17 +772,13 @@ internal sealed class GeneralWorker
         var touchesContractSection = architectureChanges.Any(path =>
             ArchitectureCoverage.PatchTouchesContractSection(substantiveDiff.Patch, path));
 
-        var matchedArchitectureDocs = ArchDocAgreementGate.FindMatchedDocuments(
-            _repositoryRoot,
-            Path.Combine(_repositoryRoot, ".anneal", "architecture"),
-            substantiveChangedFiles);
-
         var docsOnlySurface = substantiveChangedFiles.Count > 0 &&
                               substantiveChangedFiles.All(IsDocumentationPath);
+        var touchesNonDocumentationSurface = substantiveChangedFiles.Any(path => !IsDocumentationPath(path));
 
         return new PostflightAssessment(
             RunContractCheck: touchesContractSection,
-            RunArchDocAgreement: architectureChanges.Count > 0 || matchedArchitectureDocs.Count > 0,
+            RunArchDocAgreement: architectureChanges.Count > 0 || touchesNonDocumentationSurface,
             RunTenetCheck: TouchesPublicSignature(substantiveDiff.Patch),
             HasAmbiguousDiffSurface: diff.Patch.Length > 0 && diff.ChangedFiles.Count == 0,
             SkipVerifier: docsOnlySurface && !touchesContractSection);
@@ -948,4 +960,10 @@ internal sealed class GeneralWorker
         int CodeRepairBudget,
         int TenetRepairBudget,
         ProducedStepRoles SuggestedRoles);
+}
+
+internal enum GeneralWorkerPreflightBehavior
+{
+    Automatic,
+    CodeOnly
 }

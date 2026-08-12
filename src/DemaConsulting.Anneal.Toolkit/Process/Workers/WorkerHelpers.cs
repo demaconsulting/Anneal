@@ -4,9 +4,9 @@ using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
-///     Pure static helpers shared between <see cref="ContractChangeWorker" /> and
-///     <see cref="StructuralChangeWorker" />. Extracted rather than duplicated because both workers
-///     share the same contract-check evidence label, the same fixed standard sets, and the same
+///     Pure static helpers shared by the compiled workers. Extracted rather than duplicated because
+///     <see cref="GeneralWorker" /> and the retired earlier workers all share the same contract-check evidence
+///     label, the same fixed standard sets, and the same
 ///     output-merging and reroute-reason logic — a single place to read and change is worth more
 ///     than two copies that must stay in sync by hand.
 /// </summary>

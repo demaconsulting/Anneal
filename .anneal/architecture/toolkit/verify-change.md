@@ -11,17 +11,17 @@ covers:
 
 `verify-change` is the compiled equivalent of `scope-check.agent.md`'s standalone review job — the
 prose predecessor this operation replaced and whose retirement it made possible — for judging a change
-already made against its declared scope, without authoring anything. `route`'s Contract Change and
-Structural Change paths always run their strict contract check against a change they just made
-themselves, so a failing check is unconditionally a defect of that run. A standalone review is
+already made against its declared scope, without authoring anything. Routed work already runs its strict
+contract check against the change it just made itself through `GeneralWorker`, so a failing check is
+unconditionally a defect of that run. A standalone review is
 different — it may be asked to judge a change against a repository that already carries pre-existing,
 unrelated gaps elsewhere, and `scope-check.agent.md` deliberately treated one specific gap kind as
 advisory rather than blocking: an unfulfilled `-Strict` test obligation in a system the change did not
 touch. `verify-change` is that narrower judgement, compiled.
 
 No new worker type is introduced, and no `Router` is constructed. `DiffCheck`, `DeterministicCheck`, and
-`Verifier` are the same primitives `ContractChangeWorker` and `StructuralChangeWorker` already use for
-their own verification half, run here alone against a change a worker did not itself just make. `DiffCheck`
+`Verifier` are the same primitives `GeneralWorker` already uses for its own verification half, run here
+alone against a change a worker did not itself just make. `DiffCheck`
 is the one genuinely new primitive this operation needed: every existing "changed file" signal in this
 Toolkit (`DevelopmentEnvelope.FilesChanged`, `RepositoryFacts.ChangedFileHints`) is a caller- or
 model-supplied hint, never one read from the repository, and judging which system a change touched needs
@@ -60,16 +60,15 @@ ground truth, not a hint.
 - **[Runtime](./runtime.md)** — the category, outcome and finding machinery every operation is built
   from.
 - **[Model Seam](./model-seam.md)** — every model call `Verifier`'s own judgement pass makes.
-- **[Process](../process.md)** — `ContractCheckRunner`, reused unchanged from the machinery `route`'s
-  workers already built.
+- **[Process](../process.md)** — `ContractCheckRunner`, reused unchanged from the machinery routed work
+  already uses.
 
 ## Decisions
 
 **No new worker type, and no routing-oracle pass** — `DiffCheck`, `DeterministicCheck`, and `Verifier`
-are already proven inside `ContractChangeWorker`/`StructuralChangeWorker`; a standalone review is a
-narrower use of the same primitives, not a second `route`. `verify-change` composes them directly, the
-same "one oracle pass, not two" reasoning `maintain.md` and `stage-contract.md` already apply to their
-own fronts.
+are already proven inside `GeneralWorker`; a standalone review is a narrower use of the same primitives,
+not a second `route`. `verify-change` composes them directly, the same "one oracle pass, not two"
+reasoning `maintain.md` already applies to its own front.
 
 **The advisory exception is resolved before any `CheckFinding` is constructed, not taught to `Verifier`**
 — `Verifier` hard-fails on any failing deterministic finding before a model is ever consulted, which is
@@ -79,9 +78,9 @@ it would have to reason about and never use. Judging "did this diff touch that s
 deterministic, mechanical fact, so `verify-change` resolves it itself, constructing a single `CheckFinding`
 already classified as passed or failed by the time `Verifier` ever sees it.
 
-**`diffEvidence` is shared `Verifier` plumbing, not something `verify-change` introduced** — all three
-callers (`ContractChangeWorker`, `StructuralChangeWorker`, and `VerifyChangeOperation`) pass a
-`DiffFinding` as the `diffEvidence` parameter to `Verifier.VerifyAsync`, so the model always sees the
+**`diffEvidence` is shared `Verifier` plumbing, not something `verify-change` introduced** — both routed
+work and `VerifyChangeOperation` pass a `DiffFinding` as the `diffEvidence` parameter to
+`Verifier.VerifyAsync`, so the model always sees the
 actual patch text alongside the changed-file list rather than a caller-supplied hint. `verify-change`'s
 own distinguishing need is narrower: it is the only caller that reads the diff against a non-`HEAD` base
 reference, because it judges a change a worker did not itself just make and the caller must be able to

@@ -5,7 +5,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     the two deterministic checks and the verifier's judgement run against it.
 /// </summary>
 /// <remarks>
-///     A new record rather than reusing <see cref="MaintainReport" /> or <see cref="StageContractReport" />: this
+///     A new record rather than reusing <see cref="MaintainReport" /> or <see cref="RouteReport" />: this
 ///     operation constructs no <c>Process.Router</c>, <c>Primitives.DocumentAuthor</c>, or
 ///     <c>Primitives.Developer</c> — it edits nothing — so the fields either existing report carries for authored
 ///     changes would sit permanently empty here. It is additive alongside both, not a fourth incompatible outcome

@@ -1,5 +1,6 @@
 using DemaConsulting.Anneal.Toolkit;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
@@ -33,13 +34,13 @@ public class InterruptedRouteContractTests
         var root = CreateTemporaryDirectory();
         try
         {
-            // Arrange: oracle selects small-fix; developer writes a file (Completed state); build check fails
-            // on both the initial attempt and the one local repair SmallFixWorker's default budget allows, so
-            // RepairLoop's own budget-exhaustion path returns Failed with the last Completed state, which
-            // SmallFixWorker turns into Interrupted. Each Developer authoring turn consumes two replies (a
+            // Arrange: oracle selects general; developer writes a file (Completed state); build check fails
+            // on both the initial attempt and the one local repair GeneralWorker's default Small-effort budget
+            // allows, so the worker returns Failed with the last Completed state as Interrupted. Each Developer
+            // authoring turn consumes two replies (a
             // free-text turn, then the forced structured decision), so two full rounds need four replies.
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -48,10 +49,8 @@ public class InterruptedRouteContractTests
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                // Build fails on both attempts SmallFixWorker's default one-repair budget allows: RepairLoop
-                // exhausts that budget and returns Failed with the last DevelopmentResult.Completed state,
-                // which SmallFixWorker turns into Interrupted.
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")),
+                runGit: CodeOnlyDiff("src/Written.cs"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -82,16 +81,18 @@ public class InterruptedRouteContractTests
         var successRoot = CreateTemporaryDirectory();
         try
         {
-            // Arrange: oracle selects small-fix; developer completes; build passes — normal success path.
+            // Arrange: oracle selects general; developer completes; build passes — normal success path.
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"simple fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"simple fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I made the change.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""");
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
+                PassedVerifierJson());
 
             var operation = new RouteOperation(
                 successRoot,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/Foo.cs"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -140,7 +141,7 @@ public class InterruptedRouteContractTests
             File.WriteAllText(changedFile, "// changed before stopping\n");
 
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -149,7 +150,8 @@ public class InterruptedRouteContractTests
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")),
+                runGit: CodeOnlyDiff("src/Written.cs"));
 
             var output = new StringWriter();
 
@@ -194,16 +196,18 @@ public class InterruptedRouteContractTests
         var root = CreateTemporaryDirectory();
         try
         {
-            // Arrange: oracle selects small-fix; developer completes; build passes — normal success path.
+            // Arrange: oracle selects general; developer completes; build passes — normal success path.
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"simple fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"simple fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I made the change.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""");
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
+                PassedVerifierJson());
 
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/Foo.cs"));
 
             var output = new StringWriter();
 
@@ -246,7 +250,7 @@ public class InterruptedRouteContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -255,7 +259,8 @@ public class InterruptedRouteContractTests
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")),
+                runGit: CodeOnlyDiff("src/Written.cs"));
 
             var output = new StringWriter();
 
@@ -308,7 +313,7 @@ public class InterruptedRouteContractTests
             File.WriteAllText(changedFile, "// changed before stopping\n");
 
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -317,7 +322,8 @@ public class InterruptedRouteContractTests
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")),
+                runGit: CodeOnlyDiff("src/Written.cs"));
 
             var output = new StringWriter();
 
@@ -349,6 +355,18 @@ public class InterruptedRouteContractTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    private static string PassedVerifierJson() =>
+        """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";
+
+    private static RunGitCommand CodeOnlyDiff(params string[] files) =>
+        (_, _) => Task.FromResult(new ScriptRun(0, BuildDiff(files)));
+
+    private static string BuildDiff(IReadOnlyList<string> files) =>
+        string.Join(
+            "\n",
+            files.Select(file =>
+                $"diff --git a/{file} b/{file}\n--- a/{file}\n+++ b/{file}\n@@ -1 +1 @@\n-old\n+new"));
 
     private static string CreateTemporaryDirectory()
     {

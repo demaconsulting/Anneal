@@ -211,14 +211,16 @@ public class SkillsContractTests
             """);
 
         var endpoint = new QueuedEndpoint(
-            """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+            """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
             "I made the change.",
-            """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""");
+            """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
+            """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
         var operation = new RouteOperation(
             repository.Root,
             endpointFor: _ => endpoint,
-            buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+            buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+            runGit: (_, _) => Task.FromResult(new ScriptRun(0, "diff --git a/src/Foo.cs b/src/Foo.cs\n--- a/src/Foo.cs\n+++ b/src/Foo.cs\n@@ -1 +1 @@\n-old\n+new")));
 
         // Act: route a generic work item whose only file-scope clue is the changed-file hint.
         var exitCode = await AnnealTool.RunAsync(

@@ -56,7 +56,7 @@ public partial class ToolkitContractTests
                 new[]
                 {
                    "admit-constraint", "check-contracts", "file-skill", "intake", "lint-fix",
-                   "maintain", "probe-rule-owner", "route", "search-skills", "stage-contract", "stats",
+                   "maintain", "probe-rule-owner", "route", "search-skills", "stats",
                    "verify-change", "verify-evidence"
                 },
                 AnnealTool.DefaultOperations.Select(operation => operation.Name).OrderBy(name => name).ToArray()),

@@ -3,19 +3,19 @@ using System.Text.Json.Serialization;
 using DemaConsulting.Anneal.Toolkit.Architecture;
 using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Primitives;
+using DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Finish-time gate that checks whether any architecture document covering the changed files still agrees
-///     with the new code after a <c>SmallFixWorker</c> run.
+///     Architecture-document agreement check that can run either as <see cref="GeneralWorker" />'s absorbed
+///     postflight obligation or as Maintain's explicit finish-time gate.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Contract Change and Structural Change already carry a <see cref="DocumentAuthor" /> plus a
-///         <see cref="Verifier" /> question. Small Fix has no equivalent — it can complete while a covered
-///         architecture document silently disagrees with the newly written code. This gate closes that gap for
-///         both <c>route</c>'s small-fix path (<c>TOOLKIT-56</c>) and <c>maintain</c> (<c>TOOLKIT-57</c>).
+///         <see cref="GeneralWorker" /> uses this machinery as its own absorbed architecture-agreement
+///         obligation, and <c>maintain</c> reuses it as an explicit finish-time gate after its Small-effort
+///         GeneralWorker run. The same classify/correct/revert behavior applies in both shapes.
 ///     </para>
 ///     <para>
 ///         The gate is deliberately separate from the worker that authored the fix: "judging and doing have
@@ -39,7 +39,7 @@ internal sealed class ArchDocAgreementGate
     /// <summary>The system message the per-document agreement oracle carries.</summary>
     private const string AgreementOracleCharter =
         """
-        You are checking whether one architecture document still agrees with the code after a Small Fix change.
+        You are checking whether one architecture document still agrees with the code after a completed change.
         You are given the document's full text, the diff of the change, and the list of source files this
         document covers that the diff touched.
 
@@ -506,7 +506,7 @@ internal sealed record ArchDocAgreementOutcome(
 
 /// <summary>
 ///     A neutral disagreement finding persisted under <c>.anneal/logs/findings/</c> when an architecture document
-///     and the code after a Small Fix no longer agree at the contract-substance level, or when the gate cannot
+///     and the code after a completed change no longer agree at the contract-substance level, or when the gate cannot
 ///     classify the mismatch confidently.
 /// </summary>
 /// <param name="DocumentPath">The repository-relative path of the architecture document. Never null.</param>

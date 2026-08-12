@@ -5,7 +5,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     bullet text involved, and — on escalation — which extra fact stopped it from being appended directly.
 /// </summary>
 /// <remarks>
-///     A dedicated record rather than reusing <see cref="FileSkillReport" /> or <see cref="StageContractReport" />:
+///     A dedicated record rather than reusing <see cref="FileSkillReport" /> or <see cref="MaintainReport" />:
 ///     <c>intake</c> either appends one bullet to a register file or escalates a proposed constraint without
 ///     writing it, neither of which matches another action's output shape. The action still reports through the
 ///     shared <see cref="OperationOutcome" /> vocabulary; this record only carries the structured facts beside it.

@@ -1,4 +1,5 @@
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
@@ -6,34 +7,32 @@ namespace DemaConsulting.Anneal.Toolkit.Tests.Operations;
 
 /// <summary>
 ///     Interior tests for <see cref="RouteOperation" />: mapping a real <c>Process.Router</c> run, over the
-///     production three-worker catalog, back onto <see cref="OperationResult" />.
+///     production single-worker catalog, back onto <see cref="OperationResult" />.
 /// </summary>
 /// <remarks>
 ///     Every model call this operation's whole run makes — the route oracle, any research pass, and every
 ///     primitive the selected worker composes — is driven through one shared <see cref="QueuedEndpoint" />, the
-///     same pattern <c>ContractChangeWorkerTests</c> and <c>StructuralChangeWorkerTests</c> already use for their
-///     own single-endpoint fixtures: role is ignored and replies are consumed strictly in call order, so the
 ///     queue's own order is the whole of the test's arrangement.
 /// </remarks>
 public class RouteOperationTests
 {
     [Fact]
-    public async Task ExecuteAsync_RoutesToSmallFixAndCompletes_ReportsSucceededWithFilesChanged()
+    public async Task ExecuteAsync_RoutesToGeneralSmallAndCompletes_ReportsSucceededWithFilesChanged()
     {
         var root = CreateTemporaryDirectory();
         try
         {
             var endpoint = new QueuedEndpoint(
-                // Route oracle: a single schema-last probe, no free-form pass.
-                SelectWorkerJson("small-fix", "this is a small, interior fix", effort: "Small"),
-                // Developer: free-form pass, then the schema.
+                SelectWorkerJson("general", "this is a small, interior fix", effort: "Small"),
                 "I made the change.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""");
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: CodeOnlyDiff("src/Foo.cs"));
 
             var output = new StringWriter();
             var result = await operation.ExecuteAsync(
@@ -53,13 +52,13 @@ public class RouteOperationTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_RoutesToContractChangeAndCompletes_ReportsSucceededWithBothFiles()
+    public async Task ExecuteAsync_RoutesToGeneralMediumAndCompletes_ReportsSucceededWithBothFiles()
     {
         var root = CreateTemporaryDirectory();
         try
         {
             var endpoint = new QueuedEndpoint(
-                SelectWorkerJson("contract-change", "this adds a contract clause"),
+                SelectWorkerJson("general", "this adds a contract clause", effort: "Medium"),
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
@@ -70,7 +69,10 @@ public class RouteOperationTests
                 root,
                 endpointFor: _ => endpoint,
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
-                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: ProgressiveDiff(
+                    [".anneal/architecture/toolkit.md"],
+                    [".anneal/architecture/toolkit.md", "src/Foo.cs"]));
 
             var output = new StringWriter();
             var result = await operation.ExecuteAsync(
@@ -79,7 +81,8 @@ public class RouteOperationTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(
-                    [".anneal/architecture/toolkit.md", "src/Foo.cs"], result.FindingAs<RouteReport>()!.FilesChanged));
+                    [".anneal/architecture/toolkit.md", "src/Foo.cs"], result.FindingAs<RouteReport>()!.FilesChanged),
+                () => Assert.Equal("Medium", result.FindingAs<RouteReport>()!.Effort));
         }
         finally
         {
@@ -88,13 +91,13 @@ public class RouteOperationTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_RoutesToStructuralChangeAndCompletes_ReportsSucceededWithAllFiles()
+    public async Task ExecuteAsync_RoutesToGeneralLargeAndCompletes_ReportsSucceededWithAllFiles()
     {
         var root = CreateTemporaryDirectory();
         try
         {
             var endpoint = new QueuedEndpoint(
-                SelectWorkerJson("structural-change", "this moves a system boundary"),
+                SelectWorkerJson("general", "this moves a system boundary", effort: "Large"),
                 """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
                 "I updated the contract documents.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
@@ -106,17 +109,21 @@ public class RouteOperationTests
                 root,
                 endpointFor: _ => endpoint,
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
-                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: ProgressiveDiff(
+                    [".anneal/architecture/overview.md", ".anneal/architecture/toolkit.md"],
+                    [".anneal/architecture/overview.md", ".anneal/architecture/toolkit.md", "src/Foo.cs"]));
 
             var output = new StringWriter();
             var result = await operation.ExecuteAsync(
-                ["split this system into two"], output, TestContext.Current.CancellationToken);
+                ["structural change: split the system and move a system boundary"], output, TestContext.Current.CancellationToken);
 
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(
                     [".anneal/architecture/overview.md", ".anneal/architecture/toolkit.md", "src/Foo.cs"],
-                    result.FindingAs<RouteReport>()!.FilesChanged));
+                    result.FindingAs<RouteReport>()!.FilesChanged),
+                () => Assert.Equal("Large", result.FindingAs<RouteReport>()!.Effort));
         }
         finally
         {
@@ -217,6 +224,32 @@ public class RouteOperationTests
         $$"""
           {"kind":"SelectWorker","why":"{{why}}","workerKey":"{{workerKey}}","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"{{effort}}","hasSufficientEvidence":true}
           """;
+
+    private static RunGitCommand CodeOnlyDiff(params string[] files) =>
+        (_, _) => Task.FromResult(new ScriptRun(0, BuildDiff(files)));
+
+    private static RunGitCommand ProgressiveDiff(
+        IReadOnlyList<string> firstDiffFiles,
+        IReadOnlyList<string> laterDiffFiles)
+    {
+        var diffCallCount = 0;
+        return (_, _) =>
+        {
+            var files = diffCallCount++ == 0 ? firstDiffFiles : laterDiffFiles;
+            return Task.FromResult(new ScriptRun(0, BuildDiff(files)));
+        };
+    }
+
+    private static string BuildDiff(IReadOnlyList<string> files) =>
+        string.Join(
+            "\n",
+            files.Select(file =>
+            {
+                var body = file.EndsWith(".md", StringComparison.OrdinalIgnoreCase) && file.Contains(".anneal")
+                    ? "@@ -1,5 +1,5 @@\n ## Contract\n \n ### Provides\n \n-- old\n++ new"
+                    : "@@ -1 +1 @@\n-old\n+new";
+                return $"diff --git a/{file} b/{file}\n--- a/{file}\n+++ b/{file}\n{body}";
+            }));
 
     private static string NoRouteJson(string why, string humanOnlyNextStep, string effort = "Small") =>
         $$"""

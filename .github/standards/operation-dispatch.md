@@ -43,7 +43,7 @@ Invoke the smallest direct path that matches what was confirmed:
 | A need to record rather than build | `dotnet anneal intake "<work item>"` |
 | A bounded tidy-up, with the bound agreed | `dotnet anneal maintain "<work item, in plain text, describing the bounded tidy-up>" <file-scope-hint> [<file-scope-hint> ...]` |
 | A specific fix already reported | `dotnet anneal route "<finding, quoted plainly as the task>" [<changed-file-hint> ...]` |
-| A contract clause to write now and implement later | `dotnet anneal stage-contract "<work item, in plain text, naming the clause to stage>"` |
+| A contract clause to write now and implement later | boundary work in `.anneal/architecture/` using the planned-obligation form from `system-contracts.md`; no compiled action |
 | Verifying a change someone has finished | run `dotnet anneal verify-change [<base-ref>]` directly |
 | Asking how an action is performing — pass rates, failure trends | run `dotnet anneal stats` directly |
 | Lint noise before a pull request | run `dotnet anneal lint-fix` directly |
@@ -54,7 +54,7 @@ Use these rules:
 
 - **`route`** — pass the confirmed request plainly; give file hints only when you know real files.
 - **`maintain`** — file-scope hints are required and must match the declared bound verbatim.
-- **`stage-contract`** — use only when staging was explicitly requested.
+- **planned obligations** — only use the placeholder form from `system-contracts.md` when staging was explicitly requested.
 - **`intake`** — send the work item itself, not the derived bullet.
 
 # Choosing What's Next (when no task is named)

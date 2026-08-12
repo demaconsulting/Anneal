@@ -42,14 +42,16 @@ public partial class ToolkitContractTests
             File.WriteAllText(Path.Combine(root, "build.ps1"), "");
 
             var endpoint = new QueuedEndpoint(
-                """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
                 "I made the change.",
-                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""");
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
 
             var operation = new RouteOperation(
                 root,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: (_, _) => Task.FromResult(new ScriptRun(0, "diff --git a/src/Foo.cs b/src/Foo.cs\n--- a/src/Foo.cs\n+++ b/src/Foo.cs\n@@ -1 +1 @@\n-old\n+new")));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(

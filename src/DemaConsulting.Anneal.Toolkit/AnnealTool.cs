@@ -83,7 +83,6 @@ public static class AnnealTool
         new SearchSkillsOperation(),
         new RouteOperation(),
         new MaintainOperation(),
-        new StageContractOperation(),
         new VerifyChangeOperation()
     ];
 

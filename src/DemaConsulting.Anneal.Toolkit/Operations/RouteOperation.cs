@@ -8,9 +8,8 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Routes a real work item to this repository's own compiled worker catalog — Small Fix, Contract Change,
-///     Structural Change, or the additive General Large path — through a real <see cref="Router" />, and runs
-///     whichever worker the routing oracle selects.
+///     Routes a real work item to this repository's own compiled worker catalog — one capability-complete
+///     <c>general</c> worker, selected by Effort — through a real <see cref="Router" />, and runs it.
 /// </summary>
 /// <remarks>
 ///     This is the first action that ever constructs a <see cref="Router" /> outside a throwaway test harness.
@@ -43,31 +42,30 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 public sealed class RouteOperation : IOperation
 {
     /// <summary>
-    ///     The system message the route oracle carries: the worker catalog available, by its exact catalog key,
-    ///     and that naming no route is a correct answer.
+    ///     The system message the route oracle carries: the one production catalog entry, the Effort vocabulary it
+    ///     must classify, and that naming no route is a correct answer.
     /// </summary>
     private const string RouteCharter =
         """
         You are the routing oracle for this repository's own compiled worker catalog. You are handed a work item
-        and repository facts gathered deterministically, and you answer one narrow question: which worker should
-        run this work, whether a bounded look-around is needed first, or that no route exists.
+        and repository facts gathered deterministically, and you answer one narrow question: should the one
+        capability-complete worker run this work, whether a bounded look-around is needed first, or that no route
+        exists.
 
-        The catalog has four workers, named by these exact keys:
+        The catalog has exactly one worker, named by this exact key:
 
-        - "small-fix": the cheap path for an interior change bounded to files nobody outside them depends on - no
-          contract clause changes, no architecture document changes. It gets one local repair pass against a
-          failing build before it gives up.
-        - "contract-change": a change that adds, alters, or removes a system contract clause. The worker updates
-          the affected contract document(s) first, then implements code and tests against the clauses that just
-          changed, verified against both a deterministic build/test check and a strict contract check.
-        - "structural-change": a change that moves a system boundary itself - splitting, merging, or creating a
-          system, or otherwise reshaping .anneal/architecture/ beyond one system's own contract. It plans before
-          authoring, and its documentation budget is wider than contract-change's.
-        - "general-large": an additive capability-complete Large-effort worker that may author code, contract
-          clauses, and architecture documents in one run, deciding its preflight and postflight obligations from
-          the request framing and the actual diff. Use this only when the work item specifically needs that
-          capability-complete Large path; for ordinary small-fix, contract-change, and structural-change cases,
-          prefer the three established workers above so existing routing stays stable.
+        - "general": the capability-complete worker. It may author code, contract clauses, and architecture
+          documents in one run, deciding its preflight and postflight obligations from the request framing and the
+          actual diff. Your real classification job is not choosing among worker identities - that identity is
+          fixed - but choosing the Effort this one worker should run at.
+
+        When the work should run, answer SelectWorker with workerKey set to exactly "general", and classify Effort
+        using exactly one of these four values:
+
+        - "Small": a narrow, low-risk change - a few lines or a tiny documentation repair.
+        - "Medium": ordinary one-system work that may need one documentation-linked repair cycle.
+        - "Large": multi-system or architecture-shaping work that still fits one worker run.
+        - "Massive": cannot execute as one unit; it must be decomposed into phases first.
 
         Naming no route is a correct answer, not a failure, when the work item names a Migration proposal this
         repository has not yet approved, needs an interactive conversation only a person can hold (for example
@@ -76,14 +74,6 @@ public sealed class RouteOperation : IOperation
 
         If you lack the facts to choose honestly, ask for a bounded, narrow look-around before answering - do not
         guess at a classification you cannot support.
-
-        Whenever you select a worker or conclude no route exists, also classify this work item's Effort - pure
-        magnitude, independent of which worker you selected - using exactly one of these four values:
-
-        - "Small": a few lines, obviously correct.
-        - "Medium": multiple files, one system, roughly 50-200 lines.
-        - "Large": the interiors of multiple systems.
-        - "Massive": cannot execute as one unit; would need decomposing into phases first.
 
         You do not need to classify Effort when you ask for research first - that comes once you have the facts
         to choose honestly.
@@ -203,7 +193,7 @@ public sealed class RouteOperation : IOperation
     /// <summary>The system message a <see cref="Planner" /> call inside <see cref="GeneralWorker" /> carries.</summary>
     private const string GeneralPlannerCharter =
         """
-        You are planning a Large, capability-complete worker run. Decide whether the work needs an explicit plan
+        You are planning a capability-complete general-worker run. Decide whether the work needs an explicit plan
         because it already frames a multi-system or architecture-shaping change, or whether direct execution is
         still better. Do not reroute simply because the work touches contracts or architecture documents: this
         worker already owns that capability.
@@ -212,7 +202,7 @@ public sealed class RouteOperation : IOperation
     /// <summary>The system message a documentation pass inside <see cref="GeneralWorker" /> carries.</summary>
     private const string GeneralDocumentAuthorCharter =
         """
-        You are updating architecture documents for a Large, capability-complete worker run. Author whatever
+        You are updating architecture documents for a capability-complete general-worker run. Author whatever
         contract-clause or architecture-document changes the request needs under .anneal/architecture/, pruning an
         obsolete subsystem document rather than leaving it stale. Prefer the smallest targeted edit over a whole-
         file rewrite. Do not touch code or tests in this pass.
@@ -221,7 +211,7 @@ public sealed class RouteOperation : IOperation
     /// <summary>The system message a developer pass inside <see cref="GeneralWorker" /> carries.</summary>
     private const string GeneralDeveloperCharter =
         """
-        You are implementing a Large, capability-complete worker run. Read files before editing them, use the real
+        You are implementing a capability-complete general-worker run. Read files before editing them, use the real
         repository rather than reasoning from memory, and keep any contract or architecture edits consistent with
         the request and any documentation pass that already ran. Do not reroute simply because the change touches
         contracts or architecture documents: this worker already owns that capability. If the correct change needs
@@ -295,7 +285,7 @@ public sealed class RouteOperation : IOperation
     public OperationCategory Category => OperationCategory.Authoring;
 
     /// <inheritdoc />
-    public string Summary => "Route a work item to the compiled worker catalog and run whichever worker is selected";
+    public string Summary => "Route a work item to the compiled general worker catalog and run it at the selected effort";
 
     /// <inheritdoc />
     /// <remarks>
@@ -309,8 +299,8 @@ public sealed class RouteOperation : IOperation
     /// <inheritdoc />
     public string Usage =>
         "usage: dotnet anneal route <work item> [<changed-file-hint> ...] - routes <work item> through a real " +
-        "Router to the compiled worker catalog (small-fix, contract-change, structural-change) and runs " +
-        "whichever worker is selected. <work item> is a single argument describing the task in plain text; any " +
+        "Router to the compiled general worker catalog and runs the one 'general' worker at the Effort the " +
+        "routing oracle classifies. <work item> is a single argument describing the task in plain text; any " +
         "further arguments are changed-file hints folded into the routing facts. Succeeds when a worker " +
         "completes the work, escalates when the routing oracle or a worker names a step only you can take, and " +
         "fails when no route exists, a budget is exhausted, or the selected worker could not complete the work.";
@@ -365,63 +355,28 @@ public sealed class RouteOperation : IOperation
     }
 
     /// <remarks>
-    ///     Assembles the production worker catalog: the three established workers plus the additive
-    ///     <see cref="GeneralWorker" /> Large tier, each registered under the exact catalog key its own tests and
-    ///     <see cref="RouteCharter" /> use.
+    ///     Assembles the production worker catalog: one <see cref="GeneralWorker" /> entry registered under the
+    ///     exact key <see cref="RouteCharter" /> instructs the oracle to return.
     /// </remarks>
     private WorkerCatalogEntry[] BuildCatalog(RecordStore recordStore)
     {
-        var smallFix = new SmallFixWorker(
-            _repositoryRoot, DeveloperCharter, endpointFor: _endpointFor, runScript: _buildRunScript);
-
-        var contractChange = new ContractChangeWorker(
-            _repositoryRoot,
-            DocumentAuthorCharter,
-            DeveloperCharter,
-            VerifierCharter,
-            endpointFor: _endpointFor,
-            buildRunScript: _buildRunScript,
-            contractCheckRunScript: _contractCheckRunScript,
-            recordStore: recordStore);
-
-        var structuralChange = new StructuralChangeWorker(
-            _repositoryRoot,
-            PlannerCharter,
-            DocumentAuthorCharter,
-            DeveloperCharter,
-            VerifierCharter,
-            endpointFor: _endpointFor,
-            buildRunScript: _buildRunScript,
-            contractCheckRunScript: _contractCheckRunScript,
-            recordStore: recordStore);
-
-        var generalLarge = new GeneralWorker(
-            _repositoryRoot,
-            Effort.Large,
-            GeneralPlannerCharter,
-            GeneralDocumentAuthorCharter,
-            GeneralDeveloperCharter,
-            VerifierCharter,
-            endpointFor: _endpointFor,
-            buildRunScript: _buildRunScript,
-            contractCheckRunScript: _contractCheckRunScript,
-            runGit: _runGit,
-            recordStore: recordStore);
-
         return
         [
             new WorkerCatalogEntry(
-                new WorkerDescriptor("small-fix", "the cheap path for an interior change with no contract or architecture-document change"),
-                smallFix.RunAsync),
-            new WorkerCatalogEntry(
-                new WorkerDescriptor("contract-change", "a change that adds, alters, or removes a system contract clause"),
-                contractChange.RunAsync),
-            new WorkerCatalogEntry(
-                new WorkerDescriptor("structural-change", "a change that moves a system boundary itself, planned before it is authored"),
-                structuralChange.RunAsync),
-            new WorkerCatalogEntry(
-                new WorkerDescriptor("general-large", "a capability-complete Large worker that may plan, update contracts or architecture docs, and implement code in one run"),
-                generalLarge.RunAsync)
+                new WorkerDescriptor("general", "the capability-complete worker; route chooses only its Effort"),
+                (brief, cancellationToken) => new GeneralWorker(
+                        _repositoryRoot,
+                        brief.Effort,
+                        GeneralPlannerCharter,
+                        GeneralDocumentAuthorCharter,
+                        GeneralDeveloperCharter,
+                        VerifierCharter,
+                        endpointFor: _endpointFor,
+                        buildRunScript: _buildRunScript,
+                        contractCheckRunScript: _contractCheckRunScript,
+                        runGit: _runGit,
+                        recordStore: recordStore)
+                    .RunAsync(brief, cancellationToken))
         ];
     }
 
@@ -432,21 +387,14 @@ public sealed class RouteOperation : IOperation
         foreach (var file in completed.Summary.FilesChanged)
             output.WriteLine($"  {file}");
         output.WriteLine($"route: effort classified as {completed.Effort}");
+        foreach (var note in completed.Notes)
+            output.WriteLine($"route: note - {note.Text}");
 
         if (completed.PhaseOutcomes.Count > 0)
         {
             output.WriteLine($"route: decomposed into {completed.PhaseOutcomes.Count} phase(s):");
             foreach (var phase in completed.PhaseOutcomes)
                 output.WriteLine($"  {phase.WorkItem}: {phase.Outcome} - {phase.Summary}");
-        }
-
-        // TOOLKIT-56: run the finish-time architecture doc/code agreement gate on the small-fix path only.
-        // Contract Change and Structural Change already carry DocumentAuthor + a Verifier question; this gate
-        // is the equivalent check for the cheap small-fix path, which has no such pass of its own.
-        if (string.Equals(completed.SelectedWorkerKey, "small-fix", StringComparison.OrdinalIgnoreCase))
-        {
-            var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
-            await gate.RunAsync(output, "route", cancellationToken).ConfigureAwait(false);
         }
 
         return new OperationResult(

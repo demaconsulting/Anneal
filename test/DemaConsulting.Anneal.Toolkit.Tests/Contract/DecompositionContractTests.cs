@@ -1,5 +1,6 @@
 using DemaConsulting.Anneal.Toolkit;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
@@ -70,14 +71,21 @@ public class DecompositionContractTests
                 SmallSelectWorkerJson("do part A"),
                 "I made change A.",
                 CompletedJson(["src/a.cs"], "added part A"),
+                PassedVerifierJson(),
                 SmallSelectWorkerJson("do part B"),
                 "I made change B.",
-                CompletedJson(["src/b.cs"], "added part B"));
+                CompletedJson(["src/b.cs"], "added part B"),
+                PassedVerifierJson());
 
             var operation = new RouteOperation(
                 clearRoot,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/b.cs b/src/b.cs\n--- a/src/b.cs\n+++ b/src/b.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/b.cs b/src/b.cs\n--- a/src/b.cs\n+++ b/src/b.cs\n@@ -1 +1 @@\n-old\n+new\n"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -90,7 +98,7 @@ public class DecompositionContractTests
 
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.Contains("route: completed", written, StringComparison.Ordinal),
+                () => Assert.True(written.Contains("route: completed", StringComparison.Ordinal), written),
                 () => Assert.Contains("route: decomposed into 2 phase(s)", written, StringComparison.Ordinal),
                 () => Assert.Contains("do part A: Succeeded - added part A", written, StringComparison.Ordinal),
                 () => Assert.Contains("do part B: Succeeded - added part B", written, StringComparison.Ordinal));
@@ -123,14 +131,21 @@ public class DecompositionContractTests
                 SmallSelectWorkerJson("do part A"),
                 "I made change A.",
                 CompletedJson(["src/a.cs"], "added part A"),
+                PassedVerifierJson(),
                 SmallSelectWorkerJson("do part B"),
                 "I made change B.",
-                CompletedJson(["src/b.cs"], "added part B"));
+                CompletedJson(["src/b.cs"], "added part B"),
+                PassedVerifierJson());
 
             var operation = new RouteOperation(
                 validRoot,
                 endpointFor: _ => endpoint,
-                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/b.cs b/src/b.cs\n--- a/src/b.cs\n+++ b/src/b.cs\n@@ -1 +1 @@\n-old\n+new\n",
+                    "diff --git a/src/b.cs b/src/b.cs\n--- a/src/b.cs\n+++ b/src/b.cs\n@@ -1 +1 @@\n-old\n+new\n"));
 
             var output = new StringWriter();
             var exitCode = await AnnealTool.RunAsync(
@@ -141,9 +156,10 @@ public class DecompositionContractTests
                 validRoot,
                 TestContext.Current.CancellationToken);
 
+            var written = output.ToString();
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.Contains("route: completed", output.ToString(), StringComparison.Ordinal));
+                () => Assert.True(written.Contains("route: completed", StringComparison.Ordinal), written));
         }
         finally
         {
@@ -278,12 +294,12 @@ public class DecompositionContractTests
 
     private static string MassiveSelectWorkerJson() =>
         """
-        {"kind":"SelectWorker","why":"too large for one unit","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Massive","hasSufficientEvidence":true}
+        {"kind":"SelectWorker","why":"too large for one unit","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Massive","hasSufficientEvidence":true}
         """;
 
     private static string SmallSelectWorkerJson(string why) =>
         $$"""
-          {"kind":"SelectWorker","why":"{{why}}","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}
+          {"kind":"SelectWorker","why":"{{why}}","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}
           """;
 
     private static string DecomposedJson(
@@ -306,6 +322,25 @@ public class DecompositionContractTests
         $$"""
           {"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[{{string.Join(",", filesChanged.Select(file => $"\"{file}\""))}}],"summary":"{{summary}}"}
           """;
+
+    private static string PassedVerifierJson() =>
+        """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";
+
+    private static RunGitCommand SequencedGitStub(params string[] diffPatches)
+    {
+        var queue = new Queue<string>(diffPatches);
+        var last = diffPatches.LastOrDefault() ?? string.Empty;
+
+        return (args, _) =>
+        {
+            var joined = string.Join(" ", args);
+            if (!joined.Contains("diff", StringComparison.Ordinal))
+                return Task.FromResult(new ScriptRun(0, string.Empty));
+
+            var diff = queue.Count > 0 ? queue.Dequeue() : last;
+            return Task.FromResult(new ScriptRun(0, diff));
+        };
+    }
 
     private static string CreateTemporaryDirectory()
     {

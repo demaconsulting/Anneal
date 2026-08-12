@@ -80,6 +80,90 @@ public sealed class LiveTrialGeneralWorkerTests
     }
 
     [Fact]
+    public async Task LiveTrial_GeneralWorkerMediumContractAndCodeRequestRunsDocumentPathWithoutPlanner_Succeeds()
+    {
+        Assert.SkipUnless(
+            LiveTrialFixture.GateEnabled,
+            $"live trial skipped: set {LiveTrialFixture.GateEnvironmentVariable}=1 to run it against a real model");
+
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var passed = false;
+        var diagnostic = string.Empty;
+
+        for (var attempt = 1; attempt <= 3 && !passed; attempt++)
+        {
+            await using var fixture = await LiveTrialFixture.CreateAsync(cancellationToken);
+
+            fixture.WriteFile(
+                "src/Widget.cs",
+                """
+                namespace Trial;
+
+                public sealed class Widget
+                {
+                    public string Describe() => "old widget";
+                }
+                """);
+            fixture.WriteFile(
+                ".anneal/architecture/widget.md",
+                """
+                ---
+                covers:
+                  - src/Widget.cs
+                ---
+
+                # Widget
+
+                Widget exposes the description string "old widget" for callers.
+
+                ## Contract
+
+                ### Provides
+
+                - **WIDGET-01** — Widget returns the description string "old widget".
+                  *Verified by:* `TODO.WidgetDescriptionIsStable`
+                """);
+            await fixture.CommitAllAsync("seed: add Widget source and contract doc", cancellationToken);
+
+            var (result, steps) = await fixture.RunGeneralWorkerAsync(
+                "Update src/Widget.cs so Widget.Describe() returns \"calibrated widget\" instead of " +
+                "\"old widget\", and update .anneal/architecture/widget.md in place so its prose and " +
+                "WIDGET-01 contract clause match. Keep this to the existing Widget system only. Do not " +
+                "create, rename, split, or merge any architecture documents.",
+                ["src/Widget.cs", ".anneal/architecture/widget.md"],
+                Effort.Medium,
+                cancellationToken);
+
+            var status = await fixture.GitStatusAsync(cancellationToken);
+            var diff = await fixture.GitDiffAsync(cancellationToken);
+
+            passed =
+                result.Outcome == OperationOutcome.Succeeded &&
+                result.Finding is WorkerRunResult.Completed &&
+                steps.Any(line => line.Contains("\"Preflight:Document\"")) &&
+                steps.Any(line => line.Contains("\"DocumentAuthor\"")) &&
+                steps.Any(line => line.Contains("\"Developer\"")) &&
+                steps.Any(line => line.Contains("\"DeterministicCheck:build.ps1\"")) &&
+                steps.Any(line => line.Contains("\"DiffCheck\"")) &&
+                steps.Any(line => line.Contains("\"DeterministicCheck:check-contracts\"")) &&
+                steps.Any(line => line.Contains("\"ArchDocAgreementGate\"")) &&
+                steps.Any(line => line.Contains("\"Verifier\"")) &&
+                !steps.Any(line => line.Contains("\"Planner\"")) &&
+                steps.Count(line => line.Contains("\"DocumentAuthor\"")) == 1 &&
+                steps.Count(line => line.Contains("\"Developer\"")) == 1 &&
+                diff.Contains("+    public string Describe() => \"calibrated widget\";", StringComparison.Ordinal) &&
+                diff.Contains("+Widget exposes the description string \"calibrated widget\" for callers.", StringComparison.Ordinal) &&
+                diff.Contains("+- **WIDGET-01** — Widget returns the description string \"calibrated widget\".", StringComparison.Ordinal);
+
+            diagnostic =
+                $"attempt={attempt}; outcome={result.Outcome}; finding={DescribeFinding(result.Finding)}\n" +
+                $"steps:\n{string.Join("\n", steps)}\nstatus:\n{status}\ndiff:\n{diff}";
+        }
+
+        Assert.True(passed, diagnostic);
+    }
+
+    [Fact]
     public async Task LiveTrial_GeneralWorkerLargeStructuralRequestStillRunsVerifier_Succeeds()
     {
         Assert.SkipUnless(
@@ -165,8 +249,9 @@ public sealed class LiveTrialGeneralWorkerTests
         Assert.Multiple(
             () => Assert.Contains("+public sealed class CalculationWidget", diff, StringComparison.Ordinal),
             () => Assert.DoesNotContain("calculation-widget.md", diff, StringComparison.OrdinalIgnoreCase),
-            () => Assert.Contains("+# CalculationWidget", diff, StringComparison.Ordinal),
-            () => Assert.Contains("+CalculationWidget is the repository's sample type for this live trial.", diff, StringComparison.Ordinal));
+            () => Assert.Contains("diff --git a/.anneal/architecture/overview.md", diff, StringComparison.Ordinal),
+            () => Assert.Contains("diff --git a/.anneal/architecture/widget.md", diff, StringComparison.Ordinal),
+            () => Assert.Contains("CalculationWidget", diff, StringComparison.Ordinal));
     }
 
     private static string DescribeFinding(WorkerRunResult? finding) =>

@@ -19,6 +19,10 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 ///     entries — should it choose to write any in a later pass — correlate to the same parent as the Router's own.
 /// </param>
 /// <param name="OriginalWorkItem">The work item as the caller originally stated it.</param>
+/// <param name="Effort">
+///     The Effort classification the caller is asking this worker to execute at. For routed work this is the route
+///     oracle's classified Effort; for direct callers it is the fixed Effort that front door declared.
+/// </param>
 /// <param name="ClassificationHypothesis">What the router currently believes this work classifies as, or null.</param>
 /// <param name="RelevantResearchFindings">Every research finding the routing run has gathered so far.</param>
 /// <param name="PriorReroutes">Every reroute the routing run has recorded so far, oldest first.</param>
@@ -40,6 +44,7 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 internal sealed record WorkerBrief(
     string ParentInvocationId,
     string OriginalWorkItem,
+    Effort Effort,
     string? ClassificationHypothesis,
     IReadOnlyList<ResearchFinding> RelevantResearchFindings,
     IReadOnlyList<WorkerReroute> PriorReroutes,
@@ -55,10 +60,11 @@ internal sealed record WorkerBrief(
     /// <param name="ledger">The ledger to project from. Must not be null.</param>
     /// <param name="parentInvocationId">The identifier minted for this routing run. Must not be null or blank.</param>
     /// <param name="scopeHint">Why the worker being briefed was selected. Must not be null.</param>
+    /// <param name="effort">The Effort the route oracle classified for this worker run.</param>
     /// <returns>The projected brief.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="ledger" /> or <paramref name="scopeHint" /> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="parentInvocationId" /> is null, empty or blank.</exception>
-    public static WorkerBrief FromLedger(RoutingLedger ledger, string parentInvocationId, string scopeHint)
+    public static WorkerBrief FromLedger(RoutingLedger ledger, string parentInvocationId, string scopeHint, Effort effort)
     {
         ArgumentNullException.ThrowIfNull(ledger);
         ArgumentException.ThrowIfNullOrWhiteSpace(parentInvocationId);
@@ -67,6 +73,7 @@ internal sealed record WorkerBrief(
         return new WorkerBrief(
             parentInvocationId,
             ledger.OriginalWorkItem,
+            effort,
             ledger.ClassificationHypothesis,
             [.. ledger.ResearchHistory],
             [.. ledger.WorkerReroutes],

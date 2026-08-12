@@ -8,30 +8,30 @@ using DemaConsulting.Anneal.Toolkit.Process.Workers;
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Runs a declared Maintenance work item directly against <see cref="SmallFixWorker" />, within a declared
-///     file-scope bound this operation mechanically enforces after the worker runs.
+///     Runs a declared Maintenance work item directly against <see cref="GeneralWorker" /> at Small effort, within
+///     a declared file-scope bound this operation mechanically enforces after the worker runs.
 /// </summary>
 /// <remarks>
 ///     <c>.anneal/architecture/toolkit/maintain.md</c> is the contract this implements. Maintenance is Small Fix by
 ///     definition — <c>change-classification.md</c> says so in the same sentence that defines the mode — so a
 ///     caller invoking <c>maintain</c> has already fixed the work's Scope before this action is ever reached. This
 ///     operation therefore constructs no <see cref="Router" /> and asks no routing oracle to reclassify Effort or
-///     select a worker; it runs the declared work directly against <see cref="SmallFixWorker" />, the same
-///     "one oracle pass, not two" reasoning <c>route.md</c> § Decisions already applies to Effort, extended here to
-///     the coarser question of which worker runs at all.
+///     select a worker; it runs the declared work directly against <see cref="GeneralWorker" /> fixed to Small
+///     effort, with the worker's deterministic preflight narrowed to the same code-only authoring shape
+///     Maintenance already owned before the worker collapse.
 ///     <para>
 ///         <b>What this operation adds beyond composing an existing worker.</b> <c>change-classification.md</c>
 ///         requires Maintenance to be "bounded before it starts" and to "never edit the architecture tree or the
 ///         governed documents under <c>.anneal/governance/</c>, <c>.anneal/profile/</c>, or <c>.anneal/work/</c>".
 ///         Both rules are enforced here as mechanical, post-run checks
-///         against what <see cref="SmallFixWorker" /> actually changed — never against a model's own self-report,
+///         against what <see cref="GeneralWorker" /> actually changed — never against a model's own self-report,
 ///         and never skipped because the worker itself reported success. The tripwire
 ///         (<see cref="ProtectedPathTripwire" />) and the containment check both always run, and either can force
 ///         an escalation independently of the other or of what the worker itself concluded.
 ///     </para>
 ///     <para>
 ///         It declares <see cref="OperationCategory.Authoring" />, the same category <see cref="RouteOperation" />
-///         declares, for the same reason: <see cref="SmallFixWorker" /> edits the repository through
+///         declares, for the same reason: <see cref="GeneralWorker" /> edits the repository through
 ///         <see cref="Developer" />, and nothing that edits the repository may also decide whether a build passes.
 ///     </para>
 ///     <para>
@@ -57,8 +57,33 @@ public sealed class MaintainOperation : IOperation
         files changed, say so and name a better owner rather than editing it. Some files are protected and your
         edit tools will refuse them; a refusal is a real answer, not an obstacle to route around.
 
-        If, while working, you discover this item actually needs a contract change or a system-boundary move,
-        say so and name the worker you believe is right rather than silently widening your own scope.
+        If, while working, you discover this item actually needs a contract or architecture-document change, or a
+        system-boundary move, say so and name the routed GeneralWorker change path rather than silently widening
+        your own scope.
+        """;
+
+    private const string GeneralPlannerCharter =
+        """
+        You are planning a capability-complete general-worker run. Decide whether the work needs an explicit plan
+        because it already frames a multi-system or architecture-shaping change, or whether direct execution is
+        still better. Do not reroute simply because the work touches contracts or architecture documents: this
+        worker already owns that capability.
+        """;
+
+    private const string GeneralDocumentAuthorCharter =
+        """
+        You are updating architecture documents for a capability-complete general-worker run. Author whatever
+        contract-clause or architecture-document changes the request needs under .anneal/architecture/, pruning an
+        obsolete subsystem document rather than leaving it stale. Prefer the smallest targeted edit over a whole-
+        file rewrite. Do not touch code or tests in this pass.
+        """;
+
+    private const string VerifierCharter =
+        """
+        You judge whether the produced change conforms to what it was supposed to do, reading the staged
+        deterministic evidence first. Only reach for your own judgement once every supplied check has passed, and
+        only to answer what the deterministic evidence cannot: whether the work is otherwise correct for its
+        declared intent. Refusing to judge on insufficient evidence is a correct answer.
         """;
 
     private readonly string _repositoryRoot;
@@ -118,11 +143,11 @@ public sealed class MaintainOperation : IOperation
 
     /// <inheritdoc />
     public string Summary =>
-        "Run a declared Maintenance work item directly against SmallFixWorker, within a declared file-scope bound";
+        "Run a declared Maintenance work item directly against GeneralWorker at Small effort, within a declared file-scope bound";
 
     /// <inheritdoc />
     /// <remarks>
-    ///     <see cref="SmallFixWorker" /> writes to the working tree through <see cref="Developer" />, which runs at
+    ///     <see cref="GeneralWorker" /> writes to the working tree through <see cref="Developer" />, which runs at
     ///     <see cref="ModelRole.Heavy" />, so this action names the most demanding role its one path can reach - the
     ///     same reasoning <see cref="RouteOperation" /> already states for its own declaration.
     /// </remarks>
@@ -131,8 +156,8 @@ public sealed class MaintainOperation : IOperation
     /// <inheritdoc />
     public string Usage =>
         "usage: dotnet anneal maintain <work item> <file-scope-hint> [<file-scope-hint> ...] - runs <work item> " +
-        "directly against SmallFixWorker, asking no routing oracle, since Maintenance mode already fixes Scope " +
-        "to Small Fix before this action is invoked. At least one <file-scope-hint> is required: it declares the " +
+        "directly against GeneralWorker fixed to Small effort, asking no routing oracle, since Maintenance mode " +
+        "already fixes Scope before this action is invoked. At least one <file-scope-hint> is required: it declares the " +
         "bound this run's actual changes are mechanically checked against afterward, and naming none is a usage " +
         "error since unbounded Maintenance work has no bound to declare. Succeeds when the worker completes the " +
         "work within the declared bound; escalates when the worker names a reroute, a protected-path write is " +
@@ -170,12 +195,23 @@ public sealed class MaintainOperation : IOperation
         if (declaredBound.Count == 0)
             return new OperationResult(OperationOutcome.UsageError);
 
-        var worker = new SmallFixWorker(
-            _repositoryRoot, DeveloperCharter, endpointFor: _endpointFor, runScript: _buildRunScript);
+        var worker = new GeneralWorker(
+            _repositoryRoot,
+            Effort.Small,
+            GeneralPlannerCharter,
+            GeneralDocumentAuthorCharter,
+            DeveloperCharter,
+            VerifierCharter,
+            preflightBehavior: GeneralWorkerPreflightBehavior.CodeOnly,
+            runArchDocAgreementGate: false,
+            endpointFor: _endpointFor,
+            buildRunScript: _buildRunScript,
+            runGit: _runGit);
 
         var brief = new WorkerBrief(
             Guid.NewGuid().ToString(),
             workItem,
+            Effort.Small,
             "Maintenance: Scope already fixed to Small Fix by change-classification.md before this run started.",
             [],
             [],
@@ -232,9 +268,9 @@ public sealed class MaintainOperation : IOperation
         }
 
         // TOOLKIT-29: both mechanical checks cleared. A worker-named reroute still forces escalation here -
-        // SmallFixWorker itself reports OperationOutcome.Succeeded for a Reroute finding, per its own
-        // "successfully answering its own question" convention, but maintain has no Router to hand a reroute
-        // onward to, so it escalates directly instead of reporting an unqualified success.
+        // GeneralWorker reports OperationOutcome.Succeeded for a Reroute finding, per the same "successfully
+        // answering its own question" convention, but maintain has no Router to hand a reroute onward to, so it
+        // escalates directly instead of reporting an unqualified success.
         if (result.Finding is WorkerRunResult.Reroute reroute)
         {
             output.WriteLine($"maintain: escalated - the worker named a better owner: {reroute.Why}");
@@ -254,9 +290,10 @@ public sealed class MaintainOperation : IOperation
                 output.WriteLine($"  {file}");
             output.WriteLine($"maintain: completed - {completed.Summary.Summary}");
 
-            // TOOLKIT-57: run the finish-time architecture doc/code agreement gate after SmallFixWorker
-            // completes. Only the wording-only-outside-Contract correction is an actual edit; contract
-            // disagreements and cannot-classify findings are persisted as neutral findings but never edited.
+            // TOOLKIT-57: run the finish-time architecture doc/code agreement gate after the Small-effort
+            // GeneralWorker completes. The worker's own absorbed gate is disabled for this front door so the
+            // wording-only architecture correction remains this explicit, post-run Maintenance exception rather
+            // than being folded into the worker's general capability path.
             var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
             await gate.RunAsync(output, "maintain", cancellationToken).ConfigureAwait(false);
 

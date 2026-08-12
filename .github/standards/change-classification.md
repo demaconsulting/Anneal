@@ -240,12 +240,12 @@ decomposition changes enough that the rationale in its architecture document is 
 
 - **Documentation**: `.anneal/architecture/{system}.md` only.
 - **Agents**: the agent holding the request runs `route` directly — one worker updates the contract,
-  implements, and verifies in a single pass. Run `dotnet anneal stage-contract` directly, instead,
-  only when the caller explicitly asks to stage the contract ahead of implementation, as a deliberate
-  planned obligation.
+  implements, and verifies in a single pass. If the caller explicitly asks to stage a contract ahead
+  of implementation, treat that as boundary work in the architecture tree and use the planned-obligation
+  form from `system-contracts.md`; there is no separate compiled staging action.
 - **Tests**: every added or changed clause needs a boundary test named in the clause.
-- **Pruning**: whichever pass authors the change — `route`'s worker, or `stage-contract` — performs
-  the section-document prune check for the affected system.
+- **Pruning**: whichever pass authors the change — routed `GeneralWorker` work now, or a boundary edit
+  that stages a planned obligation — performs the section-document prune check for the affected system.
 
 # Structural Change
 

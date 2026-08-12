@@ -5,6 +5,7 @@ using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Model.Providers;
 using DemaConsulting.Anneal.Toolkit.Model.Tools;
 using DemaConsulting.Anneal.Toolkit.Operations;
+using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Recording;
 using DemaConsulting.Anneal.Toolkit.Tests.ContractChecking;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
@@ -585,7 +586,7 @@ public partial class ToolkitContractTests
     [Fact]
     public async Task VerifierQuestionIncludesDisproportionateDeletionCheck()
     {
-        // Arrange: a contract-change route with a targeted clause addition that passes cleanly; the endpoint
+        // Arrange: a general-worker route with a targeted clause addition that passes cleanly; the endpoint
         // records every request so the verifier question text is auditable without a network call.
         var root = CreateTemporaryDirectory();
         try
@@ -593,8 +594,8 @@ public partial class ToolkitContractTests
             File.WriteAllText(Path.Combine(root, "build.ps1"), "");
 
             var endpoint = new QueuedEndpoint(
-                // Route oracle selects contract-change
-                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"contract-change","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                // Route oracle selects general at Medium effort
+                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Medium","hasSufficientEvidence":true}""",
                 // DocumentAuthor: free-form turn, then structured decision
                 "I added the new clause.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause"}""",
@@ -608,7 +609,8 @@ public partial class ToolkitContractTests
                 root,
                 endpointFor: _ => endpoint,
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
-                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: ContractTouchingDiff(".anneal/architecture/toolkit.md", "src/Foo.cs"));
 
             // Act: targeted clause addition through the public boundary
             var output = new StringWriter();
@@ -631,8 +633,8 @@ public partial class ToolkitContractTests
 
     /// <summary>
     ///     TOOLKIT-53 — when the verifier reports a Documentation concern for a disproportionate deletion inside
-    ///     an otherwise in-scope architecture document, the Contract Change worker enters the documentation-repair
-    ///     path rather than reporting a clean Succeeded outcome.
+    ///     an otherwise in-scope architecture document, the general worker enters the documentation-repair path
+    ///     rather than reporting a clean Succeeded outcome.
     /// </summary>
     [Fact]
     public async Task VerifierCatchesDisproportionateDeletionAsDocumentationConcern()
@@ -646,8 +648,8 @@ public partial class ToolkitContractTests
             File.WriteAllText(Path.Combine(root, "build.ps1"), "");
 
             var endpoint = new QueuedEndpoint(
-                // Route oracle selects contract-change
-                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"contract-change","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                // Route oracle selects general at Medium effort
+                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Medium","hasSufficientEvidence":true}""",
                 // DocumentAuthor: free-form turn, then structured decision
                 "I updated the contract document (whole-file overwrite).",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause — used replace_file"}""",
@@ -669,7 +671,8 @@ public partial class ToolkitContractTests
                 root,
                 endpointFor: _ => endpoint,
                 buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
-                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: ContractTouchingDiff(".anneal/architecture/toolkit.md", "src/Foo.cs"));
 
             // Act: run a contract change where the DocumentAuthor used a whole-file overwrite
             var output = new StringWriter();
@@ -800,4 +803,18 @@ public partial class ToolkitContractTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    private static RunGitCommand ContractTouchingDiff(params string[] files) =>
+        (_, _) => Task.FromResult(new ScriptRun(0, BuildDiff(files)));
+
+    private static string BuildDiff(IReadOnlyList<string> files) =>
+        string.Join(
+            "\n",
+            files.Select(file =>
+            {
+                var body = file.EndsWith(".md", StringComparison.OrdinalIgnoreCase) && file.Contains(".anneal")
+                    ? "@@ -1,5 +1,5 @@\n ## Contract\n \n ### Provides\n \n-- old\n++ new"
+                    : "@@ -1 +1 @@\n-old\n+new";
+                return $"diff --git a/{file} b/{file}\n--- a/{file}\n+++ b/{file}\n{body}";
+            }));
 }

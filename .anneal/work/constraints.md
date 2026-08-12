@@ -107,9 +107,9 @@ re-cut. An entry moves up to **Satisfied** when a change absorbs it.
   or a fix path, so both are kept.
 - **A prose claim about current behavior, living outside any `covers:`-matched architecture document,
   is not checked by either verification path** — narrowed from its original scope: a `covers:`-matched
-  architecture document's own claims about the code it names are now checked mechanically for Small
-  Fix and Maintenance by the finish-time agreement gate (`TOOLKIT-56`/`TOOLKIT-57`), and for Contract
-  Change and Structural Change by `DocumentAuthor`/`Verifier` as part of the change itself. What
+  architecture document's own claims about the code it names are now checked mechanically for routed
+  Change work by `GeneralWorker`'s documentation/verifier path, and for Maintenance by the explicit
+  finish-time agreement gate (`TOOLKIT-57`). What
   remains open is a claim that lives somewhere `covers:` does not reach — a routing table row, a
   diagram edge, a cross-reference in a standard — where no script parses it against the behavior it
   names, and inspection only catches it if the change under review happens to touch that sentence.

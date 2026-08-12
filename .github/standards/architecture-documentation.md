@@ -188,11 +188,10 @@ covers:
 ```
 
 `covers` names the source a document describes, so **drift** — source under `covers` changed while
-the document did not — can be spotted. For Contract Change and Structural Change, this is the
-`Verifier`'s job as part of the change itself (a `Documentation` concern), gating on completion.
-For Small Fix and Maintenance — which never authored the code change through that same verified
-path — a separate finish-time gate (`TOOLKIT-56`/`TOOLKIT-57`) checks every architecture document
-covering an actually-changed file: a wording-only mismatch outside `## Contract` is corrected
+the document did not — can be spotted. For routed Change work, this is `GeneralWorker`'s job as part
+of the change itself (a `Documentation` concern), gating on completion. For Maintenance — whose front
+door still keeps a wording-only exception outside the general route — a separate finish-time gate
+(`TOOLKIT-57`) checks every architecture document covering an actually-changed file: a wording-only mismatch outside `## Contract` is corrected
 inline and mechanically re-checked against the diff it produced; a mismatch touching `## Contract`
 substance, or one that cannot be confidently told apart from touching it, is recorded as a neutral
 finding under `.anneal/logs/findings/` rather than presumed in favor of either the document or the
@@ -228,9 +227,8 @@ it:
 - The document has decayed into restating names and signatures.
 - The rejected alternative it preserved is no longer a plausible option.
 
-Whichever pass authors the change — `route`'s Contract Change or Structural Change worker, or
-`stage-contract` — MUST perform a prune check on every Contract Change and Structural
-Change: list the subsystem documents under the affected system and confirm each still
+Whichever pass authors the change — routed `GeneralWorker`, or boundary work that stages a planned
+obligation — MUST perform a prune check on every Contract Change and Structural Change: list the subsystem documents under the affected system and confirm each still
 earns its place under the benefit test. Undeleted documentation is the mechanism by which a tree
 silently becomes an anchor.
 
