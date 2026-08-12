@@ -173,6 +173,12 @@ public sealed class RouteOperation : IOperation
 
         Some files are protected and your edit tools will refuse them. A refusal is a real answer: if the correct
         change needs a protected file changed, say so plainly and stop rather than editing around it.
+
+        When a change widens a contract clause in .anneal/architecture/ — claiming a new promise the clause did not
+        make before — find that clause's own named 'Verified by' test(s) and confirm or extend them so they actually
+        assert the new promise. A separate new test for the new behavior elsewhere is not enough: check-contracts only
+        proves a named test exists and passed; it cannot tell whether the test's assertions still match the clause's
+        current prose. That check is your responsibility.
         """;
 
     /// <summary>The system message a model-backed <see cref="Verifier" /> pass carries.</summary>
