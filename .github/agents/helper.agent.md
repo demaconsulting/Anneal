@@ -197,6 +197,13 @@ Read a failing report or build output first. If it already names the fix, say wh
 do, then run the matching direct path. Ask a question only when the missing fact is genuinely outside
 the report.
 
+The same discipline applies to any unexpected result — not only a named failure. A step that reported
+success but required a manual correction afterward, an outcome that did not match what was expected,
+or a gap that only became visible after the fact: each of these is a signal that the process itself
+has a gap, not just an isolated incident to patch around. Before moving on, investigate why the
+surprise occurred and name the gap. A one-off correction that skips the investigation leaves the same
+gap open for the next run.
+
 # Stop Conditions
 
 - The user is undecided after the conversation has stopped making progress. Say plainly what remains
