@@ -234,6 +234,14 @@ values still name the existing Small Fix / Contract Change / Structural Change l
 stage. What changed is only that the catalog now also contains one capability-superset entry whose
 selection is governed by Effort and obligation shape, not by becoming a fourth Scope word.
 
+**GeneralWorker's Effort now tunes one pipeline rather than gating it** — S25 removes the old
+Large-only capability gate and keeps one control-flow path for Small, Medium, and Large. The defaults
+vary only the repair budgets and initial producing-step tiers: Small uses documentation/code/tenet
+budgets `0/1/0`, Medium `1/1/0`, and Large `1/1/1` (with correspondingly more aggressive cheap-tier
+starting roles at the smaller efforts). The rejected alternative was separate Small/Medium
+implementations, which would have duplicated the deterministic diff-backed obligation selector already
+proving when the heavier checks are actually needed.
+
 **`lint-fix` left the diagram entirely rather than changing shape within it** — the compiled
 `dotnet anneal lint-fix` (`TOOLKIT-19` in [Toolkit](./toolkit.md)) was proven end to end against this
 repository, satisfying the condition [active-plan.md](../work/active-plan.md) named for

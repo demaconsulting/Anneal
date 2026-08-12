@@ -66,7 +66,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
 
     private const string GeneralPlannerCharter =
         """
-        You are planning a Large, capability-complete worker run. Decide whether the work needs an explicit plan
+        You are planning a capability-complete general-worker run. Decide whether the work needs an explicit plan
         because it already frames a multi-system or architecture-shaping change, or whether direct execution is
         still better. Do not reroute simply because the work touches contracts or architecture documents: this
         worker already owns that capability.
@@ -74,7 +74,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
 
     private const string GeneralDocumentAuthorCharter =
         """
-        You are updating architecture documents for a Large, capability-complete worker run. Author whatever
+        You are updating architecture documents for a capability-complete general-worker run. Author whatever
         contract-clause or architecture-document changes the request needs under .anneal/architecture/, pruning an
         obsolete subsystem document rather than leaving it stale. Prefer the smallest targeted edit over a whole-
         file rewrite. Do not touch code or tests in this pass.
@@ -82,7 +82,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
 
     private const string GeneralDeveloperCharter =
         """
-        You are implementing a Large, capability-complete worker run. Read files before editing them, use the real
+        You are implementing a capability-complete general-worker run. Read files before editing them, use the real
         repository rather than reasoning from memory, and keep any contract or architecture edits consistent with
         the request and any documentation pass that already ran. Do not reroute simply because the change touches
         contracts or architecture documents: this worker already owns that capability. If the correct change needs
@@ -245,16 +245,18 @@ public sealed class LiveTrialFixture : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Runs the capability-complete Large general worker directly against this fixture's working tree, with the
+    ///     Runs the capability-complete general worker directly against this fixture's working tree, with the
     ///     worker's deterministic checks stubbed the same way the other live-trial helpers stub theirs.
     /// </summary>
-    /// <param name="workItem">The Small-Fix-shaped work item text. Must not be null or blank.</param>
+    /// <param name="workItem">The work item text. Must not be null or blank.</param>
     /// <param name="changedFileHints">Changed-file hints folded into the worker brief. Must not be null.</param>
+    /// <param name="effort">The Effort tier to run the worker at.</param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged into the run.</param>
     /// <returns>The worker result and the recorded process-step lines for the run.</returns>
     internal async Task<(WorkerExecutionResult Result, IReadOnlyList<string> Steps)> RunGeneralWorkerAsync(
         string workItem,
         IReadOnlyList<string> changedFileHints,
+        Effort effort,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workItem);
@@ -263,7 +265,7 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         var recordStore = new RecordStore(RepositoryRoot);
         var worker = new GeneralWorker(
             RepositoryRoot,
-            Effort.Large,
+            effort,
             GeneralPlannerCharter,
             GeneralDocumentAuthorCharter,
             GeneralDeveloperCharter,
@@ -275,10 +277,10 @@ public sealed class LiveTrialFixture : IAsyncDisposable
         var brief = new WorkerBrief(
             "live-trial-general-worker",
             workItem,
-            "general-large",
+            "general-worker",
             [],
             [],
-            "live trial selected the capability-complete large worker for a Small-Fix-shaped request",
+            $"live trial selected GeneralWorker directly at {effort} effort",
             [],
             [],
             changedFileHints);

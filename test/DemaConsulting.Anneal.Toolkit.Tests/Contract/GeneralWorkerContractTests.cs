@@ -1,14 +1,16 @@
+using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 using DemaConsulting.Anneal.Toolkit.Process.Workers;
+using DemaConsulting.Anneal.Toolkit.Recording;
 using DemaConsulting.Anneal.Toolkit.Tests.Primitives;
 using Xunit;
 
 namespace DemaConsulting.Anneal.Toolkit.Tests.Contract;
 
 /// <summary>
-///     Boundary tests for the capability-complete Large general worker.
+///     Boundary tests for the capability-complete Effort-parameterized general worker.
 /// </summary>
 public class GeneralWorkerContractTests
 {
@@ -227,6 +229,307 @@ public class GeneralWorkerContractTests
         finally
         {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerDocsOnlyMarkdownWithoutContractTouchSkipsVerifier()
+    {
+        var root = CreateTemporaryDirectory("gw-docs-only");
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I fixed the typo.",
+                CompletedJson(["docs/guide.md"], "fixed the typo"));
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/docs/guide.md b/docs/guide.md\n--- a/docs/guide.md\n+++ b/docs/guide.md\n@@ -1 +1 @@\n-Teh guide explains the worker.\n+The guide explains the worker.\n" +
+                    "diff --git a/.anneal/logs/records/process-steps.jsonl b/.anneal/logs/records/process-steps.jsonl\n--- a/.anneal/logs/records/process-steps.jsonl\n+++ b/.anneal/logs/records/process-steps.jsonl\n@@ -0,0 +1 @@\n+{\"step\":\"Developer\"}\n"));
+
+            var result = await worker.RunAsync(
+                MakeBrief("Fix the typo in docs/guide.md.", changedFileHints: ["docs/guide.md"]),
+                TestContext.Current.CancellationToken);
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(2, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerDocsOnlyContractTouchStillRunsVerifier()
+    {
+        var root = CreateTemporaryDirectory("gw-doc-touch");
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract wording.",
+                AuthoredJson([".anneal/architecture/toolkit/general-worker.md"], "updated the contract wording"),
+                "I left code unchanged.",
+                CompletedJson([], "left the code unchanged"),
+                PassedVerifierJson());
+
+            var contractChecks = 0;
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) =>
+                {
+                    contractChecks++;
+                    return Task.FromResult(new ScriptRun(0, "contracts good"));
+                },
+                runGit: SequencedGitStub(
+                    "diff --git a/.anneal/architecture/toolkit/general-worker.md b/.anneal/architecture/toolkit/general-worker.md\n--- a/.anneal/architecture/toolkit/general-worker.md\n+++ b/.anneal/architecture/toolkit/general-worker.md\n@@ -20,4 +20,4 @@\n ## Contract\n ### Provides\n-- **TOOLKIT-58** — old wording\n+- **TOOLKIT-58** — new wording\n"));
+
+            var result = await worker.RunAsync(
+                MakeBrief(
+                    "Update the GeneralWorker contract clause wording in .anneal/architecture/toolkit/general-worker.md.",
+                    changedFileHints: [".anneal/architecture/toolkit/general-worker.md"]),
+                TestContext.Current.CancellationToken);
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(1, contractChecks),
+                () => Assert.Equal(5, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerCodeOrTestDiffAlwaysRunsVerifier()
+    {
+        var root = CreateTemporaryDirectory("gw-test-diff");
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I tightened the test assertion.",
+                CompletedJson(["test/InternalTests.cs"], "tightened the test assertion"),
+                PassedVerifierJson());
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/test/InternalTests.cs b/test/InternalTests.cs\n--- a/test/InternalTests.cs\n+++ b/test/InternalTests.cs\n@@ -1 +1 @@\n-Assert.Equal(1, value);\n+Assert.Equal(2, value);\n"));
+
+            var result = await worker.RunAsync(
+                MakeBrief("Tighten the test assertion.", changedFileHints: ["test/InternalTests.cs"]),
+                TestContext.Current.CancellationToken);
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(3, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerMixedOrAmbiguousSurfaceStillRunsVerifier()
+    {
+        var root = CreateTemporaryDirectory("gw-mixed");
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I fixed the docs and note.",
+                CompletedJson(["docs/guide.md", "notes.txt"], "fixed the docs and note"),
+                PassedVerifierJson());
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/docs/guide.md b/docs/guide.md\n--- a/docs/guide.md\n+++ b/docs/guide.md\n@@ -1 +1 @@\n-old\n+new\n" +
+                    "diff --git a/notes.txt b/notes.txt\n--- a/notes.txt\n+++ b/notes.txt\n@@ -1 +1 @@\n-old\n+new\n"));
+
+            var result = await worker.RunAsync(
+                MakeBrief("Fix the guide and note.", changedFileHints: ["docs/guide.md", "notes.txt"]),
+                TestContext.Current.CancellationToken);
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(3, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerVerifierRoleNeverDowngradesAcrossEfforts()
+    {
+        foreach (var effort in new[] { Effort.Small, Effort.Medium, Effort.Large })
+        {
+            var root = CreateTemporaryDirectory($"gw-verifier-role-{effort.ToString().ToLowerInvariant()}");
+            try
+            {
+                var light = new QueuedEndpoint(
+                    CompletedJson(["src/Internal.cs"], "updated the helper"),
+                    PassedVerifierJson());
+                var medium = new QueuedEndpoint("I updated the helper.");
+                var heavy = new QueuedEndpoint("I updated the helper.");
+
+                var worker = new GeneralWorker(
+                    root,
+                    effort,
+                    "planner charter",
+                    "document charter",
+                    "developer charter",
+                    "verifier charter",
+                    endpointFor: Serving(light, medium, heavy),
+                    buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                    runGit: SequencedGitStub(
+                        "diff --git a/src/Internal.cs b/src/Internal.cs\n--- a/src/Internal.cs\n+++ b/src/Internal.cs\n@@ -1 +1 @@\n-private int value;\n+private int value = 1;\n"));
+
+                var result = await worker.RunAsync(
+                    MakeBrief("Tidy the helper implementation.", changedFileHints: ["src/Internal.cs"]),
+                    TestContext.Current.CancellationToken);
+
+                var verifierText = string.Join("\n", light.Requests[^1].Messages.Select(message => message.Text));
+                Assert.Multiple(
+                    () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                    () => Assert.Equal(2, light.Calls),
+                    () => Assert.Contains("Judge whether this change satisfies the requested work", verifierText, StringComparison.Ordinal),
+                    () => Assert.Equal(effort == Effort.Large ? 0 : 1, medium.Calls),
+                    () => Assert.Equal(effort == Effort.Large ? 1 : 0, heavy.Calls));
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerRepairEscalatesProducingRoleOnlyAfterRepairRequired()
+    {
+        var root = CreateTemporaryDirectory("gw-escalate");
+        try
+        {
+            var light = new QueuedEndpoint(
+                CompletedJson(["src/Internal.cs"], "updated the helper"),
+                RepairRequiredVerifierJson(VerificationOwner.Code, "tighten the helper implementation"),
+                CompletedJson(["src/Internal.cs"], "tightened the helper"),
+                PassedVerifierJson());
+            var medium = new QueuedEndpoint("I updated the helper.");
+            var heavy = new QueuedEndpoint("I tightened the helper.");
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Small,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: Serving(light, medium, heavy),
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/src/Internal.cs b/src/Internal.cs\n--- a/src/Internal.cs\n+++ b/src/Internal.cs\n@@ -1 +1 @@\n-private int value;\n+private int value = 1;\n",
+                    "diff --git a/src/Internal.cs b/src/Internal.cs\n--- a/src/Internal.cs\n+++ b/src/Internal.cs\n@@ -1 +1 @@\n-private int value;\n+private int value = 2;\n"));
+
+            var result = await worker.RunAsync(
+                MakeBrief("Tidy the helper implementation.", changedFileHints: ["src/Internal.cs"]),
+                TestContext.Current.CancellationToken);
+
+            var initialDeveloperText = string.Join("\n", medium.Requests[0].Messages.Select(message => message.Text));
+            var repairDeveloperText = string.Join("\n", heavy.Requests[0].Messages.Select(message => message.Text));
+
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(1, medium.Calls),
+                () => Assert.Equal(1, heavy.Calls),
+                () => Assert.Equal(4, light.Calls),
+                () => Assert.DoesNotContain("tighten the helper implementation", initialDeveloperText, StringComparison.Ordinal),
+                () => Assert.Contains("tighten the helper implementation", repairDeveloperText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts()
+    {
+        foreach (var effort in new[] { Effort.Small, Effort.Medium, Effort.Large })
+        {
+            var root = CreateTemporaryDirectory($"gw-effort-{effort.ToString().ToLowerInvariant()}");
+            try
+            {
+                var endpoint = new QueuedEndpoint(
+                    "I fixed the typo.",
+                    CompletedJson(["docs/guide.md"], "fixed the typo"));
+                var recordStore = new RecordStore(root);
+
+                var worker = new GeneralWorker(
+                    root,
+                    effort,
+                    "planner charter",
+                    "document charter",
+                    "developer charter",
+                    "verifier charter",
+                    endpointFor: _ => endpoint,
+                    buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                    runGit: SequencedGitStub(
+                        "diff --git a/docs/guide.md b/docs/guide.md\n--- a/docs/guide.md\n+++ b/docs/guide.md\n@@ -1 +1 @@\n-Teh guide explains the worker.\n+The guide explains the worker.\n"),
+                    recordStore: recordStore);
+
+                var result = await worker.RunAsync(
+                    MakeBrief("Fix the typo in docs/guide.md.", changedFileHints: ["docs/guide.md"]),
+                    TestContext.Current.CancellationToken);
+
+                var steps = ReadRecordedSteps(root);
+                Assert.Multiple(
+                    () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                    () => Assert.Contains(steps, line => line.Contains("Preflight:CodeOnly", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("\"step\":\"Developer\"", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("DeterministicCheck:build.ps1", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("\"step\":\"DiffCheck\"", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("Verifier:skipped", StringComparison.Ordinal)),
+                    () => Assert.DoesNotContain(steps, line => line.Contains("\"step\":\"Planner\"", StringComparison.Ordinal)),
+                    () => Assert.DoesNotContain(steps, line => line.Contains("DocumentAuthor", StringComparison.Ordinal)));
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 
@@ -456,6 +759,38 @@ public class GeneralWorkerContractTests
         IReadOnlyList<string>? tenets = null,
         IReadOnlyList<string>? changedFileHints = null) =>
         new("parent-1", workItem, "general-large", [], [], "the route selected the capability-complete large worker", [], tenets ?? [], changedFileHints ?? []);
+
+    private static string PassedVerifierJson() =>
+        """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";
+
+    private static string RepairRequiredVerifierJson(VerificationOwner owner, string fixText) =>
+        $$"""{"verdict":"RepairRequired","concerns":[{"owner":"{{owner}}","fixText":"{{fixText}}"}],"advisoryNotes":[],"evidenceSufficient":true}""";
+
+    private static string CompletedJson(IReadOnlyList<string> filesChanged, string summary) =>
+        $$"""{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[{{RenderJsonArray(filesChanged)}}],"summary":"{{summary}}"}""";
+
+    private static string AuthoredJson(IReadOnlyList<string> filesChanged, string summary) =>
+        $$"""{"kind":"Authored","why":"","filesChanged":[{{RenderJsonArray(filesChanged)}}],"summary":"{{summary}}"}""";
+
+    private static string RenderJsonArray(IReadOnlyList<string> values) =>
+        string.Join(",", values.Select(value => $"\"{value}\""));
+
+    private static Func<ModelRole, IChatEndpoint> Serving(
+        IChatEndpoint light,
+        IChatEndpoint medium,
+        IChatEndpoint heavy) =>
+        role => role switch
+        {
+            ModelRole.Light => light,
+            ModelRole.Medium => medium,
+            _ => heavy
+        };
+
+    private static IReadOnlyList<string> ReadRecordedSteps(string root)
+    {
+        var path = RecordStore.ProcessStepsPathFor(root);
+        return File.Exists(path) ? File.ReadAllLines(path) : [];
+    }
 
     private static string CreateTemporaryDirectory(string stem)
     {

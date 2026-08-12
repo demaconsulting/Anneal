@@ -342,7 +342,11 @@ internal sealed class DocumentAuthor
     {
         var finding = await new DiffCheck(_repositoryRoot, runGit: _runGit)
             .TryReadAsync(null, cancellationToken).ConfigureAwait(false);
-        return finding is null ? ([], string.Empty) : (finding.ChangedFiles, finding.Patch);
+        if (finding is null)
+            return ([], string.Empty);
+
+        var filtered = DiffCheck.ExcludingAnnealBookkeeping(finding);
+        return (filtered.ChangedFiles, filtered.Patch);
     }
 
     /// <returns>
@@ -363,7 +367,8 @@ internal sealed class DocumentAuthor
         if (finding is null)
             return selfReported;
 
-        var realFiles = finding.ChangedFiles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var realFiles = DiffCheck.ExcludingAnnealBookkeeping(finding).ChangedFiles
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var corroborated = selfReported.Where(f => realFiles.Contains(f)).ToList();
 
         // Return the original reference when nothing was dropped to avoid an unnecessary allocation

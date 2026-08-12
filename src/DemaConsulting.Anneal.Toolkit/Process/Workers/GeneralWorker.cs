@@ -9,15 +9,15 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
 /// <summary>
-///     Capability-complete Large-effort worker: it may plan, author contract and architecture documentation, edit
-///     code and tests, and then fire only the heavier obligations the actual diff proves were needed.
+///     Capability-complete Effort-parameterized worker: it may plan, author contract and architecture
+///     documentation, edit code and tests, and then fire only the heavier obligations the actual diff proves were
+///     needed.
 /// </summary>
 /// <remarks>
-///     The worker is deliberately shaped as one Effort-parameterized pipeline whose Large tier is the full-capability
-///     superset: a deterministic preflight selector decides whether a plan and/or documentation-first pass runs
-///     before code, and a deterministic postflight selector decides which heavier checks the actual diff warrants.
-///     Small and Medium are not implemented yet; they would be narrower configurations of this same pipeline rather
-///     than a second design.
+///     The worker is deliberately shaped as one Effort-parameterized pipeline: a deterministic preflight selector
+///     decides whether a plan and/or documentation-first pass runs before code, and a deterministic postflight
+///     selector decides which heavier checks the actual diff warrants. Effort tunes repair budgets and the initial
+///     producing-step model-tier suggestion; it does not fork the control flow.
 ///     <para>
 ///         Fail-closed posture: when the postflight diff cannot be read, or the patch is present but its touched-file
 ///         list cannot be parsed, the worker escalates rather than silently concluding no heavier obligation applied.
@@ -46,18 +46,18 @@ internal sealed class GeneralWorker
     private readonly string? _buildScript;
     private readonly string _repositoryRoot;
     private readonly Effort _effort;
-    private readonly Planner _planner;
-    private readonly DocumentAuthor _documentAuthor;
-    private readonly Developer _developer;
+    private readonly string _plannerCharter;
+    private readonly string _documentAuthorCharter;
+    private readonly string _developerCharter;
     private readonly DeterministicCheck _buildCheck;
     private readonly DeterministicCheck _contractCheck;
     private readonly DiffCheck _diffCheck;
     private readonly Verifier _verifier;
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunGitCommand? _runGit;
-    private readonly int _maxDocumentationRepairAttempts;
-    private readonly int _maxCodeRepairAttempts;
-    private readonly int _maxTenetRepairAttempts;
+    private readonly EffortProfile _effortProfile;
+    private readonly int _documentAuthorTargetFileCountBudget;
+    private readonly int _maxPlanSteps;
     private readonly RecordStore? _recordStore;
 
     public GeneralWorker(
@@ -67,9 +67,9 @@ internal sealed class GeneralWorker
         string documentAuthorCharter,
         string developerCharter,
         string verifierCharter,
-        int maxDocumentationRepairAttempts = 1,
-        int maxCodeRepairAttempts = 1,
-        int maxTenetRepairAttempts = 1,
+        int? maxDocumentationRepairAttempts = null,
+        int? maxCodeRepairAttempts = null,
+        int? maxTenetRepairAttempts = null,
         int documentAuthorTargetFileCountBudget = 8,
         int maxPlanSteps = 12,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
@@ -83,22 +83,20 @@ internal sealed class GeneralWorker
         ArgumentNullException.ThrowIfNull(documentAuthorCharter);
         ArgumentNullException.ThrowIfNull(developerCharter);
         ArgumentNullException.ThrowIfNull(verifierCharter);
-        ArgumentOutOfRangeException.ThrowIfNegative(maxDocumentationRepairAttempts);
-        ArgumentOutOfRangeException.ThrowIfNegative(maxCodeRepairAttempts);
-        ArgumentOutOfRangeException.ThrowIfNegative(maxTenetRepairAttempts);
+        if (maxDocumentationRepairAttempts.HasValue)
+            ArgumentOutOfRangeException.ThrowIfNegative(maxDocumentationRepairAttempts.Value);
+        if (maxCodeRepairAttempts.HasValue)
+            ArgumentOutOfRangeException.ThrowIfNegative(maxCodeRepairAttempts.Value);
+        if (maxTenetRepairAttempts.HasValue)
+            ArgumentOutOfRangeException.ThrowIfNegative(maxTenetRepairAttempts.Value);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(documentAuthorTargetFileCountBudget);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPlanSteps);
 
         _repositoryRoot = Path.GetFullPath(repositoryRoot);
         _effort = effort;
-        _planner = new Planner(_repositoryRoot, plannerCharter, maxPlanSteps: maxPlanSteps, endpointFor: endpointFor);
-        _documentAuthor = new DocumentAuthor(
-            _repositoryRoot,
-            documentAuthorCharter,
-            targetFileCountBudget: documentAuthorTargetFileCountBudget,
-            scopeDriftCheckInterval: 1,
-            endpointFor: endpointFor);
-        _developer = new Developer(_repositoryRoot, developerCharter, endpointFor: endpointFor);
+        _plannerCharter = plannerCharter;
+        _documentAuthorCharter = documentAuthorCharter;
+        _developerCharter = developerCharter;
         _buildCheck = new DeterministicCheck(_repositoryRoot, runScript: buildRunScript);
         _contractCheck = new DeterministicCheck(
             _repositoryRoot,
@@ -107,9 +105,13 @@ internal sealed class GeneralWorker
         _verifier = new Verifier(_repositoryRoot, verifierCharter, endpointFor: endpointFor);
         _endpointFor = endpointFor;
         _runGit = runGit;
-        _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
-        _maxCodeRepairAttempts = maxCodeRepairAttempts;
-        _maxTenetRepairAttempts = maxTenetRepairAttempts;
+        _effortProfile = CreateEffortProfile(
+            effort,
+            maxDocumentationRepairAttempts,
+            maxCodeRepairAttempts,
+            maxTenetRepairAttempts);
+        _documentAuthorTargetFileCountBudget = documentAuthorTargetFileCountBudget;
+        _maxPlanSteps = maxPlanSteps;
         _recordStore = recordStore;
         _buildScript = ScriptConfiguration.Load(_repositoryRoot).Build;
     }
@@ -119,19 +121,19 @@ internal sealed class GeneralWorker
         ArgumentNullException.ThrowIfNull(brief);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_effort != Effort.Large)
-            throw new NotSupportedException(
-                $"GeneralWorker currently supports only {Effort.Large} effort; received {_effort}.");
-
         var parentInvocationId = brief.ParentInvocationId;
         var preflight = SelectPreflightObligations(brief);
         RecordStep(parentInvocationId, $"Preflight:{preflight.StepName}", OperationOutcome.Succeeded);
 
         ImplementationPlan? plan = null;
+        var documentationRole = preflight.SuggestedRoles.DocumentAuthorRole;
+        var codeRole = preflight.SuggestedRoles.DeveloperRole;
+        var tenetRole = preflight.SuggestedRoles.DeveloperRole;
         if (preflight.NeedsPlan)
         {
             var (planTerminal, selectedPlan) = await RunPlannerAsync(
                     ComposePlanningQuestion(brief, preflight),
+                    preflight.SuggestedRoles.PlannerRole,
                     parentInvocationId,
                     "Planner",
                     cancellationToken)
@@ -147,6 +149,7 @@ internal sealed class GeneralWorker
         {
             var (documentTerminal, documentChanges) = await RunDocumentAuthorAsync(
                     ComposeDocumentInstruction(brief, plan, preflight),
+                    documentationRole,
                     parentInvocationId,
                     "DocumentAuthor",
                     cancellationToken)
@@ -159,6 +162,7 @@ internal sealed class GeneralWorker
 
         var (developerTerminal, initialCode) = await RunDeveloperAsync(
                 ComposeCodeInstruction(brief, plan, documentation, preflight),
+                codeRole,
                 parentInvocationId,
                 "Developer",
                 cancellationToken,
@@ -168,9 +172,9 @@ internal sealed class GeneralWorker
             return developerTerminal;
 
         var code = initialCode!;
-        var documentationRepairBudget = _maxDocumentationRepairAttempts;
-        var codeRepairBudget = _maxCodeRepairAttempts;
-        var tenetRepairBudget = _maxTenetRepairAttempts;
+        var documentationRepairBudget = _effortProfile.DocumentationRepairBudget;
+        var codeRepairBudget = _effortProfile.CodeRepairBudget;
+        var tenetRepairBudget = _effortProfile.TenetRepairBudget;
 
         while (true)
         {
@@ -250,15 +254,37 @@ internal sealed class GeneralWorker
                     evidence.Add(contractCheck.Finding);
             }
 
-            var verified = await _verifier
-                .VerifyAsync(
-                    VerificationIntent.ContractConformance,
-                    evidence,
-                    assessment.RunTenetCheck ? VerifierQuestionBase + brief.RenderTenetSection() : VerifierQuestionBase,
-                    cancellationToken,
-                    diff)
-                .ConfigureAwait(false);
-            RecordStep(parentInvocationId, "Verifier", verified.Outcome);
+            StepResult<VerificationFinding> verified;
+            if (assessment.SkipVerifier)
+            {
+                verified = TryVerifyDeterministically(evidence) ??
+                    new StepResult<VerificationFinding>(
+                        OperationOutcome.Succeeded,
+                        new VerificationFinding
+                        {
+                            Verdict = VerificationVerdict.Passed,
+                            Concerns = [],
+                            AdvisoryNotes = [],
+                            EvidenceSufficient = true
+                        },
+                        []);
+                RecordStep(
+                    parentInvocationId,
+                    verified.Outcome == OperationOutcome.Succeeded ? "Verifier:skipped" : "Verifier:deterministic-only",
+                    verified.Outcome);
+            }
+            else
+            {
+                verified = await _verifier
+                    .VerifyAsync(
+                        VerificationIntent.ContractConformance,
+                        evidence,
+                        assessment.RunTenetCheck ? VerifierQuestionBase + brief.RenderTenetSection() : VerifierQuestionBase,
+                        cancellationToken,
+                        diff)
+                    .ConfigureAwait(false);
+                RecordStep(parentInvocationId, "Verifier", verified.Outcome);
+            }
 
             if (verified.Outcome == OperationOutcome.Succeeded &&
                 verified.Finding?.Verdict == VerificationVerdict.Passed)
@@ -315,11 +341,13 @@ internal sealed class GeneralWorker
                             "the documentation-repair budget was already spent when another documentation finding arrived")]);
 
                 documentationRepairBudget--;
+                documentationRole = EscalateRole(documentationRole);
 
                 var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
                         WorkerHelpers.ComposeRepairInstruction(
                             ComposeDocumentInstruction(brief, plan, preflight),
                             documentationFixes),
+                        documentationRole,
                         parentInvocationId,
                         "DocumentAuthor:repair",
                         cancellationToken)
@@ -333,6 +361,7 @@ internal sealed class GeneralWorker
 
                 var (resyncTerminal, resyncCode) = await RunDeveloperAsync(
                         ComposeCodeInstruction(brief, plan, documentation, preflight),
+                        codeRole,
                         parentInvocationId,
                         "Developer:resync",
                         cancellationToken,
@@ -359,11 +388,13 @@ internal sealed class GeneralWorker
                             "the code-repair budget was already spent when another code finding arrived")]);
 
                 codeRepairBudget--;
+                codeRole = EscalateRole(codeRole);
 
                 var (codeRepairTerminal, repairedCode) = await RunDeveloperAsync(
                         WorkerHelpers.ComposeRepairInstruction(
                             ComposeCodeInstruction(brief, plan, documentation, preflight),
                             codeFixes),
+                        codeRole,
                         parentInvocationId,
                         "Developer:repair",
                         cancellationToken,
@@ -390,11 +421,13 @@ internal sealed class GeneralWorker
                             "the tenet-repair budget was already spent when another tenet finding arrived")]);
 
                 tenetRepairBudget--;
+                tenetRole = EscalateRole(tenetRole);
 
                 var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
                         WorkerHelpers.ComposeRepairInstruction(
                             ComposeCodeInstruction(brief, plan, documentation, preflight),
                             tenetFixes),
+                        tenetRole,
                         parentInvocationId,
                         "Developer:tenet-repair",
                         cancellationToken,
@@ -420,11 +453,12 @@ internal sealed class GeneralWorker
 
     private async Task<(WorkerExecutionResult? Terminal, ImplementationPlan? Plan)> RunPlannerAsync(
         string question,
+        ModelRole role,
         string parentInvocationId,
         string stepName,
         CancellationToken cancellationToken)
     {
-        var result = await _planner.PlanAsync(question, [], cancellationToken).ConfigureAwait(false);
+        var result = await CreatePlanner(role).PlanAsync(question, [], cancellationToken).ConfigureAwait(false);
         RecordStep(parentInvocationId, stepName, result.Outcome);
 
         if (result.Outcome != OperationOutcome.Succeeded || result.Finding is null)
@@ -447,11 +481,12 @@ internal sealed class GeneralWorker
 
     private async Task<(WorkerExecutionResult? Terminal, DocumentChangeSet? Changes)> RunDocumentAuthorAsync(
         string instruction,
+        ModelRole role,
         string parentInvocationId,
         string stepName,
         CancellationToken cancellationToken)
     {
-        var result = await _documentAuthor.AuthorAsync(instruction, cancellationToken).ConfigureAwait(false);
+        var result = await CreateDocumentAuthor(role).AuthorAsync(instruction, cancellationToken).ConfigureAwait(false);
         RecordStep(parentInvocationId, stepName, result.Outcome);
 
         if (result.Outcome == OperationOutcome.Escalated)
@@ -480,12 +515,13 @@ internal sealed class GeneralWorker
 
     private async Task<(WorkerExecutionResult? Terminal, ChangeSetSummary? Changes)> RunDeveloperAsync(
         string instruction,
+        ModelRole role,
         string parentInvocationId,
         string stepName,
         CancellationToken cancellationToken,
         DocumentChangeSet? priorDocumentation = null)
     {
-        var result = await _developer.DevelopAsync(instruction, cancellationToken).ConfigureAwait(false);
+        var result = await CreateDeveloper(role).DevelopAsync(instruction, cancellationToken).ConfigureAwait(false);
         RecordStep(parentInvocationId, stepName, result.Outcome);
 
         if (result.Outcome == OperationOutcome.Escalated)
@@ -520,11 +556,26 @@ internal sealed class GeneralWorker
         _recordStore?.Append(
             new ProcessStepRecord(DateTimeOffset.UtcNow, parentInvocationId, step, outcome.ToString(), null, null));
 
+    private Planner CreatePlanner(ModelRole role) =>
+        new(_repositoryRoot, _plannerCharter, maxPlanSteps: _maxPlanSteps, role: role, endpointFor: _endpointFor);
+
+    private DocumentAuthor CreateDocumentAuthor(ModelRole role) =>
+        new(
+            _repositoryRoot,
+            _documentAuthorCharter,
+            role: role,
+            targetFileCountBudget: _documentAuthorTargetFileCountBudget,
+            scopeDriftCheckInterval: 1,
+            endpointFor: _endpointFor);
+
+    private Developer CreateDeveloper(ModelRole role) =>
+        new(_repositoryRoot, _developerCharter, role: role, endpointFor: _endpointFor);
+
     private string ComposePlanningQuestion(WorkerBrief brief, PreflightObligationDecision preflight) =>
         $"""
          {brief.OriginalWorkItem}
 
-         Decide whether this Large general-worker run needs an explicit plan before authoring because the request
+         Decide whether this {_effort} general-worker run needs an explicit plan before authoring because the request
          frames a multi-system or architecture-shaping change, or whether direct execution is still better.
 
          Why the deterministic preflight asked for a plan: {preflight.Reason}
@@ -551,7 +602,7 @@ internal sealed class GeneralWorker
         $"""
          {brief.OriginalWorkItem}
 
-         Author any contract-clause or architecture-document changes this Large general-worker run needs under
+         Author any contract-clause or architecture-document changes this {_effort} general-worker run needs under
          .anneal/architecture/. Do not touch code or tests in this pass.
 
          Why the deterministic preflight asked for documentation first: {preflight.Reason}
@@ -595,8 +646,9 @@ internal sealed class GeneralWorker
         return $"""
                 {brief.OriginalWorkItem}
 
-                Implement the change in code and tests, keeping any contract or architecture edits you make aligned with
-                the request and the already-authored documentation when one exists.
+                Implement the change in code and tests for this {_effort} general-worker run, keeping any contract
+                or architecture edits you make aligned with the request and the already-authored documentation when
+                one exists.
 
                 {documentationContext}
 
@@ -628,9 +680,10 @@ internal sealed class GeneralWorker
                {string.Join("\n", plan.Steps.Select(step => $"- {step}"))}
                """;
 
-    private static PreflightObligationDecision SelectPreflightObligations(WorkerBrief brief)
+    private PreflightObligationDecision SelectPreflightObligations(WorkerBrief brief)
     {
         var subject = string.Join("\n", new[] { brief.OriginalWorkItem }.Concat(brief.ChangedFileHints)).ToLowerInvariant();
+        var suggestedRoles = _effortProfile.SuggestedRoles;
 
         var namesArchitectureDoc = ContainsAny(
             subject,
@@ -669,20 +722,23 @@ internal sealed class GeneralWorker
                 NeedsDocumentationFirst: true,
                 NeedsPlan: true,
                 Reason: "the request framing already names a multi-system or architecture-shaping change",
-                StepName: "PlanAndDocument");
+                StepName: "PlanAndDocument",
+                SuggestedRoles: suggestedRoles);
 
         if (namesArchitectureDoc || namesContractSurface)
             return new PreflightObligationDecision(
                 NeedsDocumentationFirst: true,
                 NeedsPlan: false,
                 Reason: "the request framing already names a contract or architecture-document change",
-                StepName: "Document");
+                StepName: "Document",
+                SuggestedRoles: suggestedRoles);
 
         return new PreflightObligationDecision(
             NeedsDocumentationFirst: false,
             NeedsPlan: false,
             Reason: "the request framing does not itself imply documentation-first or planning obligations",
-            StepName: "CodeOnly");
+            StepName: "CodeOnly",
+            SuggestedRoles: suggestedRoles);
     }
 
     private static bool ContainsAny(string text, params string[] fragments) =>
@@ -690,23 +746,106 @@ internal sealed class GeneralWorker
 
     private PostflightAssessment AssessPostflight(DiffFinding diff)
     {
-        var architectureChanges = diff.ChangedFiles
+        var substantiveDiff = DiffCheck.ExcludingAnnealBookkeeping(diff);
+        var substantiveChangedFiles = substantiveDiff.ChangedFiles;
+
+        var architectureChanges = substantiveChangedFiles
             .Where(path => path.StartsWith(".anneal/architecture/", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         var touchesContractSection = architectureChanges.Any(path =>
-            ArchitectureCoverage.PatchTouchesContractSection(diff.Patch, path));
+            ArchitectureCoverage.PatchTouchesContractSection(substantiveDiff.Patch, path));
 
         var matchedArchitectureDocs = ArchDocAgreementGate.FindMatchedDocuments(
             _repositoryRoot,
             Path.Combine(_repositoryRoot, ".anneal", "architecture"),
-            diff.ChangedFiles);
+            substantiveChangedFiles);
+
+        var docsOnlySurface = substantiveChangedFiles.Count > 0 &&
+                              substantiveChangedFiles.All(IsDocumentationPath);
 
         return new PostflightAssessment(
             RunContractCheck: touchesContractSection,
             RunArchDocAgreement: architectureChanges.Count > 0 || matchedArchitectureDocs.Count > 0,
-            RunTenetCheck: TouchesPublicSignature(diff.Patch),
-            HasAmbiguousDiffSurface: diff.Patch.Length > 0 && diff.ChangedFiles.Count == 0);
+            RunTenetCheck: TouchesPublicSignature(substantiveDiff.Patch),
+            HasAmbiguousDiffSurface: diff.Patch.Length > 0 && diff.ChangedFiles.Count == 0,
+            SkipVerifier: docsOnlySurface && !touchesContractSection);
+    }
+
+    private static StepResult<VerificationFinding>? TryVerifyDeterministically(
+        IReadOnlyList<CheckFinding> deterministicEvidence)
+    {
+        var failing = deterministicEvidence.Where(finding => !finding.Passed).ToList();
+        if (failing.Count == 0)
+            return null;
+
+        var finding = new VerificationFinding
+        {
+            Verdict = VerificationVerdict.RepairRequired,
+            Concerns =
+                [.. failing.Select(check => new VerificationConcern
+                {
+                    Owner = VerificationOwner.Code,
+                    FixText = $"{check.Name}: {check.Summary}"
+                })],
+            AdvisoryNotes = [],
+            EvidenceSufficient = true
+        };
+
+        return new StepResult<VerificationFinding>(OperationOutcome.Failed, finding, []);
+    }
+
+    private static EffortProfile CreateEffortProfile(
+        Effort effort,
+        int? documentationRepairBudgetOverride,
+        int? codeRepairBudgetOverride,
+        int? tenetRepairBudgetOverride)
+    {
+        var defaults = effort switch
+        {
+            Effort.Small => new EffortProfile(
+                DocumentationRepairBudget: 0,
+                CodeRepairBudget: 1,
+                TenetRepairBudget: 0,
+                SuggestedRoles: new ProducedStepRoles(ModelRole.Light, ModelRole.Medium, ModelRole.Medium)),
+            Effort.Medium => new EffortProfile(
+                DocumentationRepairBudget: 1,
+                CodeRepairBudget: 1,
+                TenetRepairBudget: 0,
+                SuggestedRoles: new ProducedStepRoles(ModelRole.Medium, ModelRole.Medium, ModelRole.Medium)),
+            Effort.Large => new EffortProfile(
+                DocumentationRepairBudget: 1,
+                CodeRepairBudget: 1,
+                TenetRepairBudget: 1,
+                SuggestedRoles: new ProducedStepRoles(ModelRole.Medium, ModelRole.Heavy, ModelRole.Heavy)),
+            _ => throw new NotSupportedException(
+                $"{nameof(GeneralWorker)} does not execute {effort} work; decompose it before selecting this worker.")
+        };
+
+        return defaults with
+        {
+            DocumentationRepairBudget = documentationRepairBudgetOverride ?? defaults.DocumentationRepairBudget,
+            CodeRepairBudget = codeRepairBudgetOverride ?? defaults.CodeRepairBudget,
+            TenetRepairBudget = tenetRepairBudgetOverride ?? defaults.TenetRepairBudget
+        };
+    }
+
+    private static ModelRole EscalateRole(ModelRole role) => role switch
+    {
+        ModelRole.Light => ModelRole.Medium,
+        ModelRole.Medium => ModelRole.Heavy,
+        _ => ModelRole.Heavy
+    };
+
+    private static bool IsDocumentationPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var normalized = path.Replace('\\', '/');
+        return normalized.StartsWith(".anneal/architecture/", StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith("docs/", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TouchesPublicSignature(string patch)
@@ -789,11 +928,24 @@ internal sealed class GeneralWorker
         bool NeedsDocumentationFirst,
         bool NeedsPlan,
         string Reason,
-        string StepName);
+        string StepName,
+        ProducedStepRoles SuggestedRoles);
 
     private sealed record PostflightAssessment(
         bool RunContractCheck,
         bool RunArchDocAgreement,
         bool RunTenetCheck,
-        bool HasAmbiguousDiffSurface);
+        bool HasAmbiguousDiffSurface,
+        bool SkipVerifier);
+
+    private sealed record ProducedStepRoles(
+        ModelRole PlannerRole,
+        ModelRole DocumentAuthorRole,
+        ModelRole DeveloperRole);
+
+    private sealed record EffortProfile(
+        int DocumentationRepairBudget,
+        int CodeRepairBudget,
+        int TenetRepairBudget,
+        ProducedStepRoles SuggestedRoles);
 }

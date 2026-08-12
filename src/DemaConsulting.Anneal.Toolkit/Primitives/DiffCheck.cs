@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 using DemaConsulting.Anneal.Toolkit.Operations;
 
@@ -172,6 +173,77 @@ internal sealed partial class DiffCheck
     /// </remarks>
     private static string Summarize(string output) =>
         output.Length <= MaxPatchLength ? output : output[..MaxPatchLength] + "…";
+
+    /// <summary>
+    ///     Removes Anneal's own transcript and deleted-file bookkeeping from a diff finding, keeping only the
+    ///     substantive repository files a worker should reason about.
+    /// </summary>
+    /// <remarks>
+    ///     These files are side effects of the Toolkit observing a run, not part of the requested change itself.
+    ///     Treating them as authored scope causes false drift and false "mixed surface" classifications in live
+    ///     runs that otherwise changed only in-bound files.
+    /// </remarks>
+    internal static DiffFinding ExcludingAnnealBookkeeping(DiffFinding finding)
+    {
+        var filteredFiles = finding.ChangedFiles
+            .Where(path => !IsAnnealBookkeepingPath(path))
+            .ToList();
+
+        if (filteredFiles.Count == finding.ChangedFiles.Count)
+            return finding;
+
+        return new DiffFinding(finding.Available, filteredFiles, FilterPatch(finding.Patch));
+    }
+
+    internal static bool IsAnnealBookkeepingPath(string path) =>
+        path.Replace('\\', '/').StartsWith(".anneal/logs/", StringComparison.OrdinalIgnoreCase);
+
+    private static string FilterPatch(string patch)
+    {
+        if (string.IsNullOrWhiteSpace(patch))
+            return patch;
+
+        var blocks = new List<string>();
+        var preamble = new StringBuilder();
+        StringBuilder? current = null;
+        var includeCurrent = false;
+        var sawHeader = false;
+
+        foreach (var rawLine in patch.Split('\n'))
+        {
+            var line = rawLine.TrimEnd('\r');
+            if (line.StartsWith("diff --git ", StringComparison.Ordinal))
+            {
+                sawHeader = true;
+                if (current is not null && includeCurrent)
+                    blocks.Add(current.ToString());
+
+                current = new StringBuilder();
+                current.AppendLine(line);
+
+                var match = FileHeader().Match(line);
+                includeCurrent = match.Success &&
+                                 !IsAnnealBookkeepingPath(match.Groups["path"].Value.Trim().Replace('\\', '/'));
+                continue;
+            }
+
+            if (current is null)
+            {
+                preamble.AppendLine(line);
+                continue;
+            }
+
+            current.AppendLine(line);
+        }
+
+        if (current is not null && includeCurrent)
+            blocks.Add(current.ToString());
+
+        if (!sawHeader)
+            return patch;
+
+        return (preamble.ToString() + string.Concat(blocks)).TrimEnd('\r', '\n');
+    }
 
     [GeneratedRegex(@"^diff --git a/(?<path>.+?) b/", RegexOptions.Multiline)]
     private static partial Regex FileHeader();
