@@ -126,8 +126,9 @@ clock.
 6. **Skill corpus re-validation** — if a skills corpus exists in this repository, sweep it (once
    it has enough entries) for staleness or consolidation candidates.
 
-7. **Process health check** — run `dotnet anneal stats` and look for a worsening pass rate or
-   effort trend.
+7. **Process health check** — run `dotnet anneal stats` and look for a worsening pass rate, or a
+   rising cost/latency trend (token usage, duration) that is not matched by a corresponding gain in
+   reliability, across the time windows the command already reports.
 
 When a major or disruptive change has just landed, treat categories 2, 3, and 4 as a combined
 sweep rather than stopping at whichever is checked first. These three are different symptoms of the
