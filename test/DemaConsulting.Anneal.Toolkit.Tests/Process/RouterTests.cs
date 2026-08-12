@@ -1022,6 +1022,99 @@ public class RouterTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_AfterResearch_OracleContextIncludesCorroboratedEvidence()
+    {
+        // Arrange: the router asks for research first, then routes to a worker. The research finding
+        // has no evidence refs (the QueuedEndpoint makes no tool calls, so corroboration leaves it empty).
+        // The oracle context the second oracle call sees must render "[evidence: no corroborated evidence]".
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                NeedResearchJson("who owns this?", "need to understand ownership"),
+                ResearchFindingJson("who owns this?", "the toolkit", sufficientForNextDecision: true),
+                SelectWorkerJson("small-fix", "now I know"));
+
+            var researchEndpoint = new QueuedEndpoint("I looked around.");
+
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Succeeded,
+                new WorkerRunResult.Completed(new ChangeSetSummary(["a.cs"], "fixed")),
+                null,
+                []));
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("fix the bug", null, TestContext.Current.CancellationToken);
+
+            // Assert: succeeded, and the second oracle call's context contains the evidence line
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+
+            // Requests[0] = NeedResearch ask, Requests[1] = research probe (ProbeAsync at Light),
+            // Requests[2] = the second route oracle ask that sees the research history
+            var secondOracleContextText = string.Join(
+                "\n",
+                oracleEndpoint.Requests[2].Messages.Select(m => m.Text));
+
+            Assert.Contains(
+                "[evidence: no corroborated evidence]",
+                secondOracleContextText,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_MassiveAfterResearch_DecompositionContextIncludesCorroboratedEvidence()
+    {
+        // Arrange: the router asks for research, then sees a Massive item and decomposes it. The
+        // decomposition context must also render the corroborated evidence line.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(
+                NeedResearchJson("scope?", "need scope clarity"),
+                ResearchFindingJson("scope?", "very broad", sufficientForNextDecision: true),
+                SelectWorkerJson("small-fix", "massive item", effort: "Massive"),
+                CannotDecomposeJson("cannot split"));
+
+            var researchEndpoint = new QueuedEndpoint("I looked around.");
+
+            var recordStore = new RecordStore(root);
+            WorkerRunner runner = (_, _) => throw new InvalidOperationException("no worker should run");
+
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner);
+
+            // Act
+            var result = await router.RunAsync("a massive item", null, TestContext.Current.CancellationToken);
+
+            // Assert: failed (cannot decompose), and the decomposition context carries the evidence line
+            Assert.Equal(OperationOutcome.Failed, result.Outcome);
+
+            // Requests[0] = NeedResearch ask, Requests[1] = research probe (ProbeAsync at Light),
+            // Requests[2] = second route oracle ask (Massive), Requests[3] = decomposition oracle ask
+            var decompositionContextText = string.Join(
+                "\n",
+                oracleEndpoint.Requests[3].Messages.Select(m => m.Text));
+
+            Assert.Contains(
+                "[evidence: no corroborated evidence]",
+                decompositionContextText,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static Router BuildRouter(
         string root,
         RecordStore recordStore,

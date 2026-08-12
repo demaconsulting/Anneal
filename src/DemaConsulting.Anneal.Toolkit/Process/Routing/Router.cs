@@ -603,8 +603,13 @@ internal sealed class Router
         ];
 
         context.AddRange(
-            ledger.ResearchHistory.Select(
-                finding => $"Research — {finding.Question}: {finding.Answer} ({finding.Implications})"));
+            ledger.ResearchHistory.Select(finding =>
+            {
+                var evidence = finding.EvidenceRefs.Count == 0
+                    ? "no corroborated evidence"
+                    : string.Join(", ", finding.EvidenceRefs);
+                return $"Research — {finding.Question}: {finding.Answer} ({finding.Implications}) [evidence: {evidence}]";
+            }));
 
         context.AddRange(
             ledger.WorkerReroutes.Select(
@@ -633,8 +638,13 @@ internal sealed class Router
         ];
 
         context.AddRange(
-            ledger.ResearchHistory.Select(
-                finding => $"Research — {finding.Question}: {finding.Answer} ({finding.Implications})"));
+            ledger.ResearchHistory.Select(finding =>
+            {
+                var evidence = finding.EvidenceRefs.Count == 0
+                    ? "no corroborated evidence"
+                    : string.Join(", ", finding.EvidenceRefs);
+                return $"Research — {finding.Question}: {finding.Answer} ({finding.Implications}) [evidence: {evidence}]";
+            }));
 
         context.AddRange(
             ledger.WorkerReroutes.Select(

@@ -151,6 +151,17 @@ public sealed class ModelSession
     public int SuccessfulEditCallCount => _toolCalls.SuccessfulEditCallCount;
 
     /// <summary>
+    ///     The deduplicated set of file or directory paths that a successful read-tool call (read_file,
+    ///     list_files, search_files) passed as its <c>path</c> argument during this conversation.
+    /// </summary>
+    /// <remarks>
+    ///     Exposed so a calling primitive can corroborate the model's self-reported evidence list against what
+    ///     was actually consulted, rather than trusting a self-reported list unchecked. Refused and faulted
+    ///     calls are excluded — they produced no evidence. Comparison is case-insensitive.
+    /// </remarks>
+    public IReadOnlySet<string> SuccessfulReadPaths => _toolCalls.SuccessfulReadPaths;
+
+    /// <summary>
     ///     Opens a conversation over a role resolver.
     /// </summary>
     /// <param name="roles">Resolver from role to serving endpoint. Must not be null.</param>

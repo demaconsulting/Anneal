@@ -11,7 +11,8 @@ public class ResearchTests
     [Fact]
     public async Task InvestigateAsync_SufficientOnFirstTurn_Succeeds()
     {
-        // Arrange: one look-around turn, then a finding that reports itself sufficient
+        // Arrange: one look-around turn, then a finding that reports itself sufficient.
+        // The QueuedEndpoint makes no read-tool calls, so corroboration removes all self-reported refs.
         var root = CreateTemporaryDirectory();
         try
         {
@@ -31,10 +32,10 @@ public class ResearchTests
             // Act
             var result = await research.InvestigateAsync("what owns this?", TestContext.Current.CancellationToken);
 
-            // Assert: succeeded after a single round, and evidence trimmed to the stated budget
+            // Assert: succeeded after a single round; corroboration empties evidence because no tool was called
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.Equal(2, result.Finding?.EvidenceRefs.Count),
+                () => Assert.Empty(result.Finding?.EvidenceRefs ?? []),
                 () => Assert.Equal(2, endpoint.Calls));
         }
         finally
@@ -94,6 +95,41 @@ public class ResearchTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
                 () => Assert.Null(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InvestigateAsync_ModelOverClaimsEvidence_TrimsToCorroboratedRefs()
+    {
+        // Arrange: the model reports three evidence refs but the QueuedEndpoint makes no real tool calls,
+        // so none of those paths were actually read — the corroboration step should remove all three
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I reviewed the files.",
+                """
+                {
+                    "question": "what owns this?",
+                    "answer": "the toolkit does",
+                    "evidenceRefs": ["a.md", "b.md", "c.md"],
+                    "implications": "nothing else needs to change",
+                    "sufficientForNextDecision": true
+                }
+                """);
+            var research = new Research(root, "a charter", maxTurns: 1, endpointFor: _ => endpoint);
+
+            // Act
+            var result = await research.InvestigateAsync("what owns this?", TestContext.Current.CancellationToken);
+
+            // Assert: hallucinated evidence refs are removed; the finding is still otherwise valid
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Empty(result.Finding?.EvidenceRefs ?? []));
         }
         finally
         {

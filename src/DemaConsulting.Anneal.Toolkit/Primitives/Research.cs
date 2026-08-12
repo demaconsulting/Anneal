@@ -144,6 +144,9 @@ internal sealed class Research
 
             finding = Trim(finding, _evidenceBudget);
 
+            // Corroborate: keep only refs that the session actually read, case-insensitively
+            finding = Corroborate(finding, session.SuccessfulReadPaths);
+
             if (session.RefusedProtectedWrites.Count > 0)
                 return new StepResult<ResearchFinding>(
                     OperationOutcome.Escalated,
@@ -173,4 +176,16 @@ internal sealed class Research
         finding.EvidenceRefs.Count <= evidenceBudget
             ? finding
             : finding with { EvidenceRefs = [.. finding.EvidenceRefs.Take(evidenceBudget)] };
+
+    /// <remarks>
+    ///     The model may self-report any string as evidence; this method removes any entry that does not appear
+    ///     in the set of paths the session actually read, so a hallucinated reference becomes absent rather than
+    ///     quietly accepted. An empty result is intentional: it signals to any downstream consumer that no
+    ///     verified evidence was found, rather than providing a false sense of grounding.
+    /// </remarks>
+    private static ResearchFinding Corroborate(ResearchFinding finding, IReadOnlySet<string> readPaths) =>
+        finding with
+        {
+            EvidenceRefs = [.. finding.EvidenceRefs.Where(r => readPaths.Contains(r))]
+        };
 }

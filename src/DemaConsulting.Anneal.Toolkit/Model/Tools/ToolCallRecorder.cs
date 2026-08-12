@@ -38,9 +38,13 @@ internal sealed class ToolCallRecorder
     private static readonly HashSet<string> EditToolNames =
         new(RepositoryEditTools.Names, StringComparer.OrdinalIgnoreCase);
 
+    private static readonly HashSet<string> ReadToolNames =
+        new(RepositoryReadTools.Names, StringComparer.OrdinalIgnoreCase);
+
     private readonly RecordStore _store;
     private readonly Lock _gate = new();
     private readonly List<ToolCallTranscript> _refusals = [];
+    private readonly HashSet<string> _successfulReadPaths = new(StringComparer.OrdinalIgnoreCase);
     private int _successfulEditCallCount;
 
     /// <param name="store">Where each transcript is appended. Must not be null.</param>
@@ -101,6 +105,27 @@ internal sealed class ToolCallRecorder
     }
 
     /// <summary>
+    ///     The deduplicated set of file and directory paths that a successful read-tool call (read_file,
+    ///     list_files, search_files) reported against during this session.
+    /// </summary>
+    /// <remarks>
+    ///     Extracted from the first string argument of each successful call so that a caller can cross-check
+    ///     a model's self-reported evidence list against what was actually consulted, without re-reading the
+    ///     transcript. Refused and faulted calls are excluded: they did not produce evidence. Comparison is
+    ///     case-insensitive because path capitalization is not a meaningful distinction on most platforms.
+    /// </remarks>
+    internal IReadOnlySet<string> SuccessfulReadPaths
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return new HashSet<string>(_successfulReadPaths, StringComparer.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    /// <summary>
     ///     Wraps every function-backed tool so its invocations are transcribed.
     /// </summary>
     /// <remarks>
@@ -130,6 +155,17 @@ internal sealed class ToolCallRecorder
 
             if (result == ToolReply.Returned && EditToolNames.Contains(tool))
                 _successfulEditCallCount++;
+
+            if (result == ToolReply.Returned && ReadToolNames.Contains(tool))
+            {
+                var path = arguments
+                    .Where(e => string.Equals(e.Key, "path", StringComparison.OrdinalIgnoreCase))
+                    .Select(e => e.Value?.ToString())
+                    .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+                if (path is not null)
+                    _successfulReadPaths.Add(path);
+            }
         }
 
         _store.Append(transcript);
