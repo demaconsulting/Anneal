@@ -26,7 +26,7 @@ public sealed partial class ArchitectureDocument
 {
     /// <summary>
     ///     Front matter is parsed as front matter rather than left to be read as a thematic break followed by
-    ///     prose, so that a document's <c>level:</c> and <c>covers:</c> block can never contribute a block
+    ///     prose, so that a document's <c>covers:</c> block can never contribute a block
     ///     that looks like contract content.
     /// </summary>
     private static readonly MarkdownPipeline Pipeline =

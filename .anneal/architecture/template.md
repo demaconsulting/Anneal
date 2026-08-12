@@ -1,5 +1,4 @@
 ---
-level: system
 covers:
   - .github/template/.anneal/**
 ---

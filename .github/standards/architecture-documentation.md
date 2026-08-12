@@ -182,7 +182,6 @@ naming the source it describes:
 
 ```yaml
 ---
-level: system
 covers:
   - src/Ingest/**
 ---
@@ -267,7 +266,7 @@ that earns its place. A short document missing the *why* is the more expensive f
   holding the next level of detail about it
 - [ ] The one-file test passes for the change just made
 - [ ] Every document links to its direct children; children link back to their parent
-- [ ] Every system document and subsystem document, at any depth, carries `level` and `covers` front matter
+- [ ] Every system document and subsystem document, at any depth, carries `covers` front matter
 - [ ] Every subsystem document still earns its place under the benefit test
 - [ ] Subsystem documents whose subject was removed were deleted in the same change
 - [ ] No document is long for a reason that belongs at another level

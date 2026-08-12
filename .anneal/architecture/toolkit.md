@@ -1,5 +1,4 @@
 ---
-level: system
 covers:
   - src/DemaConsulting.Anneal.Toolkit/**
   - test/DemaConsulting.Anneal.Toolkit.Tests/**

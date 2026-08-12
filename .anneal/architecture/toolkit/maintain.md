@@ -1,5 +1,4 @@
 ---
-level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/MaintainOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/MaintainReport.cs

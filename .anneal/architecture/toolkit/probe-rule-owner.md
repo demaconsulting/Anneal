@@ -1,5 +1,4 @@
 ---
-level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/ProbeRuleOwnerOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/RuleOwnerAnswer.cs

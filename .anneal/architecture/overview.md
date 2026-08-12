@@ -1,5 +1,4 @@
 ---
-level: overview
 covers:
   - .github/agents/**
   - .github/skills/**

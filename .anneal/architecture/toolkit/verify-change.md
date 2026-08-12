@@ -1,5 +1,4 @@
 ---
-level: subsystem
 covers:
   - src/DemaConsulting.Anneal.Toolkit/Operations/VerifyChangeOperation.cs
   - src/DemaConsulting.Anneal.Toolkit/Operations/VerifyChangeReport.cs

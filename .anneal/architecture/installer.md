@@ -1,5 +1,4 @@
 ---
-level: system
 covers:
   - install.ps1
   - retired-payload.txt
