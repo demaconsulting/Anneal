@@ -18,11 +18,10 @@ namespace DemaConsulting.Anneal.Toolkit.Model.Tools;
 ///         rejected. Rooted, drive-qualified, cross-drive, UNC and device inputs are rejected, as is anything
 ///         climbing above the root through <c>..</c>. An alternate-data-stream suffix such as
 ///         <c>fix.ps1::$DATA</c> — which the runtime resolves to the file's own contents, defeating any check
-///         phrased over the resolved path — is rejected, as is any other path carrying a colon. A path
-///         carrying a backslash is rejected outright too, since a UNC form such as
-///         <c>\\server\share\x</c> is only recognized as rooted by the runtime on Windows; on Linux and
-///         macOS it would otherwise be treated as a literal, contained filename segment. A path the
-///         runtime cannot parse at all — an embedded NUL,
+///         phrased over the resolved path — is rejected, as is any other path carrying a colon. A backslash
+///         is normalized to a forward slash before the rooted check, so a UNC form such as
+///         <c>\\server\share\x</c> becomes <c>//server/share/x</c> and is then refused as rooted on every
+///         platform. A path the runtime cannot parse at all — an embedded NUL,
 ///         an illegal character, an over-long name — is rejected too. It fails closed and never throws, because
 ///         a containment check that throws is one some caller will eventually wrap in a swallow.
 ///     </para>
@@ -54,7 +53,8 @@ public static class RepositoryPath
     /// </param>
     /// <param name="relativePath">
     ///     The model-supplied path, treated as adversarial. Empty or <c>"."</c> resolves to the root itself.
-    ///     Null answers false.
+    ///     Backslashes are normalized to forward slashes before any checks, so a Windows-style path such as
+    ///     <c>src\foo.cs</c> is accepted as equivalent to <c>src/foo.cs</c>. Null answers false.
     /// </param>
     /// <param name="fullPath">
     ///     The contained absolute path when the answer is true — possibly the root itself — and null otherwise.
@@ -67,6 +67,13 @@ public static class RepositoryPath
         if (string.IsNullOrEmpty(repositoryRoot) || relativePath is null)
             return false;
 
+        // Normalize backslashes to forward slashes before any further checks. A model may echo back a
+        // Windows-style path (e.g. "src\foo.cs") even though this type always returns paths with '/' only.
+        // Normalizing here converts a UNC form such as '\\server\share' into '//server/share', which
+        // Path.IsPathRooted then correctly refuses on every platform — closing the alias the raw backslash
+        // form only caught on Windows.
+        relativePath = relativePath.Replace('\\', '/');
+
         if (Path.IsPathRooted(relativePath))
             return false;
 
@@ -77,17 +84,6 @@ public static class RepositoryPath
         // repository-relative path on any platform this runs on - a drive qualifier is already refused as
         // rooted - so refusing it outright closes the alias for every tool at once rather than for one check.
         if (relativePath.Contains(':', StringComparison.Ordinal))
-            return false;
-
-        // A backslash is refused outright for the identical reason: Path.IsPathRooted and Path.GetFullPath
-        // only recognize backslash as a directory separator on Windows, so a UNC form such as
-        // '\\server\share\x' is not rooted on Linux or macOS and Path.Combine/Path.GetFullPath there treat it
-        // as a literal, single-segment filename - one that happens to textually land inside the root, so the
-        // escape it names is never detected. RepositoryPath.Relative already renders every contained path back
-        // to the model using '/' alone, so a legitimate repository-relative path never contains a backslash;
-        // refusing it outright closes the alias for every platform at once rather than only for the one
-        // (Windows) where Path.IsPathRooted happens to catch it.
-        if (relativePath.Contains('\\', StringComparison.Ordinal))
             return false;
 
         string root, candidate, relative;

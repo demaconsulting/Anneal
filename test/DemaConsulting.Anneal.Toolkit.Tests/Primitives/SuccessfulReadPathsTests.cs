@@ -122,6 +122,67 @@ public class SuccessfulReadPathsTests
         }
     }
 
+    [Fact]
+    public async Task SuccessfulReadPaths_DotSlashPrefix_NormalizedBeforeCapture()
+    {
+        // Arrange: read_file called with a leading "./" on the path
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "readme.md"), "hello");
+
+            var endpoint = new ToolInvokingEndpoint(
+                toolName: "read_file",
+                arguments: new Dictionary<string, object?> { ["path"] = "./readme.md", ["start"] = 0, ["max"] = 0 },
+                runReply: "I read readme.md.");
+
+            var roles = new ModelRoles(root, _ => endpoint);
+            var session = new ModelSession(roles, "a charter", new ToolGroups(root).SelectTools([ToolGroups.Read]));
+
+            // Act
+            await session.RunAsync("read a file", role: null, TestContext.Current.CancellationToken);
+
+            // Assert: "./readme.md" is stored as "readme.md" so it matches a bare ref
+            Assert.Contains("readme.md", session.SuccessfulReadPaths, StringComparer.OrdinalIgnoreCase);
+            Assert.DoesNotContain("./readme.md", session.SuccessfulReadPaths, StringComparer.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SuccessfulReadPaths_BackslashSeparators_NormalizedToForwardSlash()
+    {
+        // Arrange: read_file called with backslash separators
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var subDir = Path.Combine(root, "src");
+            Directory.CreateDirectory(subDir);
+            File.WriteAllText(Path.Combine(subDir, "foo.cs"), "// code");
+
+            var endpoint = new ToolInvokingEndpoint(
+                toolName: "read_file",
+                arguments: new Dictionary<string, object?> { ["path"] = @"src\foo.cs", ["start"] = 0, ["max"] = 0 },
+                runReply: "I read it.");
+
+            var roles = new ModelRoles(root, _ => endpoint);
+            var session = new ModelSession(roles, "a charter", new ToolGroups(root).SelectTools([ToolGroups.Read]));
+
+            // Act
+            await session.RunAsync("read a file", role: null, TestContext.Current.CancellationToken);
+
+            // Assert: "src\foo.cs" is stored as "src/foo.cs"
+            Assert.Contains("src/foo.cs", session.SuccessfulReadPaths, StringComparer.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-read-paths-" + Guid.NewGuid().ToString("N")[..12]);

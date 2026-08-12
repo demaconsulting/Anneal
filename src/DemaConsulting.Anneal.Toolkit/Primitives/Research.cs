@@ -180,12 +180,24 @@ internal sealed class Research
     /// <remarks>
     ///     The model may self-report any string as evidence; this method removes any entry that does not appear
     ///     in the set of paths the session actually read, so a hallucinated reference becomes absent rather than
-    ///     quietly accepted. An empty result is intentional: it signals to any downstream consumer that no
-    ///     verified evidence was found, rather than providing a false sense of grounding.
+    ///     quietly accepted. Both the self-reported ref and the recorded path are normalized (backslashes unified,
+    ///     leading <c>./</c> stripped, trailing slash stripped) before comparison, so a harmless formatting
+    ///     difference does not cause a false 'not corroborated' result. An empty result is intentional: it signals
+    ///     to any downstream consumer that no verified evidence was found, rather than providing a false sense of
+    ///     grounding.
     /// </remarks>
     private static ResearchFinding Corroborate(ResearchFinding finding, IReadOnlySet<string> readPaths) =>
         finding with
         {
-            EvidenceRefs = [.. finding.EvidenceRefs.Where(r => readPaths.Contains(r))]
+            EvidenceRefs = [.. finding.EvidenceRefs.Where(r => readPaths.Contains(NormalizePath(r)))]
         };
+
+    // Mirrors the normalization applied when recording successful read paths so that a leading './',
+    // backslash separators, or a trailing slash in a self-reported evidence ref does not cause a
+    // false 'not corroborated' result.
+    private static string NormalizePath(string path)
+    {
+        var normalized = path.Replace('\\', '/').TrimEnd('/');
+        return normalized.StartsWith("./", StringComparison.Ordinal) ? normalized[2..] : normalized;
+    }
 }

@@ -111,8 +111,10 @@ internal sealed class ToolCallRecorder
     /// <remarks>
     ///     Extracted from the first string argument of each successful call so that a caller can cross-check
     ///     a model's self-reported evidence list against what was actually consulted, without re-reading the
-    ///     transcript. Refused and faulted calls are excluded: they did not produce evidence. Comparison is
-    ///     case-insensitive because path capitalization is not a meaningful distinction on most platforms.
+    ///     transcript. Refused and faulted calls are excluded: they did not produce evidence. Paths are
+    ///     normalized on capture (backslashes unified to forward slashes, leading <c>./</c> and trailing
+    ///     slashes stripped) so that equivalent spellings of the same path compare as equal. Comparison is
+    ///     also case-insensitive because path capitalization is not a meaningful distinction on most platforms.
     /// </remarks>
     internal IReadOnlySet<string> SuccessfulReadPaths
     {
@@ -164,11 +166,28 @@ internal sealed class ToolCallRecorder
                     .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
 
                 if (path is not null)
-                    _successfulReadPaths.Add(path);
+                    _successfulReadPaths.Add(NormalizePath(path));
             }
         }
 
         _store.Append(transcript);
+    }
+
+    /// <remarks>
+    ///     Backslashes are unified to forward slashes and a leading <c>./</c> is stripped so that
+    ///     <c>.\foo\bar</c>, <c>./foo/bar</c>, and <c>foo/bar</c> all record as the same key.
+    ///     Trailing slashes are stripped for the same reason. The comparison in <see cref="SuccessfulReadPaths"/>
+    ///     is still case-insensitive; this handles only separator and prefix differences.
+    /// </remarks>
+    private static string NormalizePath(string path)
+    {
+        var normalized = path.Replace('\\', '/').TrimEnd('/');
+
+        // Strip a leading "./" that a model often prepends to a repository-relative path.
+        if (normalized.StartsWith("./", StringComparison.Ordinal))
+            normalized = normalized[2..];
+
+        return normalized;
     }
 
     /// <remarks>
