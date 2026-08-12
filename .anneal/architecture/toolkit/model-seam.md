@@ -70,6 +70,26 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
   recorded as having none; the absence is silence, not a defect.
   *Verified by:* `ToolkitContractTests.IntermediateProgressIsTranscribed`
 
+- **TOOLKIT-50** — Every file path a model's read-tool call succeeds against is recorded by the
+  session, normalized to forward-slash separators with any leading `./` stripped, and compared
+  case-insensitively so that casing differences between the model's path and the file system do not
+  create phantom gaps. A read that fails or is refused contributes no path. The set is deduplicated.
+  *Verified by:* `ToolkitContractTests.SuccessfulReadPathsAreRecordedNormalizedAndDeduplicated`
+
+- **TOOLKIT-51** — When a `Research` session's finding carries evidence references, only those whose
+  paths appear in the session's successful-read set are retained in the finding passed to the caller.
+  A reference the model cited but never actually read — because it named the file without calling the
+  read tool, or called the tool and the call failed — is dropped rather than forwarded as corroborated
+  evidence.
+  *Verified by:* `ToolkitContractTests.ResearchCorroboratesEvidenceRefsAgainstSuccessfulReads`
+
+- **TOOLKIT-52** — When `Developer` or `DocumentAuthor` completes a pass, the self-reported list of
+  changed files is filtered against the actual working-tree diff produced by `git`. Only files that
+  appear in the diff are forwarded; files the model claimed to have changed but that the diff does not
+  show are dropped. When `git` is unavailable the self-reported list is used unchanged, so the
+  corroboration is a strengthening check, not a gate.
+  *Verified by:* `ToolkitContractTests.DeveloperAndDocumentAuthorCorroborateChangedFilesAgainstGitDiff`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the invocation record the transcript is captured alongside, and the
