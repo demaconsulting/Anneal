@@ -21,3 +21,6 @@ maintenance: Only edited by the repository author.
   of rules that could apply somewhere.** Precision of relevance is a reliability property, not merely a
   cost saving: a correct rule the model is never shown, or is shown buried among irrelevant ones, might
   as well not exist for that decision.
+- **A lightweight repository map can stay accurate enough to guide work.** A concise, human/model-readable
+  representation of the repository's structure and intent can be kept current enough, at acceptable
+  cost, to support reliable change without requiring full code re-derivation on every task.

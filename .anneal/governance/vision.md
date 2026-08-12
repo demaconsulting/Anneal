@@ -5,9 +5,9 @@ maintenance: Only edited by the repository author.
 
 # Vision
 
-Anneal is a CLI coding agent: it maintains its own understanding of a repository, maintains and
-improves the code in it, and works with the owner to add new functionality — from a small fix to a
-full re-architecture — and can onboard itself into a repository it has never seen.
+Anneal is a CLI coding agent: it maintains an accurate, lightweight understanding of a repository,
+maintains and improves the code in it, and works with the owner to add new functionality — from a
+small fix to a full re-architecture — and can onboard itself into a repository it has never seen.
 
 Underneath, work is classified and routed by deterministic, compiled control flow. A model does the
 actual work — writing the code, editing the files — and separately answers narrow, typed oracle
