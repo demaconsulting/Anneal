@@ -24,13 +24,14 @@ where `helper` will read them during boundary work. See the Intake admission tes
   the verb and arguments directly, rather than asking a second question of a second component.
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
   a general repair pass, but each agent's INCOMPLETE and FAILED outcomes deserve worked examples.
-- **Check the mechanical architecture rules in `dotnet anneal check-contracts`** — `level:`/`covers:`
-  front matter presence and `definition.yaml` agreeing with the markdown files beside it are both
-  MANDATORY, both deterministic, and both have drifted in practice. Extend the existing check rather
-  than adding a second one; weigh against the cost that "the **only** mechanically enforced
-  relationship" is asserted in six files and would all need revisiting. The navigation rules are not
-  candidates: a child linking its parent is a SHOULD, and no rule yet forbids linking more than one
-  level down.
+- **Mechanically check that `docs/user-guide/definition.yaml` agrees with the markdown files beside
+  it** — presence and agreement is MANDATORY and deterministic, and has drifted in practice (one
+  instance found and fixed by hand). No check catches this today. Weigh against the cost that "the
+  **only** mechanically enforced relationship" is asserted in six files and would all need revisiting
+  if this became a second one. (Retired from this item: `level:` front matter no longer exists —
+  removed as fully redundant with path depth — and `covers:` staleness is being addressed separately
+  via an automatic verified-fingerprint ledger under `.anneal/logs/`, not by extending
+  `check-contracts`.)
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
