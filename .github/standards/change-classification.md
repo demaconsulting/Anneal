@@ -218,12 +218,16 @@ If no, it is Contract Change. If yes, it is Structural Change.
 The contract is unchanged. Refactors, performance work, internal restructuring, bug fixes that
 restore already-promised behavior, dependency bumps, and test additions.
 
-- **Documentation**: none — unless the change invalidates an existing subsystem document, in which
-  case update or delete that one file. A narrow exception: correcting a sentence in
+- **Documentation**: none authored by hand — unless the change invalidates an existing subsystem
+  document, in which case update or delete that one file. A narrow exception: correcting a sentence in
   `.anneal/architecture/overview.md` that is factually stale but states or implies no contract-relevant
   fact — one whose correction does not add, remove, or rename a system, or change a system's stated
   relationship to another system — is Small Fix, not Structural Change. It must not touch the systems
   list, the mermaid diagram, or any sentence a Structural Change would otherwise need to update.
+  A finish-time mechanical check still runs regardless: any architecture document covering a changed
+  file is checked for agreement with the code, a wording-only mismatch is corrected automatically,
+  and anything else becomes a persisted finding — see `architecture-documentation.md`'s Drift
+  Anchors.
 - **Agents**: the agent holding the request runs the compiled toolkit's `route` action directly;
   `helper` does this conversationally for user-invoked work.
 - **Tests**: interior tests may be freely rewritten or deleted. Contract tests must still pass
@@ -302,7 +306,7 @@ boundary between systems changes.
 # Quality Gates
 
 - [ ] The mode and scope were declared before work started
-- [ ] Maintenance work stayed Small Fix and touched no architecture document
+- [ ] Maintenance work stayed Small Fix, made no architecture-document edit beyond a mechanically-verified wording-only correction outside `## Contract`, and every disagreement it could not correct was persisted as a finding
 - [ ] Intake work touched no code, test, or contract
 - [ ] Small Fix changes left contract tests passing untouched
 - [ ] Contract Change and Structural Change changes updated the contract before implementation

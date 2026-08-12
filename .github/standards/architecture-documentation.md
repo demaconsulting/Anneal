@@ -188,9 +188,17 @@ covers:
 ```
 
 `covers` names the source a document describes, so **drift** — source under `covers` changed while
-the document did not — can be spotted. Nothing computes it mechanically; `verify-change`'s
-model-backed verifier judges it by reading, and it is advisory either way: a review flag, never a
-hard failure. Blocking gates on every file change are precisely what makes evolution expensive.
+the document did not — can be spotted. For Contract Change and Structural Change, this is the
+`Verifier`'s job as part of the change itself (a `Documentation` concern), gating on completion.
+For Small Fix and Maintenance — which never authored the code change through that same verified
+path — a separate finish-time gate (`TOOLKIT-56`/`TOOLKIT-57`) checks every architecture document
+covering an actually-changed file: a wording-only mismatch outside `## Contract` is corrected
+inline and mechanically re-checked against the diff it produced; a mismatch touching `## Contract`
+substance, or one that cannot be confidently told apart from touching it, is recorded as a neutral
+finding under `.anneal/logs/findings/` rather than presumed in favor of either the document or the
+code. `verify-change`'s own standalone drift review of already-completed work remains
+advisory — a review flag, never a hard failure, because that path exists to review, not to redo,
+the change.
 
 # When to Create a Subsystem Document
 
