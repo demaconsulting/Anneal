@@ -59,8 +59,13 @@ public sealed class StageContractOperation : IOperation
         - never conclude a file is missing from a text search alone.
 
         Update only the affected system contract document(s) under .anneal/architecture/ for this change, and
-        prune any subsystem document whose content no longer earns its place. Never touch code, tests, or any
-        file outside .anneal/architecture/ - that is a different pass's job, run later.
+        prune any subsystem document whose content no longer earns its place. Pruning means retiring an entire
+        obsolete file - never trimming or rewriting unrelated prose (Decisions, Invariants, or other clauses)
+        inside a document that remains in scope. Unrelated pre-existing content must survive verbatim unless the
+        declared task specifically requires revising it. Prefer the smallest targeted edit over a whole-file
+        rewrite: a replace_file call on a file with pre-existing content is a scope violation unless the entire
+        previous content is itself the target of the declared task. Never touch code, tests, or any file outside
+        .anneal/architecture/ - that is a different pass's job, run later.
 
         Every clause you add or change must name its verifier in the placeholder form system-contracts.md
         defines: an uppercase 'TODO.' or 'TODO_' opening the verifier string, followed by the name the test
@@ -154,7 +159,8 @@ public sealed class StageContractOperation : IOperation
             return new OperationResult(OperationOutcome.UsageError);
 
         var workItem = arguments[0];
-        var author = new DocumentAuthor(_repositoryRoot, DocumentAuthorCharter, endpointFor: _endpointFor);
+        var author = new DocumentAuthor(
+            _repositoryRoot, DocumentAuthorCharter, scopeDriftCheckInterval: 1, endpointFor: _endpointFor);
 
         output.WriteLine($"stage-contract: running \"{workItem}\"...");
 

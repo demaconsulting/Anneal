@@ -1041,6 +1041,95 @@ public class StructuralChangeWorkerTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_VerifierQuestionIncludesDisproportionateDeletionClause()
+    {
+        // Arrange: a plan that passes cleanly; what we verify is the question text the verifier receives —
+        // it must now instruct the verifier to consider disproportionate deletions as a Documentation concern,
+        // closing the gap where a whole-file overwrite that silently deleted a Decisions section could complete
+        // and be reported as a clean Succeeded outcome.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"add a node","planSteps":["update toolkit.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: legitimate structural change
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: run still succeeds, and the verifier question contains the disproportionate-deletion guidance
+            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding),
+                () => Assert.Contains("disproportionate", verifierText, StringComparison.Ordinal),
+                () => Assert.Contains("Documentation", verifierText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_VerifierFindsDisproportionateDeletion_ReportsDocumentationConcern()
+    {
+        // Arrange: the verifier detects that a whole-file overwrite deleted a Decisions section
+        // unrelated to the declared task and reports it as a Documentation concern. This exercises
+        // the strengthened VerifierQuestion's new clause — without that clause, a verifier receiving
+        // the same diff would have no instruction to look for disproportionate deletions.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"add a node","planSteps":["update toolkit.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"the whole-file overwrite deleted the pre-existing Decisions section; restore the unrelated content"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                // documentation repair turn
+                "I restored the Decisions section.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"restored"}""",
+                // re-sync developer + re-verify
+                "I re-synced the code.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act
+            var result = await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: the worker ultimately succeeds after one documentation repair, confirming the
+            // Documentation concern path for disproportionate deletions is handled and recoverable.
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<WorkerRunResult.Completed>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
         new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], tenets ?? [], []);
 

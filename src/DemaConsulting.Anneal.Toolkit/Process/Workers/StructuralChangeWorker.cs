@@ -74,7 +74,12 @@ internal sealed class StructuralChangeWorker
         .anneal/architecture/ accurate for what was actually built. Also check the change against .anneal/work/constraints.md's
         Satisfied constraints and the boundaries of every system contract it touches; report any violation as a
         concern owned by Tenet, with a FixText naming the specific constraint or contract boundary crossed and
-        what must change to stop crossing it. Report the verdict 'RepairRequired' with an
+        what must change to stop crossing it.
+        Using the diffEvidence you already have, consider whether any deletions or rewrites inside an otherwise
+        in-scope, already-existing architecture document look disproportionate to or disconnected from the
+        declared task — for example, a whole-file overwrite that removes a Decisions section or other unrelated
+        content the task never asked to revise. Report such a finding as a concern owned by Documentation.
+        Report the verdict 'RepairRequired' with an
         empty list of concerns, and your reasoning in the advisory notes, when the plan's own decomposition was
         wrong - the wrong systems were touched, a needed split, merge, or new node was missed, or the steps taken
         do not add up to the change asked for - as distinct from a documentation, code, or tenet defect in an
@@ -290,7 +295,8 @@ internal sealed class StructuralChangeWorker
         _planner = new Planner(root, plannerCharter, maxPlanSteps: maxPlanSteps, endpointFor: endpointFor);
         _planTenetOracle = new Oracle<PlanTenetCheckEnvelope>(root, PlanTenetOracleCharter, endpointFor: endpointFor);
         _documentAuthor = new DocumentAuthor(
-            root, documentAuthorCharter, targetFileCountBudget: documentAuthorTargetFileCountBudget, endpointFor: endpointFor);
+            root, documentAuthorCharter, targetFileCountBudget: documentAuthorTargetFileCountBudget,
+            scopeDriftCheckInterval: 1, endpointFor: endpointFor);
         _developer = new Developer(root, developerCharter, endpointFor: endpointFor);
         _buildCheck = new DeterministicCheck(root, runScript: buildRunScript);
         _contractCheck = new DeterministicCheck(

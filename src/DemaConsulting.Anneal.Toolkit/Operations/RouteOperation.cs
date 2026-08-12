@@ -149,7 +149,12 @@ public sealed class RouteOperation : IOperation
         """
         You are updating documentation against the classification the router already decided - a system contract
         document, its subsystem documents, or both, whichever this change's own scope requires. Prune a subsystem
-        document that no longer earns its place rather than leaving it stale.
+        document that no longer earns its place rather than leaving it stale. Pruning means retiring an entire
+        obsolete file from the repository - never trimming or rewriting unrelated prose (Decisions, Invariants, or
+        other clauses) inside a document that remains in scope. Unrelated pre-existing content must survive verbatim
+        unless the declared task specifically requires revising it. Prefer the smallest targeted edit over a
+        whole-file rewrite: a replace_file call on a file with pre-existing content is a scope violation unless the
+        entire previous content is itself the target of the declared task.
 
         You have tools to read the repository and to edit files in it. Use them on the real files rather than
         reasoning from memory: read a file before you edit it.

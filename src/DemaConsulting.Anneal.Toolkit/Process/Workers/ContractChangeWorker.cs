@@ -67,6 +67,10 @@ internal sealed class ContractChangeWorker
         actually built. Also check the change against .anneal/work/constraints.md's Satisfied constraints and the boundaries
         of every system contract it touches; report any violation as a concern owned by Tenet, with a FixText
         naming the specific constraint or contract boundary crossed and what must change to stop crossing it.
+        Using the diffEvidence you already have, consider whether any deletions or rewrites inside an otherwise
+        in-scope, already-existing architecture document look disproportionate to or disconnected from the
+        declared task — for example, a whole-file overwrite that removes a Decisions section or other unrelated
+        content the task never asked to revise. Report such a finding as a concern owned by Documentation.
         Report the verdict 'RerouteRequired', with your reasoning in the advisory notes, when
         either: (1) the change actually needed a system-boundary move and should have been classified Structural
         Change instead of Contract Change; or (2) your reasoning surfaces a contradiction with a stated
@@ -189,7 +193,7 @@ internal sealed class ContractChangeWorker
         var root = Path.GetFullPath(repositoryRoot);
 
         _repositoryRoot = root;
-        _documentAuthor = new DocumentAuthor(root, documentAuthorCharter, endpointFor: endpointFor);
+        _documentAuthor = new DocumentAuthor(root, documentAuthorCharter, scopeDriftCheckInterval: 1, endpointFor: endpointFor);
         _developer = new Developer(root, developerCharter, endpointFor: endpointFor);
         _buildCheck = new DeterministicCheck(root, runScript: buildRunScript);
         _contractCheck = new DeterministicCheck(

@@ -91,6 +91,18 @@ scope the caller has already fixed before invoking `stage-contract`, the same "o
 two" reasoning `maintain.md` and `route.md` § Decisions already apply to their own narrower fronts.
 `stage-contract` is a thinner front door than either, not a second `route`.
 
+**`stage-contract` passes `scopeDriftCheckInterval: 1` to `DocumentAuthor`** — for the same reason
+`ContractChangeWorker` and `StructuralChangeWorker` do (see `route.md` § Decisions): the default
+interval of 5 lets a single large `replace_file` call complete without the scope-drift oracle ever
+running. Passing 1 ensures the oracle runs after every successful edit, including the first, so a
+whole-file overwrite is caught immediately.
+
+**The `DocumentAuthorCharter` pruning rule applies here unchanged** — pruning a subsystem document
+means retiring an obsolete file, never trimming or rewriting unrelated prose inside a document that
+remains. The charter instructs `DocumentAuthor` to prefer the smallest targeted edit; a `replace_file`
+call on a file with pre-existing unrelated content is a scope violation unless the entire previous
+content is itself the declared task's target.
+
 **The architecture-tree check is the mirror image of `maintain`'s protected-path tripwire, not the same
 check reused unchanged** — Maintenance may never touch `.anneal/architecture/`; `stage-contract`'s entire
 job is to touch nothing else. Reusing `ProtectedPathTripwire` as-is would have answered the wrong

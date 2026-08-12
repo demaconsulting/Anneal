@@ -577,6 +577,118 @@ public partial class ToolkitContractTests
     }
 
     /// <summary>
+    ///     TOOLKIT-53 — the Contract Change worker's final verifier question instructs the verifier to consider
+    ///     disproportionate deletions or rewrites inside an otherwise in-scope, already-existing architecture
+    ///     document as a Documentation concern, and a targeted clause addition inside an existing document passes
+    ///     without raising that concern.
+    /// </summary>
+    [Fact]
+    public async Task VerifierQuestionIncludesDisproportionateDeletionCheck()
+    {
+        // Arrange: a contract-change route with a targeted clause addition that passes cleanly; the endpoint
+        // records every request so the verifier question text is auditable without a network call.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "build.ps1"), "");
+
+            var endpoint = new QueuedEndpoint(
+                // Route oracle selects contract-change
+                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"contract-change","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                // DocumentAuthor: free-form turn, then structured decision
+                "I added the new clause.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause"}""",
+                // Developer: free-form turn, then structured decision
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                // Verifier: passes — targeted clause addition does not raise a concern
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var operation = new RouteOperation(
+                root,
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: targeted clause addition through the public boundary
+            var output = new StringWriter();
+            var result = await operation.ExecuteAsync(
+                ["add a new contract clause for the widget"], output, TestContext.Current.CancellationToken);
+
+            // Assert: run succeeds, and the verifier question (index 5: route + 2 doc + 2 dev turns, then verifier)
+            // explicitly instructs the verifier to treat disproportionate deletions as a Documentation concern.
+            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Contains("disproportionate", verifierText, StringComparison.Ordinal),
+                () => Assert.Contains("Documentation", verifierText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-53 — when the verifier reports a Documentation concern for a disproportionate deletion inside
+    ///     an otherwise in-scope architecture document, the Contract Change worker enters the documentation-repair
+    ///     path rather than reporting a clean Succeeded outcome.
+    /// </summary>
+    [Fact]
+    public async Task VerifierCatchesDisproportionateDeletionAsDocumentationConcern()
+    {
+        // Arrange: the verifier detects a whole-file overwrite that deleted a Decisions section the declared
+        // task never asked to revise, and reports it as a Documentation concern. The worker must enter the
+        // documentation-repair path; after the repair the verifier passes and the run completes cleanly.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "build.ps1"), "");
+
+            var endpoint = new QueuedEndpoint(
+                // Route oracle selects contract-change
+                """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"contract-change","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                // DocumentAuthor: free-form turn, then structured decision
+                "I updated the contract document (whole-file overwrite).",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause — used replace_file"}""",
+                // Developer: free-form turn, then structured decision
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                // Verifier: finds disproportionate deletion — reports Documentation concern
+                """{"verdict":"RepairRequired","concerns":[{"owner":"Documentation","fixText":"the whole-file overwrite deleted the pre-existing Decisions section; restore the unrelated content verbatim"}],"advisoryNotes":[],"evidenceSufficient":true}""",
+                // Documentation repair: DocumentAuthor restores the deleted content
+                "I restored the Decisions section that was incorrectly deleted.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"restored unrelated Decisions content"}""",
+                // Developer re-sync after repair
+                "I re-synced the code.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"re-synced"}""",
+                // Verifier: now passes
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var operation = new RouteOperation(
+                root,
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")));
+
+            // Act: run a contract change where the DocumentAuthor used a whole-file overwrite
+            var output = new StringWriter();
+            var result = await operation.ExecuteAsync(
+                ["add a new contract clause for the widget"], output, TestContext.Current.CancellationToken);
+
+            // Assert: the worker caught the deletion via the verifier and completed only after the repair —
+            // 11 model calls total: route + 2 doc + 2 dev + verifier + 2 doc-repair + 2 dev-resync + verifier.
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(11, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
     ///     TOOLKIT-I6 — a model is granted tools only by group selection, every filesystem path resolves inside
     ///     the repository root, and a write to a protected configuration file or repository script is refused.
     /// </summary>

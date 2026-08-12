@@ -109,6 +109,22 @@ typed questions a route oracle and a worker's own primitives answer. The route c
 catalog worker by its exact key so the oracle's answer and `Router`'s own catalog lookup agree by
 construction.
 
+**The `DocumentAuthorCharter`'s pruning clause means retiring an obsolete file, never trimming unrelated prose** — the charter
+instructs `DocumentAuthor` to prune a subsystem document that no longer earns its place; this means
+deleting an entire obsolete file from the repository, not removing or rewriting unrelated sections
+(Decisions, Invariants, or other clauses) inside a document that remains in scope. Unrelated
+pre-existing content must survive verbatim unless the declared task explicitly requires revising it.
+The charter also instructs `DocumentAuthor` to prefer the smallest targeted edit over a whole-file
+rewrite, so a `replace_file` call on a file with pre-existing content is a scope violation unless the
+entire previous content is itself the target of the declared task.
+
+**`ContractChangeWorker` and `StructuralChangeWorker` pass `scopeDriftCheckInterval: 1` to `DocumentAuthor`** — the default
+interval of 5 means the existing diff-grounded Light-role scope-drift oracle (`CheckScopeAsync`) only
+runs after five successful edit calls, which lets a single large `replace_file` call complete without
+ever crossing the threshold. Passing 1 closes that gap: the scope-drift oracle runs after every
+successful edit, so a whole-file overwrite that deletes unrelated content is caught immediately rather
+than only after several edits accumulate.
+
 **The production catalog registers workers under the same keys their own interior tests already use** —
 `small-fix`, `contract-change`, `structural-change` — so a worker's own test fixtures, this operation's
 catalog, and the route charter's own prose all name the same three strings. No fourth key was invented

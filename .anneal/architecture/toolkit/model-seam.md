@@ -90,6 +90,17 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
   corroboration is a strengthening check, not a gate.
   *Verified by:* `ToolkitContractTests.DeveloperAndDocumentAuthorCorroborateChangedFilesAgainstGitDiff`
 
+- **TOOLKIT-53** — The Contract Change and Structural Change workers' final `Verifier` pass is asked,
+  using the diff evidence it already receives, whether any deletions or rewrites inside an
+  otherwise-in-scope, already-existing architecture document look disproportionate to or disconnected
+  from the declared task — for example, a whole-file overwrite that removes a Decisions section or
+  other unrelated prose the task never asked to revise. A verifier that finds such a deletion reports
+  it as a `Documentation` concern rather than passing silently, and the worker's
+  documentation-repair budget then applies. A targeted clause addition inside an existing document
+  passes without a concern.
+  *Verified by:* `ToolkitContractTests.VerifierQuestionIncludesDisproportionateDeletionCheck`,
+  `ToolkitContractTests.VerifierCatchesDisproportionateDeletionAsDocumentationConcern`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the invocation record the transcript is captured alongside, and the
