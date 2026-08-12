@@ -172,15 +172,20 @@ internal sealed class Developer
         {
             await session.RunAsync(instruction, _role, cancellationToken).ConfigureAwait(false);
 
+            // lastCheckAt[0] tracks the SuccessfulEditCallCount at which the scope check last ran.
+            // A single-element array is used so async helpers can mutate the value without ref parameters,
+            // which C# does not allow in async methods.
+            var lastCheckAt = new[] { 0 };
+
             // After the initial authoring run, check whether the K-boundary was crossed and the pass drifted.
-            var driftResult = await CheckScopeDriftAsync(session, instruction, cancellationToken)
+            var driftResult = await CheckScopeDriftAsync(session, instruction, lastCheckAt, cancellationToken)
                 .ConfigureAwait(false);
             if (driftResult is not null)
                 return driftResult;
 
             if (_buildCheck is not null)
             {
-                var repaired = await RepairAgainstBuildAsync(session, instruction, cancellationToken)
+                var repaired = await RepairAgainstBuildAsync(session, instruction, lastCheckAt, cancellationToken)
                     .ConfigureAwait(false);
                 if (repaired is not null)
                     return repaired;
@@ -239,7 +244,7 @@ internal sealed class Developer
     ///     caller should proceed to report completion.
     /// </returns>
     private async Task<StepResult<DevelopmentResult>?> RepairAgainstBuildAsync(
-        ModelSession session, string instruction, CancellationToken cancellationToken)
+        ModelSession session, string instruction, int[] lastCheckAt, CancellationToken cancellationToken)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -269,7 +274,7 @@ internal sealed class Developer
                 .ConfigureAwait(false);
 
             // Check for scope drift after each repair turn in case the repair went beyond the original scope.
-            var driftResult = await CheckScopeDriftAsync(session, instruction, cancellationToken)
+            var driftResult = await CheckScopeDriftAsync(session, instruction, lastCheckAt, cancellationToken)
                 .ConfigureAwait(false);
             if (driftResult is not null)
                 return driftResult;
@@ -277,21 +282,86 @@ internal sealed class Developer
     }
 
     /// <returns>
-    ///     A terminal <see cref="StepResult{TFinding}" /> when the scope-drift oracle detected clear drift,
-    ///     or null when the interval was not reached or the work is still aligned.
+    ///     A terminal <see cref="StepResult{TFinding}" /> when the scope-drift oracle still detects clear drift
+    ///     after a bounded repair turn, or null when the interval was not reached, the work is still aligned,
+    ///     or alignment was restored by the repair.
     /// </returns>
+    /// <remarks>
+    ///     The interval is a delta: the check fires only once per full interval of new successful edit calls,
+    ///     not on every call once the threshold is crossed. <paramref name="lastCheckAt" /><c>[0]</c> is updated
+    ///     in place whenever the check runs so the next call can compute the correct delta. A single-element
+    ///     array is used instead of a <c>ref</c> parameter because C# does not allow <c>ref</c> in async methods.
+    ///     On a negative first verdict the worker is given one bounded repair turn — it is told which files look
+    ///     unrelated per the diff and is instructed to revert or justify them — then the grounded scope check
+    ///     runs a second time. Only a second negative verdict causes failure, so a single self-correction does
+    ///     not abort a legitimate run.
+    /// </remarks>
     private async Task<StepResult<DevelopmentResult>?> CheckScopeDriftAsync(
-        ModelSession session, string instruction, CancellationToken cancellationToken)
+        ModelSession session, string instruction, int[] lastCheckAt, CancellationToken cancellationToken)
     {
-        if (_scopeDriftCheckInterval == 0 || session.SuccessfulEditCallCount < _scopeDriftCheckInterval)
+        if (_scopeDriftCheckInterval == 0 ||
+            session.SuccessfulEditCallCount - lastCheckAt[0] < _scopeDriftCheckInterval)
             return null;
 
-        var (aligned, reason) = await session.CheckScopeAsync(instruction, cancellationToken).ConfigureAwait(false);
+        lastCheckAt[0] = session.SuccessfulEditCallCount;
+
+        var (changedFiles, patch) = await ReadDiffAsync(cancellationToken).ConfigureAwait(false);
+        var (aligned, reason) = await session
+            .CheckScopeAsync(instruction, changedFiles, patch, cancellationToken)
+            .ConfigureAwait(false);
         if (aligned)
             return null;
 
-        var note = string.IsNullOrWhiteSpace(reason) ? "scope drift detected mid-development" : reason;
+        // First negative verdict: give the worker one repair turn before declaring failure.
+        var fileList = changedFiles.Count > 0
+            ? string.Join("\n", changedFiles.Select(f => $"- {f}"))
+            : "(unavailable)";
+        await session.RunAsync(
+                $"""
+                 A scope-alignment check flagged the following modified files as potentially unrelated to
+                 the original instruction:
+
+                 {fileList}
+
+                 Reason given: {reason}
+
+                 If any of those files were touched by mistake, revert them now. If they are genuinely
+                 required by the instruction, leave them in place — they will be re-evaluated. Do not
+                 touch any file that was not already modified.
+                 """,
+                _role,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        // Re-read the diff after the repair turn so the second verdict sees the corrected working tree.
+        (changedFiles, patch) = await ReadDiffAsync(cancellationToken).ConfigureAwait(false);
+        var (alignedAfterRepair, reasonAfterRepair) = await session
+            .CheckScopeAsync(instruction, changedFiles, patch, cancellationToken)
+            .ConfigureAwait(false);
+        if (alignedAfterRepair)
+            return null;
+
+        var note = string.IsNullOrWhiteSpace(reasonAfterRepair)
+            ? "scope drift detected mid-development"
+            : reasonAfterRepair;
         return new StepResult<DevelopmentResult>(OperationOutcome.Failed, null, [new ProcessNote(note)]);
+    }
+
+    private async Task<(IReadOnlyList<string> ChangedFiles, string Patch)> ReadDiffAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var diff = new DiffCheck(_repositoryRoot, runGit: _runGit);
+            var result = await diff.RunAsync(null, cancellationToken).ConfigureAwait(false);
+            if (result.Finding is not { Available: true })
+                return ([], string.Empty);
+            return (result.Finding.ChangedFiles, result.Finding.Patch);
+        }
+        catch
+        {
+            return ([], string.Empty);
+        }
     }
 
     /// <returns>

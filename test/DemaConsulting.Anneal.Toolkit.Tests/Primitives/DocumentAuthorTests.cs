@@ -1,4 +1,5 @@
 using DemaConsulting.Anneal.Toolkit.Model;
+using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Primitives;
 using Microsoft.Extensions.AI;
 using Xunit;
@@ -239,22 +240,25 @@ public class DocumentAuthorTests
     }
 
     [Fact]
-    public async Task AuthorAsync_IntervalCrossedAndDriftDetected_FailsWithDriftReason()
+    public async Task AuthorAsync_IntervalCrossedAndDriftDetected_FailsWithDriftReasonAfterRepairAttempt()
     {
-        // Arrange: interval=1 and the run turn invokes one edit tool, so count reaches 1 and the drift check fires.
-        // The oracle reports clear scope drift, so AuthorAsync aborts before reaching the post-run probe.
+        // Arrange: interval=1 and the run turn invokes one edit tool, so count reaches 1 and the drift check
+        // fires. The grounded oracle reports drift twice — once before and once after the bounded repair turn
+        // — so AuthorAsync gives the worker one chance to self-correct and only then aborts.
         var root = CreateTemporaryDirectory();
         try
         {
-            var endpoint = new ScopeCheckEndpoint(
-                driftReply: """{"aligned": false, "why": "the pass went outside its declared scope", "hasSufficientEvidence": true}""");
+            const string drifted =
+                """{"aligned": false, "why": "the pass went outside its declared scope", "hasSufficientEvidence": true}""";
+            var endpoint = new ScopeCheckEndpoint([drifted, "Reconsidered; the file still seems required.", drifted]);
             var author = new DocumentAuthor(
-                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint);
+                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint,
+                runGit: FakeGit(DiffPatch));
 
             // Act
             var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
 
-            // Assert: aborted by the mid-run scope-drift check; the oracle's reason is surfaced
+            // Assert: aborted only after a repair turn, and the second verdict's reason is surfaced
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
                 () => Assert.Null(result.Finding),
@@ -269,18 +273,54 @@ public class DocumentAuthorTests
     }
 
     [Fact]
-    public async Task AuthorAsync_IntervalCrossedButAligned_ContinuesNormally()
+    public async Task AuthorAsync_IntervalCrossedDriftedThenRepaired_ContinuesNormally()
     {
-        // Arrange: interval=1 and the run invokes one edit tool, so the drift check fires — but the oracle
-        // reports aligned, so execution continues to the post-run probe and the pass succeeds.
+        // Arrange: the first grounded scope check reports drift, but the repair turn resolves it — the
+        // second check reports aligned, so the pass continues rather than aborting on the first verdict.
         var root = CreateTemporaryDirectory();
         try
         {
             var endpoint = new ScopeCheckEndpoint(
-                driftReply: """{"aligned": true, "why": "", "hasSufficientEvidence": true}""",
-                probeReply: """{"kind": "Authored", "why": "", "filesChanged": ["docs/a.md"], "summary": "updated"}""");
+                [
+                    """{"aligned": false, "why": "an unrelated file was touched", "hasSufficientEvidence": true}""",
+                    "Reverted the unrelated file.",
+                    """{"aligned": true, "why": "", "hasSufficientEvidence": true}""",
+                    """{"kind": "Authored", "why": "", "filesChanged": ["docs/a.md"], "summary": "updated"}"""
+                ]);
             var author = new DocumentAuthor(
-                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint);
+                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint,
+                runGit: FakeGit(DiffPatch));
+
+            // Act
+            var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
+
+            // Assert: recovered by the repair turn → pass continues and succeeds
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.IsType<DocumentAuthoringResult.Authored>(result.Finding));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AuthorAsync_IntervalCrossedButAligned_ContinuesNormally()
+    {
+        // Arrange: interval=1 and the run invokes one edit tool, so the drift check fires — but the grounded
+        // oracle reports aligned, so execution continues to the post-run probe and the pass succeeds.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new ScopeCheckEndpoint(
+                [
+                    """{"aligned": true, "why": "", "hasSufficientEvidence": true}""",
+                    """{"kind": "Authored", "why": "", "filesChanged": ["docs/a.md"], "summary": "updated"}"""
+                ]);
+            var author = new DocumentAuthor(
+                root, "a charter", scopeDriftCheckInterval: 1, endpointFor: _ => endpoint,
+                runGit: FakeGit(DiffPatch));
 
             // Act
             var result = await author.AuthorAsync("update the document", TestContext.Current.CancellationToken);
@@ -304,13 +344,29 @@ public class DocumentAuthorTests
     }
 
     /// <summary>
+    ///     A minimal <c>git diff HEAD</c> patch touching one file, used to give the grounded scope-drift check
+    ///     non-empty diff evidence without needing a real git repository under the test's temporary directory.
+    /// </summary>
+    private const string DiffPatch =
+        "diff --git a/docs/a.md b/docs/a.md\nindex 1111111..2222222 100644\n--- a/docs/a.md\n+++ b/docs/a.md\n@@ -1 +1 @@\n-old\n+new\n";
+
+    /// <summary>
+    ///     Builds a <see cref="RunGitCommand" /> stub that reports <paramref name="patch" /> for a diff invocation
+    ///     and succeeds with no output for every other <c>git</c> call (e.g. <c>add -N .</c>), so
+    ///     <see cref="DiffCheck" /> reports <see cref="DiffFinding.Available" /> true against a temporary directory
+    ///     that is not itself a git repository.
+    /// </summary>
+    private static RunGitCommand FakeGit(string patch) =>
+        (arguments, _) => Task.FromResult(
+            new ScriptRun(0, arguments.Count > 0 && arguments[0] == "diff" ? patch : string.Empty));
+
+    /// <summary>
     ///     A fake endpoint that invokes a real edit tool during the run call so the session's
     ///     <see cref="ModelSession.SuccessfulEditCallCount" /> reaches the scope-drift check interval, then answers
-    ///     the scope-check probe with a canned drift judgement, and optionally a post-drift probe reply.
+    ///     every subsequent call — scope checks, the bounded repair turn, and the post-run probe alike — from a
+    ///     queue supplied by the test, in order.
     /// </summary>
-    private sealed class ScopeCheckEndpoint(
-        string driftReply,
-        string? probeReply = null) : IChatEndpoint
+    private sealed class ScopeCheckEndpoint(IReadOnlyList<string> subsequentReplies) : IChatEndpoint
     {
         private int _calls;
 
@@ -337,11 +393,9 @@ public class DocumentAuthorTests
                 return new ChatTurnResult("I updated the document.");
             }
 
-            if (_calls == 2)
-                return new ChatTurnResult(driftReply);
-
-            return probeReply is not null
-                ? new ChatTurnResult(probeReply)
+            var index = _calls - 2;
+            return index < subsequentReplies.Count
+                ? new ChatTurnResult(subsequentReplies[index])
                 : throw new ModelUnavailableException("no further replies queued");
         }
 

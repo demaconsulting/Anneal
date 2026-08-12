@@ -58,20 +58,33 @@ public sealed class ModelSession
     private const string ThinkCloseTag = "</think>";
 
     /// <summary>
-    ///     The charter carried by every scope-drift check. It keeps the oracle focused on alignment with the
-    ///     original instruction and away from judging the quality of the work itself — that question belongs to
-    ///     the calling primitive's own probe.
+    ///     The charter carried by every scope-drift check. It grounds the oracle in the actual working-tree
+    ///     diff rather than in the model's own narration, keeping it focused on what actually changed.
     /// </summary>
+    /// <remarks>
+    ///     Narration-based evidence was the root cause of false positives: a worker narrating its own recovery
+    ///     from a failed edit attempt reads like scope creep even though no out-of-scope files were touched.
+    ///     Grounding in the diff makes the verdict a fact about the working tree, not about prose style.
+    ///     Retries, failed edits, and self-correction within already-justified files are explicitly named as
+    ///     non-drift so the oracle does not penalize normal recovery behavior.
+    /// </remarks>
     private const string ScopeDriftCheckCharter =
         """
-        You are a scope-alignment judge. You are given an original instruction and a summary of the
-        work done so far in the current authoring pass. Your only job is to decide whether the work
-        remains aligned with that instruction or has drifted into unrelated territory.
-        Aligned means: every change made so far can be explained as a direct, necessary consequence of
-        the instruction. Drifted means: the pass has begun touching things with no visible connection
-        to the original instruction. Answer with HasSufficientEvidence = true and Aligned = true when
-        the work is on track; HasSufficientEvidence = true and Aligned = false when you see clear
-        scope drift, surfacing your reasoning in the Why field so the failure note is actionable.
+        You are a scope-alignment judge. You are given an original instruction and the actual
+        working-tree diff produced by the authoring pass so far — a list of changed files and the
+        patch text itself. Your only job is to decide whether the files actually modified remain
+        aligned with the original instruction, or whether the diff touches files with no visible
+        connection to it.
+        Aligned means: every file in the diff can be explained as a direct, necessary consequence of
+        the instruction. Drifted means: the diff contains files or hunks with no traceable connection
+        to the original instruction.
+        Important: retries, failed edit attempts, and self-correction within files that are already
+        justified by the instruction are NOT drift — judge only the set of files actually changed,
+        not the narration around them.
+        Answer with HasSufficientEvidence = true and Aligned = true when the diff is on track;
+        HasSufficientEvidence = true and Aligned = false when you see clear scope drift, surfacing
+        your reasoning in the Why field so the failure note is actionable. When the diff is empty or
+        unavailable, answer with HasSufficientEvidence = false.
         """;
 
     /// <remarks>
@@ -300,17 +313,26 @@ public sealed class ModelSession
 
     /// <summary>
     ///     Performs a cheap scope-drift check against the original instruction, using a Light-role oracle probe
-    ///     over the conversation accumulated so far.
+    ///     grounded in the actual working-tree diff rather than the raw conversation.
     /// </summary>
     /// <remarks>
-    ///     The check is designed to be called by a primitive after every K successful edit-tool calls to detect
-    ///     whether the authoring pass has drifted beyond the original instruction's scope. The oracle sees the
-    ///     full conversation history so it can reason about what was actually done, but it receives no tools and
-    ///     costs only one Light-role probe call. When the oracle lacks sufficient evidence to judge (e.g. very
-    ///     early in a run), it returns <c>true</c> — the conservative choice is to keep going, not to abort.
-    ///     A parse failure on the oracle's own reply is treated as "aligned" for the same reason.
+    ///     Grounding in the diff — the changed-file list and patch text from <c>git diff HEAD</c> — eliminates
+    ///     a class of false positives where the oracle misread the worker's own recovery narration as evidence
+    ///     of scope drift. The oracle sees what actually changed, not what the worker said about it.
+    ///     When the oracle lacks sufficient evidence to judge (e.g. empty diff, unavailable git), it returns
+    ///     <c>true</c> — the conservative choice is to keep going, not to abort. A parse failure is also
+    ///     treated as "aligned" for the same reason.
     /// </remarks>
     /// <param name="instruction">The original authoring instruction, used as the alignment baseline. Must not be null or blank.</param>
+    /// <param name="changedFiles">
+    ///     The repository-relative paths the working-tree diff touched, as returned by
+    ///     <see cref="DemaConsulting.Anneal.Toolkit.Primitives.DiffCheck" />.
+    ///     An empty list causes the oracle to report insufficient evidence and the check to return aligned.
+    /// </param>
+    /// <param name="patch">
+    ///     The trimmed patch text from the working-tree diff, used as the oracle's primary evidence. May be empty
+    ///     when <paramref name="changedFiles" /> is empty.
+    /// </param>
     /// <param name="cancellationToken">Token that cancels the call.</param>
     /// <returns>
     ///     <c>true</c> when the work is still aligned with the instruction or the oracle could not judge;
@@ -318,26 +340,38 @@ public sealed class ModelSession
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="instruction" /> is null, empty or blank.</exception>
     public async Task<(bool Aligned, string? DriftReason)> CheckScopeAsync(
-        string instruction, CancellationToken cancellationToken)
+        string instruction,
+        IReadOnlyList<string> changedFiles,
+        string patch,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(instruction);
 
+        // When there is nothing to judge, conservatively report aligned.
+        if (changedFiles.Count == 0)
+            return (true, null);
+
+        var fileList = string.Join("\n", changedFiles.Select(f => $"- {f}"));
         var question =
             $"""
              Original instruction:
              {instruction}
 
-             Examine the conversation above — the tool calls made, the files touched, and the changes described —
-             and decide whether the work so far is still aligned with the original instruction, or has drifted
-             into unrelated territory.
+             Files actually modified in the working tree:
+             {fileList}
+
+             Patch (trimmed):
+             {patch}
+
+             Decide whether the files modified above are all traceable to the original instruction, or whether
+             the diff contains files or hunks with no visible connection to it.
              """;
 
         // Private working copy: the scope check does not join the main conversation. It is a read-only
-        // oracle over the current state, not a reasoning step the model builds on next turn.
+        // oracle over the diff evidence, not a reasoning step the model builds on next turn.
         List<ChatMessage> working =
         [
             new ChatMessage(ChatRole.System, ScopeDriftCheckCharter),
-            .. _conversation,
             new ChatMessage(ChatRole.User, ComposeProbeMessage<ScopeAlignmentJudgement>(question))
         ];
 
