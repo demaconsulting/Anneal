@@ -199,7 +199,6 @@ public sealed partial class VerifyChangeOperation : IOperation
         var diff = await _diffCheck.RunAsync(baseRef, cancellationToken).ConfigureAwait(false);
         var diffAvailable = diff.Finding?.Available ?? false;
         var changedFiles = diff.Finding?.ChangedFiles ?? [];
-        var patch = diff.Finding?.Patch ?? string.Empty;
 
         if (!diffAvailable)
             output.WriteLine("verify-change: the diff could not be read; every finding below is judged without it.");
@@ -219,10 +218,8 @@ public sealed partial class VerifyChangeOperation : IOperation
         if (buildCheck.Finding is not null) evidence.Add(buildCheck.Finding);
         evidence.Add(contractFinding);
 
-        var question = ComposeQuestion(changedFiles, patch);
-
         var verified = await _verifier
-            .VerifyAsync(VerificationIntent.ContractConformance, evidence, question, cancellationToken)
+            .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion, cancellationToken, diff.Finding)
             .ConfigureAwait(false);
 
         var advisoryNotes = new List<string>(advisoryPreexisting);
@@ -281,19 +278,6 @@ public sealed partial class VerifyChangeOperation : IOperation
             "check-contracts -Strict", passed, passed ? 0 : run.ExitCode, Summarize(summary),
             ["check-contracts -Strict"]), advisory);
     }
-
-    private static string ComposeQuestion(IReadOnlyList<string> changedFiles, string patch) =>
-        $"""
-         {VerifierQuestion}
-
-         <changed-files>
-         {(changedFiles.Count == 0 ? "none" : string.Join("\n", changedFiles))}
-         </changed-files>
-
-         <diff>
-         {(patch.Length == 0 ? "unavailable" : patch)}
-         </diff>
-         """;
 
     /// <remarks>Trimmed the same way <see cref="DeterministicCheck" />'s own summary is, for the same reason.</remarks>
     private static string Summarize(string text)

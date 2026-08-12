@@ -172,6 +172,92 @@ public class VerifierTests
         }
     }
 
+    [Fact]
+    public async Task VerifyAsync_WithDiffEvidence_IncludesDiffBlockInModelQuestion()
+    {
+        // Arrange: passing deterministic evidence and a diff with a recognizable patch
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"verdict": "Passed", "concerns": [], "advisoryNotes": [], "evidenceSufficient": true}""");
+            var verifier = new Verifier(root, "a charter", endpointFor: _ => endpoint);
+            var evidence = new[] { new CheckFinding("build", true, 0, "all good", ["build.ps1"]) };
+            var diff = new DiffFinding(true, ["src/Foo.cs"], "diff --git a/src/Foo.cs ... +DIFF-MARKER");
+
+            // Act
+            var result = await verifier.VerifyAsync(
+                VerificationIntent.ContractConformance, evidence, "is this correct?",
+                TestContext.Current.CancellationToken, diff);
+
+            // Assert: the question sent to the model includes the diff block
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+            var modelText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("<changed-files>", modelText, StringComparison.Ordinal),
+                () => Assert.Contains("DIFF-MARKER", modelText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WithUnavailableDiff_OmitsDiffBlockFromModelQuestion()
+    {
+        // Arrange: the diff reports unavailable; no diff block must reach the model
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"verdict": "Passed", "concerns": [], "advisoryNotes": [], "evidenceSufficient": true}""");
+            var verifier = new Verifier(root, "a charter", endpointFor: _ => endpoint);
+            var diff = new DiffFinding(false, [], "git failed");
+
+            // Act
+            var result = await verifier.VerifyAsync(
+                VerificationIntent.ContractConformance, [], "is this correct?",
+                TestContext.Current.CancellationToken, diff);
+
+            // Assert: no diff block in the model question when the diff was unavailable
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+            var modelText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("<changed-files>", modelText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyAsync_NullDiffEvidence_OmitsDiffBlockFromModelQuestion()
+    {
+        // Arrange: null diffEvidence (the default); no diff block must reach the model
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"verdict": "Passed", "concerns": [], "advisoryNotes": [], "evidenceSufficient": true}""");
+            var verifier = new Verifier(root, "a charter", endpointFor: _ => endpoint);
+
+            // Act: omit diffEvidence entirely (uses default null)
+            var result = await verifier.VerifyAsync(
+                VerificationIntent.ContractConformance, [], "is this correct?",
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(OperationOutcome.Succeeded, result.Outcome);
+            var modelText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("<changed-files>", modelText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-verifier-" + Guid.NewGuid().ToString("N")[..12]);

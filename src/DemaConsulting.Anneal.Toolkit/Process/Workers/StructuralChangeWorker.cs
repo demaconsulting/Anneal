@@ -149,6 +149,7 @@ internal sealed class StructuralChangeWorker
     private readonly Developer _developer;
     private readonly DeterministicCheck _buildCheck;
     private readonly DeterministicCheck _contractCheck;
+    private readonly DiffCheck _diffCheck;
     private readonly Verifier _verifier;
     private readonly int _maxDocumentationRepairAttempts;
     private readonly int _maxCodeRepairAttempts;
@@ -231,6 +232,11 @@ internal sealed class StructuralChangeWorker
     ///     inside the default delegate rather than threaded through that parameter.
     ///     Injected so the check is exercisable without a real script.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation, or null to run it through the real <c>git</c> executable. Injected so
+    ///     the diff read before each <see cref="Verifier" /> call is exercisable without a real repository. The
+    ///     diff is re-read fresh before every verify attempt because the working tree changes between repair rounds.
+    /// </param>
     /// <param name="recordStore">
     ///     Where this worker's own <see cref="ProcessStepRecord" />s are appended, correlated by the
     ///     <see cref="WorkerBrief.ParentInvocationId" /> a <see cref="Router" /> minted for the run, or null to
@@ -263,6 +269,7 @@ internal sealed class StructuralChangeWorker
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildRunScript = null,
         RunRepositoryScript? contractCheckRunScript = null,
+        RunGitCommand? runGit = null,
         RecordStore? recordStore = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
@@ -289,6 +296,7 @@ internal sealed class StructuralChangeWorker
         _contractCheck = new DeterministicCheck(
             root,
             runScript: contractCheckRunScript ?? ((_, ct) => ContractCheckRunner.RunAsync(root, ct, strict: false)));
+        _diffCheck = new DiffCheck(root, runGit: runGit);
         _verifier = new Verifier(root, verifierCharter, endpointFor: endpointFor);
         _maxDocumentationRepairAttempts = maxDocumentationRepairAttempts;
         _maxCodeRepairAttempts = maxCodeRepairAttempts;
@@ -393,6 +401,10 @@ internal sealed class StructuralChangeWorker
                     .ConfigureAwait(false);
                 RecordStep(parentInvocationId, "DeterministicCheck:check-contracts", contractCheck.Outcome);
 
+                // Re-read the diff fresh on every verify attempt: the working tree changes between repair rounds,
+                // so a cached diff from before the first repair would be stale by the second verify call.
+                var diff = await _diffCheck.RunAsync(null, cancellationToken).ConfigureAwait(false);
+
                 List<CheckFinding> evidence = [];
                 if (buildCheck.Finding is not null)
                     evidence.Add(buildCheck.Finding);
@@ -400,7 +412,7 @@ internal sealed class StructuralChangeWorker
                     evidence.Add(contractCheck.Finding);
 
                 var verified = await _verifier
-                    .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion(brief), cancellationToken)
+                    .VerifyAsync(VerificationIntent.ContractConformance, evidence, VerifierQuestion(brief), cancellationToken, diff.Finding)
                     .ConfigureAwait(false);
                 RecordStep(parentInvocationId, "Verifier", verified.Outcome);
 

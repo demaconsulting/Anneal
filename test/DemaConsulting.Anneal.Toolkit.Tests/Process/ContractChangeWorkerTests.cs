@@ -890,6 +890,94 @@ public class ContractChangeWorkerTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_DiffAvailable_IncludesDiffBlockInVerifierQuestion()
+    {
+        // Arrange: a diff stub that returns a recognizable patch, injected through runGit so no real
+        // repository is needed and the diff is readable by the DiffCheck inside the worker.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var patch =
+                """
+                diff --git a/src/Foo.cs b/src/Foo.cs
+                index 1111111..2222222 100644
+                --- a/src/Foo.cs
+                +++ b/src/Foo.cs
+                @@ -1 +1 @@
+                -old
+                +new-MARKER
+                """;
+
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root, "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: (args, _) =>
+                {
+                    // add -N is fire-and-forget; the diff itself is the second call
+                    var isAdd = args.Count >= 2 && args[0] == "add";
+                    return Task.FromResult(new ScriptRun(0, isAdd ? string.Empty : patch));
+                });
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request (index 4) carries the diff block
+            var verifierText = string.Join("\n", endpoint.Requests[4].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("<changed-files>", verifierText, StringComparison.Ordinal),
+                () => Assert.Contains("new-MARKER", verifierText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_DiffUnavailable_OmitsDiffBlockFromVerifierQuestion()
+    {
+        // Arrange: git fails so DiffCheck reports unavailable; the verifier question must not
+        // contain a changed-files or diff block.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                "I updated the contract document.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new ContractChangeWorker(
+                root, "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: (_, _) => Task.FromResult(new ScriptRun(128, "fatal: not a git repository")));
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier question has no diff block when the diff was unavailable
+            var verifierText = string.Join("\n", endpoint.Requests[4].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("<changed-files>", verifierText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
         new("parent-1", "add a contract clause for the new action", "contract change", [], [], "this touches a contract", [], tenets ?? [], []);
 

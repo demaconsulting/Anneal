@@ -952,8 +952,98 @@ public class StructuralChangeWorkerTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_DiffAvailable_IncludesDiffBlockInVerifierQuestion()
+    {
+        // Arrange: a diff stub that returns a recognizable patch; no tenets so the verifier is at index 5.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var patch =
+                """
+                diff --git a/src/Foo.cs b/src/Foo.cs
+                index 1111111..2222222 100644
+                --- a/src/Foo.cs
+                +++ b/src/Foo.cs
+                @@ -1 +1 @@
+                -old
+                +new-STRUCTURAL-MARKER
+                """;
+
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: (args, _) =>
+                {
+                    var isAdd = args.Count >= 2 && args[0] == "add";
+                    return Task.FromResult(new ScriptRun(0, isAdd ? string.Empty : patch));
+                });
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier request (index 5, no tenet oracle) carries the diff block
+            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("<changed-files>", verifierText, StringComparison.Ordinal),
+                () => Assert.Contains("new-STRUCTURAL-MARKER", verifierText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_DiffUnavailable_OmitsDiffBlockFromVerifierQuestion()
+    {
+        // Arrange: git fails; the verifier question must not contain a diff block.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"update docs","planSteps":["update overview.md"]}""",
+                "I updated the contract documents.",
+                """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated"}""",
+                "I implemented the change.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"implemented"}""",
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var worker = new StructuralChangeWorker(
+                root,
+                "planner charter", "document charter", "developer charter", "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "43/43")),
+                runGit: (_, _) => Task.FromResult(new ScriptRun(128, "fatal: not a git repository")));
+
+            // Act
+            await worker.RunAsync(MakeBrief(), TestContext.Current.CancellationToken);
+
+            // Assert: verifier question has no diff block when the diff was unavailable
+            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            Assert.DoesNotContain("<changed-files>", verifierText, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static WorkerBrief MakeBrief(IReadOnlyList<string>? tenets = null) =>
         new("parent-1", "split this system into two", "structural change", [], [], "this moves a system boundary", [], tenets ?? [], []);
+
 
     private static string CreateTemporaryDirectory()
     {

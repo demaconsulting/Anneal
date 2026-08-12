@@ -243,6 +243,54 @@ public class VerifyChangeOperationTests
         }
     }
 
+    [Fact]
+    public async Task ExecuteAsync_DiffAvailable_PassesDiffThroughToVerifierQuestion()
+    {
+        // Arrange: a diff that contains a recognizable marker; the verifier's model question must
+        // include a <changed-files>/<diff> block, not just the question text.
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var patch =
+                """
+                diff --git a/src/Foo.cs b/src/Foo.cs
+                index 1111111..2222222 100644
+                --- a/src/Foo.cs
+                +++ b/src/Foo.cs
+                @@ -1 +1 @@
+                -old
+                +VERIFY-CHANGE-DIFF-MARKER
+                """;
+
+            var endpoint = new QueuedEndpoint(
+                """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
+
+            var operation = new VerifyChangeOperation(
+                root,
+                endpointFor: _ => endpoint,
+                runGit: (args, _) =>
+                {
+                    var isAdd = args.Count >= 2 && args[0] == "add";
+                    return Task.FromResult(new ScriptRun(0, isAdd ? string.Empty : patch));
+                },
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                contractCheckRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "  43/43 clauses checked.")));
+
+            // Act
+            await operation.ExecuteAsync([], new StringWriter(), TestContext.Current.CancellationToken);
+
+            // Assert: the single model call received the diff block
+            var modelText = string.Join("\n", endpoint.Requests[0].Messages.Select(m => m.Text));
+            Assert.Multiple(
+                () => Assert.Contains("<changed-files>", modelText, StringComparison.Ordinal),
+                () => Assert.Contains("VERIFY-CHANGE-DIFF-MARKER", modelText, StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-verify-change-" + Guid.NewGuid().ToString("N")[..12]);

@@ -86,6 +86,14 @@ internal sealed class Verifier
     ///     has passed. Must not be null or blank.
     /// </param>
     /// <param name="cancellationToken">The caller's signal, carried unchanged.</param>
+    /// <param name="diffEvidence">
+    ///     The diff the model question should judge, supplied by the caller who already read it (since workers
+    ///     re-read the diff on every repair attempt and <see cref="DemaConsulting.Anneal.Toolkit.Operations.VerifyChangeOperation" /> reads it against an
+    ///     optional non-HEAD base ref). Null or unavailable when the diff could not be obtained; rendered as a
+    ///     <c>&lt;changed-files&gt;/&lt;diff&gt;</c> block only when non-null and
+    ///     <see cref="DiffFinding.Available" /> is true. The patch is used as-is without further trimming —
+    ///     <see cref="DiffCheck" /> already applies its own 8000-character cap.
+    /// </param>
     /// <returns>
     ///     <see cref="OperationOutcome.Failed" /> with a <see cref="VerificationVerdict.RepairRequired" />
     ///     finding (every concern owned by <see cref="VerificationOwner.Code" />), with no model consulted, when
@@ -104,7 +112,8 @@ internal sealed class Verifier
         VerificationIntent intent,
         IReadOnlyList<CheckFinding> deterministicEvidence,
         string question,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        DiffFinding? diffEvidence = null)
     {
         ArgumentNullException.ThrowIfNull(deterministicEvidence);
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
@@ -136,7 +145,7 @@ internal sealed class Verifier
         try
         {
             var envelope = await session
-                .ProbeAsync<VerificationFinding>(Compose(intent, deterministicEvidence, question), _role, cancellationToken)
+                .ProbeAsync<VerificationFinding>(Compose(intent, deterministicEvidence, question, diffEvidence), _role, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!envelope.EvidenceSufficient)
@@ -167,11 +176,28 @@ internal sealed class Verifier
         }
     }
 
-    private string Compose(VerificationIntent intent, IReadOnlyList<CheckFinding> evidence, string question)
+    private string Compose(
+        VerificationIntent intent,
+        IReadOnlyList<CheckFinding> evidence,
+        string question,
+        DiffFinding? diffEvidence)
     {
         var trimmed = evidence.Count <= _evidenceBudget ? evidence : evidence.TakeLast(_evidenceBudget);
         var rendered = string.Join(
             "\n", trimmed.Select(check => $"- {check.Name}: passed ({check.Summary})"));
+
+        var diffBlock = diffEvidence is { Available: true }
+            ? $"""
+
+               <changed-files>
+               {(diffEvidence.ChangedFiles.Count == 0 ? "none" : string.Join("\n", diffEvidence.ChangedFiles))}
+               </changed-files>
+
+               <diff>
+               {(diffEvidence.Patch.Length == 0 ? "none" : diffEvidence.Patch)}
+               </diff>
+               """
+            : string.Empty;
 
         return $"""
                 Verification intent: {intent}
@@ -180,7 +206,7 @@ internal sealed class Verifier
 
                 <deterministic-evidence>
                 {(rendered.Length == 0 ? "none" : rendered)}
-                </deterministic-evidence>
+                </deterministic-evidence>{diffBlock}
                 """;
     }
 }
