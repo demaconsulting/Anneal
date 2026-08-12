@@ -9,10 +9,12 @@ covers:
 `stats` reads the invocation records `TOOLKIT-08` already makes every invocation append, and reports,
 for each action found in the corpus, its pass rate — `Succeeded ÷ (Succeeded + Failed + Refused +
 Escalated)`, with `UsageError` excluded from both sides because a caller's typo is not evidence about
-the process — across five cumulative time windows: today, last 3 days, last 7 days, last 30 days, and
-all-time. Each window includes everything the narrower window already counted, so a trend is visible
-in one run without the tool storing a baseline to diff against. It is deterministic: it computes
-counts from records already on disk and consults no model, which is also why it declares
+the process — and its aggregated cost and latency (total and average input tokens, total and average
+output tokens, total model interactions, and average duration in milliseconds) across five cumulative
+time windows: today, last 3 days, last 7 days, last 30 days, and all-time. Each window includes
+everything the narrower window already counted, so a trend is visible in one run without the tool
+storing a baseline to diff against. It is deterministic: it computes counts and aggregates from
+records already on disk and consults no model, which is also why it declares
 `OperationCategory.Advisory` rather than gating — it answers a question nobody put, read at the start
 of a stage to ground a conversation in data, and nothing downstream is obliged to act on it.
 
@@ -22,8 +24,10 @@ of a stage to ground a conversation in data, and nothing downstream is obliged t
 
 - **TOOLKIT-21** — `stats` reads a repository's invocation records and reports, for each action found,
   its pass rate — `Succeeded ÷ (Succeeded + Failed + Refused + Escalated)`, excluding `UsageError` —
-  across five cumulative time windows (today, last 3 days, last 7 days, last 30 days, all-time), with
-  the raw counts behind every percentage. It is deterministic and consults no model.
+  and aggregated cost and latency (total/average input tokens, total/average output tokens, total model
+  interactions, average duration in milliseconds) across five cumulative time windows (today, last 3
+  days, last 7 days, last 30 days, all-time), with the raw counts behind every percentage. It is
+  deterministic and consults no model.
   *Verified by:* `ToolkitContractTests.StatsReportsPerActionPassRatesAcrossWindows`
 
 ### Requires

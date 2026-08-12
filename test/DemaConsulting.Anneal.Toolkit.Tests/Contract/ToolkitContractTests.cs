@@ -81,6 +81,12 @@ public partial class ToolkitContractTests
     private static InvocationRecord Record(string action, string outcome, DateTimeOffset at) =>
         new(at, "test", action, [], outcome, null, 0, 0, null, 0);
 
+    private static InvocationRecord RecordWithUsage(
+        string action, string outcome, DateTimeOffset at,
+        int modelInteractions, long inputTokens, long outputTokens, double durationMs) =>
+        new(at, "test", action, [], outcome, null, 0, modelInteractions,
+            new ModelUsage(inputTokens, outputTokens), durationMs);
+
     /// <summary>
     ///     Runs lint-fix through the dispatcher with the repository's scripts and its worker substituted.
     /// </summary>

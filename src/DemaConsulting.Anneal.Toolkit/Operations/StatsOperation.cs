@@ -6,8 +6,8 @@ using DemaConsulting.Anneal.Toolkit.Recording;
 namespace DemaConsulting.Anneal.Toolkit.Operations;
 
 /// <summary>
-///     Reads a repository's recorded invocations and reports, for each action found, its pass rate across five
-///     cumulative time windows.
+///     Reads a repository's recorded invocations and reports, for each action found, its pass rate and
+///     aggregated cost and latency metrics across five cumulative time windows.
 /// </summary>
 /// <remarks>
 ///     `TOOLKIT-08` already makes every invocation append a structured <see cref="InvocationRecord" />; nothing
@@ -79,7 +79,8 @@ public sealed class StatsOperation : IOperation
     public OperationCategory Category => OperationCategory.Advisory;
 
     /// <inheritdoc />
-    public string Summary => "Report each action's pass rate across five cumulative time windows";
+    public string Summary =>
+        "Report each action's pass rate and aggregated cost/latency across five cumulative time windows";
 
     /// <inheritdoc />
     /// <remarks>
@@ -91,8 +92,8 @@ public sealed class StatsOperation : IOperation
     /// <inheritdoc />
     public string Usage =>
         "usage: dotnet anneal stats - reports, for each action recorded in this repository's invocation " +
-        "records, its pass rate across today, the last 3 days, the last 7 days, the last 30 days, and " +
-        "all-time.";
+        "records, its pass rate, token usage, and average duration across today, the last 3 days, the " +
+        "last 7 days, the last 30 days, and all-time.";
 
     /// <inheritdoc />
     /// <remarks>
@@ -127,7 +128,7 @@ public sealed class StatsOperation : IOperation
             return Task.FromResult(new OperationResult(OperationOutcome.Succeeded));
         }
 
-        output.WriteLine("stats: pass rate by action (Succeeded / (Succeeded + Failed + Refused + Escalated))");
+        output.WriteLine("stats: pass rate and usage by action (Succeeded / (Succeeded + Failed + Refused + Escalated))");
 
         var byAction = records
             .GroupBy(record => record.Action, StringComparer.Ordinal)
@@ -144,14 +145,25 @@ public sealed class StatsOperation : IOperation
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var since = reach is { } span ? now - span : (DateTimeOffset?)null;
-                var inWindow = actionRecords.Where(record => InWindow(record, label, now, since));
+                var inWindow = actionRecords.Where(record => InWindow(record, label, now, since)).ToList();
 
                 var (succeeded, denominator) = Tally(inWindow);
+                var usage = TallyUsage(inWindow);
 
-                output.WriteLine(
-                    denominator == 0
-                        ? $"    {label,-12} no data"
-                        : $"    {label,-12} {succeeded * 100 / denominator}% ({succeeded}/{denominator})");
+                var passRateLine = denominator == 0
+                    ? $"    {label,-12} no data"
+                    : $"    {label,-12} {succeeded * 100 / denominator}% ({succeeded}/{denominator})";
+
+                output.WriteLine(passRateLine);
+
+                if (usage.Invocations > 0)
+                {
+                    output.WriteLine(
+                        $"               interactions: {usage.ModelInteractions}  " +
+                        $"in: {usage.TotalInputTokens} total / {usage.TotalInputTokens / usage.Invocations} avg  " +
+                        $"out: {usage.TotalOutputTokens} total / {usage.TotalOutputTokens / usage.Invocations} avg  " +
+                        $"duration: {usage.TotalDurationMs / usage.Invocations:F0} ms avg");
+                }
             }
         }
 
@@ -211,6 +223,37 @@ public sealed class StatsOperation : IOperation
         return (succeeded, denominator);
     }
 
+    /// <returns>
+    ///     Aggregated cost and latency for <paramref name="records" />: totals and a per-invocation count so
+    ///     callers can derive averages without division-by-zero guard. Invocations whose <c>Usage</c> is null
+    ///     still contribute to <see cref="UsageSummary.Invocations" /> and
+    ///     <see cref="UsageSummary.TotalDurationMs" /> — duration is always present even when no model was
+    ///     consulted. Token fields accumulate only from records that carry usage.
+    /// </returns>
+    private static UsageSummary TallyUsage(IEnumerable<InvocationRecord> records)
+    {
+        var invocations = 0;
+        var modelInteractions = 0L;
+        var totalInputTokens = 0L;
+        var totalOutputTokens = 0L;
+        var totalDurationMs = 0.0;
+
+        foreach (var record in records)
+        {
+            invocations++;
+            modelInteractions += record.ModelInteractions;
+            totalDurationMs += record.DurationMilliseconds;
+
+            if (record.Usage is { } usage)
+            {
+                totalInputTokens += usage.InputTokens;
+                totalOutputTokens += usage.OutputTokens;
+            }
+        }
+
+        return new UsageSummary(invocations, modelInteractions, totalInputTokens, totalOutputTokens, totalDurationMs);
+    }
+
     private IReadOnlyList<InvocationRecord> ReadRecords(CancellationToken cancellationToken)
     {
         var path = RecordStore.InvocationsPathFor(_repositoryRoot);
@@ -250,3 +293,19 @@ public sealed class StatsOperation : IOperation
         return records;
     }
 }
+
+/// <summary>
+///     Aggregated cost and latency figures for a set of invocations in a single time window, used to render
+///     token-usage and duration lines alongside each action's pass rate.
+/// </summary>
+/// <param name="Invocations">Total invocations in the window; zero means no usage line is rendered.</param>
+/// <param name="ModelInteractions">Total model interactions across all invocations.</param>
+/// <param name="TotalInputTokens">Sum of input tokens from records that carried usage.</param>
+/// <param name="TotalOutputTokens">Sum of output tokens from records that carried usage.</param>
+/// <param name="TotalDurationMs">Sum of <see cref="InvocationRecord.DurationMilliseconds" /> for all records.</param>
+internal sealed record UsageSummary(
+    int Invocations,
+    long ModelInteractions,
+    long TotalInputTokens,
+    long TotalOutputTokens,
+    double TotalDurationMs);

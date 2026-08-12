@@ -24,8 +24,9 @@ public partial class ToolkitContractTests
 
     /// <summary>
     ///     TOOLKIT-21 — stats reports, for each action found in a repository's invocation records, its pass rate
-    ///     across five cumulative time windows, with the raw counts behind every percentage, excluding
-    ///     UsageError from both sides.
+    ///     and aggregated cost and latency (total/average input tokens, total/average output tokens, total model
+    ///     interactions, average duration in milliseconds) across five cumulative time windows, with the raw
+    ///     counts behind every percentage, excluding UsageError from both sides.
     /// </summary>
     [Fact]
     public async Task StatsReportsPerActionPassRatesAcrossWindows()
@@ -38,8 +39,11 @@ public partial class ToolkitContractTests
             WriteInvocationRecords(
                 root,
                 // "verify-evidence": one success today, one failure 10 days ago (last 30 days and all-time
-                // only), and a usage error today that must not enter either side of the rate.
-                Record("verify-evidence", nameof(OperationOutcome.Succeeded), now),
+                // only), and a usage error today that must not enter either side of the rate. The success
+                // carries known usage/duration figures so the aggregated cost/latency line can be checked
+                // against an exact value.
+                RecordWithUsage(
+                    "verify-evidence", nameof(OperationOutcome.Succeeded), now, 1, 100, 50, 200.0),
                 Record("verify-evidence", nameof(OperationOutcome.Failed), now - TimeSpan.FromDays(10)),
                 Record("verify-evidence", nameof(OperationOutcome.UsageError), now),
                 // "probe-rule-owner": nothing at all today, so "today" has no data for it, but one refusal
@@ -60,6 +64,14 @@ public partial class ToolkitContractTests
                 () => Assert.Contains("today", written, StringComparison.Ordinal),
                 () => Assert.Contains("100% (1/1)", written, StringComparison.Ordinal),
                 () => Assert.Contains("50% (1/2)", written, StringComparison.Ordinal),
+
+                // The usage error still contributes its own duration/interaction figures to "today"'s
+                // aggregate even though it is excluded from the pass rate: cost is what every invocation
+                // spent, not only the ones that reached a gating outcome.
+                () => Assert.Contains("interactions: 1", written, StringComparison.Ordinal),
+                () => Assert.Contains("in: 100 total / 50 avg", written, StringComparison.Ordinal),
+                () => Assert.Contains("out: 50 total / 25 avg", written, StringComparison.Ordinal),
+                () => Assert.Contains("duration: 100 ms avg", written, StringComparison.Ordinal),
 
                 // probe-rule-owner: today has nothing recorded for it at all - a zero denominator - so it must
                 // say so rather than print a rate.

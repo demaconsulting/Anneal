@@ -1,4 +1,6 @@
 using System.Text.Json;
+using DemaConsulting.Anneal.Toolkit;
+using DemaConsulting.Anneal.Toolkit.Model;
 using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Recording;
 using Xunit;
@@ -146,6 +148,10 @@ public class StatsOperationTests
                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .SkipWhile(line => !line.Contains("check-contracts", StringComparison.Ordinal))
                 .Skip(1)
+                // Each window emits a pass-rate line and optionally a usage line; keep only the pass-rate lines
+                // so this assertion does not couple to whether a usage line appears.
+                .Where(line => line.Contains("no data", StringComparison.Ordinal) ||
+                               line.Contains("%", StringComparison.Ordinal))
                 .Take(5)
                 .ToArray();
 
@@ -198,6 +204,40 @@ public class StatsOperationTests
         }
     }
 
+    [Fact]
+    public async Task UsageLineAppearsForWindowsWithInvocationsAndAggregatesTokensAndDuration()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+
+            // Arrange: two invocations today with known token and duration figures so the averages are exact.
+            WriteRecords(
+                root,
+                RecordWithUsage("route", nameof(OperationOutcome.Succeeded), now, 1, 100, 50, 200.0),
+                RecordWithUsage("route", nameof(OperationOutcome.Succeeded), now, 2, 300, 150, 400.0));
+
+            var operation = new StatsOperation(root);
+            var output = new StringWriter();
+
+            // Act
+            await operation.ExecuteAsync([], output, TestContext.Current.CancellationToken);
+            var written = output.ToString();
+
+            // Assert: the today window must show aggregated interactions (3), input (400 total / 200 avg),
+            // output (200 total / 100 avg), and duration (300 ms avg).
+            Assert.Contains("interactions: 3", written, StringComparison.Ordinal);
+            Assert.Contains("in: 400 total / 200 avg", written, StringComparison.Ordinal);
+            Assert.Contains("out: 200 total / 100 avg", written, StringComparison.Ordinal);
+            Assert.Contains("duration: 300 ms avg", written, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static void WriteRecords(string root, params InvocationRecord[] records)
     {
         var path = RecordStore.InvocationsPathFor(root);
@@ -207,6 +247,12 @@ public class StatsOperationTests
 
     private static InvocationRecord Record(string action, string outcome, DateTimeOffset at) =>
         new(at, "test", action, [], outcome, null, 0, 0, null, 0);
+
+    private static InvocationRecord RecordWithUsage(
+        string action, string outcome, DateTimeOffset at,
+        int modelInteractions, long inputTokens, long outputTokens, double durationMs) =>
+        new(at, "test", action, [], outcome, null, 0, modelInteractions,
+            new ModelUsage(inputTokens, outputTokens), durationMs);
 
     private static string CreateTemporaryDirectory()
     {
