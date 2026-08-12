@@ -340,18 +340,9 @@ internal sealed class DocumentAuthor
     private async Task<(IReadOnlyList<string> ChangedFiles, string Patch)> ReadDiffAsync(
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var diff = new DiffCheck(_repositoryRoot, runGit: _runGit);
-            var result = await diff.RunAsync(null, cancellationToken).ConfigureAwait(false);
-            if (result.Finding is not { Available: true })
-                return ([], string.Empty);
-            return (result.Finding.ChangedFiles, result.Finding.Patch);
-        }
-        catch
-        {
-            return ([], string.Empty);
-        }
+        var finding = await new DiffCheck(_repositoryRoot, runGit: _runGit)
+            .TryReadAsync(null, cancellationToken).ConfigureAwait(false);
+        return finding is null ? ([], string.Empty) : (finding.ChangedFiles, finding.Patch);
     }
 
     /// <returns>
@@ -366,26 +357,18 @@ internal sealed class DocumentAuthor
         if (selfReported.Count == 0)
             return selfReported;
 
-        try
-        {
-            var diff = new DiffCheck(_repositoryRoot, runGit: _runGit);
-            var result = await diff.RunAsync(null, cancellationToken).ConfigureAwait(false);
+        var finding = await new DiffCheck(_repositoryRoot, runGit: _runGit)
+            .TryReadAsync(null, cancellationToken).ConfigureAwait(false);
 
-            if (result.Finding is not { Available: true })
-                return selfReported;
-
-            var realFiles = result.Finding.ChangedFiles.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var corroborated = selfReported.Where(f => realFiles.Contains(f)).ToList();
-
-            // Return the original reference when nothing was dropped to avoid an unnecessary allocation
-            // and to make the no-change path detectable by reference equality in the caller.
-            return corroborated.Count == selfReported.Count ? selfReported : corroborated;
-        }
-        catch
-        {
-            // Corroboration is best-effort; any unexpected failure falls back to trusting the self-report.
+        if (finding is null)
             return selfReported;
-        }
+
+        var realFiles = finding.ChangedFiles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var corroborated = selfReported.Where(f => realFiles.Contains(f)).ToList();
+
+        // Return the original reference when nothing was dropped to avoid an unnecessary allocation
+        // and to make the no-change path detectable by reference equality in the caller.
+        return corroborated.Count == selfReported.Count ? selfReported : corroborated;
     }
 
     private static DocumentAuthoringResult Map(DocumentAuthoringEnvelope envelope) => envelope.Kind switch

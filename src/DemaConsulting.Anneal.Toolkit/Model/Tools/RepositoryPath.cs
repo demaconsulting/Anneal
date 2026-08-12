@@ -162,4 +162,20 @@ public static class RepositoryPath
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
+
+    /// <summary>
+    ///     Normalizes a repository-relative path to a canonical, comparable form: backslashes replaced with forward
+    ///     slashes, a leading <c>./</c> stripped, and a trailing <c>/</c> stripped.
+    /// </summary>
+    /// <remarks>
+    ///     Used to compare a model-supplied or self-reported path against paths obtained from the filesystem so that
+    ///     separator style or a leading <c>./</c> does not cause a spurious mismatch.
+    /// </remarks>
+    /// <param name="path">The path to normalize. Must not be null.</param>
+    /// <returns>The normalized form.</returns>
+    internal static string NormalizePath(string path)
+    {
+        var normalized = path.Replace('\\', '/').TrimEnd('/');
+        return normalized.StartsWith("./", StringComparison.Ordinal) ? normalized[2..] : normalized;
+    }
 }

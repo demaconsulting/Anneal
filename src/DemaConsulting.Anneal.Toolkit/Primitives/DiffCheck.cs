@@ -133,6 +133,38 @@ internal sealed partial class DiffCheck
         }
     }
 
+    /// <summary>
+    ///     Runs the diff check and returns the finding when the diff was read and git was available, or null when
+    ///     the diff could not be read for any reason — git unavailable, non-zero exit, timeout, or exception.
+    /// </summary>
+    /// <param name="baseRef">
+    ///     A branch or commit to diff against, or null/blank to diff uncommitted work against <c>HEAD</c>.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     The caller's signal. Cancellation propagates as <see cref="OperationCanceledException" />; all other
+    ///     failure modes return null so callers do not each need their own try/catch for the read-and-guard shape.
+    /// </param>
+    /// <returns>
+    ///     The available <see cref="DiffFinding" /> when the diff was read successfully, or null otherwise.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="cancellationToken" /> is cancelled.</exception>
+    internal async Task<DiffFinding?> TryReadAsync(string? baseRef, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await RunAsync(baseRef, cancellationToken).ConfigureAwait(false);
+            return result.Finding is { Available: true } ? result.Finding : null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     /// <remarks>
     ///     Trimmed rather than truncated blindly, the same reasoning <see cref="DeterministicCheck" />'s own
     ///     <c>Summarize</c> gives: a verifier's evidence budget needs what a reader can act on, not every line a

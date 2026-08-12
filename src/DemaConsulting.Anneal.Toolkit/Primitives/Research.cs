@@ -189,15 +189,6 @@ internal sealed class Research
     private static ResearchFinding Corroborate(ResearchFinding finding, IReadOnlySet<string> readPaths) =>
         finding with
         {
-            EvidenceRefs = [.. finding.EvidenceRefs.Where(r => readPaths.Contains(NormalizePath(r)))]
+            EvidenceRefs = [.. finding.EvidenceRefs.Where(r => readPaths.Contains(RepositoryPath.NormalizePath(r)))]
         };
-
-    // Mirrors the normalization applied when recording successful read paths so that a leading './',
-    // backslash separators, or a trailing slash in a self-reported evidence ref does not cause a
-    // false 'not corroborated' result.
-    private static string NormalizePath(string path)
-    {
-        var normalized = path.Replace('\\', '/').TrimEnd('/');
-        return normalized.StartsWith("./", StringComparison.Ordinal) ? normalized[2..] : normalized;
-    }
 }

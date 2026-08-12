@@ -367,11 +367,11 @@ internal sealed class Router
     private async Task<ChangeSetBeforeStopping?> GroundInterruptedAsync(
         ChangeSetBeforeStopping? workerInterrupted, CancellationToken cancellationToken)
     {
-        var diffResult = await _diffCheck.RunAsync(null, cancellationToken).ConfigureAwait(false);
-        if (diffResult.Outcome != OperationOutcome.Succeeded || !diffResult.Finding!.Available)
+        var finding = await _diffCheck.TryReadAsync(null, cancellationToken).ConfigureAwait(false);
+        if (finding is null)
             return workerInterrupted;
 
-        var diffFiles = diffResult.Finding.ChangedFiles;
+        var diffFiles = finding.ChangedFiles;
 
         if (diffFiles.Count == 0)
             return workerInterrupted;
