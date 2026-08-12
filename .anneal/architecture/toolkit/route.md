@@ -54,6 +54,16 @@ the report separately from the completion fields.
   `InterruptedRouteContractTests.SucceededRunProducesNoSnapshotPatch`,
   `InterruptedRouteContractTests.SnapshotFailureDoesNotMaskReportedOutcome`
 
+- **TOOLKIT-54** — Whenever `TOOLKIT-23` writes a patch file, `route` also writes a companion JSON
+  file at the same path stem with a `.json` extension (e.g. `interrupted-<timestamp>.json` alongside
+  `interrupted-<timestamp>.patch`), recording the triage narrative — outcome, recommended next step,
+  what was tried, files changed before stopping, a summary of the partial work, and any escalation or
+  failure reason — so a later human or agent that only sees a dirty working tree (without having
+  watched the live console output) can discover why the run stopped and what remains unverified.
+  The JSON companion step is silent and non-throwing: companion failure never masks the reported
+  outcome or the patch file written by `TOOLKIT-23`.
+  *Verified by:* `InterruptedRouteContractTests.RouteWritesTriageContextJsonAlongsidePatch`
+
 - **TOOLKIT-25** — `route` classifies the routed work item's Effort — Small, Medium, Large, or Massive,
   the closed vocabulary `change-classification.md` defines — in the same pass that selects a worker, and
   reports the classified value alongside whatever outcome the run reaches.

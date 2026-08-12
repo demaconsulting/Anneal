@@ -432,6 +432,9 @@ public sealed class RouteOperation : IOperation
             output.WriteLine($"route: summary before stopping - {interrupted.Summary}");
         }
 
+        IReadOnlyList<string> filesBeforeStopping = interrupted?.FilesChanged ?? [];
+        var summaryBeforeStopping = interrupted?.Summary ?? string.Empty;
+
         // Always attempt a whole-tree snapshot at every Failed/Escalated exit, regardless of what the
         // worker self-reported: a worker that under-reports its FilesChanged (or reports a plain Failed
         // with an empty ChangeBeforeStopping) cannot silently suppress a recovery snapshot for real
@@ -439,11 +442,26 @@ public sealed class RouteOperation : IOperation
         {
             var patchPath = await SnapshotInterruptedDiffAsync(cancellationToken).ConfigureAwait(false);
             if (patchPath is not null)
+            {
                 output.WriteLine($"route: pre-triage snapshot written to {patchPath}");
-        }
 
-        IReadOnlyList<string> filesBeforeStopping = interrupted?.FilesChanged ?? [];
-        var summaryBeforeStopping = interrupted?.Summary ?? string.Empty;
+                var tried = report.FailureReport.WhatWasTried;
+                var context = new InterruptedTriageContext(
+                    outcome.ToString(),
+                    report.FailureReport.RecommendedNextStep,
+                    tried,
+                    filesBeforeStopping,
+                    summaryBeforeStopping,
+                    string.IsNullOrEmpty(report.FailureReport.WhatWasLearned)
+                        ? null
+                        : report.FailureReport.WhatWasLearned);
+
+                var jsonPath = await InterruptedDiffSnapshot.WriteTriageContextAsync(
+                    patchPath, _repositoryRoot, context, cancellationToken).ConfigureAwait(false);
+                if (jsonPath is not null)
+                    output.WriteLine($"route: triage context written to {jsonPath}");
+            }
+        }
 
         return new OperationResult(
             outcome,

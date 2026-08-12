@@ -196,7 +196,9 @@ public sealed class MaintainOperation : IOperation
                 $"maintain: escalated - the actual changes touched the protected path '{trippedPath}'; a person " +
                 "must review this run.");
 
-            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
+            var reason = $"actual changes touched protected path '{trippedPath}'";
+            await WriteSnapshotIfChangedAsync(
+                output, OperationOutcome.Escalated, workItem, reason, actualChanged, actualSummary, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -213,7 +215,9 @@ public sealed class MaintainOperation : IOperation
                 $"maintain: escalated - '{outOfBoundsFile}' falls outside the declared bound " +
                 $"({string.Join("; ", declaredBound)}); a person must review this run.");
 
-            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
+            var reason = $"'{outOfBoundsFile}' falls outside the declared bound ({string.Join("; ", declaredBound)})";
+            await WriteSnapshotIfChangedAsync(
+                output, OperationOutcome.Escalated, workItem, reason, actualChanged, actualSummary, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -228,7 +232,8 @@ public sealed class MaintainOperation : IOperation
         {
             output.WriteLine($"maintain: escalated - the worker named a better owner: {reroute.Why}");
 
-            await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
+            await WriteSnapshotIfChangedAsync(
+                output, OperationOutcome.Escalated, workItem, reroute.Why, actualChanged, actualSummary, cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Escalated,
@@ -254,7 +259,8 @@ public sealed class MaintainOperation : IOperation
                 ? "maintain: escalated - this needs a decision only you can make."
                 : "maintain: failed - the worker did not complete this work.");
 
-        await WriteSnapshotIfChangedAsync(output, cancellationToken).ConfigureAwait(false);
+        await WriteSnapshotIfChangedAsync(
+            output, result.Outcome, workItem, null, actualChanged, actualSummary, cancellationToken).ConfigureAwait(false);
 
         return new OperationResult(
             result.Outcome,
@@ -289,13 +295,37 @@ public sealed class MaintainOperation : IOperation
     ///     Always attempts a whole-tree 'git diff HEAD' rather than gating on the worker-supplied file list:
     ///     a worker that under-reports its own changed files cannot silently suppress a recovery snapshot for
     ///     real uncommitted diffs. If git reports no diff, writes nothing — the same no-op as before.
+    ///     When a patch is written, a companion JSON file recording the triage context is written alongside it
+    ///     so a later human or agent with only the dirty tree can discover why the run stopped.
     /// </remarks>
-    private async Task WriteSnapshotIfChangedAsync(TextWriter output, CancellationToken cancellationToken)
+    private async Task WriteSnapshotIfChangedAsync(
+        TextWriter output,
+        OperationOutcome outcome,
+        string workItem,
+        string? escalationOrFailureReason,
+        IReadOnlyList<string> filesChanged,
+        string summary,
+        CancellationToken cancellationToken)
     {
         var patchPath = await InterruptedDiffSnapshot.WriteAsync(
             _repositoryRoot, cancellationToken).ConfigureAwait(false);
 
-        if (patchPath is not null)
-            output.WriteLine($"maintain: pre-triage snapshot written to {patchPath}");
+        if (patchPath is null)
+            return;
+
+        output.WriteLine($"maintain: pre-triage snapshot written to {patchPath}");
+
+        var context = new InterruptedTriageContext(
+            outcome.ToString(),
+            "Review the interrupted diff and determine whether the partial changes should be reverted or completed.",
+            [workItem],
+            filesChanged,
+            summary,
+            escalationOrFailureReason);
+
+        var jsonPath = await InterruptedDiffSnapshot.WriteTriageContextAsync(
+            patchPath, _repositoryRoot, context, cancellationToken).ConfigureAwait(false);
+        if (jsonPath is not null)
+            output.WriteLine($"maintain: triage context written to {jsonPath}");
     }
 }

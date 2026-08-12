@@ -282,6 +282,74 @@ public class InterruptedRouteContractTests
         }
     }
 
+    /// <summary>
+    ///     TOOLKIT-54 (triage JSON companion) — when <c>route</c> writes a patch file on a Failed or Escalated
+    ///     outcome, it also writes a companion <c>.json</c> file next to the patch containing the triage narrative.
+    ///     Verified by <c>RouteWritesTriageContextJsonAlongsidePatch</c>.
+    /// </summary>
+    [Fact]
+    public async Task RouteWritesTriageContextJsonAlongsidePatch()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange: a real git repository with a HEAD commit so git diff HEAD produces output.
+            await RunGitAsync(root, "init");
+            await RunGitAsync(root, "config", "user.email", "test@example.com");
+            await RunGitAsync(root, "config", "user.name", "Test");
+            var srcDir = Path.Combine(root, "src");
+            Directory.CreateDirectory(srcDir);
+            var changedFile = Path.Combine(srcDir, "Written.cs");
+            File.WriteAllText(changedFile, "// original\n");
+            await RunGitAsync(root, "add", "-A");
+            await RunGitAsync(root, "commit", "-m", "initial");
+
+            // Mutate the tracked file so git diff HEAD is non-empty.
+            File.WriteAllText(changedFile, "// changed before stopping\n");
+
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"SelectWorker","why":"interior fix","workerKey":"small-fix","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                "I edited a file before the build failed.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
+                "I repaired the file, but the build still failed.",
+                """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""");
+
+            var operation = new RouteOperation(
+                root,
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(1, "build failed")));
+
+            var output = new StringWriter();
+
+            // Act
+            await AnnealTool.RunAsync(
+                ["route", "fix something"],
+                output,
+                [operation],
+                root,
+                TestContext.Current.CancellationToken);
+            var written = output.ToString();
+
+            // Assert: a JSON companion file exists next to the patch, and the output announces it.
+            var snapshotsDir = Path.Combine(root, ".anneal", "logs", "snapshots");
+            var jsonFiles = Directory.Exists(snapshotsDir)
+                ? Directory.GetFiles(snapshotsDir, "interrupted-*.json")
+                : [];
+
+            Assert.NotEmpty(jsonFiles);
+            var jsonContent = File.ReadAllText(jsonFiles[0]);
+            Assert.Multiple(
+                () => Assert.Contains("\"outcome\"", jsonContent, StringComparison.Ordinal),
+                () => Assert.Contains("triage context written to", written, StringComparison.Ordinal));
+        }
+        finally
+        {
+            foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var root = Path.Combine(Path.GetTempPath(), "anneal-tk23-" + Guid.NewGuid().ToString("N")[..12]);

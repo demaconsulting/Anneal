@@ -187,6 +187,75 @@ public class InterruptedMaintainContractTests
         }
     }
 
+    /// <summary>
+    ///     TOOLKIT-55 (triage JSON companion) — when <c>maintain</c> writes a patch file on an escalated
+    ///     outcome, it also writes a companion <c>.json</c> file next to the patch containing the triage
+    ///     narrative. Verified by <c>MaintainWritesTriageContextJsonAlongsidePatch</c>.
+    /// </summary>
+    [Fact]
+    public async Task MaintainWritesTriageContextJsonAlongsidePatch()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            // Arrange: a real git repository with a HEAD commit so git diff HEAD is meaningful.
+            await RunGitAsync(root, "init");
+            await RunGitAsync(root, "config", "user.email", "test@example.com");
+            await RunGitAsync(root, "config", "user.name", "Test");
+            var srcDir = Path.Combine(root, "src");
+            Directory.CreateDirectory(srcDir);
+            var changedFile = Path.Combine(srcDir, "Written.cs");
+            var outOfBoundFile = Path.Combine(srcDir, "OutOfBound.cs");
+            File.WriteAllText(changedFile, "// original\n");
+            File.WriteAllText(outOfBoundFile, "// original out-of-bound\n");
+            await RunGitAsync(root, "add", "-A");
+            await RunGitAsync(root, "commit", "-m", "initial");
+
+            // Mutate both tracked files so git diff HEAD shows real changes.
+            File.WriteAllText(changedFile, "// changed before stopping\n");
+            File.WriteAllText(outOfBoundFile, "// out-of-bound also changed\n");
+
+            // Worker reports a file outside the declared bound, forcing escalation (TOOLKIT-30).
+            var endpoint = new QueuedEndpoint(
+                "I made the change.",
+                CompletedJson(["src/Written.cs", "src/OutOfBound.cs"], "tidied more than declared"));
+
+            var operation = new MaintainOperation(
+                root,
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")));
+
+            var output = new StringWriter();
+
+            // Act
+            await AnnealTool.RunAsync(
+                ["maintain", "tidy a helper", "src/Written.cs"],
+                output,
+                [operation],
+                root,
+                TestContext.Current.CancellationToken);
+            var written = output.ToString();
+
+            // Assert: a JSON companion file exists next to the patch, and the output announces it.
+            var snapshotsDir = Path.Combine(root, ".anneal", "logs", "snapshots");
+            var jsonFiles = Directory.Exists(snapshotsDir)
+                ? Directory.GetFiles(snapshotsDir, "interrupted-*.json")
+                : [];
+
+            Assert.NotEmpty(jsonFiles);
+            var jsonContent = File.ReadAllText(jsonFiles[0]);
+            Assert.Multiple(
+                () => Assert.Contains("\"outcome\"", jsonContent, StringComparison.Ordinal),
+                () => Assert.Contains("triage context written to", written, StringComparison.Ordinal));
+        }
+        finally
+        {
+            foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CompletedJson(IReadOnlyList<string> filesChanged, string summary) =>
         $$"""
           {"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[{{string.Join(",", filesChanged.Select(file => $"\"{file}\""))}}],"summary":"{{summary}}"}

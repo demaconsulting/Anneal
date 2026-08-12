@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DemaConsulting.Anneal.Toolkit.Primitives;
 
 namespace DemaConsulting.Anneal.Toolkit.Operations;
@@ -98,4 +100,88 @@ internal static class InterruptedDiffSnapshot
             return null;
         }
     }
+
+    /// <summary>
+    ///     Writes a JSON triage context file alongside the patch file written by <see cref="WriteAsync(string, CancellationToken)" />,
+    ///     recording the human-readable narrative that would otherwise only appear on the live console.
+    /// </summary>
+    /// <remarks>
+    ///     A developer or agent that later encounters a dirty working tree without having watched the original console
+    ///     output can open this file to learn why the run stopped and what work remains unverified. The patch file
+    ///     records <em>what</em> changed; this file records <em>why the run stopped</em> and what to do next.
+    ///     The timestamp is shared with the patch file so the two can be matched by name.
+    ///     Failures are silenced — snapshot failure must never mask the escalation or failure being reported.
+    /// </remarks>
+    /// <param name="patchPath">
+    ///     The repository-relative path returned by <see cref="WriteAsync(string, CancellationToken)" />
+    ///     (e.g. <c>.anneal/logs/snapshots/interrupted-20260812T120000Z.patch</c>). The JSON companion is written
+    ///     next to it with the same timestamp stem and a <c>.json</c> extension. Must not be null.
+    /// </param>
+    /// <param name="repositoryRoot">Absolute path to the repository root.</param>
+    /// <param name="context">The triage narrative to persist.</param>
+    /// <param name="cancellationToken">Token observed for cooperative cancellation.</param>
+    /// <returns>
+    ///     The repository-relative path of the written JSON file (e.g.
+    ///     <c>.anneal/logs/snapshots/interrupted-20260812T120000Z.json</c>), or <c>null</c> when any I/O failure
+    ///     occurred. Null is a silent no-op.
+    /// </returns>
+    internal static async Task<string?> WriteTriageContextAsync(
+        string patchPath,
+        string repositoryRoot,
+        InterruptedTriageContext context,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Derive the JSON file path from the patch path by replacing the .patch extension.
+            var jsonRelative = Path.ChangeExtension(patchPath.Replace('/', Path.DirectorySeparatorChar), ".json");
+            var jsonAbsolute = Path.Combine(repositoryRoot, jsonRelative);
+
+            var json = JsonSerializer.Serialize(context, InterruptedTriageContextJsonContext.Default.InterruptedTriageContext);
+            await File.WriteAllTextAsync(jsonAbsolute, json, cancellationToken).ConfigureAwait(false);
+
+            return patchPath.Replace(".patch", ".json");
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
+
+/// <summary>
+///     The triage narrative persisted alongside an interrupted-diff patch file so a later human or agent that only
+///     sees a dirty working tree can learn why the run stopped and what remains unverified.
+/// </summary>
+/// <param name="Outcome">
+///     The operation outcome that ended this run — "Escalated" or "Failed". Never null.
+/// </param>
+/// <param name="RecommendedNextStep">
+///     What the run's own oracle or the operation recommends a person do next. Never null; may be empty when no
+///     recommendation was produced.
+/// </param>
+/// <param name="WhatWasTried">
+///     Each step the run attempted, oldest first. Never null; may be empty.
+/// </param>
+/// <param name="FilesChanged">
+///     Files already written to disk before the run stopped. Never null; may be empty.
+/// </param>
+/// <param name="Summary">
+///     A brief account of what had been done before the run stopped. Never null; may be empty.
+/// </param>
+/// <param name="EscalationOrFailureReason">
+///     Why the run escalated or failed, when a reason is available. Null when no specific reason was produced
+///     (e.g. a budget exhaustion with no accompanying message).
+/// </param>
+internal sealed record InterruptedTriageContext(
+    string Outcome,
+    string RecommendedNextStep,
+    IReadOnlyList<string> WhatWasTried,
+    IReadOnlyList<string> FilesChanged,
+    string Summary,
+    string? EscalationOrFailureReason);
+
+[JsonSerializable(typeof(InterruptedTriageContext))]
+[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+internal sealed partial class InterruptedTriageContextJsonContext : JsonSerializerContext;
+
