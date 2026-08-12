@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DemaConsulting.Anneal.Toolkit.Model;
+using DemaConsulting.Anneal.Toolkit.Operations;
 using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 using DemaConsulting.Anneal.Toolkit.Process.Routing;
@@ -876,6 +877,151 @@ public class RouterTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_WorkerFailsDiffUnavailable_KeepsWorkerReportedInterrupted()
+    {
+        // Arrange: diff command fails (non-zero exit), so the diff is unavailable; worker reports Interrupted
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                new ChangeSetBeforeStopping(["a.cs"], "worker wrote a.cs before stopping"),
+                []));
+
+            // Act
+            RunGitCommand unavailableGit = (_, _) => Task.FromResult(new ScriptRun(128, "fatal: not a git repository"));
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner, runGit: unavailableGit);
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: diff unavailable => worker-reported Interrupted unchanged
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Equal(["a.cs"], report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.Equal("worker wrote a.cs before stopping", report.ChangeBeforeStopping!.Summary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerFailsDiffEmpty_KeepsWorkerReportedInterrupted()
+    {
+        // Arrange: diff runs but shows no changed files; worker reports Interrupted with files
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                new ChangeSetBeforeStopping(["a.cs"], "worker wrote a.cs before stopping"),
+                []));
+
+            // Act: git diff returns empty output (no changed files)
+            RunGitCommand emptyGit = (_, _) => Task.FromResult(new ScriptRun(0, ""));
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner, runGit: emptyGit);
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: diff empty => worker-reported Interrupted unchanged (empty diff + real summary is more informative)
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Equal(["a.cs"], report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.Equal("worker wrote a.cs before stopping", report.ChangeBeforeStopping!.Summary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerFailsDiffHasFilesWorkerReportedNull_SynthesizesInterrupted()
+    {
+        // Arrange: diff shows changed files but worker reported null Interrupted
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed, null, null, []));
+
+            // Act: git diff reports a real changed file
+            const string patch = "diff --git a/x.cs b/x.cs\n--- a/x.cs\n+++ b/x.cs\n@@ -1 +1 @@\n-old\n+new\n";
+            RunGitCommand realGit = (_, _) => Task.FromResult(new ScriptRun(0, patch));
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner, runGit: realGit);
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: synthesized ChangeSetBeforeStopping with the diff's file list
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Contains("x.cs", report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.Contains("git diff", report.ChangeBeforeStopping!.Summary, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_WorkerFailsDiffAndWorkerBothHaveFiles_DiffFileListWins()
+    {
+        // Arrange: both diff and worker report files, but they disagree; diff's list is authoritative
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var oracleEndpoint = new QueuedEndpoint(SelectWorkerJson("small-fix", "simple fix"));
+            var researchEndpoint = new QueuedEndpoint();
+            var recordStore = new RecordStore(root);
+
+            WorkerRunner runner = (_, _) => Task.FromResult(new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                new ChangeSetBeforeStopping(["worker-reported.cs"], "original worker summary"),
+                []));
+
+            // Act: git diff shows a different file than the worker reported
+            const string patch = "diff --git a/diff-reported.cs b/diff-reported.cs\n--- a/diff-reported.cs\n+++ b/diff-reported.cs\n@@ -1 +1 @@\n-old\n+new\n";
+            RunGitCommand realGit = (_, _) => Task.FromResult(new ScriptRun(0, patch));
+            var router = BuildRouter(root, recordStore, oracleEndpoint, researchEndpoint, runner, runGit: realGit);
+            var result = await router.RunAsync("fix something", null, TestContext.Current.CancellationToken);
+
+            // Assert: diff's file list replaces worker's; worker's summary text is preserved
+            var report = ((RouterOutcome.Report)result.Finding!).FailureReport;
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.NotNull(report.ChangeBeforeStopping),
+                () => Assert.Contains("diff-reported.cs", report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.DoesNotContain("worker-reported.cs", report.ChangeBeforeStopping!.FilesChanged),
+                () => Assert.Contains("original worker summary", report.ChangeBeforeStopping!.Summary, StringComparison.Ordinal),
+                () => Assert.Contains("reconciled", report.ChangeBeforeStopping!.Summary, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static Router BuildRouter(
         string root,
         RecordStore recordStore,
@@ -883,7 +1029,8 @@ public class RouterTests
         QueuedEndpoint researchEndpoint,
         WorkerRunner runner,
         int maxResearchIterations = 3,
-        int maxWorkerReroutes = 2)
+        int maxWorkerReroutes = 2,
+        RunGitCommand? runGit = null)
     {
         WorkerCatalogEntry entry = new(new WorkerDescriptor("small-fix", "the cheap path"), runner);
 
@@ -897,7 +1044,8 @@ public class RouterTests
             recordStore,
             maxResearchIterations,
             maxWorkerReroutes,
-            endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint);
+            endpointFor: role => role == ModelRole.Medium ? researchEndpoint : oracleEndpoint,
+            runGit: runGit);
     }
 
     private static string SelectWorkerJson(string workerKey, string why, bool hasSufficientEvidence = true, string effort = "Small") =>

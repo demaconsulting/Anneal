@@ -80,6 +80,7 @@ internal sealed class Router
     private readonly Oracle<PhaseDecompositionEnvelope> _decompositionOracle;
     private readonly Oracle<CumulativeCheckEnvelope> _cumulativeCheckOracle;
     private readonly Research _research;
+    private readonly DiffCheck _diffCheck;
 
     /// <summary>
     ///     Binds a router to a repository, its worker catalog, and the budgets it enforces.
@@ -118,6 +119,10 @@ internal sealed class Router
     ///     Supplies the endpoint driving a role, or null to drive every role through the GitHub Copilot SDK.
     ///     Injected so this type's whole behavior is exercisable without a network call.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation for the working-tree diff check, or null to run it through the real
+    ///     <c>git</c> executable. Injected so the diff-grounding behavior is exercisable without a real repository.
+    /// </param>
     /// <exception cref="ArgumentException">
     ///     Thrown when <paramref name="repositoryRoot" /> is null, empty or blank, or when <paramref name="catalog" /> is empty.
     /// </exception>
@@ -139,7 +144,8 @@ internal sealed class Router
         RecordStore recordStore,
         int maxResearchIterations = 3,
         int maxWorkerReroutes = 2,
-        Func<ModelRole, IChatEndpoint>? endpointFor = null)
+        Func<ModelRole, IChatEndpoint>? endpointFor = null,
+        RunGitCommand? runGit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(routeCharter);
@@ -168,6 +174,7 @@ internal sealed class Router
         _cumulativeCheckOracle =
             new Oracle<CumulativeCheckEnvelope>(_repositoryRoot, cumulativeCheckCharter, endpointFor: endpointFor);
         _research = new Research(_repositoryRoot, researchCharter, endpointFor: endpointFor);
+        _diffCheck = new DiffCheck(_repositoryRoot, runGit: runGit);
     }
 
     /// <summary>
@@ -322,6 +329,8 @@ internal sealed class Router
                             continue;
 
                         default:
+                            var grounded = await GroundInterruptedAsync(
+                                workerResult.Interrupted, cancellationToken).ConfigureAwait(false);
                             return workerResult.Outcome == OperationOutcome.Escalated
                                 ? new StepResult<RouterOutcome>(
                                     OperationOutcome.Escalated,
@@ -329,16 +338,56 @@ internal sealed class Router
                                         BuildReport(
                                             ledger,
                                             "the selected worker escalated to a person",
-                                            changeBeforeStopping: workerResult.Interrupted)),
+                                            changeBeforeStopping: grounded)),
                                     workerResult.Notes)
                                 : Fail(ledger, "the selected worker could not complete the work",
-                                    changeBeforeStopping: workerResult.Interrupted);
+                                    changeBeforeStopping: grounded);
                     }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(decision), decision, "Unknown route decision.");
             }
         }
+    }
+
+    /// <remarks>
+    ///     Only called after a worker actually ran (the default switch arm). Other failure paths — budget
+    ///     exhaustion, no worker selected — are not grounded because no worker wrote anything to the working tree,
+    ///     so there is no gap between what the worker reported and what git would show.
+    ///
+    ///     Reconciliation rules:
+    ///     - Diff unavailable: keep worker-reported interrupted unchanged.
+    ///     - Diff available but empty: keep worker-reported interrupted unchanged — an empty diff paired with a
+    ///       real worker summary (e.g. a legitimate revert) is more informative than blanking it.
+    ///     - Diff has files but worker reported null: synthesize a new <see cref="ChangeSetBeforeStopping"/> from
+    ///       the diff's file list with a summary explaining the worker did not report changes.
+    ///     - Both have data: keep the worker's summary text but replace FilesChanged with the diff's authoritative
+    ///       list, and note the mismatch was reconciled.
+    /// </remarks>
+    private async Task<ChangeSetBeforeStopping?> GroundInterruptedAsync(
+        ChangeSetBeforeStopping? workerInterrupted, CancellationToken cancellationToken)
+    {
+        var diffResult = await _diffCheck.RunAsync(null, cancellationToken).ConfigureAwait(false);
+        if (diffResult.Outcome != OperationOutcome.Succeeded || !diffResult.Finding!.Available)
+            return workerInterrupted;
+
+        var diffFiles = diffResult.Finding.ChangedFiles;
+
+        if (diffFiles.Count == 0)
+            return workerInterrupted;
+
+        if (workerInterrupted is null)
+            return new ChangeSetBeforeStopping(
+                diffFiles,
+                "The worker did not report changes before stopping, but git diff shows files were modified.");
+
+        // Both have data: the diff's file list is authoritative; the worker's summary is preserved.
+        return workerInterrupted with
+        {
+            FilesChanged = diffFiles,
+            Summary = workerInterrupted.Summary +
+                      " (reconciled: diff-reported file list replaced worker-reported list)"
+        };
     }
 
     /// <summary>

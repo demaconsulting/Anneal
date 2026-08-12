@@ -188,6 +188,7 @@ public sealed class RouteOperation : IOperation
     private readonly Func<ModelRole, IChatEndpoint>? _endpointFor;
     private readonly RunRepositoryScript? _buildRunScript;
     private readonly RunRepositoryScript? _contractCheckRunScript;
+    private readonly RunGitCommand? _runGit;
 
     /// <summary>
     ///     Creates an operation over the current working directory, running the repository's own scripts through
@@ -221,12 +222,18 @@ public sealed class RouteOperation : IOperation
     ///     through <see cref="Process.Workers.ContractCheckRunner" /> — <see cref="CheckContractsOperation" /> called in
     ///     process with <c>-Strict</c> filtered out. Injected so the whole run is exercisable without a real check.
     /// </param>
+    /// <param name="runGit">
+    ///     Runs one <c>git</c> invocation for the working-tree diff grounding step, or null to run it through the
+    ///     real <c>git</c> executable. Injected so the diff-grounding behavior is exercisable without a real
+    ///     repository.
+    /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="repositoryRoot" /> is null, empty or blank.</exception>
     public RouteOperation(
         string repositoryRoot,
         Func<ModelRole, IChatEndpoint>? endpointFor = null,
         RunRepositoryScript? buildRunScript = null,
-        RunRepositoryScript? contractCheckRunScript = null)
+        RunRepositoryScript? contractCheckRunScript = null,
+        RunGitCommand? runGit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
@@ -234,6 +241,7 @@ public sealed class RouteOperation : IOperation
         _endpointFor = endpointFor;
         _buildRunScript = buildRunScript;
         _contractCheckRunScript = contractCheckRunScript;
+        _runGit = runGit;
     }
 
     /// <inheritdoc />
@@ -294,7 +302,8 @@ public sealed class RouteOperation : IOperation
             CumulativeCheckCharter,
             BuildCatalog(recordStore),
             recordStore,
-            endpointFor: _endpointFor);
+            endpointFor: _endpointFor,
+            runGit: _runGit);
 
         output.WriteLine($"route: routing \"{workItem}\"...");
 
