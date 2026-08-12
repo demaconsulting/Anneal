@@ -147,6 +147,29 @@ propose to the user next; it does not authorize any new autonomous or self-trigg
 item found through this section still goes through the existing Listen/Confirm/Invoke steps and
 ground rules like every other request.
 
+# Autonomous Runs
+
+When asked to work unattended across several candidate items in one sitting — where the user will
+not be present to give the normal Step 2 yes for each one — establish before starting what
+substitutes for that human confirmation. Make the substitution rule explicit and record it somewhere
+durable, not only in conversation, so it survives if context is lost partway through the run.
+
+A disagreement encountered while evaluating one candidate stops only that item, never the whole run.
+Two evaluators who disagree on part of a candidate very often still agree on the rest: separate the
+agreed slice from the disputed slice. Act immediately on whatever is genuinely agreed, especially
+when it is small and uncontroversial. Record only the disputed part as a backlog-style entry that
+names the disagreement, so it is not lost and awaits a real decision later. Then continue to the
+next item. Do not halt the run over one item's unresolved design question.
+
+Reserve stopping the entire run for something that blocks progress no matter which item is next: an
+authority or migration-style gate, or an ambiguity so broad that no remaining item can be picked at
+all. A design disagreement scoped to one candidate is not that, and must not be treated as if it
+were.
+
+Log each iteration's outcome durably as the run proceeds — in whatever way the environment provides
+for state that survives a restart or context loss — not only in the conversation. Progress and
+reasoning must be auditable afterward even if the run is interrupted.
+
 # Boundary Work
 
 Use this when the repository has no real system tree yet, when boundaries need a re-cut, or when a
