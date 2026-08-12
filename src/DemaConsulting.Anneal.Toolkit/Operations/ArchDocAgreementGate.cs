@@ -118,12 +118,6 @@ internal sealed class ArchDocAgreementGate
     /// </summary>
     /// <param name="output">Console output sink. Must not be null.</param>
     /// <param name="operationName">The calling operation's name (e.g. <c>"route"</c> or <c>"maintain"</c>), used in output messages.</param>
-    /// <param name="allowCorrections">
-    ///     When true, a wording-only mismatch outside the Contract section triggers a narrow
-    ///     <see cref="DocumentAuthor" /> correction. When false (the <c>maintain</c> ceiling per <c>TOOLKIT-57</c>),
-    ///     the correction still applies for <c>maintain</c> because <c>TOOLKIT-57</c> explicitly permits it —
-    ///     pass <c>true</c> for both <c>route</c> and <c>maintain</c>.
-    /// </param>
     /// <param name="cancellationToken">Token observed for cooperative cancellation.</param>
     /// <returns>
     ///     A list of neutral disagreement findings (if any) that were persisted, so the caller can include
@@ -134,7 +128,6 @@ internal sealed class ArchDocAgreementGate
     public async Task<IReadOnlyList<ArchDocDisagreementFinding>> RunAsync(
         TextWriter output,
         string operationName,
-        bool allowCorrections,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(output);
@@ -178,7 +171,7 @@ internal sealed class ArchDocAgreementGate
                     // Document and code agree — nothing to do.
                     break;
 
-                case AgreementVerdict.WordingOnly when allowCorrections:
+                case AgreementVerdict.WordingOnly:
                 {
                     // Wording-only mismatch outside Contract: attempt a narrow inline correction, then
                     // mechanically verify — never just trust the correcting model's own good behavior —
@@ -210,11 +203,9 @@ internal sealed class ArchDocAgreementGate
 
                 case AgreementVerdict.ContractDisagreement:
                 case AgreementVerdict.CannotClassify:
-                case AgreementVerdict.WordingOnly:
                 {
                     // Neutral finding — no edit in either direction, but the finding must be persisted
                     // durably so the run cannot present itself as a silent success.
-                    // (WordingOnly falls here only when allowCorrections is false.)
                     var finding = await PersistFindingAsync(
                         relativePath, classification, cancellationToken)
                         .ConfigureAwait(false);

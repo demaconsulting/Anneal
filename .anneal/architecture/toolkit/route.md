@@ -98,10 +98,9 @@ the report separately from the completion fields.
   document. A wording-only mismatch outside the document's `## Contract` section is corrected with a
   narrow inline edit; the edit itself is then mechanically re-checked against the actual diff it
   produced — never trusted on the correcting model's own good behavior — and reverted in favor of a
-  neutral finding if it touched `## Contract` despite being told not to. If the mismatch cannot be
-  confidently classified as wording-only, `route`
-  escalates rather than guessing. A disagreement touching `## Contract` substance, or one that cannot
-  be confidently classified as wording-only, is recorded as a neutral finding — neither document nor
+  neutral finding if it touched `## Contract` despite being told not to. A disagreement touching
+  `## Contract` substance, or one that cannot be confidently classified as wording-only, is recorded
+  as a neutral finding — neither document nor
   code is presumed at fault — and persisted under `.anneal/logs/` so the run cannot present as a
   silent success. This gate does not run on Contract Change or Structural Change paths.
   *Verified by:* `ArchDocAgreementGateContractTests.RouteSmallFixGateSkipsWhenNoArchDocCoversChangedFiles`,

@@ -98,9 +98,9 @@ from.
   admit action; the agent proposes and escalates, and a human edits the file by hand. [Route](./toolkit/route.md) is model-backed, writes to the repository, and is the one
   operation built on Process rather than the Model Seam alone: it constructs a real Router over the
   production worker catalog and runs whichever compiled worker the routing oracle selects.
-  [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, but runs
-  a declared-bound Maintenance work item directly against `SmallFixWorker`, with no routing oracle and
-  no Router of its own. [StageContract](./toolkit/stage-contract.md) is model-backed and writes to the
+  [Maintain](./toolkit/maintain.md) is also built on Process rather than the Model Seam alone, writes
+  to the repository, and runs a declared-bound Maintenance work item directly against `SmallFixWorker`,
+  with no routing oracle and no Router of its own. [StageContract](./toolkit/stage-contract.md) is model-backed and writes to the
   repository, but runs `DocumentAuthor` alone — no `Developer`, no `Verifier`, and no Router — to stage
   a contract clause ahead of implementation. [VerifyChange](./toolkit/verify-change.md) is model-backed
   and built on Process, but writes nothing: it runs `DiffCheck`, `DeterministicCheck`, and `Verifier`

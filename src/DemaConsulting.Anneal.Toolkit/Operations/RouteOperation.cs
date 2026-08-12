@@ -398,7 +398,7 @@ public sealed class RouteOperation : IOperation
         if (string.Equals(completed.SelectedWorkerKey, "small-fix", StringComparison.OrdinalIgnoreCase))
         {
             var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
-            await gate.RunAsync(output, "route", allowCorrections: true, cancellationToken).ConfigureAwait(false);
+            await gate.RunAsync(output, "route", cancellationToken).ConfigureAwait(false);
         }
 
         return new OperationResult(

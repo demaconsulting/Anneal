@@ -258,7 +258,7 @@ public sealed class MaintainOperation : IOperation
             // completes. Only the wording-only-outside-Contract correction is an actual edit; contract
             // disagreements and cannot-classify findings are persisted as neutral findings but never edited.
             var gate = new ArchDocAgreementGate(_repositoryRoot, endpointFor: _endpointFor, runGit: _runGit);
-            await gate.RunAsync(output, "maintain", allowCorrections: true, cancellationToken).ConfigureAwait(false);
+            await gate.RunAsync(output, "maintain", cancellationToken).ConfigureAwait(false);
 
             return new OperationResult(
                 OperationOutcome.Succeeded,

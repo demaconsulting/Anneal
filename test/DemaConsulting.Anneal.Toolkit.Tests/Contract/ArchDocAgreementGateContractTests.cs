@@ -276,32 +276,11 @@ public class ArchDocAgreementGateContractTests
                 // DocumentAuthor.ProbeAsync structured result
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit/widget.md"],"summary":"corrected stale name"}""");
 
-            var diffCallCount = 0;
-            var checkoutCalled = false;
-            RunGitCommand runGit = (args, _) =>
-            {
-                var joined = string.Join(" ", args);
-                if (joined.Contains("checkout"))
-                {
-                    checkoutCalled = true;
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-                }
-
-                if (!joined.Contains("diff"))
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-
-                diffCallCount++;
-
-                // First diff (pre-correction) is the ordinary wording-only change to src/Widget.cs.
-                // Second diff (post-correction, the mechanical re-check) shows the correction itself
-                // — despite being told not to — edited inside widget.md's ## Contract section.
-                var patch = diffCallCount == 1
-                    ? "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget\n+class NewWidget"
-                    : "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n" +
-                      "--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n" +
-                      "@@ -1,3 +1,3 @@\n # Widget\n ## Contract\n-- **WIDGET-1** — does something.\n+- **WIDGET-1** — does a new thing.";
-                return Task.FromResult(new ScriptRun(0, patch));
-            };
+            var (runGit, wasCheckoutCalled) = MakeRevertCheckGitStub(
+                firstDiffPatch: "diff --git a/src/Widget.cs b/src/Widget.cs\n--- a/src/Widget.cs\n+++ b/src/Widget.cs\n@@ -1 +1 @@\n-class OldWidget\n+class NewWidget",
+                secondDiffPatch: "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n" +
+                                 "--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n" +
+                                 "@@ -1,3 +1,3 @@\n # Widget\n ## Contract\n-- **WIDGET-1** — does something.\n+- **WIDGET-1** — does a new thing.");
 
             var operation = new RouteOperation(
                 root,
@@ -325,7 +304,7 @@ public class ArchDocAgreementGateContractTests
             // rather than claiming a clean correction, and 'git checkout' was actually invoked.
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.True(checkoutCalled),
+                () => Assert.True(wasCheckoutCalled()),
                 () => Assert.Contains("touched the ## Contract section and was reverted", written, StringComparison.OrdinalIgnoreCase),
                 () => Assert.DoesNotContain("corrected stale wording", written, StringComparison.OrdinalIgnoreCase));
         }
@@ -662,29 +641,11 @@ public class ArchDocAgreementGateContractTests
                 // DocumentAuthor structured result
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit/widget.md"],"summary":"corrected stale name"}""");
 
-            var diffCallCount = 0;
-            var checkoutCalled = false;
-            RunGitCommand runGit = (args, _) =>
-            {
-                var joined = string.Join(" ", args);
-                if (joined.Contains("checkout"))
-                {
-                    checkoutCalled = true;
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-                }
-
-                if (!joined.Contains("diff"))
-                    return Task.FromResult(new ScriptRun(0, string.Empty));
-
-                diffCallCount++;
-
-                var patch = diffCallCount == 1
-                    ? "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-class OldHelper\n+class NewHelper"
-                    : "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n" +
-                      "--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n" +
-                      "@@ -1,3 +1,3 @@\n # Widget\n ## Contract\n-- **WIDGET-1** — does something.\n+- **WIDGET-1** — does a new thing.";
-                return Task.FromResult(new ScriptRun(0, patch));
-            };
+            var (runGit, wasCheckoutCalled) = MakeRevertCheckGitStub(
+                firstDiffPatch: "diff --git a/src/a.cs b/src/a.cs\n--- a/src/a.cs\n+++ b/src/a.cs\n@@ -1 +1 @@\n-class OldHelper\n+class NewHelper",
+                secondDiffPatch: "diff --git a/.anneal/architecture/toolkit/widget.md b/.anneal/architecture/toolkit/widget.md\n" +
+                                 "--- a/.anneal/architecture/toolkit/widget.md\n+++ b/.anneal/architecture/toolkit/widget.md\n" +
+                                 "@@ -1,3 +1,3 @@\n # Widget\n ## Contract\n-- **WIDGET-1** — does something.\n+- **WIDGET-1** — does a new thing.");
 
             var operation = new MaintainOperation(
                 root,
@@ -707,7 +668,7 @@ public class ArchDocAgreementGateContractTests
             // Assert: run still succeeds, but the revert is reported and 'git checkout' was invoked.
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.True(checkoutCalled),
+                () => Assert.True(wasCheckoutCalled()),
                 () => Assert.Contains("touched the ## Contract section and was reverted", written, StringComparison.OrdinalIgnoreCase),
                 () => Assert.DoesNotContain("corrected stale wording", written, StringComparison.OrdinalIgnoreCase));
         }
@@ -802,6 +763,38 @@ public class ArchDocAgreementGateContractTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    /// <remarks>
+    ///     Both route and maintain use the same revert-check pattern: two sequential diff calls, each returning
+    ///     a different patch, plus a checkout call. The pair of patches differs between the two tests; everything
+    ///     else about the stub shape is identical.
+    /// </remarks>
+    private static (RunGitCommand RunGit, Func<bool> WasCheckoutCalled) MakeRevertCheckGitStub(
+        string firstDiffPatch,
+        string secondDiffPatch)
+    {
+        var diffCallCount = 0;
+        var checkoutCalled = false;
+
+        RunGitCommand runGit = (args, _) =>
+        {
+            var joined = string.Join(" ", args);
+            if (joined.Contains("checkout"))
+            {
+                checkoutCalled = true;
+                return Task.FromResult(new ScriptRun(0, string.Empty));
+            }
+
+            if (!joined.Contains("diff"))
+                return Task.FromResult(new ScriptRun(0, string.Empty));
+
+            diffCallCount++;
+            var patch = diffCallCount == 1 ? firstDiffPatch : secondDiffPatch;
+            return Task.FromResult(new ScriptRun(0, patch));
+        };
+
+        return (runGit, () => checkoutCalled);
     }
 
     private static string CompletedJson(IReadOnlyList<string> filesChanged, string summary) =>
