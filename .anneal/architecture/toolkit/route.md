@@ -31,15 +31,25 @@ the report separately from the completion fields.
   worker the routing oracle selects. It succeeds when a selected worker completes the work, escalates
   when the routing oracle or a worker names a step only a person can take, and fails when no route
   exists, a routing budget is exhausted, or the selected worker could not complete the work. On an
-  Escalated or Failed outcome, if the selected worker had already written files to disk before stopping
-  short of completion, `route` reports those files and a summary in
-  `RouteReport.FilesChangedBeforeStopping` and `RouteReport.SummaryBeforeStopping`; both fields are
-  never null and are empty when no files were written before the worker stopped. Additionally, when
-  `FilesChangedBeforeStopping` is non-empty, `route` writes a patch file under `.anneal/logs/` named
+  Escalated or Failed outcome, `Router.GroundInterruptedAsync` reconciles the worker's
+  self-reported interrupted data against a freshly-read git diff of the working tree before
+  populating `RouteReport.FilesChangedBeforeStopping` and `RouteReport.SummaryBeforeStopping`.
+  Both fields are never null. The reconciliation follows four rules. (1) When the diff is
+  unavailable — because there is no git repository, git is not installed, or the diff command
+  fails — the worker's reported values are kept unchanged. (2) When the diff is available but
+  empty, the worker's reported values are also kept unchanged. (3) When the diff names files but
+  the worker reported none, `FilesChangedBeforeStopping` and `SummaryBeforeStopping` are
+  synthesized entirely from the diff, giving the caller an authoritative account of what changed
+  even when the worker stopped without recording anything. (4) When both the diff and the worker
+  report files and they disagree, `FilesChangedBeforeStopping` is replaced with the diff's
+  authoritative file list while the worker's own summary text is kept, with a note appended that
+  the reported and observed file sets did not match. Additionally, when `FilesChangedBeforeStopping`
+  is non-empty after reconciliation, `route` writes a patch file under `.anneal/logs/` named
   `interrupted-<timestamp>.patch` containing `git diff HEAD -- <those files>` and prints
   `route: pre-triage snapshot written to <path>` alongside the before-stopping output. A normal
-  Succeeded run never produces a patch file. The snapshot step is silent and non-throwing when there
-  is no git repository, git is unavailable, or the diff is empty: the reported outcome is unaffected.
+  Succeeded run never produces a patch file. The snapshot step is silent and non-throwing when
+  there is no git repository, git is unavailable, or the diff is empty: the reported outcome is
+  unaffected.
   *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`,
   `InterruptedRouteContractTests.RouteWritesSnapshotPatchOnInterruptedOutcome`,
   `InterruptedRouteContractTests.SucceededRunProducesNoSnapshotPatch`,
