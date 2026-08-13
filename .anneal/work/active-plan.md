@@ -91,7 +91,8 @@ allowlist and path-containment guarantees are the current invariant.
   gates today.
 - *Restored, scoped* to deterministic operations when the first model-backed operation gates.
 
-**[overview.md](../architecture/overview.md)** — every edge is a file, never a call.
+**[overview.md](../architecture/overview.md)** — a dependency between two systems is always a file
+one produces and another reads, never one system calling into another.
 
 - *Cannot hold because* prose agents invoke `dotnet anneal`, and the catalog is reached by calling
   it.
