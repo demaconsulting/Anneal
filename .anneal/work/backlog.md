@@ -53,14 +53,21 @@ informs the current shape of the system.
   retire all three checks by making the failure they guard against structurally impossible rather than
   mechanically caught after the fact. Not designed and not scheduled: file-tiering is not yet under
   real pressure, and this is recorded as a direction, not a plan.
-- **Changing the default model candidates needs a Toolkit release** — a role now names an ordered
-  list of candidates and resolves to the first the account is offered, so a single
+- **Changing the compiled-in default model candidates needs a Toolkit release** — a role now names an
+  ordered list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:
   the rearguard candidate answers instead. What still needs a Toolkit build, publish and restore is
-  changing the *candidates* — adding a newly released model to the front of a tier, or replacing a
-  list whose every entry has been retired. Those repositories keep the old list until then, which
-  still sits awkwardly beside the *Model configuration is data, not code* decision in `toolkit.md`.
-  Narrowed, not solved.
+  changing the compiled-in *candidates* — adding a newly released model to the front of a tier, or
+  replacing a list whose every entry has been retired. Those repositories keep the old list until
+  then. Investigated for a clean decoupling mechanism: none exists that does not cut against the
+  architecture's own decisions in `model-seam.md` — a network-fetched manifest would give a
+  deterministic operation a network dependency it does not have today (`model-seam.md`'s own
+  *Availability is asked lazily* decision keeps that separation deliberately), and any out-of-band
+  update channel is still a release process, only of something smaller than the Toolkit. The existing
+  per-repository override (`.anneal/config.json`, per *Model configuration is data, not code* in
+  `model-seam.md`) already solves the case a repository can act on itself; what remains is only the
+  shipped default, which a Toolkit release exists to update. Sits awkwardly beside that decision but
+  is not a design gap — this is an accepted release-process cost, not a build item.
 - **Give the remaining single-name compiled-in defaults a rearguard** — two shipped defaults still
   name one external identifier each, so each is a dead man's switch of the kind the *No compiled-in
   default may name a single external identifier* constraint describes. The Copilot SDK's
