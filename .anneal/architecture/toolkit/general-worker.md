@@ -35,17 +35,23 @@ Effort controls depth, not capability:
   *Verified by:* `GeneralWorkerContractTests.GeneralWorkerCanAuthorContractArchitectureAndCodeInOneRun`,
   `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
 
-- **TOOLKIT-65** — Before any file is touched, `GeneralWorker` runs a deterministic preflight selector
-  over the request framing and changed-file hints. Contract-clause framing runs `DocumentAuthor` before
-  `Developer`; it also runs `Planner` only when the changed-file hints name at least three distinct
-  files, so one-file and two-file contract edits stay on the cheap document-first path unless another
-  branch applies. Architecture-document-only framing keeps the same document-first, no-planner behavior.
-  Multi-system or architecture-shaping framing still runs `Planner` before both authoring roles.
-  A request whose framing implies none of those surfaces begins directly at `Developer`.
+- **TOOLKIT-65** — Before any file is touched, `GeneralWorker` calls a preflight oracle
+  (`JudgePreflightAsync`) over the request framing and changed-file hints. The oracle returns a
+  `PreflightScope` (`Docs`, `Code`, or `Test`) and a `PreflightConclusion`. A `Docs` scope sets
+  `NeedsDocumentationFirst`; `Code` and `Test` scopes do not. `NeedsPlan` is governed solely by
+  Effort and changed-file count, not by the oracle scope. A `Proceed` conclusion continues the
+  existing pipeline unchanged. A `TenetViolation`, `VisionViolation`, or `InsufficientSpecificity`
+  conclusion returns an `Escalated` outcome naming the conclusion before any authoring begins; no
+  file is touched. The oracle does not select the planner.
   *Verified by:* `GeneralWorkerContractTests.GeneralWorkerPreflightRunsPlannerAndDocumentAuthorBeforeDeveloperWhenFramingImpliesStructuralShape`,
   `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`,
   `GeneralWorkerContractTests.GeneralWorkerContractClausePreflightRunsPlannerForThreeOrMoreChangedFileHints`,
-  `GeneralWorkerContractTests.GeneralWorkerContractClausePreflightSkipsPlannerForOneOrTwoChangedFileHints`
+  `GeneralWorkerContractTests.GeneralWorkerContractClausePreflightSkipsPlannerForOneOrTwoChangedFileHints`,
+  `GeneralWorkerContractTests.GeneralWorkerPreflightEscalatesOnTenetViolation`,
+  `GeneralWorkerContractTests.GeneralWorkerPreflightEscalatesOnVisionViolation`,
+  `GeneralWorkerContractTests.GeneralWorkerPreflightEscalatesOnInsufficientSpecificity`,
+  `GeneralWorkerContractTests.GeneralWorkerPreflightScopeDocsSetsNeedsDocumentationFirst`,
+  `GeneralWorkerContractTests.GeneralWorkerPreflightScopeCodeDoesNotSetNeedsDocumentationFirst`
 
 - **TOOLKIT-66** — After authoring, `GeneralWorker` reads the actual git diff and fires only the heavier
   obligations that diff proves were needed: a touched `.anneal/architecture/` `## Contract` section runs

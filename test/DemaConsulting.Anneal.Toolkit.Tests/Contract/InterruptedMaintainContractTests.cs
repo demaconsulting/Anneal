@@ -55,6 +55,7 @@ public class InterruptedMaintainContractTests
 
             // Worker reports it changed a file outside the declared bound, forcing escalation (TOOLKIT-30).
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/Written.cs", "src/OutOfBound.cs"], "tidied more than declared"));
 
@@ -106,6 +107,7 @@ public class InterruptedMaintainContractTests
         {
             // Arrange: worker completes within the declared bound — normal success path.
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs"], "tidied the interior helper"));
 
@@ -155,6 +157,7 @@ public class InterruptedMaintainContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/Written.cs", "src/OutOfBound.cs"], "tidied more than declared"));
 
@@ -210,13 +213,12 @@ public class InterruptedMaintainContractTests
             File.WriteAllText(outOfBoundFile, "// original out-of-bound\n");
             await RunGitAsync(root, "add", "-A");
             await RunGitAsync(root, "commit", "-m", "initial");
-
-            // Mutate both tracked files so git diff HEAD shows real changes.
             File.WriteAllText(changedFile, "// changed before stopping\n");
             File.WriteAllText(outOfBoundFile, "// out-of-bound also changed\n");
 
             // Worker reports a file outside the declared bound, forcing escalation (TOOLKIT-30).
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/Written.cs", "src/OutOfBound.cs"], "tidied more than declared"));
 
@@ -269,27 +271,19 @@ public class InterruptedMaintainContractTests
         return root;
     }
 
-    private static async Task RunGitAsync(string workingDir, params string[] args)
+    private static async Task RunGitAsync(string workingDirectory, params string[] args)
     {
-        using var process = new System.Diagnostics.Process();
-        process.StartInfo = new System.Diagnostics.ProcessStartInfo
+        var process = new System.Diagnostics.Process
         {
-            FileName = "git",
-            WorkingDirectory = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
+            StartInfo = new System.Diagnostics.ProcessStartInfo("git", args)
+            {
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            }
         };
-        foreach (var arg in args)
-            process.StartInfo.ArgumentList.Add(arg);
         process.Start();
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        await stdout.ConfigureAwait(false);
-        var errorText = await stderr.ConfigureAwait(false);
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException(
-                $"git {string.Join(' ', args)} exited {process.ExitCode}: {errorText}");
+        await process.WaitForExitAsync();
     }
 }

@@ -212,6 +212,7 @@ public class SkillsContractTests
 
         var endpoint = new QueuedEndpoint(
             """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+            """{"scope":"Code","conclusion":"Proceed"}""",
             "I made the change.",
             """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
             """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -229,7 +230,7 @@ public class SkillsContractTests
             [operation],
             repository.Root,
             TestContext.Current.CancellationToken);
-        var developerPrompt = string.Join("\n", endpoint.Requests[1].Messages.Select(message => message.Text));
+        var developerPrompt = string.Join("\n", endpoint.Requests[2].Messages.Select(message => message.Text));
 
         // Assert: the run completed and the developer prompt already carried the matched skill summary and body.
         Assert.Multiple(

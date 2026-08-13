@@ -28,6 +28,7 @@ public class ArchDocAgreementGateContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs"], "tidied the helper"),
                 PassedVerifierJson());
@@ -62,7 +63,7 @@ public class ArchDocAgreementGateContractTests
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Empty(findingFiles),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -91,6 +92,7 @@ public class ArchDocAgreementGateContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs", "src/b.cs"], "updated widget"),
                 PassedVerifierJson(),
@@ -120,7 +122,7 @@ public class ArchDocAgreementGateContractTests
 
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
-                () => Assert.Equal(4, endpoint.Calls));
+                () => Assert.Equal(5, endpoint.Calls));
         }
         finally
         {
@@ -149,6 +151,7 @@ public class ArchDocAgreementGateContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated a.cs.",
                 CompletedJson(["src/a.cs"], "renamed helper"),
                 PassedVerifierJson(),
@@ -209,6 +212,7 @@ public class ArchDocAgreementGateContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated a.cs.",
                 CompletedJson(["src/a.cs"], "renamed helper"),
                 PassedVerifierJson(),
@@ -273,6 +277,7 @@ public class ArchDocAgreementGateContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated a.cs.",
                 CompletedJson(["src/a.cs"], "changed behavior"),
                 PassedVerifierJson(),
@@ -311,7 +316,7 @@ public class ArchDocAgreementGateContractTests
                 () => Assert.NotEmpty(findingFiles),
                 () => Assert.Contains("arch-doc agreement finding", written, StringComparison.OrdinalIgnoreCase),
                 () => Assert.Contains("neither is presumed correct", written, StringComparison.Ordinal),
-                () => Assert.Equal(4, endpoint.Calls));
+                () => Assert.Equal(5, endpoint.Calls));
 
             if (findingFiles.Length > 0)
             {

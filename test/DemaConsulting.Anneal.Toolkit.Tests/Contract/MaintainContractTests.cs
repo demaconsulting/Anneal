@@ -35,6 +35,7 @@ public class MaintainContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs"], "tidied the interior helper"),
                 PassedVerifierJson());
@@ -58,7 +59,7 @@ public class MaintainContractTests
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("maintain: completed", written, StringComparison.Ordinal),
                 () => Assert.Contains("src/a.cs", written, StringComparison.Ordinal),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -105,6 +106,7 @@ public class MaintainContractTests
         {
             // The worker reports it changed a file outside the declared bound (only "src/a.cs" was declared).
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs", "src/out-of-bounds.cs"], "tidied more than declared"),
                 PassedVerifierJson());
@@ -153,6 +155,7 @@ public class MaintainContractTests
             // "Maintenance may never edit ... .anneal/work/backlog.md" rule - and the declared bound explicitly names it too,
             // so the containment check (TOOLKIT-30) alone would clear this run; only the tripwire must fire.
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 CompletedJson(["src/a.cs", ".anneal/work/backlog.md"], "tidied and updated the backlog"),
                 PassedVerifierJson());

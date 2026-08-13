@@ -32,6 +32,7 @@ public class EffortContractTests
         {
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Medium","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");

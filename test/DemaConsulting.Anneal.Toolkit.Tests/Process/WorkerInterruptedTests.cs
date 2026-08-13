@@ -21,6 +21,7 @@ public class WorkerInterruptedTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["a.cs"],"summary":"partial attempt"}""");
 
@@ -61,6 +62,7 @@ public class WorkerInterruptedTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",

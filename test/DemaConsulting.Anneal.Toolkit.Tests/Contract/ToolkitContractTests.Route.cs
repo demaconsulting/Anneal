@@ -43,6 +43,7 @@ public partial class ToolkitContractTests
 
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"this is a small, interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");

@@ -37,10 +37,11 @@ public class InterruptedRouteContractTests
             // Arrange: oracle selects general; developer writes a file (Completed state); build check fails
             // on both the initial attempt and the one local repair GeneralWorker's default Small-effort budget
             // allows, so the worker returns Failed with the last Completed state as Interrupted. Each Developer
-            // authoring turn consumes two replies (a
-            // free-text turn, then the forced structured decision), so two full rounds need four replies.
+            // authoring turn consumes two replies (a free-text turn, then the forced structured decision),
+            // so two full rounds need four replies, plus the preflight oracle reply.
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -84,6 +85,7 @@ public class InterruptedRouteContractTests
             // Arrange: oracle selects general; developer completes; build passes — normal success path.
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"simple fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
                 PassedVerifierJson());
@@ -142,6 +144,7 @@ public class InterruptedRouteContractTests
 
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -199,6 +202,7 @@ public class InterruptedRouteContractTests
             // Arrange: oracle selects general; developer completes; build passes — normal success path.
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"simple fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed it"}""",
                 PassedVerifierJson());
@@ -251,6 +255,7 @@ public class InterruptedRouteContractTests
         {
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",
@@ -314,6 +319,7 @@ public class InterruptedRouteContractTests
 
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"interior fix","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Small","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I edited a file before the build failed.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Written.cs"],"summary":"partial edit before stopping"}""",
                 "I repaired the file, but the build still failed.",

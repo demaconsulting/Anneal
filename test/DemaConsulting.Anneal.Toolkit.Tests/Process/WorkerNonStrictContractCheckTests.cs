@@ -24,6 +24,7 @@ public class WorkerNonStrictContractCheckTests
             WriteStagedTodoClause(root);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
@@ -68,7 +69,7 @@ public class WorkerNonStrictContractCheckTests
             WriteStagedTodoClause(root);
 
             var endpoint = new QueuedEndpoint(
-                """{"kind":"Plan","why":"","planSummary":"reshape the toolkit","planSteps":["update toolkit contract","implement code"]}""",
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",

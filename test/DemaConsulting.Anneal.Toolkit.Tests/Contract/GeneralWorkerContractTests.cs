@@ -21,6 +21,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 """{"kind":"Plan","why":"","planSummary":"update docs and code","planSteps":["update overview","update contract doc","implement code"]}""",
                 "I updated the docs.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit/general-worker.md"],"summary":"updated the architecture and contract docs"}""",
@@ -79,6 +80,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 """{"kind":"Plan","why":"","planSummary":"split the boundary","planSteps":["update overview","update contract doc","implement code"]}""",
                 "I updated the docs.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md"],"summary":"updated the docs"}""",
@@ -102,9 +104,9 @@ public class GeneralWorkerContractTests
                 MakeBrief("This structural change splits the system boundary and updates overview.md."),
                 TestContext.Current.CancellationToken);
 
-            var firstRequest = string.Join("\n", endpoint.Requests[0].Messages.Select(message => message.Text));
-            var secondRequest = string.Join("\n", endpoint.Requests[1].Messages.Select(message => message.Text));
-            var thirdRequest = string.Join("\n", endpoint.Requests[3].Messages.Select(message => message.Text));
+            var firstRequest = string.Join("\n", endpoint.Requests[1].Messages.Select(message => message.Text));
+            var secondRequest = string.Join("\n", endpoint.Requests[2].Messages.Select(message => message.Text));
+            var thirdRequest = string.Join("\n", endpoint.Requests[4].Messages.Select(message => message.Text));
 
             Assert.Multiple(
                 () => Assert.Contains("needs an explicit plan", firstRequest, StringComparison.OrdinalIgnoreCase),
@@ -125,6 +127,7 @@ public class GeneralWorkerContractTests
         {
             // Arrange: contract framing with three distinct hint files represents a wide contract edit.
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 """{"kind":"Plan","why":"","planSummary":"coordinate the contract edit","planSteps":["update docs","update code","update tests"]}""",
                 "I updated the docs.",
                 AuthoredJson(["docs/guide.md"], "updated the docs"),
@@ -180,6 +183,7 @@ public class GeneralWorkerContractTests
             {
                 // Arrange: one-file and two-file contract edits should stay on the document-only preflight path.
                 var endpoint = new QueuedEndpoint(
+                    """{"scope":"Docs","conclusion":"Proceed"}""",
                     "I updated the docs.",
                     AuthoredJson(["docs/guide.md"], "updated the docs"),
                     "I updated the code.",
@@ -241,6 +245,7 @@ public class GeneralWorkerContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated the docs and code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[".anneal/architecture/toolkit/general-worker.md","src/PublicApi.cs"],"summary":"implemented the change"}""",
                 """{"verdict":"Agree","reason":"","hasSufficientEvidence":true}""",
@@ -281,7 +286,7 @@ public class GeneralWorkerContractTests
                 () => Assert.Equal(1, buildCalls),
                 () => Assert.Equal(1, triggeredContractCalls),
                 () => Assert.Contains("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
-                () => Assert.Equal(4, endpoint.Calls));
+                () => Assert.Equal(5, endpoint.Calls));
         }
         finally
         {
@@ -296,6 +301,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated the helper.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Internal.cs"],"summary":"updated the helper"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -326,7 +332,7 @@ public class GeneralWorkerContractTests
             Assert.Multiple(
                 () => Assert.Equal(0, triggeredContractCalls),
                 () => Assert.DoesNotContain("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -342,6 +348,7 @@ public class GeneralWorkerContractTests
         {
             // Arrange: a public test method is executable test surface, not production API surface.
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I added the test.",
                 CompletedJson(["test/PublicApiTests.cs"], "added the test"),
                 PassedVerifierJson());
@@ -367,7 +374,7 @@ public class GeneralWorkerContractTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.DoesNotContain("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -389,6 +396,7 @@ public class GeneralWorkerContractTests
             {
                 // Arrange: production public member and type declarations are public API surface.
                 var endpoint = new QueuedEndpoint(
+                    """{"scope":"Code","conclusion":"Proceed"}""",
                     "I added public API.",
                     CompletedJson(["src/PublicApi.cs"], "added public API"),
                     PassedVerifierJson());
@@ -413,7 +421,7 @@ public class GeneralWorkerContractTests
                 Assert.Multiple(
                     () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                     () => Assert.Contains("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
-                    () => Assert.Equal(3, endpoint.Calls));
+                    () => Assert.Equal(4, endpoint.Calls));
             }
             finally
             {
@@ -429,6 +437,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I fixed the typo.",
                 CompletedJson(["docs/guide.md"], "fixed the typo"));
 
@@ -451,7 +460,7 @@ public class GeneralWorkerContractTests
 
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.Equal(2, endpoint.Calls));
+                () => Assert.Equal(3, endpoint.Calls));
         }
         finally
         {
@@ -466,6 +475,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 "I updated the contract wording.",
                 AuthoredJson([".anneal/architecture/toolkit/general-worker.md"], "updated the contract wording"),
                 "I left code unchanged.",
@@ -499,7 +509,7 @@ public class GeneralWorkerContractTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(1, contractChecks),
-                () => Assert.Equal(5, endpoint.Calls));
+                () => Assert.Equal(6, endpoint.Calls));
         }
         finally
         {
@@ -514,6 +524,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I tightened the test assertion.",
                 CompletedJson(["test/InternalTests.cs"], "tightened the test assertion"),
                 PassedVerifierJson());
@@ -536,7 +547,7 @@ public class GeneralWorkerContractTests
 
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -551,6 +562,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I fixed the docs and note.",
                 CompletedJson(["docs/guide.md", "notes.txt"], "fixed the docs and note"),
                 PassedVerifierJson());
@@ -574,7 +586,7 @@ public class GeneralWorkerContractTests
 
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.Equal(3, endpoint.Calls));
+                () => Assert.Equal(4, endpoint.Calls));
         }
         finally
         {
@@ -591,6 +603,7 @@ public class GeneralWorkerContractTests
             try
             {
                 var light = new QueuedEndpoint(
+                    """{"scope":"Code","conclusion":"Proceed"}""",
                     CompletedJson(["src/Internal.cs"], "updated the helper"),
                     PassedVerifierJson());
                 var medium = new QueuedEndpoint("I updated the helper.");
@@ -615,7 +628,7 @@ public class GeneralWorkerContractTests
                 var verifierText = string.Join("\n", light.Requests[^1].Messages.Select(message => message.Text));
                 Assert.Multiple(
                     () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                    () => Assert.Equal(2, light.Calls),
+                    () => Assert.Equal(3, light.Calls),
                     () => Assert.Contains("Judge whether this change satisfies the requested work", verifierText, StringComparison.Ordinal),
                     () => Assert.Equal(effort == Effort.Large ? 0 : 1, medium.Calls),
                     () => Assert.Equal(effort == Effort.Large ? 1 : 0, heavy.Calls));
@@ -634,6 +647,7 @@ public class GeneralWorkerContractTests
         try
         {
             var light = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 CompletedJson(["src/Internal.cs"], "updated the helper"),
                 RepairRequiredVerifierJson(VerificationOwner.Code, "tighten the helper implementation"),
                 CompletedJson(["src/Internal.cs"], "tightened the helper"),
@@ -665,7 +679,7 @@ public class GeneralWorkerContractTests
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Equal(1, medium.Calls),
                 () => Assert.Equal(1, heavy.Calls),
-                () => Assert.Equal(4, light.Calls),
+                () => Assert.Equal(5, light.Calls),
                 () => Assert.DoesNotContain("tighten the helper implementation", initialDeveloperText, StringComparison.Ordinal),
                 () => Assert.Contains("tighten the helper implementation", repairDeveloperText, StringComparison.Ordinal));
         }
@@ -684,6 +698,7 @@ public class GeneralWorkerContractTests
             try
             {
                 var endpoint = new QueuedEndpoint(
+                    """{"scope":"Code","conclusion":"Proceed"}""",
                     "I fixed the typo.",
                     CompletedJson(["docs/guide.md"], "fixed the typo"));
                 var recordStore = new RecordStore(root);
@@ -730,6 +745,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated the helper.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Internal.cs"],"summary":"updated the helper"}""");
 
@@ -752,7 +768,7 @@ public class GeneralWorkerContractTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
                 () => Assert.Contains("could not be classified honestly", result.Notes.Select(note => note.Text).Single(), StringComparison.Ordinal),
-                () => Assert.Equal(2, endpoint.Calls));
+                () => Assert.Equal(3, endpoint.Calls));
         }
         finally
         {
@@ -767,6 +783,7 @@ public class GeneralWorkerContractTests
         try
         {
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated the policy.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":[".anneal/governance/tenets.md"],"summary":"updated the policy"}""");
 
@@ -789,7 +806,7 @@ public class GeneralWorkerContractTests
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Escalated, result.Outcome),
                 () => Assert.Contains(".anneal/governance/tenets.md", result.Notes.Select(note => note.Text).Single(), StringComparison.Ordinal),
-                () => Assert.Equal(2, endpoint.Calls));
+                () => Assert.Equal(3, endpoint.Calls));
         }
         finally
         {
@@ -821,6 +838,7 @@ public class GeneralWorkerContractTests
                 """);
 
             var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I updated Widget.cs.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Widget.cs"],"summary":"renamed the widget"}""",
                 """{"verdict":"WordingOnly","reason":"'OldWidget' should now be 'NewWidget' in the introductory sentence","hasSufficientEvidence":true}""",

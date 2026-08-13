@@ -158,8 +158,11 @@ internal sealed class GeneralWorker
         cancellationToken.ThrowIfCancellationRequested();
 
         var parentInvocationId = brief.ParentInvocationId;
-        var preflight = SelectPreflightObligations(brief);
-        RecordStep(parentInvocationId, $"Preflight:{preflight.StepName}", OperationOutcome.Succeeded);
+        var (preflightEscalation, preflight) = await SelectPreflightObligationsAsync(brief, cancellationToken)
+            .ConfigureAwait(false);
+        if (preflightEscalation is not null)
+            return preflightEscalation;
+        RecordStep(parentInvocationId, $"Preflight:{preflight!.StepName}", OperationOutcome.Succeeded);
 
         var (preflightTerminal, state) = await RunPreflightAsync(brief, preflight, parentInvocationId, cancellationToken)
             .ConfigureAwait(false);
@@ -673,28 +676,6 @@ internal sealed class GeneralWorker
     private Developer CreateDeveloper(ModelRole role) =>
         new(_repositoryRoot, _developerCharter, role: role, endpointFor: _endpointFor, runGit: _runGit);
 
-    /// <remarks>
-    ///     This intentionally remains outside <see cref="SelectPreflightObligations" /> until the follow-up wiring
-    ///     pass can decide how an oracle judgement should interact with the deterministic branches already there.
-    /// </remarks>
-    private async Task<PreflightJudgment> JudgePreflightAsync(WorkerBrief brief, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(brief);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var oracle = new Oracle<PreflightJudgment>(_repositoryRoot, PreflightJudgmentCharter, endpointFor: _endpointFor);
-        var result = await oracle
-            .AskAsync("Judge this GeneralWorker preflight.", [ComposePreflightJudgmentQuestion(brief)], cancellationToken)
-            .ConfigureAwait(false);
-
-        if (result.Outcome == OperationOutcome.Succeeded && result.Finding is not null)
-            return result.Finding;
-
-        throw new InvalidOperationException(
-            "the preflight judgment oracle could not produce a schema-valid judgment: " +
-            string.Join(" ", result.Notes.Select(note => note.Text)));
-    }
-
     private static string ComposePreflightJudgmentQuestion(WorkerBrief brief) =>
         $"""
          Classify this work item's expected file-touch scope and pre-authoring conclusion.
@@ -834,93 +815,86 @@ internal sealed class GeneralWorker
     private static string RenderLines(IReadOnlyList<string> values) =>
         values.Count == 0 ? "none" : string.Join("\n", values.Select(value => $"- {value}"));
 
-    private PreflightObligationDecision SelectPreflightObligations(WorkerBrief brief)
+    /// <remarks>
+    ///     Calls the schema-enforced preflight oracle and returns the judgment, or null when the oracle
+    ///     could not produce a valid schema-conforming reply after its internal retry budget.
+    /// </remarks>
+    private async Task<PreflightJudgment?> JudgePreflightAsync(WorkerBrief brief, CancellationToken cancellationToken)
+    {
+        var oracle = new Oracle<PreflightJudgment>(_repositoryRoot, PreflightJudgmentCharter, endpointFor: _endpointFor);
+        var result = await oracle
+            .AskAsync("Judge this GeneralWorker preflight.", [ComposePreflightJudgmentQuestion(brief)], cancellationToken)
+            .ConfigureAwait(false);
+        return result.Outcome == OperationOutcome.Succeeded ? result.Finding : null;
+    }
+
+    /// <remarks>
+    ///     The oracle drives scope (NeedsDocumentationFirst) and the escalation gate (Conclusion).
+    ///     NeedsPlan is intentionally kept out of the oracle's hands: it is governed by Effort and
+    ///     changed-file count alone, matching the deterministic contract already in TOOLKIT-65.
+    /// </remarks>
+    private async Task<(WorkerExecutionResult? Escalation, PreflightObligationDecision? Decision)> SelectPreflightObligationsAsync(
+        WorkerBrief brief,
+        CancellationToken cancellationToken)
     {
         if (_preflightBehavior == GeneralWorkerPreflightBehavior.CodeOnly)
-            return new PreflightObligationDecision(
+            return (null, new PreflightObligationDecision(
                 NeedsDocumentationFirst: false,
                 NeedsPlan: false,
                 Reason: "the caller fixed this run to code-only authoring before GeneralWorker started",
                 StepName: "CodeOnly",
-                SuggestedRoles: _effortProfile.SuggestedRoles);
+                SuggestedRoles: _effortProfile.SuggestedRoles));
 
-        var subject = string.Join("\n", new[] { brief.OriginalWorkItem }.Concat(brief.ChangedFileHints)).ToLowerInvariant();
+        var judgment = await JudgePreflightAsync(brief, cancellationToken).ConfigureAwait(false);
+        if (judgment is null)
+            return (new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                null,
+                [new ProcessNote("the preflight oracle could not produce a schema-valid judgment")]),
+                null);
         var suggestedRoles = _effortProfile.SuggestedRoles;
 
-        var namesArchitectureDoc = ContainsAny(
-            subject,
-            ".anneal/architecture/",
-            "architecture doc",
-            "architecture document",
-            "system document",
-            "overview.md",
-            "route.md",
-            "process.md");
-
-        var namesContractSurface = ContainsAny(
-            subject,
-            "contract clause",
-            "contract section",
-            "## contract",
-            "verified by",
-            "system contract",
-            "change the contract",
-            "update the contract");
-
-        var namesStructuralShape = ContainsAny(
-            subject,
-            "system boundary",
-            "structural change",
-            "split the system",
-            "merge the system",
-            "new system",
-            "rename the system",
-            "multi-system",
-            "cross-system",
-            "overview.md");
-
-        if (namesStructuralShape)
-            return new PreflightObligationDecision(
-                NeedsDocumentationFirst: true,
-                NeedsPlan: true,
-                Reason: "the request framing already names a multi-system or architecture-shaping change",
-                StepName: "PlanAndDocument",
-                SuggestedRoles: suggestedRoles);
-
-        if (namesContractSurface)
+        // Escalate before touching any file when the oracle finds a policy or specificity problem.
+        if (judgment.Conclusion != PreflightConclusion.Proceed)
         {
-            var namesWideContractScope = brief.ChangedFileHints
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Count() >= ContractClauseWideScopeChangedFileThreshold;
-
-            return new PreflightObligationDecision(
-                NeedsDocumentationFirst: true,
-                NeedsPlan: namesWideContractScope,
-                Reason: namesWideContractScope
-                    ? "the request framing names a contract change with wide changed-file scope"
-                    : "the request framing already names a contract or architecture-document change",
-                StepName: namesWideContractScope ? "PlanAndDocument" : "Document",
-                SuggestedRoles: suggestedRoles);
+            var conclusionName = judgment.Conclusion.ToString();
+            return (new WorkerExecutionResult(
+                OperationOutcome.Escalated,
+                null,
+                null,
+                [new ProcessNote($"preflight oracle returned {conclusionName}: the run was stopped before authoring any file")]),
+                null);
         }
 
-        if (namesArchitectureDoc)
-            return new PreflightObligationDecision(
-                NeedsDocumentationFirst: true,
-                NeedsPlan: false,
-                Reason: "the request framing already names a contract or architecture-document change",
-                StepName: "Document",
-                SuggestedRoles: suggestedRoles);
+        var needsDocumentationFirst = judgment.Scope == PreflightScope.Docs;
 
-        return new PreflightObligationDecision(
-            NeedsDocumentationFirst: false,
-            NeedsPlan: false,
-            Reason: "the request framing does not itself imply documentation-first or planning obligations",
-            StepName: "CodeOnly",
-            SuggestedRoles: suggestedRoles);
+        // NeedsPlan is driven by Effort and changed-file count, not by the oracle scope.
+        // Large/Massive effort with no changed-file hints means potentially unbounded scope, which
+        // requires a plan just as wide changed-file count does.
+        var namesWideChangedFileScope = brief.ChangedFileHints
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count() >= ContractClauseWideScopeChangedFileThreshold;
+        var namesLargeOrMassiveEffort = brief.Effort is Effort.Large or Effort.Massive;
+        var hasNoFileHints = !brief.ChangedFileHints.Any();
+
+        var needsPlan = needsDocumentationFirst && (namesWideChangedFileScope || (namesLargeOrMassiveEffort && hasNoFileHints));
+
+        var (stepName, reason) = (needsDocumentationFirst, needsPlan, namesWideChangedFileScope) switch
+        {
+            (true, true, true) => ("PlanAndDocument", "the request framing names a contract change with wide changed-file scope"),
+            (true, true, false) => ("PlanAndDocument", "the request framing names a Large or Massive effort change with no file-scope hints"),
+            (true, false, _) => ("Document", "the oracle classified this as a documentation-scope change"),
+            _ => ("CodeOnly", "the oracle did not classify this as a documentation-scope change")
+        };
+
+        return (null, new PreflightObligationDecision(
+            NeedsDocumentationFirst: needsDocumentationFirst,
+            NeedsPlan: needsPlan,
+            Reason: reason,
+            StepName: stepName,
+            SuggestedRoles: suggestedRoles));
     }
-
-    private static bool ContainsAny(string text, params string[] fragments) =>
-        fragments.Any(fragment => text.Contains(fragment, StringComparison.Ordinal));
 
     private PostflightAssessment AssessPostflight(DiffFinding diff)
     {

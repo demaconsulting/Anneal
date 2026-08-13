@@ -173,58 +173,58 @@ internal sealed class ArchDocAgreementGate
                     break;
 
                 case AgreementVerdict.WordingOnly:
-                {
-                    // Wording-only mismatch outside Contract: attempt a narrow inline correction, then
-                    // mechanically verify — never just trust the correcting model's own good behavior —
-                    // that the correction it actually wrote stayed outside the ## Contract section.
-                    var applied = await ApplyWordingCorrectionAsync(
-                        output, operationName, relativePath, classification.Reason ?? string.Empty, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (!applied)
                     {
-                        var rejectedFinding = await PersistFindingAsync(
-                            relativePath,
-                            new AgreementClassification(
-                                AgreementVerdict.CannotClassify,
-                                "a wording-only correction was attempted but rejected — either it did not " +
-                                "complete, or it touched the ## Contract section it was told not to touch"),
-                            cancellationToken).ConfigureAwait(false);
-                        if (rejectedFinding is not null)
+                        // Wording-only mismatch outside Contract: attempt a narrow inline correction, then
+                        // mechanically verify — never just trust the correcting model's own good behavior —
+                        // that the correction it actually wrote stayed outside the ## Contract section.
+                        var applied = await ApplyWordingCorrectionAsync(
+                            output, operationName, relativePath, classification.Reason ?? string.Empty, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (!applied)
                         {
-                            findings.Add(rejectedFinding);
-                            output.WriteLine(
-                                $"{operationName}: arch-doc agreement finding — the wording-only correction for " +
-                                $"{relativePath} was rejected and reverted; finding persisted to {rejectedFinding.FindingPath}");
+                            var rejectedFinding = await PersistFindingAsync(
+                                relativePath,
+                                new AgreementClassification(
+                                    AgreementVerdict.CannotClassify,
+                                    "a wording-only correction was attempted but rejected — either it did not " +
+                                    "complete, or it touched the ## Contract section it was told not to touch"),
+                                cancellationToken).ConfigureAwait(false);
+                            if (rejectedFinding is not null)
+                            {
+                                findings.Add(rejectedFinding);
+                                output.WriteLine(
+                                    $"{operationName}: arch-doc agreement finding — the wording-only correction for " +
+                                    $"{relativePath} was rejected and reverted; finding persisted to {rejectedFinding.FindingPath}");
+                            }
                         }
-                    }
-                    else
-                    {
-                        correctedDocuments.Add(relativePath);
-                    }
+                        else
+                        {
+                            correctedDocuments.Add(relativePath);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
 
                 case AgreementVerdict.ContractDisagreement:
                 case AgreementVerdict.CannotClassify:
-                {
-                    // Neutral finding — no edit in either direction, but the finding must be persisted
-                    // durably so the run cannot present itself as a silent success.
-                    var finding = await PersistFindingAsync(
-                        relativePath, classification, cancellationToken)
-                        .ConfigureAwait(false);
-                    if (finding is not null)
                     {
-                        findings.Add(finding);
-                        output.WriteLine(
-                            $"{operationName}: arch-doc agreement finding — {relativePath} and the new code " +
-                            $"no longer agree ({classification.Verdict}); " +
-                            $"neither is presumed correct — finding persisted to {finding.FindingPath}");
-                    }
+                        // Neutral finding — no edit in either direction, but the finding must be persisted
+                        // durably so the run cannot present itself as a silent success.
+                        var finding = await PersistFindingAsync(
+                            relativePath, classification, cancellationToken)
+                            .ConfigureAwait(false);
+                        if (finding is not null)
+                        {
+                            findings.Add(finding);
+                            output.WriteLine(
+                                $"{operationName}: arch-doc agreement finding — {relativePath} and the new code " +
+                                $"no longer agree ({classification.Verdict}); " +
+                                $"neither is presumed correct — finding persisted to {finding.FindingPath}");
+                        }
 
-                    break;
-                }
+                        break;
+                    }
             }
         }
 

@@ -19,6 +19,7 @@ public class RouteCatalogContractTests
         {
             var endpoint = new QueuedEndpoint(
                 """{"kind":"SelectWorker","why":"this needs the capability-complete path","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Large","hasSufficientEvidence":true}""",
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I implemented the code.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Internal.cs"],"summary":"implemented the worker"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -54,7 +55,7 @@ public class RouteCatalogContractTests
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("route: completed", written, StringComparison.OrdinalIgnoreCase),
                 () => Assert.Contains("route: effort classified as Large", written, StringComparison.Ordinal),
-                () => Assert.Equal(4, endpoint.Calls));
+                () => Assert.Equal(5, endpoint.Calls));
         }
         finally
         {

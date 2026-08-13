@@ -596,6 +596,7 @@ public partial class ToolkitContractTests
             var endpoint = new QueuedEndpoint(
                 // Route oracle selects general at Medium effort
                 """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Medium","hasSufficientEvidence":true}""",
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 // DocumentAuthor: free-form turn, then structured decision
                 "I added the new clause.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause"}""",
@@ -617,9 +618,9 @@ public partial class ToolkitContractTests
             var result = await operation.ExecuteAsync(
                 ["add a new contract clause for the widget"], output, TestContext.Current.CancellationToken);
 
-            // Assert: run succeeds, and the verifier question (index 5: route + 2 doc + 2 dev turns, then verifier)
+            // Assert: run succeeds, and the verifier question (index 6: route + preflight + 2 doc + 2 dev turns, then verifier)
             // explicitly instructs the verifier to treat disproportionate deletions as a Documentation concern.
-            var verifierText = string.Join("\n", endpoint.Requests[5].Messages.Select(m => m.Text));
+            var verifierText = string.Join("\n", endpoint.Requests[6].Messages.Select(m => m.Text));
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
                 () => Assert.Contains("disproportionate", verifierText, StringComparison.Ordinal),
@@ -650,6 +651,7 @@ public partial class ToolkitContractTests
             var endpoint = new QueuedEndpoint(
                 // Route oracle selects general at Medium effort
                 """{"kind":"SelectWorker","why":"adds a contract clause","workerKey":"general","question":"","researchScope":"Narrow","humanOnlyNextStep":"","effort":"Medium","hasSufficientEvidence":true}""",
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 // DocumentAuthor: free-form turn, then structured decision
                 "I updated the contract document (whole-file overwrite).",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"added clause — used replace_file"}""",
@@ -680,10 +682,10 @@ public partial class ToolkitContractTests
                 ["add a new contract clause for the widget"], output, TestContext.Current.CancellationToken);
 
             // Assert: the worker caught the deletion via the verifier and completed only after the repair —
-            // 11 model calls total: route + 2 doc + 2 dev + verifier + 2 doc-repair + 2 dev-resync + verifier.
+            // 12 model calls total: route + preflight + 2 doc + 2 dev + verifier + 2 doc-repair + 2 dev-resync + verifier.
             Assert.Multiple(
                 () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
-                () => Assert.Equal(11, endpoint.Calls));
+                () => Assert.Equal(12, endpoint.Calls));
         }
         finally
         {

@@ -102,8 +102,8 @@ public class GeneralWorkerPreflightJudgmentTests
             "JudgePreflightAsync", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(GeneralWorker), "JudgePreflightAsync");
 
-        var task = (Task<PreflightJudgment>)method.Invoke(worker, [brief, cancellationToken])!;
-        return await task.ConfigureAwait(false);
+        var task = (Task<PreflightJudgment?>)method.Invoke(worker, [brief, cancellationToken])!;
+        return (await task.ConfigureAwait(false))!;
     }
 
     private static GeneralWorker BuildWorker(string root, QueuedEndpoint endpoint) =>

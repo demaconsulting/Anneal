@@ -24,6 +24,7 @@ public class RouteOperationTests
         {
             var endpoint = new QueuedEndpoint(
                 SelectWorkerJson("general", "this is a small, interior fix", effort: "Small"),
+                """{"scope":"Code","conclusion":"Proceed"}""",
                 "I made the change.",
                 """{"kind":"Completed","why":"","suggestedWorker":"","filesChanged":["src/Foo.cs"],"summary":"fixed the bug"}""",
                 """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""");
@@ -59,6 +60,7 @@ public class RouteOperationTests
         {
             var endpoint = new QueuedEndpoint(
                 SelectWorkerJson("general", "this adds a contract clause", effort: "Medium"),
+                """{"scope":"Docs","conclusion":"Proceed"}""",
                 "I updated the contract document.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/toolkit.md"],"summary":"updated the contract"}""",
                 "I implemented the change.",
@@ -96,9 +98,11 @@ public class RouteOperationTests
         var root = CreateTemporaryDirectory();
         try
         {
+            // Docs scope with 0 file hints + Large effort: Planner runs before DocumentAuthor.
             var endpoint = new QueuedEndpoint(
                 SelectWorkerJson("general", "this moves a system boundary", effort: "Large"),
-                """{"kind":"Plan","why":"","planSummary":"split the system","planSteps":["update overview.md","update the system doc"]}""",
+                """{"scope":"Docs","conclusion":"Proceed"}""",
+                """{"kind":"Plan","why":"","planSummary":"split the boundary","planSteps":["update overview","update toolkit","implement code"]}""",
                 "I updated the contract documents.",
                 """{"kind":"Authored","why":"","filesChanged":[".anneal/architecture/overview.md",".anneal/architecture/toolkit.md"],"summary":"split the system"}""",
                 "I implemented the change.",
