@@ -36,6 +36,23 @@ informs the current shape of the system.
   contract store would still be needed — but it could remove the hand-authorship burden from the
   comprehension half of today's architecture docs entirely, leaving them a pure requirements store.
   Exploratory only; no decision to build this yet.
+  **Research finding (2026-08-13):** the premise splits into two separable claims with different
+  feasibility. The **structural skeleton** — namespace/class inventory and a call/reference graph — is
+  straightforwardly derivable from Roslyn's symbol model alone, with no XmlDoc dependency at all: it is
+  a projection of the code, so it cannot drift from a separate claim the way prose can, and this half is
+  low-risk to prototype whenever it is prioritized. The **prose** half is the harder claim, and the
+  premise has it backwards: Roslyn does not need XmlDoc to derive structure, only to source a
+  human-readable one-line label for each symbol, and that label is only as trustworthy as the comment
+  already is. This repository already forces XmlDoc *presence* on every public member today
+  (`TreatWarningsAsErrors` plus `GenerateDocumentationFile` in
+  `DemaConsulting.Anneal.Toolkit.csproj`, with `CS1591` not suppressed) — but presence is not accuracy,
+  and nothing mechanically checks that a summary line is still true of the code beneath it. Anchoring
+  comprehension prose on XmlDoc would face exactly the same drift problem `architecture-documentation.md`'s
+  Drift Anchors and `verify-change`'s advisory checks already exist to catch for hand-written
+  architecture docs — it relocates the accuracy burden into `///` comments rather than removing it. Net:
+  the structural-skeleton half looks genuinely promising as a future direction; the prose-anchor half
+  does not remove the hand-authorship/accuracy burden the original idea hoped to retire. Still
+  exploratory; no decision to build either half yet.
 - **No release packaging** — `install.ps1` covers installation from a clone, and
   `.github/workflows/build.yml` covers per-repository CI, but Anneal itself does not publish an
   artifact.
