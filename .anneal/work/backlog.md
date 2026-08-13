@@ -111,14 +111,6 @@ informs the current shape of the system.
   `model-seam.md`) already solves the case a repository can act on itself; what remains is only the
   shipped default, which a Toolkit release exists to update. Sits awkwardly beside that decision but
   is not a design gap — this is an accepted release-process cost, not a build item.
-- **Give the remaining single-name compiled-in defaults a rearguard** — two shipped defaults still
-  name one external identifier each, so each is a dead man's switch of the kind the *No compiled-in
-  default may name a single external identifier* constraint describes. The Copilot SDK's
-  `is_override` tool key has no repository override at all: if it is renamed, every granted tool
-  collides with a built-in and presents as a tool that is never called. The `trx` result
-  format and the xUnit `Fact` and `Theory` attribute names are overridable by a discovery profile,
-  but a repository that has not written one inherits the single names. Neither is held by anything but
-  this note.
 - **Document the process flowchart once the compiled catalog stabilizes** — the bunny-ears/toolkit-
   belly shape (two conversational agents feeding a Router that selects among a catalog of compiled
   workers) has no written home yet; `process.md`'s diagram covers only what has landed so far.
@@ -147,18 +139,6 @@ informs the current shape of the system.
   shape rather than observing one. Whether this is a `maintain`-style bounded sweep, a new operation, or
   a check folded into an existing review pass is undecided; needs its own `helper` boundary-work
   pass once real entries accumulate.
-- **The same staleness risk applies to `.anneal/work/backlog.md` and `.anneal/work/active-plan.md` themselves, not only the skills
-  corpus** — an item can be silently resolved as a side effect of unrelated landed work (a new
-  operation absorbs what a backlog item asked for, an architectural pivot removes an assumption an
-  `active-plan.md` stage depended on) and nothing re-reads the older entries against what has since
-  landed. Both files are append-mostly in practice: entries get added when noticed and removed only
-  when someone happens to work the exact item, never swept as a batch. The failure mode is the same
-  shape as the skills one above — a human maintainer rarely re-walks a backlog after a large change,
-  but an agent can mechanically diff each entry's premise against current `.anneal/architecture/` and
-  recent commits. Whether this becomes one general "re-validate accumulated notes" sweep covering
-  skills, `.anneal/work/backlog.md`, and `active-plan.md` together, or three narrower checks, is exactly the kind of
-  question the skills item above says can only be answered once more experience of *doing* one such
-  sweep exists — do not design the general version speculatively.
 - **Reconsider `system-contracts.md`'s cross-cutting/shared-intermediate-node placement guidance
   against the current shallow tree** — two independent reviews split on this: the root-vs-child clause
   ownership rule is real and already exercised (`prompt-authoring.md`, `toolkit/*.md` own promises below
