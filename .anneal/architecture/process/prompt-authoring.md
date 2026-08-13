@@ -133,6 +133,12 @@ not establish this" is an available answer rather than a failure to report somet
 part of the rule: demanding evidence must not push an agent into manufacturing findings to satisfy the
 demand, so an ambiguity it cannot resolve is reported as advisory, never as failure.
 
+**Uncertainty belongs in a typed field, not prose.** A model erodes hedges and confidence markers in
+text it reads or repeats, so a caveat folded into a prose answer will not survive being read by another
+prompt downstream. A judging prompt whose answer may be uncertain must expose that as its own answer
+value — an explicit `Unsure`/`CannotClassify` enum member, a confidence field — never as a hedge inside
+a text field a later consumer has to parse for tone.
+
 ## Consequences
 
 A developer or agent editing anything under `.github/agents/` or `.github/standards/` must:

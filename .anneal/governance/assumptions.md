@@ -24,3 +24,13 @@ maintenance: Only edited by the repository author.
 - **A lightweight repository map can stay accurate enough to guide work.** A concise, human/model-readable
   representation of the repository's structure and intent can be kept current enough, at acceptable
   cost, to support reliable change without requiring full code re-derivation on every task.
+- **Classifying freeform prose is a model's job, not deterministic code's.** Pattern-matching over a
+  user's own wording to infer intent, scope, or risk is unreliable in a way regex cannot detect in
+  itself; the same judgment asked as a narrow oracle question is answered reliably instead. A
+  mechanical check earns its place only when the property it tests is itself structural — a path, a
+  count, a diff's syntactic shape — not when it is standing in for understanding what someone meant.
+- **A model erodes hedges and confidence markers in text it reads or repeats.** Qualifying language
+  like "probably," "not yet verified," or "deliberately imprecise" tends to flatten or vanish as text
+  is read, summarized, or passed along — a downstream reader sees the claim but not the doubt that
+  qualified it, unless the uncertainty is carried by the response's own structure rather than by its
+  wording alone.
