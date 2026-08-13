@@ -72,11 +72,19 @@ clock.
    `.anneal/work/active-plan.md` against `.anneal/architecture/` and recent commits, removing or
    rewording anything a landed change already resolved or invalidated. Due after every 3–5 backlog
    items have been resolved, or immediately after a large or disruptive item lands, rather than on
-   any fixed commit-count schedule.
+   any fixed commit-count schedule. This is also due immediately after a design decision made in
+   conversation rejects or narrows an idea, even when nothing has landed yet — a decision with no
+   corresponding commit is otherwise invisible to this check, and the entry it invalidates goes
+   stale silently. Removal means deletion, never a retained "Retired:" entry or a trailing
+   parenthetical recording the old reasoning next to the surviving ask.
 
 3. **Minimalism sweep** — a bounded Maintenance pass over recently-touched systems for dead code,
    stale remarks, or duplication now that similar work has landed more than once, per
-   `coding-principles.md`'s Minimalism principle.
+   `coding-principles.md`'s Minimalism principle. This includes each touched system's `## Decisions`
+   section: prune or consolidate an entry once it stops being load-bearing for understanding the
+   current design — a `## Decisions` section is a record of *why the system is shaped the way it is*,
+   not an append-only log of every idea ever floated and rejected, and grows unbounded exactly like a
+   backlog nobody ever grooms.
 
 4. **Documentation/architecture drift** — spot-check `.anneal/architecture/` against the code it
    describes for anything a per-change `verify-change` would not catch in isolation.

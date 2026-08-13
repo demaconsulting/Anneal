@@ -10,28 +10,24 @@ always satisfy hold rather than complete, so they go in [constraints.md](constra
 where `helper` will read them during boundary work. See the Intake admission test in
 `change-classification.md`.
 
-- **Retired: a compiled `WorkTypeRouter` ahead of `route`'s `ScopeRouter`.** Considered twice
-  (once mid-session, once independently revisited) and rejected both times for the same reason:
-  `route`'s oracle earns a model call because Scope is genuinely undiscovered until the repository is
-  read — no one states "this touches a published contract" before checking. Mode is not that kind of
-  fact. Whichever agent is holding the conversation with the requester already knows whether this is
-  Intake, Change, Maintenance, or Migration, because the requester said so or it is obvious from
-  context; a separate oracle re-deriving it would spend a model call to reproduce information already
-  in hand, with the added risk of disagreeing with what the requester already stated. The correct
-  pattern is the one `dispatch.agent.md` already used: the conversational agent picks the CLI verb
-  directly (`route`/`maintain`/`verify-change`/`intake`), and that stays true once the
-  conversational agent itself compiles — its own model call, at the moment it decides to act, names
-  the verb and arguments directly, rather than asking a second question of a second component.
+A rejected idea is not backlog content. When grooming removes or narrows an entry, delete the
+rejected reasoning outright — never leave it behind as a "Retired:"-titled entry or a trailing
+parenthetical bolted onto a still-live item. The default is to write nothing further down: git
+history already remembers what was tried and rejected, and re-reading it is cheaper than maintaining
+a second record forever. Write a note in the relevant system document's `## Decisions` section only
+when both hold — the rejected alternative is genuinely non-obvious enough that it would plausibly be
+proposed again without that note, and it materially explains why the current design is shaped the way
+it is. That section is pruned by the same discipline as this file, not an unbounded log either (see
+`operation-dispatch.md`'s Minimalism sweep) — a decision stops earning its place once it no longer
+informs the current shape of the system.
+
 - **Document failure and recovery paths for each agent** — the user guide covers the success path and
   a general repair pass, but each agent's INCOMPLETE and FAILED outcomes deserve worked examples.
 - **Mechanically check that `docs/user-guide/definition.yaml` agrees with the markdown files beside
   it** — presence and agreement is MANDATORY and deterministic, and has drifted in practice (one
   instance found and fixed by hand). No check catches this today. Weigh against the cost that "the
   **only** mechanically enforced relationship" is asserted in six files and would all need revisiting
-  if this became a second one. (Retired from this item: `level:` front matter no longer exists —
-  removed as fully redundant with path depth — and `covers:` staleness is being addressed separately
-  via a finish-time doc/code agreement check in `route` and `maintain`, not by extending
-  `check-contracts` and not via any persisted ledger.)
+  if this became a second one.
 - **Research Roslyn-inspection-based software structure comprehension** — a compiled analyzer over
   the C# solution could mechanically derive a structural map (namespaces, classes, call relationships)
   the way `.anneal/architecture/`'s Purpose/Behavior prose does today by hand, if forced-accurate
