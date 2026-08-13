@@ -5,6 +5,7 @@ using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 using DemaConsulting.Anneal.Toolkit.Process.Routing;
 using DemaConsulting.Anneal.Toolkit.Recording;
+using System.Text.RegularExpressions;
 
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 
@@ -29,6 +30,16 @@ namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
 /// </remarks>
 internal sealed class GeneralWorker
 {
+    private const int ContractClauseWideScopeChangedFileThreshold = 3;
+
+    private static readonly Regex DiffHeaderPattern = new(
+        @"^\+\+\+ b/(?<path>.+)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex PublicMemberDeclarationPattern = new(
+        @"^public\s+(?:static\s+|virtual\s+|abstract\s+|sealed\s+|async\s+|extern\s+|unsafe\s+|partial\s+|new\s+|override\s+)*[A-Za-z_][\w<>?,\[\].]*\s+[A-Za-z_][\w]*\s*\(",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private const string VerifierQuestionBase =
         """
         Judge whether this change satisfies the requested work, conforms to every contract clause it touches, and
@@ -805,7 +816,23 @@ internal sealed class GeneralWorker
                 StepName: "PlanAndDocument",
                 SuggestedRoles: suggestedRoles);
 
-        if (namesArchitectureDoc || namesContractSurface)
+        if (namesContractSurface)
+        {
+            var namesWideContractScope = brief.ChangedFileHints
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count() >= ContractClauseWideScopeChangedFileThreshold;
+
+            return new PreflightObligationDecision(
+                NeedsDocumentationFirst: true,
+                NeedsPlan: namesWideContractScope,
+                Reason: namesWideContractScope
+                    ? "the request framing names a contract change with wide changed-file scope"
+                    : "the request framing already names a contract or architecture-document change",
+                StepName: namesWideContractScope ? "PlanAndDocument" : "Document",
+                SuggestedRoles: suggestedRoles);
+        }
+
+        if (namesArchitectureDoc)
             return new PreflightObligationDecision(
                 NeedsDocumentationFirst: true,
                 NeedsPlan: false,
@@ -929,31 +956,63 @@ internal sealed class GeneralWorker
         if (string.IsNullOrWhiteSpace(patch))
             return false;
 
+        string? currentPath = null;
         foreach (var rawLine in patch.Split('\n'))
         {
             var line = rawLine.TrimEnd('\r');
+            var header = DiffHeaderPattern.Match(line);
+            if (header.Success)
+            {
+                currentPath = header.Groups["path"].Value;
+                continue;
+            }
+
             if (line.Length == 0 || (line[0] != '+' && line[0] != '-'))
                 continue;
             if (line.StartsWith("+++", StringComparison.Ordinal) || line.StartsWith("---", StringComparison.Ordinal))
+                continue;
+            if (!IsProductionCodePath(currentPath))
                 continue;
 
             var content = line[1..].TrimStart();
             if (!content.StartsWith("public ", StringComparison.Ordinal))
                 continue;
 
-            if (content.Contains('(') ||
-                content.StartsWith("public class ", StringComparison.Ordinal) ||
-                content.StartsWith("public interface ", StringComparison.Ordinal) ||
-                content.StartsWith("public record ", StringComparison.Ordinal) ||
-                content.StartsWith("public struct ", StringComparison.Ordinal) ||
-                content.StartsWith("public enum ", StringComparison.Ordinal) ||
-                content.StartsWith("public delegate ", StringComparison.Ordinal) ||
-                (content.Contains(" { get;") && !content.StartsWith("public override ", StringComparison.Ordinal)))
+            if (IsPublicTypeDeclaration(content) ||
+                IsPublicMemberDeclaration(content) ||
+                (content.Contains(" { get;", StringComparison.Ordinal) && !content.StartsWith("public override ", StringComparison.Ordinal)))
                 return true;
         }
 
         return false;
     }
+
+    private static bool IsProductionCodePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var normalized = path.Replace('\\', '/');
+        return normalized.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.StartsWith("test/", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.StartsWith("tests/", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.Contains("/test/", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.Contains("/tests/", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.EndsWith("Tests.cs", StringComparison.OrdinalIgnoreCase) &&
+               !normalized.EndsWith("Test.cs", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPublicTypeDeclaration(string content) =>
+        content.StartsWith("public class ", StringComparison.Ordinal) ||
+        content.StartsWith("public interface ", StringComparison.Ordinal) ||
+        content.StartsWith("public record ", StringComparison.Ordinal) ||
+        content.StartsWith("public struct ", StringComparison.Ordinal) ||
+        content.StartsWith("public enum ", StringComparison.Ordinal) ||
+        content.StartsWith("public delegate ", StringComparison.Ordinal);
+
+    private static bool IsPublicMemberDeclaration(string content) =>
+        !content.StartsWith("public override ", StringComparison.Ordinal) &&
+        PublicMemberDeclarationPattern.IsMatch(content);
 
     private static string? FindDangerousProtectedPath(IReadOnlyList<string> changedFiles)
     {

@@ -36,20 +36,29 @@ Effort controls depth, not capability:
   `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
 
 - **TOOLKIT-65** — Before any file is touched, `GeneralWorker` runs a deterministic preflight selector
-  over the request framing and changed-file hints. When that framing already implies a contract or
-  architecture-document change, `DocumentAuthor` runs before `Developer`; when it implies a multi-system
-  or architecture-shaping change, `Planner` runs before both. A request whose framing implies neither
-  begins directly at `Developer`.
+  over the request framing and changed-file hints. Contract-clause framing runs `DocumentAuthor` before
+  `Developer`; it also runs `Planner` only when the changed-file hints name at least three distinct
+  files, so one-file and two-file contract edits stay on the cheap document-first path unless another
+  branch applies. Architecture-document-only framing keeps the same document-first, no-planner behavior.
+  Multi-system or architecture-shaping framing still runs `Planner` before both authoring roles.
+  A request whose framing implies none of those surfaces begins directly at `Developer`.
   *Verified by:* `GeneralWorkerContractTests.GeneralWorkerPreflightRunsPlannerAndDocumentAuthorBeforeDeveloperWhenFramingImpliesStructuralShape`,
-  `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`
+  `GeneralWorkerContractTests.GeneralWorkerRunsSamePipelineAcrossAllSupportedEfforts`,
+  `GeneralWorkerContractTests.GeneralWorkerContractClausePreflightRunsPlannerForThreeOrMoreChangedFileHints`,
+  `GeneralWorkerContractTests.GeneralWorkerContractClausePreflightSkipsPlannerForOneOrTwoChangedFileHints`
 
 - **TOOLKIT-66** — After authoring, `GeneralWorker` reads the actual git diff and fires only the heavier
   obligations that diff proves were needed: a touched `.anneal/architecture/` `## Contract` section runs
-  the contract check, a touched or `covers:`-matched architecture document runs the absorbed
-  architecture-agreement obligation, and a plausibly public API signature change widens the verifier
-  question into a tenet check. Untouched surfaces do not trigger those checks speculatively.
+  the contract check, and a touched or `covers:`-matched architecture document runs the absorbed
+  architecture-agreement obligation. A public-signature diff widens the verifier question into a tenet
+  check only for production paths and only when the changed line looks like a declaration: either a
+  recognized public type declaration keyword or a member declaration with a return/type token immediately
+  before the identifier and parameter list. Public test-method additions do not fire the tenet check.
+  Untouched surfaces do not trigger those checks speculatively.
   *Verified by:* `GeneralWorkerContractTests.GeneralWorkerPostflightFiresOnlyTriggeredChecks`,
-  `GeneralWorkerContractTests.GeneralWorkerPostflightSkipsChecksForUntouchedSurfaces`
+  `GeneralWorkerContractTests.GeneralWorkerPostflightSkipsChecksForUntouchedSurfaces`,
+  `GeneralWorkerContractTests.GeneralWorkerPostflightIgnoresPublicTestMethodAdditionForTenetCheck`,
+  `GeneralWorkerContractTests.GeneralWorkerPostflightRunsTenetCheckForProductionPublicMemberOrTypeDeclaration`
 
 - **TOOLKIT-67** — `GeneralWorker` skips `Verifier` only when, after excluding Anneal's own
   `.anneal/logs/` bookkeeping, every changed path is documentation-only (`docs/`, Markdown, or

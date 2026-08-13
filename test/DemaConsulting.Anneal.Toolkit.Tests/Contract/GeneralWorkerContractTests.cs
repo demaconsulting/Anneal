@@ -118,6 +118,108 @@ public class GeneralWorkerContractTests
     }
 
     [Fact]
+    public async Task GeneralWorkerContractClausePreflightRunsPlannerForThreeOrMoreChangedFileHints()
+    {
+        var root = CreateTemporaryDirectory("gw-contract-wide");
+        try
+        {
+            // Arrange: contract framing with three distinct hint files represents a wide contract edit.
+            var endpoint = new QueuedEndpoint(
+                """{"kind":"Plan","why":"","planSummary":"coordinate the contract edit","planSteps":["update docs","update code","update tests"]}""",
+                "I updated the docs.",
+                AuthoredJson(["docs/guide.md"], "updated the docs"),
+                "I updated the code.",
+                CompletedJson([], "left the code unchanged"));
+            var recordStore = new RecordStore(root);
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/docs/guide.md b/docs/guide.md\n--- a/docs/guide.md\n+++ b/docs/guide.md\n@@ -1 +1 @@\n-old\n+new\n"),
+                recordStore: recordStore);
+
+            // Act: run a contract-clause-worded request with three changed-file hints.
+            var result = await worker.RunAsync(
+                MakeBrief(
+                    "Update the contract clause wording for the feature.",
+                    changedFileHints: [".anneal/architecture/toolkit/feature.md", "src/Feature.cs", "test/FeatureTests.cs"]),
+                TestContext.Current.CancellationToken);
+
+            // Assert: Planner and DocumentAuthor both ran before Developer.
+            var steps = ReadRecordedSteps(root);
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Contains(steps, line => line.Contains("Preflight:PlanAndDocument", StringComparison.Ordinal)),
+                () => Assert.Contains(steps, line => line.Contains("\"step\":\"Planner\"", StringComparison.Ordinal)),
+                () => Assert.Contains(steps, line => line.Contains("\"step\":\"DocumentAuthor\"", StringComparison.Ordinal)),
+                () => Assert.Contains(steps, line => line.Contains("\"step\":\"Developer\"", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerContractClausePreflightSkipsPlannerForOneOrTwoChangedFileHints()
+    {
+        foreach (var hints in new[]
+        {
+            new[] { ".anneal/architecture/toolkit/feature.md" },
+            new[] { ".anneal/architecture/toolkit/feature.md", "src/Feature.cs" }
+        })
+        {
+            var root = CreateTemporaryDirectory($"gw-contract-narrow-{hints.Length}");
+            try
+            {
+                // Arrange: one-file and two-file contract edits should stay on the document-only preflight path.
+                var endpoint = new QueuedEndpoint(
+                    "I updated the docs.",
+                    AuthoredJson(["docs/guide.md"], "updated the docs"),
+                    "I updated the code.",
+                    CompletedJson([], "left the code unchanged"));
+                var recordStore = new RecordStore(root);
+                var worker = new GeneralWorker(
+                    root,
+                    Effort.Large,
+                    "planner charter",
+                    "document charter",
+                    "developer charter",
+                    "verifier charter",
+                    endpointFor: _ => endpoint,
+                    buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                    runGit: SequencedGitStub(
+                        "diff --git a/docs/guide.md b/docs/guide.md\n--- a/docs/guide.md\n+++ b/docs/guide.md\n@@ -1 +1 @@\n-old\n+new\n"),
+                    recordStore: recordStore);
+
+                // Act: run a contract-clause-worded request below the wide-scope threshold.
+                var result = await worker.RunAsync(
+                    MakeBrief("Update the contract clause wording for the feature.", changedFileHints: hints),
+                    TestContext.Current.CancellationToken);
+
+                // Assert: DocumentAuthor ran, but Planner did not.
+                var steps = ReadRecordedSteps(root);
+                Assert.Multiple(
+                    () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                    () => Assert.Contains(steps, line => line.Contains("Preflight:Document", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("\"step\":\"DocumentAuthor\"", StringComparison.Ordinal)),
+                    () => Assert.Contains(steps, line => line.Contains("\"step\":\"Developer\"", StringComparison.Ordinal)),
+                    () => Assert.DoesNotContain(steps, line => line.Contains("\"step\":\"Planner\"", StringComparison.Ordinal)));
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task GeneralWorkerPostflightFiresOnlyTriggeredChecks()
     {
         var root = CreateTemporaryDirectory("gw-triggered");
@@ -229,6 +331,94 @@ public class GeneralWorkerContractTests
         finally
         {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerPostflightIgnoresPublicTestMethodAdditionForTenetCheck()
+    {
+        var root = CreateTemporaryDirectory("gw-public-test-method");
+        try
+        {
+            // Arrange: a public test method is executable test surface, not production API surface.
+            var endpoint = new QueuedEndpoint(
+                "I added the test.",
+                CompletedJson(["test/PublicApiTests.cs"], "added the test"),
+                PassedVerifierJson());
+            var worker = new GeneralWorker(
+                root,
+                Effort.Large,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                runGit: SequencedGitStub(
+                    "diff --git a/test/PublicApiTests.cs b/test/PublicApiTests.cs\n--- a/test/PublicApiTests.cs\n+++ b/test/PublicApiTests.cs\n@@ -0,0 +1 @@\n+public void SomeTestMethod()\n"));
+
+            // Act: run with a tenet that would be included only if public API surface was detected.
+            var result = await worker.RunAsync(
+                MakeBrief("Add a public test method.", tenets: ["Never expose an unstable public API by accident"]),
+                TestContext.Current.CancellationToken);
+
+            // Assert: verifier still runs for the test diff, but without the tenet expansion.
+            var verifierText = string.Join("\n", endpoint.Requests[^1].Messages.Select(message => message.Text));
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.DoesNotContain("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
+                () => Assert.Equal(3, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkerPostflightRunsTenetCheckForProductionPublicMemberOrTypeDeclaration()
+    {
+        foreach (var diff in new[]
+        {
+            "diff --git a/src/PublicApi.cs b/src/PublicApi.cs\n--- a/src/PublicApi.cs\n+++ b/src/PublicApi.cs\n@@ -0,0 +1 @@\n+public string NewName() => \"new\";\n",
+            "diff --git a/src/PublicType.cs b/src/PublicType.cs\n--- a/src/PublicType.cs\n+++ b/src/PublicType.cs\n@@ -0,0 +1 @@\n+public class PublicType\n"
+        })
+        {
+            var root = CreateTemporaryDirectory("gw-public-api");
+            try
+            {
+                // Arrange: production public member and type declarations are public API surface.
+                var endpoint = new QueuedEndpoint(
+                    "I added public API.",
+                    CompletedJson(["src/PublicApi.cs"], "added public API"),
+                    PassedVerifierJson());
+                var worker = new GeneralWorker(
+                    root,
+                    Effort.Large,
+                    "planner charter",
+                    "document charter",
+                    "developer charter",
+                    "verifier charter",
+                    endpointFor: _ => endpoint,
+                    buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "all good")),
+                    runGit: SequencedGitStub(diff));
+
+                // Act: run with a tenet that should be included for public production API changes.
+                var result = await worker.RunAsync(
+                    MakeBrief("Add public API.", tenets: ["Never expose an unstable public API by accident"]),
+                    TestContext.Current.CancellationToken);
+
+                // Assert: the verifier prompt includes the tenet expansion.
+                var verifierText = string.Join("\n", endpoint.Requests[^1].Messages.Select(message => message.Text));
+                Assert.Multiple(
+                    () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                    () => Assert.Contains("Also judge the diff against these repository tenets", verifierText, StringComparison.Ordinal),
+                    () => Assert.Equal(3, endpoint.Calls));
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 
