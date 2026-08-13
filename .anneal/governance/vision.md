@@ -16,9 +16,9 @@ sequencing itself. This keeps the process cheap per change and usable on weaker 
 model too weak to write correct code is still too weak to use.
 
 Anneal does not only react to requests — it can propose its own maintenance and architectural work on
-a repository, under the same reversibility guard as anything a person asks for: everything short of a
-published release, an install into another repository, or a real-world tool grant reaches `main` only
-through the ordinary route of branch, review, and test.
+a repository. Whatever route a change takes to `main`, it stays reversible and gated by the same tests
+and checks any other change must pass, right up until a published release, an install into another
+repository, or a real-world tool grant makes it irreversible.
 
 Anneal separates two responsibilities: a front-end that carries the narrative conversation with the
 user, and a back-end that runs classified, compiled operations. Both can live in the same Toolkit
