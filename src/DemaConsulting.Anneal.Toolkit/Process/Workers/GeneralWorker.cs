@@ -131,6 +131,21 @@ internal sealed class GeneralWorker
         var preflight = SelectPreflightObligations(brief);
         RecordStep(parentInvocationId, $"Preflight:{preflight.StepName}", OperationOutcome.Succeeded);
 
+        var (preflightTerminal, state) = await RunPreflightAsync(brief, preflight, parentInvocationId, cancellationToken)
+            .ConfigureAwait(false);
+        if (preflightTerminal is not null)
+            return preflightTerminal;
+
+        return await RunPostflightAsync(brief, preflight, parentInvocationId, state!, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<(WorkerExecutionResult? Terminal, AuthoringRunState? State)> RunPreflightAsync(
+        WorkerBrief brief,
+        PreflightObligationDecision preflight,
+        string parentInvocationId,
+        CancellationToken cancellationToken)
+    {
         ImplementationPlan? plan = null;
         var documentationRole = preflight.SuggestedRoles.DocumentAuthorRole;
         var codeRole = preflight.SuggestedRoles.DeveloperRole;
@@ -145,7 +160,7 @@ internal sealed class GeneralWorker
                     cancellationToken)
                 .ConfigureAwait(false);
             if (planTerminal is not null)
-                return planTerminal;
+                return (planTerminal, null);
 
             plan = selectedPlan;
         }
@@ -161,7 +176,7 @@ internal sealed class GeneralWorker
                     cancellationToken)
                 .ConfigureAwait(false);
             if (documentTerminal is not null)
-                return documentTerminal;
+                return (documentTerminal, null);
 
             documentation = documentChanges!;
         }
@@ -175,13 +190,29 @@ internal sealed class GeneralWorker
                 documentation)
             .ConfigureAwait(false);
         if (developerTerminal is not null)
-            return developerTerminal;
+            return (developerTerminal, null);
 
-        var code = initialCode!;
-        var documentationRepairBudget = _effortProfile.DocumentationRepairBudget;
-        var codeRepairBudget = _effortProfile.CodeRepairBudget;
-        var tenetRepairBudget = _effortProfile.TenetRepairBudget;
+        return (
+            null,
+            new AuthoringRunState(
+                plan,
+                documentation,
+                initialCode!,
+                documentationRole,
+                codeRole,
+                tenetRole,
+                _effortProfile.DocumentationRepairBudget,
+                _effortProfile.CodeRepairBudget,
+                _effortProfile.TenetRepairBudget));
+    }
 
+    private async Task<WorkerExecutionResult> RunPostflightAsync(
+        WorkerBrief brief,
+        PreflightObligationDecision preflight,
+        string parentInvocationId,
+        AuthoringRunState state,
+        CancellationToken cancellationToken)
+    {
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -198,7 +229,7 @@ internal sealed class GeneralWorker
                 return new WorkerExecutionResult(
                     OperationOutcome.Escalated,
                     null,
-                    ComposeInterrupted(documentation, code),
+                    ComposeInterrupted(state.Documentation, state.Code),
                     [new ProcessNote("the postflight diff could not be read, so required obligations could not be classified honestly")]);
 
             var diff = DiffCheck.ExcludingAnnealBookkeeping(observedDiff);
@@ -207,7 +238,7 @@ internal sealed class GeneralWorker
                 return new WorkerExecutionResult(
                     OperationOutcome.Escalated,
                     null,
-                    ComposeInterrupted(documentation, code),
+                    ComposeInterrupted(state.Documentation, state.Code),
                     [new ProcessNote(
                         "the postflight diff contained edits but no parseable changed-file headers, so obligations could not be classified honestly")]);
 
@@ -216,7 +247,7 @@ internal sealed class GeneralWorker
                 return new WorkerExecutionResult(
                     OperationOutcome.Escalated,
                     null,
-                    ComposeInterrupted(documentation, code),
+                    ComposeInterrupted(state.Documentation, state.Code),
                     [new ProcessNote(
                         $"the actual change touched protected path '{dangerousProtectedPath}', which needs your approval")]);
 
@@ -240,7 +271,7 @@ internal sealed class GeneralWorker
                         return new WorkerExecutionResult(
                             OperationOutcome.Escalated,
                             null,
-                            ComposeInterrupted(documentation, code),
+                            ComposeInterrupted(state.Documentation, state.Code),
                             [.. gateNotes, new ProcessNote("the diff after the architecture-agreement obligation could not be read honestly")]);
 
                     diff = DiffCheck.ExcludingAnnealBookkeeping(refreshed);
@@ -261,43 +292,14 @@ internal sealed class GeneralWorker
                     evidence.Add(contractCheck.Finding);
             }
 
-            StepResult<VerificationFinding> verified;
-            if (assessment.SkipVerifier)
-            {
-                verified = TryVerifyDeterministically(evidence) ??
-                    new StepResult<VerificationFinding>(
-                        OperationOutcome.Succeeded,
-                        new VerificationFinding
-                        {
-                            Verdict = VerificationVerdict.Passed,
-                            Concerns = [],
-                            AdvisoryNotes = [],
-                            EvidenceSufficient = true
-                        },
-                        []);
-                RecordStep(
-                    parentInvocationId,
-                    verified.Outcome == OperationOutcome.Succeeded ? "Verifier:skipped" : "Verifier:deterministic-only",
-                    verified.Outcome);
-            }
-            else
-            {
-                verified = await _verifier
-                    .VerifyAsync(
-                        VerificationIntent.ContractConformance,
-                        evidence,
-                        assessment.RunTenetCheck ? VerifierQuestionBase + brief.RenderTenetSection() : VerifierQuestionBase,
-                        cancellationToken,
-                        diff)
-                    .ConfigureAwait(false);
-                RecordStep(parentInvocationId, "Verifier", verified.Outcome);
-            }
+            var verified = await VerifyPostflightAsync(brief, assessment, evidence, diff, parentInvocationId, cancellationToken)
+                .ConfigureAwait(false);
 
             if (verified.Outcome == OperationOutcome.Succeeded &&
                 verified.Finding?.Verdict == VerificationVerdict.Passed)
                 return new WorkerExecutionResult(
                     OperationOutcome.Succeeded,
-                    new WorkerRunResult.Completed(ComposeSummary(documentation, code, gateCorrectedFiles)),
+                    new WorkerRunResult.Completed(ComposeSummary(state.Documentation, state.Code, gateCorrectedFiles)),
                     null,
                     gateNotes);
 
@@ -305,147 +307,30 @@ internal sealed class GeneralWorker
                 return new WorkerExecutionResult(
                     OperationOutcome.Escalated,
                     null,
-                    ComposeInterrupted(documentation, code),
+                    ComposeInterrupted(state.Documentation, state.Code),
                     [.. gateNotes, .. verified.Notes, .. verified.Finding?.AdvisoryNotes.Select(note => new ProcessNote(note)) ?? []]);
 
             if (verified.Outcome == OperationOutcome.Refused)
                 return new WorkerExecutionResult(
                     OperationOutcome.Failed,
                     null,
-                    ComposeInterrupted(documentation, code),
+                    ComposeInterrupted(state.Documentation, state.Code),
                     [.. gateNotes, .. verified.Notes]);
 
-            var verdict = verified.Finding?.Verdict;
-            var concerns = verified.Finding?.Concerns ?? [];
-            var documentationFixes = concerns
-                .Where(concern => concern.Owner == VerificationOwner.Documentation)
-                .Select(concern => concern.FixText)
-                .ToList();
-            var codeFixes = concerns
-                .Where(concern => concern.Owner == VerificationOwner.Code)
-                .Select(concern => concern.FixText)
-                .ToList();
-            var tenetFixes = concerns
-                .Where(concern => concern.Owner == VerificationOwner.Tenet)
-                .Select(concern => concern.FixText)
-                .ToList();
-
-            var needsDocumentationRepair =
-                verdict == VerificationVerdict.RepairRequired && documentationFixes.Count > 0;
-            var needsCodeRepair =
-                verdict == VerificationVerdict.RepairRequired && codeFixes.Count > 0;
-            var needsTenetRepair =
-                verdict == VerificationVerdict.RepairRequired && tenetFixes.Count > 0;
-
-            if (needsDocumentationRepair)
+            var repair = SelectPostflightRepair(verified.Finding);
+            if (repair is not null)
             {
-                if (documentationRepairBudget <= 0)
-                    return new WorkerExecutionResult(
-                        OperationOutcome.Failed,
-                        null,
-                        ComposeInterrupted(documentation, code),
-                        [.. gateNotes, new ProcessNote(
-                            "the documentation-repair budget was already spent when another documentation finding arrived")]);
-
-                documentationRepairBudget--;
-                documentationRole = EscalateRole(documentationRole);
-
-                var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
-                        WorkerHelpers.ComposeRepairInstruction(
-                            ComposeDocumentInstruction(brief, plan, preflight),
-                            documentationFixes),
-                        documentationRole,
+                var repairTerminal = await RunPostflightRepairAsync(
+                        repair,
+                        brief,
+                        preflight,
                         parentInvocationId,
-                        "DocumentAuthor:repair",
+                        state,
+                        gateNotes,
                         cancellationToken)
                     .ConfigureAwait(false);
-                if (documentRepairTerminal is not null)
-                    return documentRepairTerminal with
-                    {
-                        Interrupted = documentRepairTerminal.Interrupted ?? ComposeInterrupted(documentation, code)
-                    };
-                documentation = repairedDocument!;
-
-                var (resyncTerminal, resyncCode) = await RunDeveloperAsync(
-                        ComposeCodeInstruction(brief, plan, documentation, preflight),
-                        codeRole,
-                        parentInvocationId,
-                        "Developer:resync",
-                        cancellationToken,
-                        documentation)
-                    .ConfigureAwait(false);
-                if (resyncTerminal is not null)
-                    return resyncTerminal with
-                    {
-                        Interrupted = resyncTerminal.Interrupted ?? ComposeInterrupted(documentation, code)
-                    };
-                code = resyncCode!;
-
-                continue;
-            }
-
-            if (needsCodeRepair)
-            {
-                if (codeRepairBudget <= 0)
-                    return new WorkerExecutionResult(
-                        OperationOutcome.Failed,
-                        null,
-                        ComposeInterrupted(documentation, code),
-                        [.. gateNotes, new ProcessNote(
-                            "the code-repair budget was already spent when another code finding arrived")]);
-
-                codeRepairBudget--;
-                codeRole = EscalateRole(codeRole);
-
-                var (codeRepairTerminal, repairedCode) = await RunDeveloperAsync(
-                        WorkerHelpers.ComposeRepairInstruction(
-                            ComposeCodeInstruction(brief, plan, documentation, preflight),
-                            codeFixes),
-                        codeRole,
-                        parentInvocationId,
-                        "Developer:repair",
-                        cancellationToken,
-                        documentation)
-                    .ConfigureAwait(false);
-                if (codeRepairTerminal is not null)
-                    return codeRepairTerminal with
-                    {
-                        Interrupted = codeRepairTerminal.Interrupted ?? ComposeInterrupted(documentation, code)
-                    };
-                code = repairedCode!;
-
-                continue;
-            }
-
-            if (needsTenetRepair)
-            {
-                if (tenetRepairBudget <= 0)
-                    return new WorkerExecutionResult(
-                        OperationOutcome.Failed,
-                        null,
-                        ComposeInterrupted(documentation, code),
-                        [.. gateNotes, new ProcessNote(
-                            "the tenet-repair budget was already spent when another tenet finding arrived")]);
-
-                tenetRepairBudget--;
-                tenetRole = EscalateRole(tenetRole);
-
-                var (tenetRepairTerminal, repairedTenetCode) = await RunDeveloperAsync(
-                        WorkerHelpers.ComposeRepairInstruction(
-                            ComposeCodeInstruction(brief, plan, documentation, preflight),
-                            tenetFixes),
-                        tenetRole,
-                        parentInvocationId,
-                        "Developer:tenet-repair",
-                        cancellationToken,
-                        documentation)
-                    .ConfigureAwait(false);
-                if (tenetRepairTerminal is not null)
-                    return tenetRepairTerminal with
-                    {
-                        Interrupted = tenetRepairTerminal.Interrupted ?? ComposeInterrupted(documentation, code)
-                    };
-                code = repairedTenetCode!;
+                if (repairTerminal is not null)
+                    return repairTerminal;
 
                 continue;
             }
@@ -453,10 +338,189 @@ internal sealed class GeneralWorker
             return new WorkerExecutionResult(
                 OperationOutcome.Failed,
                 null,
-                ComposeInterrupted(documentation, code),
+                ComposeInterrupted(state.Documentation, state.Code),
                 [.. gateNotes, .. verified.Notes]);
         }
     }
+
+    private async Task<StepResult<VerificationFinding>> VerifyPostflightAsync(
+        WorkerBrief brief,
+        PostflightAssessment assessment,
+        IReadOnlyList<CheckFinding> evidence,
+        DiffFinding diff,
+        string parentInvocationId,
+        CancellationToken cancellationToken)
+    {
+        if (assessment.SkipVerifier)
+        {
+            var deterministicResult = TryVerifyDeterministically(evidence) ??
+                new StepResult<VerificationFinding>(
+                    OperationOutcome.Succeeded,
+                    new VerificationFinding
+                    {
+                        Verdict = VerificationVerdict.Passed,
+                        Concerns = [],
+                        AdvisoryNotes = [],
+                        EvidenceSufficient = true
+                    },
+                    []);
+            RecordStep(
+                parentInvocationId,
+                deterministicResult.Outcome == OperationOutcome.Succeeded ? "Verifier:skipped" : "Verifier:deterministic-only",
+                deterministicResult.Outcome);
+            return deterministicResult;
+        }
+
+        var verified = await _verifier
+            .VerifyAsync(
+                VerificationIntent.ContractConformance,
+                evidence,
+                assessment.RunTenetCheck ? VerifierQuestionBase + brief.RenderTenetSection() : VerifierQuestionBase,
+                cancellationToken,
+                diff)
+            .ConfigureAwait(false);
+        RecordStep(parentInvocationId, "Verifier", verified.Outcome);
+        return verified;
+    }
+
+    private static PostflightRepairRequest? SelectPostflightRepair(VerificationFinding? finding)
+    {
+        if (finding?.Verdict != VerificationVerdict.RepairRequired)
+            return null;
+
+        var documentationFixes = RepairFixesFor(finding, VerificationOwner.Documentation);
+        if (documentationFixes.Count > 0)
+            return new PostflightRepairRequest(VerificationOwner.Documentation, documentationFixes);
+
+        var codeFixes = RepairFixesFor(finding, VerificationOwner.Code);
+        if (codeFixes.Count > 0)
+            return new PostflightRepairRequest(VerificationOwner.Code, codeFixes);
+
+        var tenetFixes = RepairFixesFor(finding, VerificationOwner.Tenet);
+        return tenetFixes.Count > 0 ? new PostflightRepairRequest(VerificationOwner.Tenet, tenetFixes) : null;
+    }
+
+    private static IReadOnlyList<string> RepairFixesFor(VerificationFinding finding, VerificationOwner owner) =>
+        finding.Concerns
+            .Where(concern => concern.Owner == owner)
+            .Select(concern => concern.FixText)
+            .ToList();
+
+    private async Task<WorkerExecutionResult?> RunPostflightRepairAsync(
+        PostflightRepairRequest repair,
+        WorkerBrief brief,
+        PreflightObligationDecision preflight,
+        string parentInvocationId,
+        AuthoringRunState state,
+        IReadOnlyList<ProcessNote> gateNotes,
+        CancellationToken cancellationToken)
+    {
+        if (!TrySpendRepairBudget(state, repair.Owner, out var spentBudgetNote))
+            return new WorkerExecutionResult(
+                OperationOutcome.Failed,
+                null,
+                ComposeInterrupted(state.Documentation, state.Code),
+                [.. gateNotes, new ProcessNote(spentBudgetNote)]);
+
+        if (repair.Owner == VerificationOwner.Documentation)
+            return await RunDocumentationRepairAsync(repair, brief, preflight, parentInvocationId, state, cancellationToken)
+                .ConfigureAwait(false);
+
+        var role = repair.Owner == VerificationOwner.Code
+            ? state.CodeRole = EscalateRole(state.CodeRole)
+            : state.TenetRole = EscalateRole(state.TenetRole);
+        var stepName = repair.Owner == VerificationOwner.Code ? "Developer:repair" : "Developer:tenet-repair";
+
+        var (terminal, repairedCode) = await RunDeveloperAsync(
+                WorkerHelpers.ComposeRepairInstruction(
+                    ComposeCodeInstruction(brief, state.Plan, state.Documentation, preflight),
+                    repair.Fixes),
+                role,
+                parentInvocationId,
+                stepName,
+                cancellationToken,
+                state.Documentation)
+            .ConfigureAwait(false);
+        if (terminal is not null)
+            return WithInterrupted(terminal, state);
+
+        state.Code = repairedCode!;
+        return null;
+    }
+
+    private async Task<WorkerExecutionResult?> RunDocumentationRepairAsync(
+        PostflightRepairRequest repair,
+        WorkerBrief brief,
+        PreflightObligationDecision preflight,
+        string parentInvocationId,
+        AuthoringRunState state,
+        CancellationToken cancellationToken)
+    {
+        state.DocumentationRole = EscalateRole(state.DocumentationRole);
+
+        var (documentRepairTerminal, repairedDocument) = await RunDocumentAuthorAsync(
+                WorkerHelpers.ComposeRepairInstruction(
+                    ComposeDocumentInstruction(brief, state.Plan, preflight),
+                    repair.Fixes),
+                state.DocumentationRole,
+                parentInvocationId,
+                "DocumentAuthor:repair",
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (documentRepairTerminal is not null)
+            return WithInterrupted(documentRepairTerminal, state);
+        state.Documentation = repairedDocument!;
+
+        var (resyncTerminal, resyncCode) = await RunDeveloperAsync(
+                ComposeCodeInstruction(brief, state.Plan, state.Documentation, preflight),
+                state.CodeRole,
+                parentInvocationId,
+                "Developer:resync",
+                cancellationToken,
+                state.Documentation)
+            .ConfigureAwait(false);
+        if (resyncTerminal is not null)
+            return WithInterrupted(resyncTerminal, state);
+
+        state.Code = resyncCode!;
+        return null;
+    }
+
+    private static bool TrySpendRepairBudget(
+        AuthoringRunState state,
+        VerificationOwner owner,
+        out string spentBudgetNote)
+    {
+        switch (owner)
+        {
+            case VerificationOwner.Documentation:
+                spentBudgetNote = "the documentation-repair budget was already spent when another documentation finding arrived";
+                if (state.DocumentationRepairBudget <= 0)
+                    return false;
+                state.DocumentationRepairBudget--;
+                return true;
+            case VerificationOwner.Code:
+                spentBudgetNote = "the code-repair budget was already spent when another code finding arrived";
+                if (state.CodeRepairBudget <= 0)
+                    return false;
+                state.CodeRepairBudget--;
+                return true;
+            case VerificationOwner.Tenet:
+                spentBudgetNote = "the tenet-repair budget was already spent when another tenet finding arrived";
+                if (state.TenetRepairBudget <= 0)
+                    return false;
+                state.TenetRepairBudget--;
+                return true;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(owner), owner, "Unknown verification owner.");
+        }
+    }
+
+    private static WorkerExecutionResult WithInterrupted(WorkerExecutionResult result, AuthoringRunState state) =>
+        result with
+        {
+            Interrupted = result.Interrupted ?? ComposeInterrupted(state.Documentation, state.Code)
+        };
 
     private async Task<(WorkerExecutionResult? Terminal, ImplementationPlan? Plan)> RunPlannerAsync(
         string question,
@@ -935,6 +999,51 @@ internal sealed class GeneralWorker
 
         return WorkerHelpers.MergeInterrupted(documentation, code);
     }
+
+    private sealed class AuthoringRunState
+    {
+        public AuthoringRunState(
+            ImplementationPlan? plan,
+            DocumentChangeSet? documentation,
+            ChangeSetSummary code,
+            ModelRole documentationRole,
+            ModelRole codeRole,
+            ModelRole tenetRole,
+            int documentationRepairBudget,
+            int codeRepairBudget,
+            int tenetRepairBudget)
+        {
+            Plan = plan;
+            Documentation = documentation;
+            Code = code;
+            DocumentationRole = documentationRole;
+            CodeRole = codeRole;
+            TenetRole = tenetRole;
+            DocumentationRepairBudget = documentationRepairBudget;
+            CodeRepairBudget = codeRepairBudget;
+            TenetRepairBudget = tenetRepairBudget;
+        }
+
+        public ImplementationPlan? Plan { get; set; }
+
+        public DocumentChangeSet? Documentation { get; set; }
+
+        public ChangeSetSummary Code { get; set; }
+
+        public ModelRole DocumentationRole { get; set; }
+
+        public ModelRole CodeRole { get; set; }
+
+        public ModelRole TenetRole { get; set; }
+
+        public int DocumentationRepairBudget { get; set; }
+
+        public int CodeRepairBudget { get; set; }
+
+        public int TenetRepairBudget { get; set; }
+    }
+
+    private sealed record PostflightRepairRequest(VerificationOwner Owner, IReadOnlyList<string> Fixes);
 
     private sealed record PreflightObligationDecision(
         bool NeedsDocumentationFirst,
