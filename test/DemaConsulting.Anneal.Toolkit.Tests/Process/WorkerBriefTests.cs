@@ -22,8 +22,7 @@ public class WorkerBriefTests
             MigrationPresent: true,
             MigrationCurrentStage: "S8 — the primitive library",
             RelevantArchitectureNodes: ["toolkit.md"],
-            ChangedFileHints: ["src/Foo.cs"],
-            Implication: RequestImplication.Writing);
+            ChangedFileHints: ["src/Foo.cs"]);
 
         var ledger = new RoutingLedger
         {
@@ -70,7 +69,7 @@ public class WorkerBriefTests
         var ledger = new RoutingLedger
         {
             OriginalWorkItem = "look into something",
-            Facts = new RepositoryFacts([], [], false, null, [], [], RequestImplication.Unknown),
+            Facts = new RepositoryFacts([], [], false, null, [], []),
             InitialContextArtifacts = []
         };
 
@@ -97,7 +96,7 @@ public class WorkerBriefTests
         var ledger = new RoutingLedger
         {
             OriginalWorkItem = "x",
-            Facts = new RepositoryFacts([], [], false, null, [], [], RequestImplication.Unknown),
+            Facts = new RepositoryFacts([], [], false, null, [], []),
             InitialContextArtifacts = []
         };
 

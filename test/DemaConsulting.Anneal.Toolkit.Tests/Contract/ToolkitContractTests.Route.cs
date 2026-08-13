@@ -57,11 +57,14 @@ public partial class ToolkitContractTests
             var exitCode = await AnnealTool.RunAsync(
                 ["route", "fix the off-by-one bug"], output, [operation], root, TestContext.Current.CancellationToken);
             var written = output.ToString();
+            var routeOracleText = string.Join("\n", endpoint.Requests[0].Messages.Select(message => message.Text));
 
             Assert.Multiple(
                 () => Assert.Equal(AnnealTool.ExitSuccess, exitCode),
                 () => Assert.Contains("src/Foo.cs", written, StringComparison.Ordinal),
-                () => Assert.DoesNotContain("unknown action", written, StringComparison.Ordinal));
+                () => Assert.DoesNotContain("unknown action", written, StringComparison.Ordinal),
+                () => Assert.Contains("Work item: fix the off-by-one bug", routeOracleText, StringComparison.Ordinal),
+                () => Assert.DoesNotContain("Keyword implication:", routeOracleText, StringComparison.Ordinal));
         }
         finally
         {

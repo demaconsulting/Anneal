@@ -57,7 +57,9 @@ public sealed class RouteOperation : IOperation
         - "general": the capability-complete worker. It may author code, contract clauses, and architecture
           documents in one run, deciding its preflight and postflight obligations from the request framing and the
           actual diff. Your real classification job is not choosing among worker identities - that identity is
-          fixed - but choosing the Effort this one worker should run at.
+          fixed - but choosing the Effort this one worker should run at. Judge whether the request is
+          verification-only, research-only, or authoring from the work item text and changed-file hints in this
+          same answer; no separate keyword-derived implication fact is supplied.
 
         When the work should run, answer SelectWorker with workerKey set to exactly "general", and classify Effort
         using exactly one of these four values:

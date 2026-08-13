@@ -1,34 +1,4 @@
-using System.ComponentModel;
-
 namespace DemaConsulting.Anneal.Toolkit.Process.Routing;
-
-/// <summary>
-///     A coarse, deterministic hint about what kind of process a work item's own text is likely to need, decided
-///     by keyword alone rather than by any model call.
-/// </summary>
-/// <remarks>
-///     Deliberately imprecise. This is a fact worth handing to a route oracle as context, not a substitute for the
-///     oracle's own judgement — a keyword match is cheap and honest about being cheap, which is why it is never
-///     treated as the routing decision itself.
-/// </remarks>
-internal enum RequestImplication
-{
-    /// <summary>No scope could be inferred from the work item's own text.</summary>
-    [Description("no scope could be inferred from the work item text")]
-    Unknown,
-
-    /// <summary>The work item's text implies writing or changing code or documentation.</summary>
-    [Description("the work item implies writing or code/documentation changes")]
-    Writing,
-
-    /// <summary>The work item's text implies judging existing work rather than producing new work.</summary>
-    [Description("the work item implies verification only, with no authoring")]
-    VerificationOnly,
-
-    /// <summary>The work item's text implies only looking around, with no authoring or verification.</summary>
-    [Description("the work item implies research only, with no authoring or verification")]
-    ResearchOnly
-}
 
 /// <summary>
 ///     The repository facts a <see cref="Router" /> gathers deterministically before asking a route oracle
@@ -58,16 +28,17 @@ internal enum RequestImplication
 ///     The <c>.anneal/architecture/*.md</c> file names whose own name is mentioned, case-insensitively, in the work
 ///     item's text. Empty when none match, which is an honest answer rather than a guess.
 /// </param>
-/// <param name="ChangedFileHints">The changed-file hints a caller supplied, or empty when none were given.</param>
-/// <param name="Implication">The coarse scope keyword matching implies for this work item.</param>
+/// <param name="ChangedFileHints">
+///     The changed-file hints a caller supplied, or empty when none were given. These are evidence for the route
+///     oracle to judge request intent and scope itself; RepositoryFacts does not pre-classify intent from keywords.
+/// </param>
 internal sealed record RepositoryFacts(
     IReadOnlyList<string> VisionFacts,
     IReadOnlyList<string> TenetFacts,
     bool MigrationPresent,
     string? MigrationCurrentStage,
     IReadOnlyList<string> RelevantArchitectureNodes,
-    IReadOnlyList<string> ChangedFileHints,
-    RequestImplication Implication)
+    IReadOnlyList<string> ChangedFileHints)
 {
     /// <summary>
     ///     Gathers repository facts for a work item, reading only the files this method names and matching only on
@@ -94,8 +65,7 @@ internal sealed record RepositoryFacts(
             MigrationPresent: File.Exists(Path.Combine(root, ".anneal", "work", "active-plan.md")),
             MigrationCurrentStage: ReadMigrationCurrentStage(root),
             RelevantArchitectureNodes: ReadRelevantArchitectureNodes(root, workItem),
-            ChangedFileHints: changedFileHints ?? [],
-            Implication: InferImplication(workItem));
+            ChangedFileHints: changedFileHints ?? []);
     }
 
     /// <remarks>
@@ -272,29 +242,5 @@ internal sealed record RepositoryFacts(
         }
 
         return matches;
-    }
-
-    /// <remarks>
-    ///     Checked in a fixed order — verification, then research, then writing — because a request naming more
-    ///     than one keyword group is read as the more cautious of the two rather than the more active one: judging
-    ///     existing work is a narrower claim than changing it, so a request that mentions both is treated as the
-    ///     narrower reading until an oracle says otherwise.
-    /// </remarks>
-    private static RequestImplication InferImplication(string workItem)
-    {
-        var verificationWords = new[] { "verify", "check", "audit", "review" };
-        var researchWords = new[] { "research", "investigate", "look into", "explore" };
-        var writingWords = new[] { "fix", "implement", "add", "change", "write", "author", "build", "repair" };
-
-        if (verificationWords.Any(word => workItem.Contains(word, StringComparison.OrdinalIgnoreCase)))
-            return RequestImplication.VerificationOnly;
-
-        if (researchWords.Any(word => workItem.Contains(word, StringComparison.OrdinalIgnoreCase)))
-            return RequestImplication.ResearchOnly;
-
-        if (writingWords.Any(word => workItem.Contains(word, StringComparison.OrdinalIgnoreCase)))
-            return RequestImplication.Writing;
-
-        return RequestImplication.Unknown;
     }
 }

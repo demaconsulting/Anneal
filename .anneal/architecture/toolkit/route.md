@@ -25,7 +25,9 @@ escalation.
 
 - **TOOLKIT-23** — `route` routes a real work item through this repository's compiled worker catalog,
   whose one production entry is `general`, and runs that worker at the Effort the route oracle classified.
-  It succeeds when the selected worker completes the work, escalates when the routing oracle or the worker
+  The route oracle judges verification-only, research-only, or authoring intent from the work item text and
+  changed-file hints itself; no precomputed keyword-implication fact is supplied as routing evidence. It
+  succeeds when the selected worker completes the work, escalates when the routing oracle or the worker
   names a step only a person can take, and fails when no route exists, a routing budget is exhausted, or
   the selected worker could not complete the work. On an Escalated or Failed outcome,
   `Router.GroundInterruptedAsync` reconciles the worker's self-reported interrupted data against a
@@ -38,7 +40,8 @@ escalation.
   `interrupted-<timestamp>.patch` under `.anneal/logs/` containing `git diff HEAD -- <those files>` and
   reports the path. A normal Succeeded run never produces a patch file. Snapshot failure is silent and
   non-throwing when git is unavailable or the diff is empty.
-  *Verified by:* `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`,
+  *Verified by:* `ToolkitContractTests.RouteRunsTheSelectedCompiledWorker`,
+  `InterruptedRouteContractTests.RouteReportsFilesWrittenBeforeStopping`,
   `InterruptedRouteContractTests.RouteWritesSnapshotPatchOnInterruptedOutcome`,
   `InterruptedRouteContractTests.SucceededRunProducesNoSnapshotPatch`,
   `InterruptedRouteContractTests.SnapshotFailureDoesNotMaskReportedOutcome`,
@@ -91,7 +94,8 @@ choice is Effort, and `GeneralWorker`'s own deterministic preflight and postflig
 heavier obligations actually fire.
 
 **One oracle question, not two** — the route oracle still answers one narrow typed question per pass:
-select `general`, ask for research, or report no route. Effort is part of that answer, not a second pass.
+select `general`, ask for research, or report no route. Effort and request intent are part of that answer,
+not precomputed by a separate keyword pass.
 
 **Massive still decomposes through Router itself** — decomposition stays recursive through the same Router
 so every phase inherits the same research, cumulative-check, and escalation rules by construction rather
