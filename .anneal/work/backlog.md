@@ -70,6 +70,32 @@ informs the current shape of the system.
   retire all three checks by making the failure they guard against structurally impossible rather than
   mechanically caught after the fact. Not designed and not scheduled: file-tiering is not yet under
   real pressure, and this is recorded as a direction, not a plan.
+  **Design sketch (2026-08-13, design-only per this item's own gate):** rules would move from
+  whole-file units to atomic files under a rule directory, each with front matter naming a stable id,
+  the tags describing which agent/worker/situation it is relevant to, and (where it is the operative
+  form of a contract clause) the clause it belongs to. A compiled selector — deterministic tag-matching,
+  never model-judged, consistent with the model-never-decides-sequencing shape the rest of the process
+  already uses — would assemble exactly the tagged subset for a given invocation instead of whole
+  agent-prompt/standard files. This would re-express, not simply retire, the three curation checks:
+  `PROCESS-I2` becomes structural rather than a phrase-similarity heuristic (two rule ids cannot
+  collide, and a citation is by id rather than restatement, so `NormativeRulesHaveOneOwner`'s current
+  bold-phrase scan is replaced by an exact uniqueness check); `PROCESS-03` becomes "every rule id is
+  tagged into at least one reachable selection path" — the same reachability shape, finer grain;
+  `PROCESS-06` gets *more* accurate rather than disappearing, computing the exact worst-case selection
+  per invocation context instead of today's "largest file" proxy, which is likely a real win given
+  `prompt-authoring.md` already records the current worst case at 16,419 of 20,000 tokens with thin
+  headroom. Against this: the design is **not** trivial or low-risk, so per this item's own gate it
+  should not be implemented now. Two concrete risks make it a Structural Change, not a Small Fix: (1)
+  splitting a standard's flowing prose into small tagged atoms risks stripping exactly the *why*
+  context `prompt-authoring.md`'s "When a Why Earns Its Place" section requires travel with a rule, or
+  forces duplicating that context across atoms — the opposite of what the change is meant to buy; (2)
+  it requires a new manifest/tag vocabulary, a new compiled selector component, and rewriting all three
+  existing mechanical checks at once, which is real machinery for a corpus this repository's own
+  `process.md` contract check currently measures at 9 standards against 2 agent prompts — small enough
+  that file-tiering is not yet the bottleneck the backlog note already says it is not. Recommendation:
+  keep as a recorded direction; revisit once the standards/prompt corpus grows enough that PROCESS-06's
+  headroom is under real pressure, the same trigger condition the skill-corpus re-validation item above
+  already names for a comparable question.
 - **Changing the compiled-in default model candidates needs a Toolkit release** — a role now names an
   ordered list of candidates and resolves to the first the account is offered, so a single
   retirement no longer breaks every repository that has not written its own `.anneal/config.json`:
