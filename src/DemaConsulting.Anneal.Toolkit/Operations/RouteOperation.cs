@@ -27,7 +27,7 @@ namespace DemaConsulting.Anneal.Toolkit.Operations;
 ///     <para>
 ///         <b>Charters are this action's own judgement call, not a rediscovery of one written elsewhere.</b> No
 ///         prose agent's instructions are lifted verbatim the way <see cref="LintFixOperation" /> lifted
-///         <c>lint-fix.agent.md</c>'s guidance, because the Router and its three workers have never had a prose
+///         <c>lint-fix.agent.md</c>'s guidance, because the Router and its catalog worker have never had a prose
 ///         equivalent — <c>dispatch</c> and <c>apply</c> together play a comparable role today, but their
 ///         instructions are written for a conversational agent reading a whole repository's standards tree, not for
 ///         a bounded typed question a route oracle answers once. The charters below are authored fresh, naming each
