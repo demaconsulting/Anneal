@@ -5,6 +5,7 @@ using DemaConsulting.Anneal.Toolkit.Primitives;
 using DemaConsulting.Anneal.Toolkit.Process.Decomposition;
 using DemaConsulting.Anneal.Toolkit.Process.Routing;
 using DemaConsulting.Anneal.Toolkit.Recording;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 
 namespace DemaConsulting.Anneal.Toolkit.Process.Workers;
@@ -52,6 +53,24 @@ internal sealed class GeneralWorker
         Tenet, or 'Passed' when nothing needs fixing. Report the verdict 'RerouteRequired', with your reasoning in
         the advisory notes, only when the change still needs a higher-order human decision — for example a migration-
         scale re-cut of boundaries that should not be settled inside one worker run.
+        """;
+
+    private const string PreflightJudgmentCharter =
+        """
+        You are GeneralWorker's narrow preflight oracle. Classify only the expected file-touch scope and whether the
+        work item can proceed inside this worker or must escalate before authoring. Do not design a plan, propose
+        implementation steps, or decide which existing preflight branch should run.
+
+        Scope vocabulary:
+        - Docs: the expected touch is documentation or architecture-contract prose only.
+        - Code: the expected touch includes production code and may include supporting docs.
+        - Test: the expected touch is tests only or test fixtures/harnesses only.
+
+        Conclusion vocabulary:
+        - TenetViolation: escalate when the request appears to contradict a repository tenet.
+        - VisionViolation: escalate when the request appears to contradict the repository vision or intended product direction.
+        - InsufficientSpecificity: escalate when the request is too underspecified to choose an honest file-touch scope.
+        - Proceed: the request is specific enough and does not visibly violate tenets or vision.
         """;
 
     private readonly string? _buildScript;
@@ -654,6 +673,55 @@ internal sealed class GeneralWorker
     private Developer CreateDeveloper(ModelRole role) =>
         new(_repositoryRoot, _developerCharter, role: role, endpointFor: _endpointFor, runGit: _runGit);
 
+    /// <remarks>
+    ///     This intentionally remains outside <see cref="SelectPreflightObligations" /> until the follow-up wiring
+    ///     pass can decide how an oracle judgement should interact with the deterministic branches already there.
+    /// </remarks>
+    private async Task<PreflightJudgment> JudgePreflightAsync(WorkerBrief brief, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(brief);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var oracle = new Oracle<PreflightJudgment>(_repositoryRoot, PreflightJudgmentCharter, endpointFor: _endpointFor);
+        var result = await oracle
+            .AskAsync("Judge this GeneralWorker preflight.", [ComposePreflightJudgmentQuestion(brief)], cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.Outcome == OperationOutcome.Succeeded && result.Finding is not null)
+            return result.Finding;
+
+        throw new InvalidOperationException(
+            "the preflight judgment oracle could not produce a schema-valid judgment: " +
+            string.Join(" ", result.Notes.Select(note => note.Text)));
+    }
+
+    private static string ComposePreflightJudgmentQuestion(WorkerBrief brief) =>
+        $"""
+         Classify this work item's expected file-touch scope and pre-authoring conclusion.
+
+         Work item:
+         {brief.OriginalWorkItem}
+
+         Effort: {brief.Effort}
+         Why this worker was selected: {brief.ScopeHint}
+         Classification hypothesis: {brief.ClassificationHypothesis ?? "none"}
+
+         Changed-file hints:
+         {RenderLines(brief.ChangedFileHints)}
+
+         Research findings:
+         {brief.RenderResearch()}
+
+         Prior reroutes:
+         {brief.RenderReroutes()}
+
+         Repository tenets:
+         {RenderLines(brief.TenetFacts)}
+
+         Constraint refs:
+         {RenderLines(brief.ConstraintRefs)}
+         """;
+
     private string ComposePlanningQuestion(WorkerBrief brief, PreflightObligationDecision preflight) =>
         $"""
          {brief.OriginalWorkItem}
@@ -762,6 +830,9 @@ internal sealed class GeneralWorker
                Follow this plan: {plan.Summary}
                {string.Join("\n", plan.Steps.Select(step => $"- {step}"))}
                """;
+
+    private static string RenderLines(IReadOnlyList<string> values) =>
+        values.Count == 0 ? "none" : string.Join("\n", values.Select(value => $"- {value}"));
 
     private PreflightObligationDecision SelectPreflightObligations(WorkerBrief brief)
     {
@@ -1128,6 +1199,56 @@ internal sealed class GeneralWorker
         int CodeRepairBudget,
         int TenetRepairBudget,
         ProducedStepRoles SuggestedRoles);
+}
+
+/// <summary>
+///     The schema-enforced answer returned by GeneralWorker's narrow preflight oracle.
+/// </summary>
+internal sealed record PreflightJudgment : IOracleDecision
+{
+    /// <summary>The expected file-touch surface the work item most directly implies.</summary>
+    public required PreflightScope Scope { get; init; }
+
+    /// <summary>Whether the work can proceed or must escalate before authoring.</summary>
+    public required PreflightConclusion Conclusion { get; init; }
+
+    bool IOracleDecision.HasSufficientEvidence => true;
+}
+
+/// <summary>The expected file-touch surface for a preflight judgement.</summary>
+internal enum PreflightScope
+{
+    /// <summary>Documentation or architecture-contract prose only.</summary>
+    [Description("documentation or architecture-contract prose only")]
+    Docs,
+
+    /// <summary>Production code, with or without supporting documentation.</summary>
+    [Description("production code, with or without supporting documentation")]
+    Code,
+
+    /// <summary>Tests, test fixtures, or test harnesses only.</summary>
+    [Description("tests, test fixtures, or test harnesses only")]
+    Test
+}
+
+/// <summary>The pre-authoring conclusion for a preflight judgement.</summary>
+internal enum PreflightConclusion
+{
+    /// <summary>The work item appears to contradict a repository tenet.</summary>
+    [Description("escalate because the request appears to contradict a repository tenet")]
+    TenetViolation,
+
+    /// <summary>The work item appears to contradict the repository vision.</summary>
+    [Description("escalate because the request appears to contradict the repository vision")]
+    VisionViolation,
+
+    /// <summary>The work item is too underspecified for an honest file-touch classification.</summary>
+    [Description("escalate because the request is too underspecified to classify honestly")]
+    InsufficientSpecificity,
+
+    /// <summary>The work item is specific enough and does not visibly violate tenets or vision.</summary>
+    [Description("proceed with the worker run")]
+    Proceed
 }
 
 internal enum GeneralWorkerPreflightBehavior
