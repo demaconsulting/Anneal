@@ -16,9 +16,10 @@ Anneal becomes its own agent CLI. Work arrives at any point on the complexity sp
 classifies it and selects one of a catalog of processes, and each process runs as C# state-flow
 logic — models do the work, and oracles, meaning narrow typed questions with no side effects, decide
 its branches. The prose agents under `.github/agents/` are the bootstrap harness that made this
-reachable, and they are dismantled into that catalog. `helper` and `architecture-design` are
-absorbed last, because a conversation is the hardest control flow to encode — not because they are
-exempt.
+reachable, and they are dismantled into that catalog. `helper` (which absorbed `architecture-design`
+at S23) and `autonomous` (split out of `helper` since, to carry the unattended-run loop) are the two
+remaining, and are absorbed last, because a conversation is the hardest control flow to encode — not
+because they are exempt.
 
 The dividing line in [`../governance/vision.md`](../governance/vision.md) holds for the
 whole journey: control flow and context assembly become code, judgement stays data. Absorbing an
