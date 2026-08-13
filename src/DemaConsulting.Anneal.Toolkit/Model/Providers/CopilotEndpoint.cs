@@ -1,7 +1,5 @@
 using System.Globalization;
-using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.AI;
@@ -385,33 +383,21 @@ public sealed class CopilotEndpoint : IChatEndpoint, IAsyncDisposable
     /// <remarks>
     ///     Carries the SDK's <c>is_override</c> flag on a granted tool's declaration, marking it as an
     ///     intentional replacement of any same-named Copilot CLI built-in. Without the flag the session's tool
-    ///     loop rejects the collision outright, which presents as a tool that is simply never called. Every other
-    ///     member delegates unchanged so the SDK can still invoke the real function.
+    ///     loop rejects the collision outright, which presents as a tool that is simply never called.
+    ///     <see cref="DelegatingAIFunction" /> is Microsoft.Extensions.AI's framework-provided base class for
+    ///     this decorator pattern, so future <see cref="AIFunction" /> members are forwarded without Anneal
+    ///     needing to notice them.
     /// </remarks>
-    private sealed class BuiltInToolOverride(AIFunction inner) : AIFunction
+    private sealed class BuiltInToolOverride(AIFunction inner) : DelegatingAIFunction(inner)
     {
-        // Mirrors the SDK-internal key, which is not visible outside its assembly.
+        /// <remarks>
+        ///     Mirrors the SDK-internal key, which is not visible outside its assembly.
+        /// </remarks>
         private const string OverridesBuiltInToolKey = "is_override";
 
         private readonly IReadOnlyDictionary<string, object?> _additionalProperties =
             new Dictionary<string, object?>(inner.AdditionalProperties) { [OverridesBuiltInToolKey] = true };
 
-        public override string Name => inner.Name;
-
-        public override string Description => inner.Description;
-
-        public override JsonElement JsonSchema => inner.JsonSchema;
-
-        public override JsonElement? ReturnJsonSchema => inner.ReturnJsonSchema;
-
-        public override JsonSerializerOptions JsonSerializerOptions => inner.JsonSerializerOptions;
-
-        public override MethodInfo? UnderlyingMethod => inner.UnderlyingMethod;
-
         public override IReadOnlyDictionary<string, object?> AdditionalProperties => _additionalProperties;
-
-        protected override ValueTask<object?> InvokeCoreAsync(
-            AIFunctionArguments arguments, CancellationToken cancellationToken) =>
-            inner.InvokeAsync(arguments, cancellationToken);
     }
 }
