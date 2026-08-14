@@ -100,6 +100,16 @@ reflection over the typed result. A caller cannot forget the schema, and cannot 
   *Verified by:* `ToolkitContractTests.VerifierQuestionIncludesDisproportionateDeletionCheck`,
   `ToolkitContractTests.VerifierCatchesDisproportionateDeletionAsDocumentationConcern`
 
+- **TOOLKIT-72** — When `GeneralWorker`'s postflight `Verifier` pass refuses with an insufficient-evidence
+  verdict and names a single concrete missing fact (via `VerificationFinding.MissingFact`), the worker
+  runs exactly one bounded `Research` pass using that fact as the query, folds the research answer into
+  the verification question, and re-runs `VerifyAsync` once more. The hard cap is one escalation
+  attempt per postflight cycle, regardless of the second attempt's outcome. If the second attempt still
+  refuses, or the original refusal named no missing fact, the worker falls back to `OperationOutcome.Failed`
+  exactly as it would without escalation.
+  *Verified by:* `GeneralWorkerContractTests.VerifierEscalationRunsOneResearchPassAndReverifiesOnNamedGap`,
+  `GeneralWorkerContractTests.VerifierRefusalWithNoNamedGapFailsImmediatelyWithoutResearch`
+
 ### Requires
 
 - **[Runtime](./runtime.md)** — the invocation record the transcript is captured alongside, and the

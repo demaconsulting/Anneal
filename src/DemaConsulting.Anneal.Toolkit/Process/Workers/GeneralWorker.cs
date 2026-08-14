@@ -55,6 +55,17 @@ internal sealed class GeneralWorker
         scale re-cut of boundaries that should not be settled inside one worker run.
         """;
 
+    /// <remarks>
+    ///     Used only for the one-shot escalation research pass that fills a named gap a verifier refusal identified.
+    ///     A separate constant keeps the intent of this charter distinct from any planner or developer look-around.
+    /// </remarks>
+    private const string VerifierEscalationResearchCharter =
+        """
+        You are performing a focused, read-only look-around to answer a single concrete question that arose during
+        postflight verification. Read only as much as needed to answer the question honestly. Report what you find;
+        do not propose changes or make judgments outside the stated question.
+        """;
+
     private const string PreflightJudgmentCharter =
         """
         You are GeneralWorker's narrow preflight oracle. Classify only the expected file-touch scope and whether the
@@ -344,11 +355,39 @@ internal sealed class GeneralWorker
                     [.. gateNotes, .. verified.Notes, .. verified.Finding?.AdvisoryNotes.Select(note => new ProcessNote(note)) ?? []]);
 
             if (verified.Outcome == OperationOutcome.Refused)
-                return new WorkerExecutionResult(
-                    OperationOutcome.Failed,
-                    null,
-                    ComposeInterrupted(state.Documentation, state.Code),
-                    [.. gateNotes, .. verified.Notes]);
+            {
+                // One bounded escalation attempt: if the refusal named a concrete missing fact,
+                // run a single research pass over that gap and re-verify exactly once.
+                var escalated = await TryEscalateOnMissingFactAsync(
+                        verified.Finding?.MissingFact,
+                        brief,
+                        assessment,
+                        evidence,
+                        diff,
+                        parentInvocationId,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (escalated is not null)
+                    verified = escalated;
+
+                // The escalation's re-verify is a fresh outcome, not covered by the success check
+                // above (which ran before the refusal was known) — so it needs the same check here.
+                if (verified.Outcome == OperationOutcome.Succeeded &&
+                    verified.Finding?.Verdict == VerificationVerdict.Passed)
+                    return new WorkerExecutionResult(
+                        OperationOutcome.Succeeded,
+                        new WorkerRunResult.Completed(ComposeSummary(state.Documentation, state.Code, gateCorrectedFiles)),
+                        null,
+                        gateNotes);
+
+                // Whether or not escalation improved the result, a refusal here means no path forward.
+                if (verified.Outcome == OperationOutcome.Refused)
+                    return new WorkerExecutionResult(
+                        OperationOutcome.Failed,
+                        null,
+                        ComposeInterrupted(state.Documentation, state.Code),
+                        [.. gateNotes, .. verified.Notes]);
+            }
 
             var repair = SelectPostflightRepair(verified.Finding);
             if (repair is not null)
@@ -374,6 +413,49 @@ internal sealed class GeneralWorker
                 ComposeInterrupted(state.Documentation, state.Code),
                 [.. gateNotes, .. verified.Notes]);
         }
+    }
+
+    /// <remarks>
+    ///     Called at most once per postflight cycle, when <see cref="Verifier" /> refused with a named gap.
+    ///     The research pass is bounded at one turn because the question is already maximally narrow — it was
+    ///     named by the verifier itself. A second research turn on the same gap would not be more informative.
+    ///     Returns null when <paramref name="missingFact" /> is null or blank (no targeted research would help)
+    ///     or when research itself fails or refuses, leaving the caller to handle the original refusal.
+    /// </remarks>
+    private async Task<StepResult<VerificationFinding>?> TryEscalateOnMissingFactAsync(
+        string? missingFact,
+        WorkerBrief brief,
+        PostflightAssessment assessment,
+        IReadOnlyList<CheckFinding> evidence,
+        DiffFinding diff,
+        string parentInvocationId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(missingFact))
+            return null;
+
+        var research = new Research(_repositoryRoot, VerifierEscalationResearchCharter, maxTurns: 1, endpointFor: _endpointFor);
+        var researchResult = await research.InvestigateAsync(missingFact, cancellationToken).ConfigureAwait(false);
+        RecordStep(parentInvocationId, "Research:verifier-escalation", researchResult.Outcome);
+
+        if (researchResult.Outcome != OperationOutcome.Succeeded || researchResult.Finding is null)
+            return null;
+
+        // Fold the research finding into the verification question and re-run exactly once.
+        var augmentedQuestion = assessment.RunTenetCheck
+            ? VerifierQuestionBase + brief.RenderTenetSection()
+            : VerifierQuestionBase;
+        augmentedQuestion += $"""
+
+            Additional context obtained by targeted research:
+            {researchResult.Finding.Answer}
+            """;
+
+        var reverified = await _verifier
+            .VerifyAsync(VerificationIntent.ContractConformance, evidence, augmentedQuestion, cancellationToken, diff)
+            .ConfigureAwait(false);
+        RecordStep(parentInvocationId, "Verifier:after-escalation", reverified.Outcome);
+        return reverified;
     }
 
     private async Task<StepResult<VerificationFinding>> VerifyPostflightAsync(

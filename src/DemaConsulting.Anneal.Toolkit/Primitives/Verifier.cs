@@ -207,6 +207,12 @@ internal sealed class Verifier
                 <deterministic-evidence>
                 {(rendered.Length == 0 ? "none" : rendered)}
                 </deterministic-evidence>{diffBlock}
+
+                If the evidence is insufficient to judge honestly, prefer naming a single concrete missing fact in
+                the MissingFact field that, if supplied, would let you reach a verdict. Only leave MissingFact null
+                when no targeted research would help — that is, when the refusal is fundamental and no additional
+                information exists that could resolve it. Do not guess or assume an answer the caller seems to want;
+                an honest refusal with a named gap is always preferred over a confident answer on uncertain ground.
                 """;
     }
 }

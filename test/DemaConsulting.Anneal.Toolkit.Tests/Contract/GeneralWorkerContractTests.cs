@@ -897,6 +897,111 @@ public class GeneralWorkerContractTests
             tenets ?? [],
             changedFileHints ?? []);
 
+    /// <summary>
+    ///     TOOLKIT-72 — when the postflight Verifier refuses with a named missing fact, the worker runs exactly
+    ///     one Research pass, folds the answer in, and re-verifies once; the second attempt's outcome decides
+    ///     the final result.
+    /// </summary>
+    [Fact]
+    public async Task VerifierEscalationRunsOneResearchPassAndReverifiesOnNamedGap()
+    {
+        // Arrange: a preflight, developer pass, then verifier refuses with a named missing fact,
+        // research answers it, and the second verify passes.
+        var root = CreateTemporaryDirectory("gw-escalation");
+        try
+        {
+            var refusalWithNamedGap =
+                """{"verdict":"Refused","concerns":[],"advisoryNotes":[],"evidenceSufficient":false,"missingFact":"Does the change update the contract clause for the affected operation?"}""";
+            var researchRunReply =
+                "I checked the contract clause file and confirmed it was updated in the diff.";
+            var researchProbeReply =
+                """{"question":"Does the change update the contract clause?","answer":"Yes, the diff includes the clause update.","evidenceRefs":[],"implications":"The verifier can now judge.","sufficientForNextDecision":true}""";
+
+            var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
+                "I updated the code.",
+                CompletedJson(["src/Op.cs"], "updated the operation"),
+                refusalWithNamedGap,
+                researchRunReply,
+                researchProbeReply,
+                PassedVerifierJson());
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Small,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "ok")),
+                runGit: SequencedGitStub(
+                    "diff --git a/src/Op.cs b/src/Op.cs\n--- a/src/Op.cs\n+++ b/src/Op.cs\n@@ -1 +1 @@\n-old\n+new\n"));
+
+            // Act
+            var result = await worker.RunAsync(
+                MakeBrief("Update the operation."),
+                TestContext.Current.CancellationToken);
+
+            // Assert: the worker succeeded, consuming all queued replies (preflight + developer + two verifier + research)
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Succeeded, result.Outcome),
+                () => Assert.Equal(7, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    ///     TOOLKIT-72 — when the postflight Verifier refuses with no named missing fact, the worker falls back to
+    ///     Failed immediately without any research pass.
+    /// </summary>
+    [Fact]
+    public async Task VerifierRefusalWithNoNamedGapFailsImmediatelyWithoutResearch()
+    {
+        // Arrange: verifier refuses but supplies no missingFact — no research should run.
+        var root = CreateTemporaryDirectory("gw-refusal-no-gap");
+        try
+        {
+            var refusalNoGap =
+                """{"verdict":"Refused","concerns":[],"advisoryNotes":[],"evidenceSufficient":false}""";
+
+            var endpoint = new QueuedEndpoint(
+                """{"scope":"Code","conclusion":"Proceed"}""",
+                "I updated the code.",
+                CompletedJson(["src/Op.cs"], "updated the operation"),
+                refusalNoGap);
+
+            var worker = new GeneralWorker(
+                root,
+                Effort.Small,
+                "planner charter",
+                "document charter",
+                "developer charter",
+                "verifier charter",
+                endpointFor: _ => endpoint,
+                buildRunScript: (_, _) => Task.FromResult(new ScriptRun(0, "ok")),
+                runGit: SequencedGitStub(
+                    "diff --git a/src/Op.cs b/src/Op.cs\n--- a/src/Op.cs\n+++ b/src/Op.cs\n@@ -1 +1 @@\n-old\n+new\n"));
+
+            // Act
+            var result = await worker.RunAsync(
+                MakeBrief("Update the operation."),
+                TestContext.Current.CancellationToken);
+
+            // Assert: failed with exactly the preflight + developer + verifier calls (no research call)
+            Assert.Multiple(
+                () => Assert.Equal(OperationOutcome.Failed, result.Outcome),
+                () => Assert.Equal(4, endpoint.Calls));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string PassedVerifierJson() =>
         """{"verdict":"Passed","concerns":[],"advisoryNotes":[],"evidenceSufficient":true}""";
 

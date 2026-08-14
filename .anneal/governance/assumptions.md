@@ -29,6 +29,12 @@ maintenance: Only edited by the repository author.
   itself; the same judgment asked as a narrow oracle question is answered reliably instead. A
   mechanical check earns its place only when the property it tests is itself structural — a path, a
   count, a diff's syntactic shape — not when it is standing in for understanding what someone meant.
+  This assumption extends to input augmented by one round of the same call's own requested research:
+  when a verifier names a concrete missing fact and a bounded `Research` pass is run to fill it, the
+  resulting augmented context is treated as sufficiently clear input for a reliable re-judgement. This
+  is a deliberate, stated extension of the same assumption — not a new independent one — and it applies
+  only when the verifier itself identified the gap (ensuring the question remains narrow) and at most
+  once per verification cycle (TOOLKIT-72).
 - **A model erodes hedges and confidence markers in text it reads or repeats.** Qualifying language
   like "probably," "not yet verified," or "deliberately imprecise" tends to flatten or vanish as text
   is read, summarized, or passed along — a downstream reader sees the claim but not the doubt that

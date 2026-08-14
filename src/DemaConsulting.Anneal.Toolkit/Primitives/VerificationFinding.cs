@@ -121,4 +121,16 @@ internal sealed record VerificationFinding
     ///     outcome mapping, the same way <see cref="ResearchFinding.SufficientForNextDecision" /> does for research.
     /// </summary>
     public required bool EvidenceSufficient { get; init; }
+
+    /// <summary>
+    ///     The single concrete fact whose absence caused the insufficient-evidence refusal, or null when
+    ///     <see cref="EvidenceSufficient" /> is true or when no targeted research would help.
+    /// </summary>
+    /// <remarks>
+    ///     Non-null only when <see cref="EvidenceSufficient" /> is false and the verifier can name exactly what
+    ///     it is missing. Null means either the evidence was sufficient, or the refusal is fundamental and no
+    ///     amount of additional evidence would resolve it. <see cref="DemaConsulting.Anneal.Toolkit.Process.Workers.GeneralWorker" /> reads this to decide
+    ///     whether one bounded research pass is worth attempting before giving up.
+    /// </remarks>
+    public string? MissingFact { get; init; }
 }
