@@ -111,8 +111,8 @@ informs the current shape of the system.
   `model-seam.md`) already solves the case a repository can act on itself; what remains is only the
   shipped default, which a Toolkit release exists to update. Sits awkwardly beside that decision but
   is not a design gap — this is an accepted release-process cost, not a build item.
-- **Document the process flowchart once the compiled catalog stabilizes** — the bunny-ears/toolkit-
-  belly shape (two conversational agents feeding a Router that selects among a catalog of compiled
+- **Document the process flowchart once the compiled catalog stabilizes** — the bunny-ears/toolkit-belly
+  shape (two conversational agents feeding a Router that selects among a catalog of compiled
   workers) has no written home yet; `process.md`'s diagram covers only what has landed so far.
   Deferred until the catalog stops changing shape stage to stage.
 - **Design the origination path before self-triggered work is enabled** — a Maintenance sweep,
